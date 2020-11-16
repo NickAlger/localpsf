@@ -1,0 +1,9 @@
+Title: 
+Fast high-rank Hessian approximation for Bayesian ice sheet inverse problems
+
+Abstract:
+Antarctic ice sheet flow is expected to be the dominant contributor to 21st century sea level rise in a warming climate. However, a critical challenge to understanding ice sheet dynamics is the presence of significant sources of uncertainty in the governing flow equations. A leading source of uncertainty is the basal sliding friction, which cannot be measured directly. Instead, it is inferred from satellite observations of the surface ice flow velocity by solving an inverse problem governed by the nonlinear Stokes forward model.
+
+We adopt the Bayesian inference framework to solve this inverse problem and quantify the uncertainty in the solution. The Hessian of the negative log posterior is central to numerical methods for Bayesian inference. However, existing Hessian approximations are based on low-rank approximation methods, which require computing twice as many linearized forward or adjoint partial differential equation (PDE) solves as the numerical rank of the Hessian. These methods are inefficient when the numerical rank of the Hessian is large, as is the case in continental scale ice sheet inverse problems. 
+
+We present a new method for approximating the Hessian, which allows us to form a high-rank approximation using a small number of PDE solves. Our key innovation is a product-convolution approximation that takes advantage of the Hessian's local translation invariance. This leads to fast access to matrix entries, which makes the approximation well suited for hierarchical matrix compression. We apply this product-convolution/hierarchical matrix Hessian approximation to substantially reduce the computational cost of solving the Bayesian ice sheet inverse problem.
