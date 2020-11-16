@@ -1,0 +1,78 @@
+% SIAM Shared Information Template
+% This is information that is shared between the main document and any
+% supplement. If no supplement is required, then this information can
+% be included directly in the main document.
+
+
+% Packages and macros go here
+\usepackage{lipsum}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+%\usepackage[noend]{algorithmic}
+%\usepackage{algorithmic}
+\usepackage[algo2e, ruled, noend, linesnumbered]{algorithm2e}
+%\usepackage[algo2e, ruled, vlined]{algorithm2e}
+\ifpdf
+  \DeclareGraphicsExtensions{.eps,.pdf,.png,.jpg}
+\else
+  \DeclareGraphicsExtensions{.eps}
+\fi
+
+% Add a serial/Oxford comma by default.
+\newcommand{\creflastconjunction}{, and~}
+\newcommand{\nor}[1]{\left\|#1\right\|}
+
+% Used for creating new theorem and remark environments
+\newsiamremark{remark}{Remark}
+\newsiamremark{hypothesis}{Hypothesis}
+\crefname{hypothesis}{Hypothesis}{Hypotheses}
+\newsiamthm{claim}{Claim}
+\newsiamthm{prop}{Proposition}
+\newsiamthm{defn}{Definition}
+\newsiamthm{thm}{Theorem}
+
+% Sets running headers as well as PDF title and authors
+\headers{Fast matrix-free approximation of smoothly varying blur operators}{N. Alger, N. Petra, and O. Ghattas}
+
+% Title. If the supplement option is on, then "Supplementary Material"
+% is automatically inserted before the title.
+\title{Fast matrix-free approximation of smoothly varying blur operators, with application to Hessians in PDE-constrained inverse problems with highly informative data\thanks{Submitted to the editors DATE.
+\funding{This work was funded by }}}
+
+% Authors: full names plus addresses.
+\author{Nick Alger\thanks{Oden Institute, The University of Texas at Austin, Austin, TX 
+  (\email{nalger@oden.utexas.edu}).}
+\and Noemi Petra\thanks{Department of Applied Mathematics, University of California, Merced, Merced, CA. 
+  (\email{npetra@ucmerced.edu}).}
+\and Omar Ghattas\thanks{Oden Institute, The University of Texas at Austin, Austin, TX 
+	(\email{omar@oden.utexas.edu}).}}
+
+\usepackage{amsopn}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\interpolate}{Interpolate}
+\DeclareMathOperator{\Span}{Span}
+\DeclareMathOperator{\vol}{vol}
+
+\newcommand{\computediracresponse}[1]{\text{compute\_dirac\_comb\_response}\left( #1 \right)}
+\newcommand{\ellipsoidsintersect}[2]{\text{ellipsoids\_intersect}\left( #1, #2 \right)}
+\newcommand{\choosebatch}[1]{\text{choose\_sample\_point\_batch}\left( #1 \right)}
+\newcommand{\computekernelentries}[2]{\text{compute\_approximate\_kernel\_entries}\left( #1 , #2 \right)}
+\newcommand{\computeweightingentries}[1]{\text{compute\_weighting\_function\_entries}\left( #1 \right)}
+
+\DeclareFontFamily{U}{wncy}{}
+\DeclareFontShape{U}{wncy}{m}{n}{<->wncyr10}{}
+\DeclareSymbolFont{mcy}{U}{wncy}{m}{n}
+\DeclareMathSymbol{\Sh}{\mathord}{mcy}{"58} 
+
+\SetEndCharOfAlgoLine{}
+%\SetKwIF{If}{ElseIf}{Else}{if}{}{else if}{else}{end if}
+
+%\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+%\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+
+%%% Local Variables: 
+%%% mode:latex
+%%% TeX-master: "ex_article"
+%%% End: 
