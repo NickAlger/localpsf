@@ -218,11 +218,11 @@ public:
                 {
                     const idx_t  idxi = rowidxs[ i ];
                     matrix[ j*n + i ] = eval_values(j*n + i);
-                    if (idxj == idxi)
-                    {
-//                        matrix[ j*n + i ] = 1.0;
-                        matrix[ j*n + i ] = matrix[ j*n + i ] + 20.0;
-                    }
+//                    if (idxj == idxi)
+//                    {
+////                        matrix[ j*n + i ] = 1.0;
+//                        matrix[ j*n + i ] = matrix[ j*n + i ] + 20.0;
+//                    }
                 }// for
             }// for
     }
@@ -537,6 +537,8 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
         timer.pause();
         std::cout << "    done in " << timer << std::endl;
         std::cout << "    size of H-matrix = " << Mem::to_string( A->byte_size() ) << std::endl;
+
+        add_identity(A.get(), 20.0);
 
         if( verbose( 2 ) )
         {
