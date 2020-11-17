@@ -435,13 +435,12 @@ int bem1d ( int user_input )
 int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, double ymax, MatrixXd grid_values)
 {
     real_t        eps  = real_t(1e-4);
-    size_t        n    = 512;
+    size_t        n    = dof_coords.rows();
     const size_t  nmin = 60;
 
+//    double h = 1.0 / double(n);
 
-    double h = 1.0 / double(n);
-
-    printf("This is user_bem1d\n\n");
+    printf("This is user.Custom_bem1d\n\n");
 
     try
     {
@@ -463,17 +462,21 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
 
         for ( size_t i = 0; i < n; i++ )
         {
-            vertices[i]    = new double;
-            vertices[i][0] = h * double(i) + ( h / 2.0 ); // center of [i/h,(i+1)/h]
+            vertices[i]    = new double[2];
+            vertices[i][0] = dof_coords(i,0);
+            vertices[i][1] = dof_coords(i,1);
 
             // set bounding box (support) to [i/h,(i+1)/h]
-            bbmin[i]       = new double;
-            bbmin[i][0]    = h * double(i);
-            bbmax[i]       = new double;
-            bbmax[i][0]    = h * double(i+1);
+            bbmin[i]       = new double[2];
+            bbmin[i][0]    = vertices[i][0];
+            bbmin[i][1]    = vertices[i][1];
+
+            bbmax[i]       = new double[2];
+            bbmax[i][0]    = vertices[i][0];
+            bbmax[i][1]    = vertices[i][1];
         }// for
 
-        unique_ptr< TCoordinate >  coord( new TCoordinate( vertices, 1, bbmin, bbmax ) );
+        unique_ptr< TCoordinate >  coord( new TCoordinate( vertices, 2, bbmin, bbmax ) );
 
         //
         // build cluster tree and block cluster tree
