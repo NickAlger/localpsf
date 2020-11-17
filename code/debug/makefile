@@ -1,6 +1,8 @@
 default: all
 
 HLIBPRO_DIR := /home/nick/hlibpro-2.8.1
+EIGEN_INCLUDE := /home/nick/anaconda3/envs/fenics2/include/eigen3
+
 HLIBPRO_LIB := $(HLIBPRO_DIR)/lib
 HLIBPRO_INCLUDE := $(HLIBPRO_DIR)/include
 HLIBPRO_FLAGS := $(shell $(HLIBPRO_DIR)/bin/hlib-config --cflags --lflags)
@@ -18,6 +20,7 @@ OBJS     := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(CPP_SRCS))
 CPP_DEPS := $(patsubst $(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(CPP_SRCS))
 LDFLAGS  = -shared -L$(HLIBPRO_LIB)
 CXXFLAGS = -I$(HLIBPRO_INCLUDE) \
+           -I$(EIGEN_INCLUDE) \
 		   -O3 -Wall -shared -fPIC -std=c++11
 
 LIBS := -lhpro -Wl,-rpath,$(HLIBPRO_LIB)

@@ -15,6 +15,13 @@
 #include <pybind11/pybind11.h>
 #include <hlib.hh>
 
+#include <Eigen/Dense>
+//#include <Eigen/CXX11/Tensor>
+#include <pybind11/eigen.h>
+
+using namespace Eigen;
+
+
 // The order that the above two header files are loaded seems to affect the result slightly.
 
 namespace py = pybind11;
@@ -108,8 +115,75 @@ rhs ( const idx_t  i,
 }
 
 
+//int main()
+//{
+//  Matrix3d m = Matrix3d::Random();
+//  m = (m + Matrix3d::Constant(1.2)) * 50;
+//  cout << "m =" << endl << m << endl;
+//  Vector3d v(1,2,3);
+//
+//  cout << "m * v =" << endl << m * v << endl;
+//}
+
+VectorXd grid_interpolate(MatrixXd eval_coords,
+                          double xmin, double xmax, double ymin, double ymax,
+                          MatrixXd grid_values)
+{
+    int d = 2;
+    const int N = eval_coords.rows();
+    const int nx = grid_values.rows();
+    const int ny = grid_values.cols();
+    double x_width = (xmax - xmin);
+    double y_width = (ymax - ymin);
+    double num_cells_x = nx-1;
+    double num_cells_y = ny-1;
+    double hx = x_width / num_cells_x;
+    double hy = y_width / num_cells_y;
+
+//    if(eval_coords.cols() != d)
+//        throw runtime_error(std::string('points of different dimension than grid'));
+
+    VectorXd eval_values;
+    eval_values.resize(N);
+    for ( int  k = 0; k < N; ++k )
+    {
+        double px = eval_coords(k,0);
+        double py = eval_coords(k,1);
+
+        if( (px < xmin) || (px >= xmax) || (py < ymin) || (py >= ymax))
+            eval_values(k) = 0.0;
+        else
+        {
+            double quotx = (px - xmin) / hx;
+            int i = (int)quotx;
+            double s = quotx - ((double)i);
+
+            double quoty = (py - ymin) / hy;
+            int j = (int)quoty;
+            double t = quoty - ((double)j);
+
+            double v00 = grid_values(i,   j);
+            double v01 = grid_values(i,   j+1);
+            double v10 = grid_values(i+1, j);
+            double v11 = grid_values(i+1, j+1);
+
+            eval_values(k) = (1.0-s)*(1.0-t)*v00 + (1.0-s)*t*v01 + s*(1.0-t)*v10 + s*t*v11;
+        }
+    }
+    return eval_values;
+}
+
 int bem1d ( int user_input )
 {
+    // eigen test
+    Matrix3d m = Matrix3d::Random();
+    m = (m + Matrix3d::Constant(1.2)) * 50;
+    cout << "m =" << endl << m << endl;
+    Vector3d v(1,2,3);
+
+    cout << "m * v =" << endl << m * v << endl;
+    // end eigen test
+
     real_t        eps  = real_t(1e-4);
     size_t        n    = 512;
     const size_t  nmin = 60;
@@ -316,4 +390,5 @@ PYBIND11_MODULE(user, m) {
     m.doc() = "pybind11 bem1d plugin"; // optional module docstring
 
     m.def("bem1d", &bem1d, "bem1d from hlibpro");
+    m.def("grid_interpolate", &grid_interpolate, "grid_interpolate from cpp");
 }
