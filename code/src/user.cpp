@@ -115,24 +115,17 @@ rhs ( const idx_t  i,
 }
 
 
-//int main()
-//{
-//  Matrix3d m = Matrix3d::Random();
-//  m = (m + Matrix3d::Constant(1.2)) * 50;
-//  cout << "m =" << endl << m << endl;
-//  Vector3d v(1,2,3);
-//
-//  cout << "m * v =" << endl << m * v << endl;
-//}
-
 VectorXd grid_interpolate(MatrixXd eval_coords,
+//                          VectorXd min_point, VectorXd max_pt,
                           double xmin, double xmax, double ymin, double ymax,
-                          MatrixXd grid_values)
+                          MatrixXd & grid_values)
 {
+//    int d = min_point.size()
     int d = 2;
     const int N = eval_coords.rows();
     const int nx = grid_values.rows();
     const int ny = grid_values.cols();
+//    VectorXd widths = max_point - min_point
     double x_width = (xmax - xmin);
     double y_width = (ymax - ymin);
     double num_cells_x = nx-1;
@@ -173,17 +166,69 @@ VectorXd grid_interpolate(MatrixXd eval_coords,
     return eval_values;
 }
 
+
+class CustomTLogCoeffFn : public TCoeffFn< real_t >
+{
+private:
+    const MatrixXd dof_coords;
+    const double xmin;
+    const double xmax;
+    const double ymin;
+    const double ymax;
+    const MatrixXd grid_values;
+
+public:
+    // constructor
+    TLogCoeffFn (MatrixXd dof_coords,
+                 double xmin, double xmax, double ymin, double ymax,
+                 const MatrixXd grid_values)
+            : dof_coords(dof_coords), xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax), grid_values(grid_values)
+    {}
+
+    //
+    // coefficient evaluation
+    //
+    virtual void eval  ( const std::vector< idx_t > &  rowidxs,
+                         const std::vector< idx_t > &  colidxs,
+                         real_t *                      matrix ) const
+    {
+        const size_t  n = rowidxs.size();
+        const size_t  m = colidxs.size();
+
+        MatrixXd<double, n*m, 2> eval_coords;
+
+        for ( size_t  j = 0; j < m; ++j )
+        {
+            const idx_t  idxj = colidxs[ j ];
+            for ( size_t  i = 0; i < n; ++i )
+            {
+                const idx_t  idxi = rowidxs[ i ];
+                eval_coords(j*n + i, 0) = dof_coords(idxj,0) - dof_coords(idxi,0);
+                eval_coords(j*n + i, 1) = dof_coords(idxj,1) - dof_coords(idxi,1);
+            }// for
+        }// for
+
+        MatrixXd eval_values = grid_interpolate(eval_coords, xmin, xmax, ymin, ymax, grid_values);
+
+        for ( size_t  j = 0; j < m; ++j )
+            {
+                for ( size_t  i = 0; i < n; ++i )
+                {
+                    matrix[ j*n + i ] = eval_values(i,j);
+                }// for
+            }// for
+    }
+    using TCoeffFn< real_t >::eval;
+
+    //
+    // return format of matrix, e.g. symmetric or hermitian
+    //
+    virtual matform_t  matrix_format  () const { return MATFORM_SYM; }
+
+};
+
 int bem1d ( int user_input )
 {
-    // eigen test
-    Matrix3d m = Matrix3d::Random();
-    m = (m + Matrix3d::Constant(1.2)) * 50;
-    cout << "m =" << endl << m << endl;
-    Vector3d v(1,2,3);
-
-    cout << "m * v =" << endl << m * v << endl;
-    // end eigen test
-
     real_t        eps  = real_t(1e-4);
     size_t        n    = 512;
     const size_t  nmin = 60;

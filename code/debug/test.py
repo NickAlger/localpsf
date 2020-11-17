@@ -4,22 +4,26 @@
 
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
+from time import time
 import user
 user.bem1d(100)
 
 min_pt = np.array([-1.2, 0.5])
 max_pt = np.array([2.1, 3.3])
 deltas = max_pt - min_pt
-nx = 5
-ny = 4
+nx = 50
+ny = 43
 VG = np.random.randn(nx, ny)
 
-cc = min_pt.reshape((1,-1)) + np.random.rand(1370,2) * deltas.reshape((1,-1))
+cc = min_pt.reshape((1,-1)) + np.random.rand(13709,2) * deltas.reshape((1,-1))
 
 # import matplotlib.pyplot as plt
 # plt.plot(cc[:,0], cc[:,1], '.')
 
+t = time()
 ve = user.grid_interpolate(cc, min_pt[0], max_pt[0], min_pt[1], max_pt[1], VG)
+dt_cpp = time() - t
+print('dt_cpp=', dt_cpp)
 print(ve)
 
 xx = np.linspace(min_pt[0], max_pt[0], nx)
@@ -28,5 +32,8 @@ RGI = RegularGridInterpolator((xx, yy), VG, method='linear', bounds_error=True, 
 ve2 = RGI(cc)
 print(ve2)
 
+t = time()
 err_interp = np.linalg.norm(ve - ve2)
+dt_scipy = time() - t
+print('dt_scipy=', dt_scipy)
 print('err_interp=', err_interp)
