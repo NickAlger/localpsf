@@ -118,7 +118,7 @@ rhs ( const idx_t  i,
 VectorXd grid_interpolate(MatrixXd eval_coords,
 //                          VectorXd min_point, VectorXd max_pt,
                           double xmin, double xmax, double ymin, double ymax,
-                          MatrixXd & grid_values)
+                          MatrixXd grid_values)
 {
 //    int d = min_point.size()
     int d = 2;
@@ -170,18 +170,18 @@ VectorXd grid_interpolate(MatrixXd eval_coords,
 class CustomTLogCoeffFn : public TCoeffFn< real_t >
 {
 private:
-    const MatrixXd dof_coords;
-    const double xmin;
-    const double xmax;
-    const double ymin;
-    const double ymax;
-    const MatrixXd grid_values;
+    MatrixXd dof_coords;
+    double xmin;
+    double xmax;
+    double ymin;
+    double ymax;
+    MatrixXd grid_values;
 
 public:
     // constructor
-    TLogCoeffFn (MatrixXd dof_coords,
+    CustomTLogCoeffFn (MatrixXd dof_coords,
                  double xmin, double xmax, double ymin, double ymax,
-                 const MatrixXd grid_values)
+                 MatrixXd grid_values)
             : dof_coords(dof_coords), xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax), grid_values(grid_values)
     {}
 
@@ -195,7 +195,8 @@ public:
         const size_t  n = rowidxs.size();
         const size_t  m = colidxs.size();
 
-        MatrixXd<double, n*m, 2> eval_coords;
+        MatrixXd eval_coords;
+        eval_coords.resize(n*m, 2);
 
         for ( size_t  j = 0; j < m; ++j )
         {
@@ -208,13 +209,13 @@ public:
             }// for
         }// for
 
-        MatrixXd eval_values = grid_interpolate(eval_coords, xmin, xmax, ymin, ymax, grid_values);
+        VectorXd eval_values = grid_interpolate(eval_coords, xmin, xmax, ymin, ymax, grid_values);
 
         for ( size_t  j = 0; j < m; ++j )
             {
                 for ( size_t  i = 0; i < n; ++i )
                 {
-                    matrix[ j*n + i ] = eval_values(i,j);
+                    matrix[ j*n + i ] = eval_values(j*n + i);
                 }// for
             }// for
     }
