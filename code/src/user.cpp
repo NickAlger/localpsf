@@ -213,9 +213,16 @@ public:
 
         for ( size_t  j = 0; j < m; ++j )
             {
+                const idx_t  idxj = colidxs[ j ];
                 for ( size_t  i = 0; i < n; ++i )
                 {
+                    const idx_t  idxi = rowidxs[ i ];
                     matrix[ j*n + i ] = eval_values(j*n + i);
+                    if (idxj == idxi)
+                    {
+//                        matrix[ j*n + i ] = 1.0;
+                        matrix[ j*n + i ] = matrix[ j*n + i ] + 20.0;
+                    }
                 }// for
             }// for
     }
@@ -432,7 +439,8 @@ int bem1d ( int user_input )
 }
 
 
-int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, double ymax, MatrixXd grid_values)
+int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, double ymax,
+                  MatrixXd grid_values, VectorXd rhs_b)
 {
     real_t        eps  = real_t(1e-4);
     size_t        n    = dof_coords.rows();
@@ -456,33 +464,39 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
         // build coordinates
         //
 
-        vector< double * >  vertices( n, NULL );
-        vector< double * >  bbmin( n, NULL );
-        vector< double * >  bbmax( n, NULL );
+        vector< double * >  vertices( n );
+//        vector< double * >  vertices( n, NULL );
+//        vector< double * >  bbmin( n, NULL );
+//        vector< double * >  bbmax( n, NULL );
 
         for ( size_t i = 0; i < n; i++ )
         {
-            vertices[i]    = new double[2];
-            vertices[i][0] = dof_coords(i,0);
-            vertices[i][1] = dof_coords(i,1);
+            double * v    = new double[2];
+            v[0] = dof_coords(i,0);
+            v[1] = dof_coords(i,1);
+            vertices[i] = v;
+//            vertices[i][0] = dof_coords(i,0);
+//            vertices[i][1] = dof_coords(i,1);
 
-            // set bounding box (support) to [i/h,(i+1)/h]
-            bbmin[i]       = new double[2];
-            bbmin[i][0]    = vertices[i][0];
-            bbmin[i][1]    = vertices[i][1];
-
-            bbmax[i]       = new double[2];
-            bbmax[i][0]    = vertices[i][0];
-            bbmax[i][1]    = vertices[i][1];
+//            // set bounding box (support) to [i/h,(i+1)/h]
+//            bbmin[i]       = new double[2];
+//            bbmin[i][0]    = vertices[i][0];
+//            bbmin[i][1]    = vertices[i][1];
+//
+//            bbmax[i]       = new double[2];
+//            bbmax[i][0]    = vertices[i][0];
+//            bbmax[i][1]    = vertices[i][1];
         }// for
 
-        unique_ptr< TCoordinate >  coord( new TCoordinate( vertices, 2, bbmin, bbmax ) );
+//        unique_ptr< TCoordinate >  coord( new TCoordinate( vertices, 2, bbmin, bbmax ) );
+        auto coord = make_unique< TCoordinate >( vertices, 2 );
 
         //
         // build cluster tree and block cluster tree
         //
 
-        TAutoBSPPartStrat  part_strat;
+//        TAutoBSPPartStrat  part_strat;
+        TCardBSPPartStrat  part_strat;
         TBSPCTBuilder      ct_builder( & part_strat, nmin );
         auto               ct = ct_builder.build( coord.get() );
         TStdGeomAdmCond    adm_cond( 2.0 );
@@ -494,8 +508,8 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
             TPSClusterVis        c_vis;
             TPSBlockClusterVis   bc_vis;
 
-            c_vis.print( ct->root(), "bem1d_ct" );
-            bc_vis.print( bct->root(), "bem1d_bct" );
+            c_vis.print( ct->root(), "custom_bem2d_ct" );
+            bc_vis.print( bct->root(), "custom_bem2d_bct" );
         }// if
 
         //
@@ -507,7 +521,7 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
         TTimer                    timer( WALL_TIME );
         TConsoleProgressBar       progress;
         TTruncAcc                 acc( eps, 0.0 );
-        TLogCoeffFn               log_coefffn( h );
+        CustomTLogCoeffFn         log_coefffn( dof_coords, xmin, xmax, ymin, ymax, grid_values );
         TPermCoeffFn< real_t >    coefffn( & log_coefffn, ct->perm_i2e(), ct->perm_i2e() );
         TACAPlus< real_t >        aca( & coefffn );
         TDenseMBuilder< real_t >  h_builder( & coefffn, & aca );
@@ -527,7 +541,7 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
         if( verbose( 2 ) )
         {
             mvis.svd( true );
-            mvis.print( A.get(), "bem1d_A" );
+            mvis.print( A.get(), "custom_bem2d_A" );
         }// if
 
         {
@@ -539,7 +553,7 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
             auto         x = A->col_vector();
 
             for ( size_t  i = 0; i < n; i++ )
-                b->set_entry( i, rhs( i, n ) );
+                b->set_entry( i, rhs_b( i) );
 
             // bring into H-ordering
             ct->perm_e2i()->permute( b.get() );
@@ -589,7 +603,7 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
                   << inv_approx_2( A.get(), A_inv.get() ) << std::endl;
 
         if( verbose( 2 ) )
-            mvis.print( B.get(), "bem1d_LU" );
+            mvis.print( B.get(), "custom_bem2d_LU" );
 
         //
         // solve with LU decomposition
@@ -598,7 +612,7 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
         auto  b = A->row_vector();
 
         for ( size_t  i = 0; i < n; i++ )
-            b->set_entry( i, rhs( i, n ) );
+            b->set_entry( i, rhs_b( i ) );
 
         std::cout << std::endl << "━━ solving system" << std::endl;
 
@@ -642,5 +656,6 @@ PYBIND11_MODULE(user, m) {
     m.doc() = "pybind11 bem1d plugin"; // optional module docstring
 
     m.def("bem1d", &bem1d, "bem1d from hlibpro");
+    m.def("Custom_bem1d", &Custom_bem1d, "Custom_bem1d from hlibpro");
     m.def("grid_interpolate", &grid_interpolate, "grid_interpolate from cpp");
 }
