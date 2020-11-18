@@ -295,9 +295,9 @@ public:
                 Vector2d z = pp.row(i) + yy.row(k) - xx.row(k);
                 if (point_is_in_ellipsoid(z, mus.row(i), Sigmas[i], tau))
                 {
-                    double w = grid_interpolate_at_one_point(xx.row(i), xmin, xmax, ymin, ymax, ww_arrays[i]);
-                    double phi = grid_interpolate_at_one_point(z, xmin, xmax, ymin, ymax, eta_array);
-                    pc_entries(k) += w * phi;
+                    double w_ik = grid_interpolate_at_one_point(xx.row(k), xmin, xmax, ymin, ymax, ww_arrays[i]);
+                    double phi_ik = grid_interpolate_at_one_point(z, xmin, xmax, ymin, ymax, eta_array);
+                    pc_entries(k) += w_ik * phi_ik;
                 }
             }
         }

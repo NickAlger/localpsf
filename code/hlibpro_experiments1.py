@@ -81,7 +81,11 @@ pcb = hlibpro_experiments1.ProductConvolutionOneBatch(eta_array, ww_arrays, pp, 
 num_eval_pts = 53
 ss = np.random.randn(num_eval_pts,2)
 tt = np.random.randn(num_eval_pts,2)
+
+t = time()
 vv = pcb.compute_entries(tt, ss)
+dt_entries_cpp = time() - t
+print('dt_entries_cpp=', dt_entries_cpp)
 
 
 ####
@@ -103,8 +107,13 @@ PC = BatchProductConvolution(eval_eta_batches, eval_weighting_functions_w,
                              sample_point_batches, mean_batches, covariance_batches_Sigma,
                              tau)
 
+t = time()
 vv2 = PC._compute_product_convolution_entries_one_batch(tt, ss, 0)
-# vv2 = PC._compute_product_convolution_entries_one_batch(ss, tt, 0)
+dt_entries_py = time() - t
+print('dt_entries_py=', dt_entries_py)
+
+err_ProductConvolutionOneBatch = np.linalg.norm(vv - vv2)
+print('err_ProductConvolutionOneBatch=', err_ProductConvolutionOneBatch)
 
 #####
 
