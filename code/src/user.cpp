@@ -116,10 +116,61 @@ rhs ( const idx_t  i,
     return value;
 }
 
+double grid_interpolate_at_one_point(const VectorXd p,
+                                     const double xmin, const double xmax,
+                                     const double ymin, const double ymax,
+                                     const MatrixXd & grid_values)
+{
+    const int nx = grid_values.rows();
+    const int ny = grid_values.cols();
+
+    double x_width = (xmax - xmin);
+    double y_width = (ymax - ymin);
+    double num_cells_x = nx-1;
+    double num_cells_y = ny-1;
+    double hx = x_width / num_cells_x;
+    double hy = y_width / num_cells_y;
+
+    double value_at_p;
+    if( (p(0) < xmin) || (p(0) >= xmax) || (p(1) < ymin) || (p(1) >= ymax))
+        value_at_p = 0.0;
+    else
+    {
+        double quotx = (p(0) - xmin) / hx;
+        int i = (int)quotx;
+        double s = quotx - ((double)i);
+
+        double quoty = (p(1) - ymin) / hy;
+        int j = (int)quoty;
+        double t = quoty - ((double)j);
+
+        double v00 = grid_values(i,   j);
+        double v01 = grid_values(i,   j+1);
+        double v10 = grid_values(i+1, j);
+        double v11 = grid_values(i+1, j+1);
+
+        value_at_p = (1.0-s)*(1.0-t)*v00 + (1.0-s)*t*v01 + s*(1.0-t)*v10 + s*t*v11;
+    }
+    return value_at_p;
+}
 
 VectorXd grid_interpolate(const MatrixXd & eval_coords,
                           double xmin, double xmax, double ymin, double ymax,
                           const MatrixXd & grid_values)
+{
+    const int N = eval_coords.rows();
+    VectorXd eval_values(N);
+    for ( int  k = 0; k < N; ++k )
+    {
+        VectorXd pk = eval_coords.row(k);
+        eval_values(k) = grid_interpolate_at_one_point(pk, xmin, xmax, ymin, ymax, grid_values);
+    }
+    return eval_values;
+}
+
+VectorXd grid_interpolate_vectorized(const MatrixXd & eval_coords,
+                                     double xmin, double xmax, double ymin, double ymax,
+                                     const MatrixXd & grid_values)
 {
 //    int d = min_point.size()
     int d = 2;
@@ -137,8 +188,8 @@ VectorXd grid_interpolate(const MatrixXd & eval_coords,
 //    if(eval_coords.cols() != d)
 //        throw runtime_error(std::string('points of different dimension than grid'));
 
-    VectorXd eval_values;
-    eval_values.resize(N);
+    VectorXd eval_values(N);
+//    eval_values.resize(N);
     for ( int  k = 0; k < N; ++k )
     {
         double px = eval_coords(k,0);
@@ -173,6 +224,31 @@ bool point_is_in_ellipsoid(Vector2d z, Vector2d mu, Matrix2d Sigma, double tau)
     return ( p.dot(Sigma.lu().solve(p)) < pow(tau, 2) );
 }
 
+//MatrixXd vstack_matrices(std::vector<MatrixXd> & MM)
+//{
+//    int num_mats = MM.size();
+//    int nrow = 0;
+//    for (i = 0; i < num_mats; ++i)
+//        nrow = nrow + MM[i].rows()
+//
+//    MatrixXd M;
+//    M.resize(nrow, 2)
+//
+//    int cur_row = 0;
+//    for (i = 0; i < num_mats; ++i)
+//    {
+//        for (j = 0; j < MM[i].rows(); ++j)
+//        {
+//            for (k = 0; k < MM[i].cols(); ++k)
+//            {
+//                M(cur_row, k) = MM[i](j, k);
+//            }
+//            cur_row = cur_row + 1;
+//        }
+//    }
+//    return M;
+//}
+
 struct ProductConvolutionBatch
 {
     double xmin;
@@ -195,79 +271,93 @@ struct ProductConvolutionBatch
         for ( int  i = 0; i < num_batch_points; ++i )
             ww_at_xx[i] = grid_interpolate(xx, bpc.xmin, bpc.xmax, bpc.ymin, bpc.ymax, ww_arrays[i]);
 
-        std::vector<std::list<Vector2d>> all_nonzero_zz(num_batch_points);
-        std::vector<std::list<int>> all_nonzero_k_inds(num_batch_points);
+        std::vector<MatrixXd> all_nonzero_zz(num_batch_points);
+        std::vector<Vector<int, Dynamic>> all_nonzero_k_inds(num_batch_points);
+        int num_nonzero_z = 0;
         for ( int  i = 0; i < num_batch_points; ++i )
         {
             std::list<Vector2d> nonzero_zz;
-            std::list<int> nonzero_k_inds;
+            std::list<int> nonzero_inds_list;
             for ( int k = 0; k < num_eval_points; ++k )
             {
-                Vector2d z;
-                z(0) = pp(i, 0) + yy(k, 0) - xx(k, 0);
-                z(0) = pp(i, 1) + yy(k, 1) - xx(k, 1);
-
+                Vector2d z = pp.row(i) + yy.row(k) - xx.row(k);
                 if (point_is_in_ellipsoid(z, mus[i], Sigmas[i], tau))
                 {
                     nonzero_zz.push_back(z);
-                    nonzero_k_inds.push_back(k);
+                    nonzero_inds_list.push_back(k);
+
+                    grid_interpolate_at_one_point(z, xmin, xmax, ymin, ymax, eta_array);
+
+                    num_nonzero_z = num_nonzero_z + 1;
                 }
             }
-            all_nonzero_zz[i] = nonzero_zz;
-            all_nonzero_k_inds[i] = nonzero_k_inds;
+            int si = nonzero_zz.size();
+            Matrix<double, si, 2> Zi;
+            Vector<double, si> nonzero_inds;
+            for ( j = 0; j < si; ++j)
+            {
+                nonzero_inds(j) = nonzero_inds_list.pop();
+                Vector2D z = nonzero_zz.pop();
+                Zk(j,0) = z(0);
+                Zk(j,1) = z(1);
+            }
+            all_nonzero_zz[i] = Zi;
+            all_nonzero_k_inds[i] = nonzero_inds;
         }
+
+        MatrixXd Z = vstack_matrices(all_nonzero_zz);
 
     }
 };
 
-VectorXd compute_product_convolution_entries_one_batch(const MatrixXd & xx, const MatrixXd & yy,
-                                                       ProductConvolutionBatch & pcb)
-{
-    num_batch_points = ww_arrays.size();
-    num_eval_points = xx.rows();
-
-    std::vector<VectorXd> ww_at_xx(num_batch_points);
-    for ( int  i = 0; i < num_batch_points; ++i )
-    {
-        ww_at_xx[i] = grid_interpolate(xx, bpc.xmin, bpc.xmax, bpc.ymin, bpc.ymax, ww_arrays[i]);
-    }
-
-    std::vector<std::list<Vector2d>> all_nonzero_zz(num_batch_points);
-    std::vector<std::list<int>> all_nonzero_k_inds(num_batch_points);
-    for ( int  i = 0; i < num_batch_points; ++i )
-    {
-        std::list<Vector2d> nonzero_zz;
-        std::list<int> nonzero_k_inds;
-        for ( int k = 0; k < num_eval_points; ++k )
-        {
-            Vector2d z;
-            z(0) = pp(i, 0) + yy(k, 0) - xx(k, 0);
-            z(0) = pp(i, 1) + yy(k, 1) - xx(k, 1);
-
-
-
-            if (point_is_in_ellipsoid(z, mu, Sigma, tau))
-        }
-    }
-        all_nonzero_zz = []
-        all_nonzero_k_inds = []
-        for ii in range(num_batch_points):
-            zz = pp[ii,:].reshape((1,-1)) + yy - xx
-            eval_inds_in_ellipsoid = np.logical_not(points_which_are_not_in_ellipsoid_numba(Sigma[ii,:,:], mu[ii,:], zz, me.tau))
-            all_nonzero_zz.append(zz[eval_inds_in_ellipsoid,:])
-            all_nonzero_k_inds.append(eval_inds_in_ellipsoid)
-
-        nonzero_zz_vector = np.vstack(all_nonzero_zz)
-        # print('len(nonzero_zz_vector)=', len(nonzero_zz_vector), ', num_batch_points*num_eval_points=', num_batch_points*num_eval_points)
-        nonzero_Phi = _unpack_vector((z.shape[0] for z in all_nonzero_zz), eval_eta(nonzero_zz_vector))
-
-        hh = np.zeros(num_eval_points)
-        for nonzero_k_inds, w_at_xx, nonzero_phi_k in zip(all_nonzero_k_inds, ww_at_xx, nonzero_Phi):
-            hh[nonzero_k_inds] = hh[nonzero_k_inds] + w_at_xx[nonzero_k_inds] * nonzero_phi_k
-        return hh
-
-
-}
+//VectorXd compute_product_convolution_entries_one_batch(const MatrixXd & xx, const MatrixXd & yy,
+//                                                       ProductConvolutionBatch & pcb)
+//{
+//    num_batch_points = ww_arrays.size();
+//    num_eval_points = xx.rows();
+//
+//    std::vector<VectorXd> ww_at_xx(num_batch_points);
+//    for ( int  i = 0; i < num_batch_points; ++i )
+//    {
+//        ww_at_xx[i] = grid_interpolate(xx, bpc.xmin, bpc.xmax, bpc.ymin, bpc.ymax, ww_arrays[i]);
+//    }
+//
+//    std::vector<std::list<Vector2d>> all_nonzero_zz(num_batch_points);
+//    std::vector<std::list<int>> all_nonzero_k_inds(num_batch_points);
+//    for ( int  i = 0; i < num_batch_points; ++i )
+//    {
+//        std::list<Vector2d> nonzero_zz;
+//        std::list<int> nonzero_k_inds;
+//        for ( int k = 0; k < num_eval_points; ++k )
+//        {
+//            Vector2d z;
+//            z(0) = pp(i, 0) + yy(k, 0) - xx(k, 0);
+//            z(0) = pp(i, 1) + yy(k, 1) - xx(k, 1);
+//
+//
+//
+//            if (point_is_in_ellipsoid(z, mu, Sigma, tau))
+//        }
+//    }
+//        all_nonzero_zz = []
+//        all_nonzero_k_inds = []
+//        for ii in range(num_batch_points):
+//            zz = pp[ii,:].reshape((1,-1)) + yy - xx
+//            eval_inds_in_ellipsoid = np.logical_not(points_which_are_not_in_ellipsoid_numba(Sigma[ii,:,:], mu[ii,:], zz, me.tau))
+//            all_nonzero_zz.append(zz[eval_inds_in_ellipsoid,:])
+//            all_nonzero_k_inds.append(eval_inds_in_ellipsoid)
+//
+//        nonzero_zz_vector = np.vstack(all_nonzero_zz)
+//        # print('len(nonzero_zz_vector)=', len(nonzero_zz_vector), ', num_batch_points*num_eval_points=', num_batch_points*num_eval_points)
+//        nonzero_Phi = _unpack_vector((z.shape[0] for z in all_nonzero_zz), eval_eta(nonzero_zz_vector))
+//
+//        hh = np.zeros(num_eval_points)
+//        for nonzero_k_inds, w_at_xx, nonzero_phi_k in zip(all_nonzero_k_inds, ww_at_xx, nonzero_Phi):
+//            hh[nonzero_k_inds] = hh[nonzero_k_inds] + w_at_xx[nonzero_k_inds] * nonzero_phi_k
+//        return hh
+//
+//
+//}
 
 class CustomTLogCoeffFn : public TCoeffFn< real_t >
 {
@@ -311,7 +401,7 @@ public:
             }// for
         }// for
 
-        VectorXd eval_values = grid_interpolate(eval_coords, xmin, xmax, ymin, ymax, grid_values);
+        VectorXd eval_values = grid_interpolate_vectorized(eval_coords, xmin, xmax, ymin, ymax, grid_values);
 
         for ( size_t  j = 0; j < m; ++j )
             {
@@ -762,4 +852,5 @@ PYBIND11_MODULE(user, m) {
     m.def("bem1d", &bem1d, "bem1d from hlibpro");
     m.def("Custom_bem1d", &Custom_bem1d, "Custom_bem1d from hlibpro");
     m.def("grid_interpolate", &grid_interpolate, "grid_interpolate from cpp");
+    m.def("grid_interpolate_vectorized", &grid_interpolate_vectorized, "grid_interpolate_vectorized from cpp");
 }

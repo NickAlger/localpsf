@@ -16,7 +16,7 @@ nx = 50
 ny = 43
 VG = np.random.randn(nx, ny)
 
-cc = min_pt.reshape((1,-1)) + np.random.rand(13709,2) * deltas.reshape((1,-1))
+cc = min_pt.reshape((1,-1)) + np.random.rand(62683,2) * deltas.reshape((1,-1))
 
 # plt.plot(cc[:,0], cc[:,1], '.')
 
@@ -25,6 +25,12 @@ ve = user.grid_interpolate(cc, min_pt[0], max_pt[0], min_pt[1], max_pt[1], VG)
 dt_cpp = time() - t
 print('dt_cpp=', dt_cpp)
 print(ve)
+
+t = time()
+ve1 = user.grid_interpolate_vectorized(cc, min_pt[0], max_pt[0], min_pt[1], max_pt[1], VG)
+dt_cpp_vectorized = time() - t
+print('dt_cpp_vectorized=', dt_cpp_vectorized)
+print(ve1)
 
 xx = np.linspace(min_pt[0], max_pt[0], nx)
 yy = np.linspace(min_pt[1], max_pt[1], ny)
