@@ -303,6 +303,9 @@ private:
     std::vector<ProductConvolutionOneBatch> pc_batches;
 
 public:
+//    ProductConvolutionMultipleBatches(ProductConvolutionMultipleBatches pcb) : pc_batches(pcb.pc_batches)
+//    {}
+
     ProductConvolutionMultipleBatches(std::vector<MatrixXd> eta_array_batches,
                                       std::vector<std::vector<MatrixXd>> ww_array_batches,
                                       std::vector<MatrixXd> pp_batches,
@@ -323,7 +326,7 @@ public:
                                         }
                                       }
 
-    VectorXd compute_entries(const MatrixXd & yy, const MatrixXd & xx)
+    VectorXd compute_entries(const MatrixXd & yy, const MatrixXd & xx) const
     {
         return compute_product_convolution_entries(yy, xx, pc_batches);
     }
@@ -333,8 +336,8 @@ public:
 class ProductConvolutionCoeffFn : public TCoeffFn< real_t >
 {
 private:
-    const ProductConvolutionMultipleBatches pcb;
-    const MatrixXd dof_coords;
+    ProductConvolutionMultipleBatches pcb;
+    MatrixXd dof_coords;
 
 public:
     ProductConvolutionCoeffFn (const ProductConvolutionMultipleBatches & pcb, MatrixXd dof_coords)
@@ -362,7 +365,7 @@ public:
             yy.row(j) = dof_coords.row(idxj);
         }
 
-        VectorXd eval_values = pcb.compute_values(yy, xx);
+        VectorXd eval_values = pcb.compute_entries(yy, xx);
 
         for ( size_t  j = 0; j < m; ++j )
             {
