@@ -279,12 +279,13 @@ public:
                                   mus(mus), Sigmas(Sigmas), tau(tau)
                                   {}
 
-    VectorXd compute_entries(const MatrixXd & xx, const MatrixXd & yy)
+    VectorXd compute_entries(const MatrixXd & yy, const MatrixXd & xx)
     {
         int num_batch_points = ww_arrays.size();
         int num_eval_points = xx.rows();
 
         VectorXd pc_entries(num_eval_points);
+        pc_entries.setZero();
         for ( int  i = 0; i < num_batch_points; ++i )
         {
             for ( int k = 0; k < num_eval_points; ++k )
