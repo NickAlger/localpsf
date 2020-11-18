@@ -366,24 +366,14 @@ public:
 
         for ( size_t  j = 0; j < m; ++j )
             {
-                const idx_t  idxj = colidxs[ j ];
                 for ( size_t  i = 0; i < n; ++i )
                 {
-                    const idx_t  idxi = rowidxs[ i ];
                     matrix[ j*n + i ] = eval_values(j*n + i);
-//                    if (idxj == idxi)
-//                    {
-////                        matrix[ j*n + i ] = 1.0;
-//                        matrix[ j*n + i ] = matrix[ j*n + i ] + 20.0;
-//                    }
                 }// for
             }// for
     }
     using TCoeffFn< real_t >::eval;
 
-    //
-    // return format of matrix, e.g. symmetric or hermitian
-    //
     virtual matform_t  matrix_format  () const { return MATFORM_SYM; }
 
 };
