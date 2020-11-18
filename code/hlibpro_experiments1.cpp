@@ -713,7 +713,8 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
 //        TAutoBSPPartStrat  part_strat;
         TCardBSPPartStrat  part_strat;
         TBSPCTBuilder      ct_builder( & part_strat, nmin );
-        auto               ct = ct_builder.build( coord.get() );
+//        auto               ct = ct_builder.build( coord.get() );
+        std::unique_ptr<HLIB::TClusterTree>             ct = ct_builder.build( coord.get() );
         TStdGeomAdmCond    adm_cond( 2.0 );
         TBCBuilder         bct_builder;
         auto               bct = bct_builder.build( ct.get(), ct.get(), & adm_cond );
