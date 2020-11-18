@@ -1,9 +1,9 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 from time import time
-from code import user
+import hlibpro_experiments1
 
-user.bem1d(100)
+hlibpro_experiments1.bem1d(100)
 
 min_pt = np.array([-1.2, 0.5])
 max_pt = np.array([2.1, 3.3])
@@ -17,13 +17,13 @@ cc = min_pt.reshape((1,-1)) + np.random.rand(62683,2) * deltas.reshape((1,-1))
 # plt.plot(cc[:,0], cc[:,1], '.')
 
 t = time()
-ve = user.grid_interpolate(cc, min_pt[0], max_pt[0], min_pt[1], max_pt[1], VG)
+ve = hlibpro_experiments1.grid_interpolate(cc, min_pt[0], max_pt[0], min_pt[1], max_pt[1], VG)
 dt_cpp = time() - t
 print('dt_cpp=', dt_cpp)
 print(ve)
 
 t = time()
-ve1 = user.grid_interpolate_vectorized(cc, min_pt[0], max_pt[0], min_pt[1], max_pt[1], VG)
+ve1 = hlibpro_experiments1.grid_interpolate_vectorized(cc, min_pt[0], max_pt[0], min_pt[1], max_pt[1], VG)
 dt_cpp_vectorized = time() - t
 print('dt_cpp_vectorized=', dt_cpp_vectorized)
 print(ve1)
@@ -60,7 +60,7 @@ dof_coords = np.array([X2.reshape(-1), Y2.reshape(-1)]).T
 
 rhs_b = np.random.randn(dof_coords.shape[0])
 
-user.Custom_bem1d(dof_coords, xmin, xmax, ymin, ymax, V, rhs_b)
+hlibpro_experiments1.Custom_bem1d(dof_coords, xmin, xmax, ymin, ymax, V, rhs_b)
 
 #####
 
