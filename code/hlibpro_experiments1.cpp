@@ -714,10 +714,11 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
         TCardBSPPartStrat  part_strat;
         TBSPCTBuilder      ct_builder( & part_strat, nmin );
 //        auto               ct = ct_builder.build( coord.get() );
-        std::unique_ptr<HLIB::TClusterTree>             ct = ct_builder.build( coord.get() );
+        std::unique_ptr<HLIB::TClusterTree>  ct = ct_builder.build( coord.get() );
         TStdGeomAdmCond    adm_cond( 2.0 );
         TBCBuilder         bct_builder;
-        auto               bct = bct_builder.build( ct.get(), ct.get(), & adm_cond );
+//        auto               bct = bct_builder.build( ct.get(), ct.get(), & adm_cond );
+        std::unique_ptr<HLIB::TBlockClusterTree>  bct = bct_builder.build( ct.get(), ct.get(), & adm_cond );
 
         if( verbose( 2 ) )
         {
@@ -748,7 +749,7 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
 
         timer.start();
 
-        auto  A = h_builder.build( bct.get(), acc, & progress );
+        std::unique_ptr<HLIB::TMatrix>  A = h_builder.build( bct.get(), acc, & progress );
 
         timer.pause();
         std::cout << "    done in " << timer << std::endl;
