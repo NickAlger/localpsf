@@ -227,31 +227,6 @@ bool point_is_in_ellipsoid(VectorXd z, VectorXd mu, MatrixXd Sigma, double tau)
     return ( p.dot(Sigma.lu().solve(p)) < pow(tau, 2) );
 }
 
-//MatrixXd vstack_matrices(std::vector<MatrixXd> & MM)
-//{
-//    int num_mats = MM.size();
-//    int nrow = 0;
-//    for (i = 0; i < num_mats; ++i)
-//        nrow = nrow + MM[i].rows()
-//
-//    MatrixXd M;
-//    M.resize(nrow, 2)
-//
-//    int cur_row = 0;
-//    for (i = 0; i < num_mats; ++i)
-//    {
-//        for (j = 0; j < MM[i].rows(); ++j)
-//        {
-//            for (k = 0; k < MM[i].cols(); ++k)
-//            {
-//                M(cur_row, k) = MM[i](j, k);
-//            }
-//            cur_row = cur_row + 1;
-//        }
-//    }
-//    return M;
-//}
-
 class ProductConvolutionOneBatch
 {
 private:
@@ -267,9 +242,11 @@ private:
     double tau;
 
 public:
-//    ProductConvolutionOneBatch(double ymax)
-//                                : ymax(ymax)
-//                                  {}
+    ProductConvolutionOneBatch(): xmin(), xmax(), ymin(), ymax(),
+                                  eta_array(), ww_arrays(), pp(),
+                                  mus(), Sigmas(), tau()
+                                  {}
+
     ProductConvolutionOneBatch(MatrixXd eta_array,
                                std::vector<MatrixXd> ww_arrays,
                                MatrixXd pp,
@@ -305,54 +282,53 @@ public:
     }
 };
 
-//VectorXd compute_product_convolution_entries_one_batch(const MatrixXd & xx, const MatrixXd & yy,
-//                                                       ProductConvolutionBatch & pcb)
-//{
-//    num_batch_points = ww_arrays.size();
-//    num_eval_points = xx.rows();
-//
-//    std::vector<VectorXd> ww_at_xx(num_batch_points);
-//    for ( int  i = 0; i < num_batch_points; ++i )
-//    {
-//        ww_at_xx[i] = grid_interpolate(xx, bpc.xmin, bpc.xmax, bpc.ymin, bpc.ymax, ww_arrays[i]);
-//    }
-//
-//    std::vector<std::list<Vector2d>> all_nonzero_zz(num_batch_points);
-//    std::vector<std::list<int>> all_nonzero_k_inds(num_batch_points);
-//    for ( int  i = 0; i < num_batch_points; ++i )
-//    {
-//        std::list<Vector2d> nonzero_zz;
-//        std::list<int> nonzero_k_inds;
-//        for ( int k = 0; k < num_eval_points; ++k )
-//        {
-//            Vector2d z;
-//            z(0) = pp(i, 0) + yy(k, 0) - xx(k, 0);
-//            z(0) = pp(i, 1) + yy(k, 1) - xx(k, 1);
-//
-//
-//
-//            if (point_is_in_ellipsoid(z, mu, Sigma, tau))
-//        }
-//    }
-//        all_nonzero_zz = []
-//        all_nonzero_k_inds = []
-//        for ii in range(num_batch_points):
-//            zz = pp[ii,:].reshape((1,-1)) + yy - xx
-//            eval_inds_in_ellipsoid = np.logical_not(points_which_are_not_in_ellipsoid_numba(Sigma[ii,:,:], mu[ii,:], zz, me.tau))
-//            all_nonzero_zz.append(zz[eval_inds_in_ellipsoid,:])
-//            all_nonzero_k_inds.append(eval_inds_in_ellipsoid)
-//
-//        nonzero_zz_vector = np.vstack(all_nonzero_zz)
-//        # print('len(nonzero_zz_vector)=', len(nonzero_zz_vector), ', num_batch_points*num_eval_points=', num_batch_points*num_eval_points)
-//        nonzero_Phi = _unpack_vector((z.shape[0] for z in all_nonzero_zz), eval_eta(nonzero_zz_vector))
-//
-//        hh = np.zeros(num_eval_points)
-//        for nonzero_k_inds, w_at_xx, nonzero_phi_k in zip(all_nonzero_k_inds, ww_at_xx, nonzero_Phi):
-//            hh[nonzero_k_inds] = hh[nonzero_k_inds] + w_at_xx[nonzero_k_inds] * nonzero_phi_k
-//        return hh
-//
-//
-//}
+VectorXd compute_product_convolution_entries(const MatrixXd & yy, const MatrixXd & xx,
+                                             std::vector<ProductConvolutionOneBatch> & PC_batches)
+{
+    int num_batches = PC_batches.size();
+    int num_eval_points = xx.rows();
+
+    VectorXd pc_entries(num_eval_points);
+    pc_entries.setZero();
+    for (int i = 0; i < num_batches; ++i)
+    {
+        pc_entries += PC_batches[i].compute_entries(yy, xx);
+    }
+    return pc_entries;
+}
+
+class ProductConvolutionMultipleBatches
+{
+private:
+    std::vector<ProductConvolutionOneBatch> pc_batches;
+
+public:
+    ProductConvolutionMultipleBatches(std::vector<MatrixXd> eta_array_batches,
+                                      std::vector<std::vector<MatrixXd>> ww_array_batches,
+                                      std::vector<MatrixXd> pp_batches,
+                                      std::vector<MatrixXd> mus_batches,
+                                      std::vector<std::vector<MatrixXd>> Sigmas_batches,
+                                      double tau, double xmin, double xmax, double ymin, double ymax) : pc_batches()
+                                      {
+                                        int num_batches = eta_array_batches.size();
+                                        pc_batches.resize(num_batches);
+                                        for (int i = 0; i < num_batches; ++i)
+                                        {
+                                            pc_batches[i] = ProductConvolutionOneBatch(eta_array_batches[i],
+                                                                                       ww_array_batches[i],
+                                                                                       pp_batches[i],
+                                                                                       mus_batches[i],
+                                                                                       Sigmas_batches[i],
+                                                                                       tau, xmin, xmax, ymin, ymax);
+                                        }
+                                      }
+
+    VectorXd compute_entries(const MatrixXd & yy, const MatrixXd & xx)
+    {
+        return compute_product_convolution_entries(yy, xx, pc_batches);
+    }
+};
+
 
 class CustomTLogCoeffFn : public TCoeffFn< real_t >
 {
@@ -840,23 +816,8 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
     return 0;
 }
 
-struct Pet {
-    Pet(const std::string &name) : name(name) { }
-    void setName(const std::string &name_) { name = name_; }
-    const std::string &getName() const { return name; }
-
-    std::string name;
-};
-
 
 PYBIND11_MODULE(hlibpro_experiments1, m) {
-        py::class_<Pet>(m, "Pet")
-        .def(py::init<const std::string &>())
-        .def("setName", &Pet::setName)
-        .def("getName", &Pet::getName);
-
-//    py::class_<ProductConvolutionOneBatch>(m, "ProductConvolutionOneBatch")
-//        .def(py::init<double>())
     py::class_<ProductConvolutionOneBatch>(m, "ProductConvolutionOneBatch")
         .def(py::init<MatrixXd, // eta
              std::vector<MatrixXd>, // ww
@@ -871,10 +832,25 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
              >())
         .def("compute_entries", &ProductConvolutionOneBatch::compute_entries);
 
+    py::class_<ProductConvolutionMultipleBatches>(m, "ProductConvolutionMultipleBatches")
+        .def(py::init<std::vector<MatrixXd>, // eta_array_batches
+                      std::vector<std::vector<MatrixXd>>, // ww_array_batches
+                      std::vector<MatrixXd>, // pp_batches
+                      std::vector<MatrixXd>, // mus_batches
+                      std::vector<std::vector<MatrixXd>>, // Sigmas_batches
+                      double, // tau
+                      double, // xmin
+                      double, // xmax
+                      double, // ymin
+                      double // ymax
+                      >())
+        .def("compute_entries", &ProductConvolutionMultipleBatches::compute_entries);
+
     m.doc() = "pybind11 bem1d plugin"; // optional module docstring
 
     m.def("bem1d", &bem1d, "bem1d from hlibpro");
     m.def("Custom_bem1d", &Custom_bem1d, "Custom_bem1d from hlibpro");
     m.def("grid_interpolate", &grid_interpolate, "grid_interpolate from cpp");
     m.def("grid_interpolate_vectorized", &grid_interpolate_vectorized, "grid_interpolate_vectorized from cpp");
+    m.def("compute_product_convolution_entries", &compute_product_convolution_entries, "compute_product_convolution_entries from cpp");
 }
