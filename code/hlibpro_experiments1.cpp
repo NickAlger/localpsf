@@ -303,6 +303,9 @@ private:
     std::vector<ProductConvolutionOneBatch> pc_batches;
 
 public:
+//    ProductConvolutionMultipleBatches(ProductConvolutionMultipleBatches pcb) : pc_batches(pcb.pc_batches)
+//    {}
+
     ProductConvolutionMultipleBatches(std::vector<MatrixXd> eta_array_batches,
                                       std::vector<std::vector<MatrixXd>> ww_array_batches,
                                       std::vector<MatrixXd> pp_batches,
@@ -323,10 +326,59 @@ public:
                                         }
                                       }
 
-    VectorXd compute_entries(const MatrixXd & yy, const MatrixXd & xx)
+    VectorXd compute_entries(const MatrixXd & yy, const MatrixXd & xx) const
     {
         return compute_product_convolution_entries(yy, xx, pc_batches);
     }
+};
+
+
+class ProductConvolutionCoeffFn : public TCoeffFn< real_t >
+{
+private:
+    ProductConvolutionMultipleBatches pcb;
+    MatrixXd dof_coords;
+
+public:
+    ProductConvolutionCoeffFn (const ProductConvolutionMultipleBatches & pcb, MatrixXd dof_coords)
+            : pcb(pcb), dof_coords(dof_coords)
+    {}
+
+    virtual void eval  ( const std::vector< idx_t > &  rowidxs,
+                         const std::vector< idx_t > &  colidxs,
+                         real_t *                      matrix ) const
+    {
+        const size_t  n = rowidxs.size();
+        const size_t  m = colidxs.size();
+
+        MatrixXd xx(n,2);
+        for (int i = 0; i < n; ++i)
+        {
+            const idx_t  idxi = rowidxs[ i ];
+            xx.row(i) = dof_coords.row(idxi);
+        }
+
+        MatrixXd yy(m,2);
+        for (int j = 0; j < n; ++j)
+        {
+            const idx_t  idxj = colidxs[ j ];
+            yy.row(j) = dof_coords.row(idxj);
+        }
+
+        VectorXd eval_values = pcb.compute_entries(yy, xx);
+
+        for ( size_t  j = 0; j < m; ++j )
+            {
+                for ( size_t  i = 0; i < n; ++i )
+                {
+                    matrix[ j*n + i ] = eval_values(j*n + i);
+                }// for
+            }// for
+    }
+    using TCoeffFn< real_t >::eval;
+
+    virtual matform_t  matrix_format  () const { return MATFORM_SYM; }
+
 };
 
 
@@ -661,7 +713,8 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
 //        TAutoBSPPartStrat  part_strat;
         TCardBSPPartStrat  part_strat;
         TBSPCTBuilder      ct_builder( & part_strat, nmin );
-        auto               ct = ct_builder.build( coord.get() );
+//        auto               ct = ct_builder.build( coord.get() );
+        std::unique_ptr<HLIB::TClusterTree>             ct = ct_builder.build( coord.get() );
         TStdGeomAdmCond    adm_cond( 2.0 );
         TBCBuilder         bct_builder;
         auto               bct = bct_builder.build( ct.get(), ct.get(), & adm_cond );
