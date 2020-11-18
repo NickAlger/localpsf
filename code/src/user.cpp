@@ -249,64 +249,52 @@ bool point_is_in_ellipsoid(Vector2d z, Vector2d mu, Matrix2d Sigma, double tau)
 //    return M;
 //}
 
-struct ProductConvolutionBatch
+class ProductConvolutionOneBatch
 {
+private:
     double xmin;
     double xmax;
     double ymin;
     double ymax;
     MatrixXd eta_array;
     std::vector<MatrixXd> ww_arrays;
-    std::vector<Vector2d> pp;
-    std::vector<Vector2d> mus;
+    MatrixXd pp;
+    MatrixXd mus;
     std::vector<Matrix2d> Sigmas;
     double tau;
 
-    VectorXd compute_product_convolution_entries(const MatrixXd & xx, const MatrixXd & yy)
+public:
+    ProductConvolutionOneBatch(MatrixXd eta_array,
+                               std::vector<MatrixXd> ww_arrays,
+                               MatrixXd pp,
+                               MatrixXd mus,
+                               std::vector<Matrix2d> Sigmas,
+                               double tau, double xmin, double xmax, double ymin, double ymax)
+                                : xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax),
+                                  eta_array(eta_array), ww_arrays(ww_arrays), pp(pp),
+                                  mus(mus), Sigmas(Sigmas), tau(tau)
+                                  {}
+
+    VectorXd compute_entries(const MatrixXd & xx, const MatrixXd & yy)
     {
-        num_batch_points = ww_arrays.size();
-        num_eval_points = xx.rows();
+        int num_batch_points = ww_arrays.size();
+        int num_eval_points = xx.rows();
 
-        std::vector<VectorXd> ww_at_xx(num_batch_points);
-        for ( int  i = 0; i < num_batch_points; ++i )
-            ww_at_xx[i] = grid_interpolate(xx, bpc.xmin, bpc.xmax, bpc.ymin, bpc.ymax, ww_arrays[i]);
-
-        std::vector<MatrixXd> all_nonzero_zz(num_batch_points);
-        std::vector<Vector<int, Dynamic>> all_nonzero_k_inds(num_batch_points);
-        int num_nonzero_z = 0;
+        VectorXd pc_entries(num_eval_points);
         for ( int  i = 0; i < num_batch_points; ++i )
         {
-            std::list<Vector2d> nonzero_zz;
-            std::list<int> nonzero_inds_list;
             for ( int k = 0; k < num_eval_points; ++k )
             {
                 Vector2d z = pp.row(i) + yy.row(k) - xx.row(k);
-                if (point_is_in_ellipsoid(z, mus[i], Sigmas[i], tau))
+                if (point_is_in_ellipsoid(z, mus.row(i), Sigmas[i], tau))
                 {
-                    nonzero_zz.push_back(z);
-                    nonzero_inds_list.push_back(k);
-
-                    grid_interpolate_at_one_point(z, xmin, xmax, ymin, ymax, eta_array);
-
-                    num_nonzero_z = num_nonzero_z + 1;
+                    double w = grid_interpolate_at_one_point(xx.row(i), xmin, xmax, ymin, ymax, ww_arrays[i]);
+                    double phi = grid_interpolate_at_one_point(z, xmin, xmax, ymin, ymax, eta_array);
+                    pc_entries(k) += w * phi;
                 }
             }
-            int si = nonzero_zz.size();
-            Matrix<double, si, 2> Zi;
-            Vector<double, si> nonzero_inds;
-            for ( j = 0; j < si; ++j)
-            {
-                nonzero_inds(j) = nonzero_inds_list.pop();
-                Vector2D z = nonzero_zz.pop();
-                Zk(j,0) = z(0);
-                Zk(j,1) = z(1);
-            }
-            all_nonzero_zz[i] = Zi;
-            all_nonzero_k_inds[i] = nonzero_inds;
         }
-
-        MatrixXd Z = vstack_matrices(all_nonzero_zz);
-
+        return pc_entries;
     }
 };
 
@@ -845,8 +833,23 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
     return 0;
 }
 
+VectorXd compute_entries(const MatrixXd & xx, const MatrixXd & yy)
 
 PYBIND11_MODULE(user, m) {
+    py::class_<ProductConvolutionOneBatch>(m, "ProductConvolutionOneBatch")
+        .def(py::init<MatrixXd, // eta
+             std::vector<MatrixXd>, // ww
+             MatrixXd, // pp
+             MatrixXd, // mus
+             std::vector<Matrix2d>, // Sigmas
+             double, // tau
+             double, // xmin
+             double, // xmax
+             double, // ymin
+             double  // ymax
+             >())
+        .def("compute_entries", &ProductConvolutionOneBatch::compute_entries);
+
     m.doc() = "pybind11 bem1d plugin"; // optional module docstring
 
     m.def("bem1d", &bem1d, "bem1d from hlibpro");
