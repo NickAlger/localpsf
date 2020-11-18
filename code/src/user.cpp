@@ -11,11 +11,13 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <cmath>
 
 #include <pybind11/pybind11.h>
 #include <hlib.hh>
 
 #include <Eigen/Dense>
+#include <Eigen/LU>
 //#include <Eigen/CXX11/Tensor>
 #include <pybind11/eigen.h>
 
@@ -115,10 +117,9 @@ rhs ( const idx_t  i,
 }
 
 
-VectorXd grid_interpolate(MatrixXd eval_coords,
-//                          VectorXd min_point, VectorXd max_pt,
+VectorXd grid_interpolate(const MatrixXd & eval_coords,
                           double xmin, double xmax, double ymin, double ymax,
-                          MatrixXd grid_values)
+                          const MatrixXd & grid_values)
 {
 //    int d = min_point.size()
     int d = 2;
@@ -166,6 +167,107 @@ VectorXd grid_interpolate(MatrixXd eval_coords,
     return eval_values;
 }
 
+bool point_is_in_ellipsoid(Vector2d z, Vector2d mu, Matrix2d Sigma, double tau)
+{
+    Vector2d p = z - mu;
+    return ( p.dot(Sigma.lu().solve(p)) < pow(tau, 2) );
+}
+
+struct ProductConvolutionBatch
+{
+    double xmin;
+    double xmax;
+    double ymin;
+    double ymax;
+    MatrixXd eta_array;
+    std::vector<MatrixXd> ww_arrays;
+    std::vector<Vector2d> pp;
+    std::vector<Vector2d> mus;
+    std::vector<Matrix2d> Sigmas;
+    double tau;
+
+    VectorXd compute_product_convolution_entries(const MatrixXd & xx, const MatrixXd & yy)
+    {
+        num_batch_points = ww_arrays.size();
+        num_eval_points = xx.rows();
+
+        std::vector<VectorXd> ww_at_xx(num_batch_points);
+        for ( int  i = 0; i < num_batch_points; ++i )
+            ww_at_xx[i] = grid_interpolate(xx, bpc.xmin, bpc.xmax, bpc.ymin, bpc.ymax, ww_arrays[i]);
+
+        std::vector<std::list<Vector2d>> all_nonzero_zz(num_batch_points);
+        std::vector<std::list<int>> all_nonzero_k_inds(num_batch_points);
+        for ( int  i = 0; i < num_batch_points; ++i )
+        {
+            std::list<Vector2d> nonzero_zz;
+            std::list<int> nonzero_k_inds;
+            for ( int k = 0; k < num_eval_points; ++k )
+            {
+                Vector2d z;
+                z(0) = pp(i, 0) + yy(k, 0) - xx(k, 0);
+                z(0) = pp(i, 1) + yy(k, 1) - xx(k, 1);
+
+                if (point_is_in_ellipsoid(z, mus[i], Sigmas[i], tau))
+                {
+                    nonzero_zz.push_back(z);
+                    nonzero_k_inds.push_back(k);
+                }
+            }
+            all_nonzero_zz[i] = nonzero_zz;
+            all_nonzero_k_inds[i] = nonzero_k_inds;
+        }
+
+    }
+};
+
+VectorXd compute_product_convolution_entries_one_batch(const MatrixXd & xx, const MatrixXd & yy,
+                                                       ProductConvolutionBatch & pcb)
+{
+    num_batch_points = ww_arrays.size();
+    num_eval_points = xx.rows();
+
+    std::vector<VectorXd> ww_at_xx(num_batch_points);
+    for ( int  i = 0; i < num_batch_points; ++i )
+    {
+        ww_at_xx[i] = grid_interpolate(xx, bpc.xmin, bpc.xmax, bpc.ymin, bpc.ymax, ww_arrays[i]);
+    }
+
+    std::vector<std::list<Vector2d>> all_nonzero_zz(num_batch_points);
+    std::vector<std::list<int>> all_nonzero_k_inds(num_batch_points);
+    for ( int  i = 0; i < num_batch_points; ++i )
+    {
+        std::list<Vector2d> nonzero_zz;
+        std::list<int> nonzero_k_inds;
+        for ( int k = 0; k < num_eval_points; ++k )
+        {
+            Vector2d z;
+            z(0) = pp(i, 0) + yy(k, 0) - xx(k, 0);
+            z(0) = pp(i, 1) + yy(k, 1) - xx(k, 1);
+
+
+
+            if (point_is_in_ellipsoid(z, mu, Sigma, tau))
+        }
+    }
+        all_nonzero_zz = []
+        all_nonzero_k_inds = []
+        for ii in range(num_batch_points):
+            zz = pp[ii,:].reshape((1,-1)) + yy - xx
+            eval_inds_in_ellipsoid = np.logical_not(points_which_are_not_in_ellipsoid_numba(Sigma[ii,:,:], mu[ii,:], zz, me.tau))
+            all_nonzero_zz.append(zz[eval_inds_in_ellipsoid,:])
+            all_nonzero_k_inds.append(eval_inds_in_ellipsoid)
+
+        nonzero_zz_vector = np.vstack(all_nonzero_zz)
+        # print('len(nonzero_zz_vector)=', len(nonzero_zz_vector), ', num_batch_points*num_eval_points=', num_batch_points*num_eval_points)
+        nonzero_Phi = _unpack_vector((z.shape[0] for z in all_nonzero_zz), eval_eta(nonzero_zz_vector))
+
+        hh = np.zeros(num_eval_points)
+        for nonzero_k_inds, w_at_xx, nonzero_phi_k in zip(all_nonzero_k_inds, ww_at_xx, nonzero_Phi):
+            hh[nonzero_k_inds] = hh[nonzero_k_inds] + w_at_xx[nonzero_k_inds] * nonzero_phi_k
+        return hh
+
+
+}
 
 class CustomTLogCoeffFn : public TCoeffFn< real_t >
 {
