@@ -20,6 +20,7 @@
 #include <Eigen/LU>
 //#include <Eigen/CXX11/Tensor>
 #include <pybind11/eigen.h>
+#include <pybind11/stl.h>
 
 using namespace Eigen;
 
@@ -218,9 +219,9 @@ VectorXd grid_interpolate_vectorized(const MatrixXd & eval_coords,
     return eval_values;
 }
 
-bool point_is_in_ellipsoid(Vector2d z, Vector2d mu, Matrix2d Sigma, double tau)
+bool point_is_in_ellipsoid(VectorXd z, VectorXd mu, MatrixXd Sigma, double tau)
 {
-    Vector2d p = z - mu;
+    VectorXd p = z - mu;
     return ( p.dot(Sigma.lu().solve(p)) < pow(tau, 2) );
 }
 
@@ -260,15 +261,18 @@ private:
     std::vector<MatrixXd> ww_arrays;
     MatrixXd pp;
     MatrixXd mus;
-    std::vector<Matrix2d> Sigmas;
+    std::vector<MatrixXd> Sigmas;
     double tau;
 
 public:
+//    ProductConvolutionOneBatch(double ymax)
+//                                : ymax(ymax)
+//                                  {}
     ProductConvolutionOneBatch(MatrixXd eta_array,
                                std::vector<MatrixXd> ww_arrays,
                                MatrixXd pp,
                                MatrixXd mus,
-                               std::vector<Matrix2d> Sigmas,
+                               std::vector<MatrixXd> Sigmas,
                                double tau, double xmin, double xmax, double ymin, double ymax)
                                 : xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax),
                                   eta_array(eta_array), ww_arrays(ww_arrays), pp(pp),
@@ -833,15 +837,29 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
     return 0;
 }
 
-VectorXd compute_entries(const MatrixXd & xx, const MatrixXd & yy)
+struct Pet {
+    Pet(const std::string &name) : name(name) { }
+    void setName(const std::string &name_) { name = name_; }
+    const std::string &getName() const { return name; }
+
+    std::string name;
+};
+
 
 PYBIND11_MODULE(user, m) {
+        py::class_<Pet>(m, "Pet")
+        .def(py::init<const std::string &>())
+        .def("setName", &Pet::setName)
+        .def("getName", &Pet::getName);
+
+//    py::class_<ProductConvolutionOneBatch>(m, "ProductConvolutionOneBatch")
+//        .def(py::init<double>())
     py::class_<ProductConvolutionOneBatch>(m, "ProductConvolutionOneBatch")
         .def(py::init<MatrixXd, // eta
              std::vector<MatrixXd>, // ww
              MatrixXd, // pp
              MatrixXd, // mus
-             std::vector<Matrix2d>, // Sigmas
+             std::vector<MatrixXd>, // Sigmas
              double, // tau
              double, // xmin
              double, // xmax
