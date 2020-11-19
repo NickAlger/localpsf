@@ -37,7 +37,7 @@ hpro.visualize_cluster_tree(ct, "sparsemat_cluster_tree_from_python")
 hpro.visualize_block_cluster_tree(bct, "sparsemat_block_cluster_tree_from_python")
 
 A_hmatrix = hpro.build_hmatrix_from_sparse_matfile (fname, ct, ct, bct)
-hpro.visualize_hmatrix(A_hmatrix, "hmatrix_from_python")
+hpro.visualize_hmatrix(A_hmatrix, "sparsemat_hmatrix_from_python")
 
 x = np.random.randn(dof_coords.shape[0])
 y = hpro.hmatrix_matvec(A_hmatrix, ct, ct, x)
@@ -46,7 +46,7 @@ y2 = A_csc * x
 err_hmat = np.linalg.norm(y - y2)/np.linalg.norm(y2)
 print('err_hmat=', err_hmat)
 
-# inv_A = hpro.hmatrix_factorized_inverse_destructive(A_hmatrix, 1e-4)
+inv_A = hpro.hmatrix_factorized_inverse_destructive(A_hmatrix, 1e-4)
 # x2 = hpro.hmatrix_factorized_inverse_matvec(inv_A, ct, ct, y)
 #
 # err_hfac = np.linalg.norm(x - x2)/np.linalg.norm(x2)
