@@ -189,3 +189,9 @@ hpro.visualize_hmatrix(A_hmatrix, "hmatrix_from_python")
 
 x = np.random.randn(dof_coords.shape[0])
 y = hpro.hmatrix_matvec(A_hmatrix, ct, ct, x)
+
+inv_A = hpro.hmatrix_factorized_inverse_destructive(A_hmatrix, 1e-4)
+x2 = hpro.hmatrix_factorized_inverse_matvec(inv_A, ct, ct, y)
+
+err_hfac = np.linalg.norm(x - x2)/np.linalg.norm(x2)
+print('err_hfac=', err_hfac)

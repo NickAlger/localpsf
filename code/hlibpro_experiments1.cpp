@@ -746,45 +746,73 @@ VectorXd hmatrix_matvec(HLIB::TMatrix * A_ptr,
     std::unique_ptr<HLIB::TVector> y_hlib = A_ptr->row_vector();
     std::unique_ptr<HLIB::TVector> x_hlib = A_ptr->col_vector();
 
-    int n = y_hlib->size();
-    int m = x_hlib->size();
+//    int n = y_hlib->size();
+//    int m = x_hlib->size();
+    int n = x.size();
+    int m = x.size();
 
     for ( size_t  i = 0; i < m; i++ )
         x_hlib->set_entry( i, x(i) );
 
     col_ct_ptr->perm_e2i()->permute( x_hlib.get() );
 
-    A_ptr->mul_vec(1.0, x_hlib.get(), 0.0, y_hlib.get());
+    A_ptr->apply(x_hlib.get(), y_hlib.get());
 
     row_ct_ptr->perm_i2e()->permute( y_hlib.get() );
 
     VectorXd y(n);
     for ( size_t  i = 0; i < n; i++ )
-        y(i) = x_hlib->entry( i );
+        y(i) = y_hlib->entry( i );
 
     return y;
 }
 
-std::unique_ptr< HLIB::TFacInvMatrix > hmatrix_factorized_inverse(HLIB::TMatrix * A_ptr, double tol)
+VectorXd hmatrix_factorized_inverse_matvec(HLIB::TFacInvMatrix * inv_A_ptr,
+                                           HLIB::TClusterTree * row_ct_ptr,
+                                           HLIB::TClusterTree * col_ct_ptr,
+                                           VectorXd x)
+{
+    // y = inv_A * x
+    std::unique_ptr<HLIB::TVector> y_hlib = inv_A_ptr->matrix()->row_vector();
+    std::unique_ptr<HLIB::TVector> x_hlib = inv_A_ptr->matrix()->col_vector();
+
+//    int n = y_hlib->size();
+//    int m = x_hlib->size();
+    int n = x.size();
+    int m = x.size();
+
+    for ( size_t  i = 0; i < m; i++ )
+        x_hlib->set_entry( i, x(i) );
+
+    col_ct_ptr->perm_e2i()->permute( x_hlib.get() );
+
+    inv_A_ptr->apply(x_hlib.get(), y_hlib.get());
+
+    row_ct_ptr->perm_i2e()->permute( y_hlib.get() );
+
+    VectorXd y(n);
+    for ( size_t  i = 0; i < n; i++ )
+        y(i) = y_hlib->entry( i );
+
+    return y;
+}
+
+std::unique_ptr< HLIB::TFacInvMatrix > hmatrix_factorized_inverse_destructive(HLIB::TMatrix * A_ptr, double tol)
 {
     TTruncAcc                 acc( tol, 0.0 );
     TTimer                    timer( WALL_TIME );
     TConsoleProgressBar       progress;
 
-    auto  B = A_ptr->copy(); // B gets deleted when this function ends ACK.
-
     std::cout << std::endl << "━━ LU factorisation ( tol = " << tol << " )" << std::endl;
 
     timer.start();
 
-    std::unique_ptr<HLIB::TFacInvMatrix> A_inv = factorise_inv( B.get(), acc, & progress );
+    std::unique_ptr<HLIB::TFacInvMatrix> A_inv = factorise_inv( A_ptr, acc, & progress );
 
     timer.pause();
     std::cout << "    done in " << timer << std::endl;
 
-    std::cout << "    size of LU factor = " << Mem::to_string( B->byte_size() ) << std::endl;
-    std::cout << "    inversion error   = " << std::scientific << std::setprecision( 4 )
-              << inv_approx_2( A_ptr, A_inv.get() ) << std::endl;
+    std::cout << "    size of LU factor = " << Mem::to_string( A_ptr->byte_size() ) << std::endl;
 
     return A_inv;
 }
@@ -868,8 +896,12 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
         //
         // LU decomposition
         //
+        auto  B = A->copy(); // B gets deleted when this function ends ACK.
 
-        std::unique_ptr<HLIB::TFacInvMatrix> A_inv = hmatrix_factorized_inverse(A.get(), eps);
+        std::unique_ptr<HLIB::TFacInvMatrix> A_inv = hmatrix_factorized_inverse_destructive(B.get(), eps);
+
+        std::cout << "    inversion error   = " << std::scientific << std::setprecision( 4 )
+            << inv_approx_2( A.get(), A_inv.get() ) << std::endl;
 
 //        auto  B = A->copy();
 //
@@ -902,11 +934,19 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
         for ( size_t  i = 0; i < n; i++ )
             b->set_entry( i, rhs_b( i ) );
 
+
         std::cout << std::endl << "━━ solving system" << std::endl;
 
         TAutoSolver  solver( 1000 );
         TSolverInfo  solve_info( false, verbose( 2 ) );
         auto         x = A->col_vector();
+
+        A_inv->apply(b.get(), x.get());
+        auto b2 = x->copy();
+        A->apply(x.get(), b2.get());
+
+        b2->axpy( -1.0, b.get() );
+        std::cout << "  |b-b2~| = " << b2->norm2() << std::endl;
 
         timer.start();
 
@@ -945,6 +985,7 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
     py::class_<HLIB::TFacInvMatrix>(m, "HLIB::TFacInvMatrix");
 
     py::class_<HLIB::TMatrix>(m, "HLIB::TMatrix");
+//        .def("copy", HLIB::TMatrix::copy);
 
     py::class_<TCoeffFn<real_t>>(m, "TCoeffFn<real_t>");
 
@@ -1004,6 +1045,7 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
     m.def("add_identity_to_hmatrix", &add_identity_to_hmatrix, "add_identity from hlibpro");
     m.def("visualize_hmatrix", &visualize_hmatrix, "visualize_hmatrix from hlibpro");
     m.def("hmatrix_matvec", &hmatrix_matvec, "hmatrix_matvec from hlibpro");
-    m.def("hmatrix_factorized_inverse", &hmatrix_factorized_inverse, "hmatrix_factorized_inverse from hlibpro");
+    m.def("hmatrix_factorized_inverse_destructive", &hmatrix_factorized_inverse_destructive, "hmatrix_factorized_inverse_destructive from hlibpro");
+    m.def("hmatrix_factorized_inverse_matvec", &hmatrix_factorized_inverse_matvec, "hmatrix_factorized_inverse_matvec from hlibpro");
 }
 
