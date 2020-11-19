@@ -195,3 +195,7 @@ x2 = hpro.hmatrix_factorized_inverse_matvec(inv_A, ct, ct, y)
 
 err_hfac = np.linalg.norm(x - x2)/np.linalg.norm(x2)
 print('err_hfac=', err_hfac)
+
+####
+
+
