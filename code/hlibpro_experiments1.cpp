@@ -343,18 +343,18 @@ public:
         const size_t  n = rowidxs.size();
         const size_t  m = colidxs.size();
 
-        MatrixXd xx(n,2);
+        MatrixXd xx(n*m,2);
+        MatrixXd yy(n*m,2);
+        int k = 0;
         for (int i = 0; i < n; ++i)
         {
             const idx_t  idxi = rowidxs[ i ];
-            xx.row(i) = dof_coords.row(idxi);
-        }
-
-        MatrixXd yy(m,2);
-        for (int j = 0; j < n; ++j)
-        {
-            const idx_t  idxj = colidxs[ j ];
-            yy.row(j) = dof_coords.row(idxj);
+            for (int j = 0; j < n; ++j)
+            {
+                const idx_t  idxj = colidxs[ j ];
+                xx.row(k) = dof_coords.row(idxi);
+                yy.row(k) = dof_coords.row(idxj);
+            }
         }
 
         VectorXd eval_values = pcb.compute_entries(yy, xx);
