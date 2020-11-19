@@ -702,6 +702,52 @@ void visualize_block_cluster_tree(HLIB::TBlockClusterTree * bct_ptr, string titl
     bc_vis.print( bct_ptr->root(), title );
 }
 
+
+std::unique_ptr<HLIB::TMatrix> build_hmatrix_from_sparse_matfile (string mat_file,
+                                                          HLIB::TClusterTree * row_ct_ptr,
+                                                          HLIB::TClusterTree * col_ct_ptr,
+                                                          HLIB::TBlockClusterTree * bct_ptr)
+{
+    auto               M = read_matrix( mat_file );
+
+    if ( ! IS_TYPE( M, TSparseMatrix ) )
+    {
+        cout << "given matrix is not sparse (" << M->typestr() << ")" << endl;
+        exit( 1 );
+    }
+
+    auto               S = ptrcast( M.get(), TSparseMatrix );
+
+    cout << "  matrix has dimension " << S->rows() << " x " << S->cols() << endl
+         << "    no of non-zeroes    = " << S->n_non_zero() << endl
+         << "    matrix is             " << ( S->is_complex() ? "complex" : "real" )
+         << " valued" << endl
+         << "    format              = ";
+    if      ( S->is_nonsym()    ) cout << "non symmetric" << endl;
+    else if ( S->is_symmetric() ) cout << "symmetric" << endl;
+    else if ( S->is_hermitian() ) cout << "hermitian" << endl;
+    cout << "  size of sparse matrix = " << Mem::to_string( S->byte_size() ) << endl;
+    cout << "  |S|_F                 = " << norm_F( S ) << endl;
+
+    cout << "    sparsity constant = " << bct_ptr->compute_c_sp() << endl;
+
+    TSparseMBuilder    h_builder( S, row_ct_ptr->perm_i2e(), col_ct_ptr->perm_e2i() );
+    TTruncAcc                 acc(0.0, 0.0);
+    auto               A = h_builder.build( bct_ptr, acc );
+
+    cout << "    size of H-matrix  = " << Mem::to_string( A->byte_size() ) << endl;
+    cout << "    |A|_F             = " << norm_F( A.get() ) << endl;
+
+    {
+        auto  PA = make_unique< TPermMatrix >( row_ct_ptr->perm_i2e(), A.get(), col_ct_ptr->perm_e2i() );
+
+        cout << " |S-A|_2 = " << diff_norm_2( S, PA.get() ) << endl;
+    }
+
+    return A;
+}
+
+
 std::unique_ptr<HLIB::TMatrix> build_hmatrix(TCoeffFn<real_t> & coefffn,
                                              HLIB::TClusterTree * row_ct_ptr,
                                              HLIB::TClusterTree * col_ct_ptr,
@@ -1051,5 +1097,6 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
     m.def("hmatrix_matvec", &hmatrix_matvec, "hmatrix_matvec from hlibpro");
     m.def("hmatrix_factorized_inverse_destructive", &hmatrix_factorized_inverse_destructive, "hmatrix_factorized_inverse_destructive from hlibpro");
     m.def("hmatrix_factorized_inverse_matvec", &hmatrix_factorized_inverse_matvec, "hmatrix_factorized_inverse_matvec from hlibpro");
+    m.def("build_hmatrix_from_sparse_matfile", &build_hmatrix_from_sparse_matfile, "build_hmatrix_from_sparse_matfile from hlibpro");
 }
 
