@@ -981,17 +981,17 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
 
 
 PYBIND11_MODULE(hlibpro_experiments1, m) {
-    py::class_<ProductConvolutionCoeffFn, TCoeffFn<real_t>>(m, "ProductConvolutionCoeffFn")
-        .def(py::init<const ProductConvolutionMultipleBatches &, MatrixXd>());
-
     py::class_<HLIB::TFacInvMatrix>(m, "HLIB::TFacInvMatrix");
 
     py::class_<HLIB::TMatrix>(m, "HLIB::TMatrix");
 //        .def("copy", HLIB::TMatrix::copy);
 
-    py::class_<TCoeffFn<real_t>>(m, "TCoeffFn<real_t>");
+    py::class_<HLIB::TCoeffFn<real_t>>(m, "TCoeffFn<real_t>");
 
-    py::class_<CustomTLogCoeffFn, TCoeffFn<real_t>>(m, "CustomTLogCoeffFn")
+    py::class_<ProductConvolutionCoeffFn, HLIB::TCoeffFn<real_t>>(m, "ProductConvolutionCoeffFn")
+        .def(py::init<const ProductConvolutionMultipleBatches &, MatrixXd>());
+
+    py::class_<CustomTLogCoeffFn, HLIB::TCoeffFn<real_t>>(m, "CustomTLogCoeffFn")
         .def(py::init<MatrixXd, // dof_coords
              double, // xmin
              double, // xmax
