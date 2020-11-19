@@ -345,15 +345,17 @@ public:
 
         MatrixXd xx(n*m,2);
         MatrixXd yy(n*m,2);
-        int k = 0;
         for (int i = 0; i < n; ++i)
         {
             const idx_t  idxi = rowidxs[ i ];
-            for (int j = 0; j < n; ++j)
+            for (int j = 0; j < m; ++j)
             {
                 const idx_t  idxj = colidxs[ j ];
-                xx.row(k) = dof_coords.row(idxi);
-                yy.row(k) = dof_coords.row(idxj);
+                xx(j*n+i, 0) = dof_coords(idxi, 0);
+                xx(j*n+i, 1) = dof_coords(idxi, 1);
+
+                yy(j*n+i, 0) = dof_coords(idxj, 0);
+                yy(j*n+i, 1) = dof_coords(idxj, 1);
             }
         }
 
