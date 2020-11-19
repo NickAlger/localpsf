@@ -700,6 +700,95 @@ void visualize_block_cluster_tree(HLIB::TBlockClusterTree * bct_ptr, string titl
     bc_vis.print( bct_ptr->root(), title );
 }
 
+std::unique_ptr<HLIB::TMatrix> build_hmatrix(TCoeffFn<real_t> & coefffn,
+                                             HLIB::TClusterTree * row_ct_ptr,
+                                             HLIB::TClusterTree * col_ct_ptr,
+                                             HLIB::TBlockClusterTree * bct_ptr,
+                                             double tol)
+{
+    std::cout << "━━ building H-matrix ( tol = " << tol << " )" << std::endl;
+    TTimer                    timer( WALL_TIME );
+    TConsoleProgressBar       progress;
+    TTruncAcc                 acc( tol, 0.0 );
+    TPermCoeffFn< real_t >    permuted_coefffn( & coefffn, row_ct_ptr->perm_i2e(), col_ct_ptr->perm_i2e() );
+    TACAPlus< real_t >        aca( & permuted_coefffn );
+    TDenseMBuilder< real_t >  h_builder( & permuted_coefffn, & aca );
+    h_builder.set_coarsening( false );
+
+    timer.start();
+
+    std::unique_ptr<HLIB::TMatrix>  A = h_builder.build( bct_ptr, acc, & progress );
+
+    timer.pause();
+    std::cout << "    done in " << timer << std::endl;
+    std::cout << "    size of H-matrix = " << Mem::to_string( A->byte_size() ) << std::endl;
+    return A;
+}
+
+void add_identity_to_hmatrix(HLIB::TMatrix * A_ptr, double s)
+{
+    add_identity(A_ptr, s);
+}
+
+void visualize_hmatrix(HLIB::TMatrix * A_ptr, string title)
+{
+    TPSMatrixVis              mvis;
+    mvis.svd( true );
+    mvis.print( A_ptr, title );
+}
+
+VectorXd hmatrix_matvec(HLIB::TMatrix * A_ptr,
+                        HLIB::TClusterTree * row_ct_ptr,
+                        HLIB::TClusterTree * col_ct_ptr,
+                        VectorXd x)
+{
+    // y = A * x
+    std::unique_ptr<HLIB::TVector> y_hlib = A_ptr->row_vector();
+    std::unique_ptr<HLIB::TVector> x_hlib = A_ptr->col_vector();
+
+    int n = y_hlib->size();
+    int m = x_hlib->size();
+
+    for ( size_t  i = 0; i < m; i++ )
+        x_hlib->set_entry( i, x(i) );
+
+    col_ct_ptr->perm_e2i()->permute( x_hlib.get() );
+
+    A_ptr->mul_vec(1.0, x_hlib.get(), 0.0, y_hlib.get());
+
+    row_ct_ptr->perm_i2e()->permute( y_hlib.get() );
+
+    VectorXd y(n);
+    for ( size_t  i = 0; i < n; i++ )
+        y(i) = x_hlib->entry( i );
+
+    return y;
+}
+
+std::unique_ptr< HLIB::TFacInvMatrix > hmatrix_factorized_inverse(HLIB::TMatrix * A_ptr, double tol)
+{
+    TTruncAcc                 acc( tol, 0.0 );
+    TTimer                    timer( WALL_TIME );
+    TConsoleProgressBar       progress;
+
+    auto  B = A_ptr->copy(); // B gets deleted when this function ends ACK.
+
+    std::cout << std::endl << "━━ LU factorisation ( tol = " << tol << " )" << std::endl;
+
+    timer.start();
+
+    std::unique_ptr<HLIB::TFacInvMatrix> A_inv = factorise_inv( B.get(), acc, & progress );
+
+    timer.pause();
+    std::cout << "    done in " << timer << std::endl;
+
+    std::cout << "    size of LU factor = " << Mem::to_string( B->byte_size() ) << std::endl;
+    std::cout << "    inversion error   = " << std::scientific << std::setprecision( 4 )
+              << inv_approx_2( A_ptr, A_inv.get() ) << std::endl;
+
+    return A_inv;
+}
+
 int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, double ymax,
                   MatrixXd grid_values, VectorXd rhs_b)
 {
@@ -713,9 +802,7 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
     try
     {
         initialize_hlibpro();
-
         std::unique_ptr<HLIB::TClusterTree>  ct = build_cluster_tree_from_dof_coords(dof_coords, nmin);
-
         std::unique_ptr<HLIB::TBlockClusterTree>  bct = build_block_cluster_tree(ct.get(), ct.get(), admissibility_eta);
 
         if( verbose( 2 ) )
@@ -724,39 +811,20 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
             visualize_block_cluster_tree(bct.get(), "custom_bem2d_bct");
         }// if
 
-        //
-        // build matrix
-        //
+        CustomTLogCoeffFn log_coefffn( dof_coords, xmin, xmax, ymin, ymax, grid_values );
+        std::unique_ptr<HLIB::TMatrix> A = build_hmatrix(log_coefffn, ct.get(), ct.get(), bct.get(), eps);
 
-        std::cout << "━━ building H-matrix ( eps = " << eps << " )" << std::endl;
-
-        TTimer                    timer( WALL_TIME );
-        TConsoleProgressBar       progress;
-        TTruncAcc                 acc( eps, 0.0 );
-        CustomTLogCoeffFn         log_coefffn( dof_coords, xmin, xmax, ymin, ymax, grid_values );
-        TPermCoeffFn< real_t >    coefffn( & log_coefffn, ct->perm_i2e(), ct->perm_i2e() );
-        TACAPlus< real_t >        aca( & coefffn );
-        TDenseMBuilder< real_t >  h_builder( & coefffn, & aca );
-        TPSMatrixVis              mvis;
-
-        // enable coarsening during construction
-        h_builder.set_coarsening( false );
-
-        timer.start();
-
-        std::unique_ptr<HLIB::TMatrix>  A = h_builder.build( bct.get(), acc, & progress );
-
-        timer.pause();
-        std::cout << "    done in " << timer << std::endl;
-        std::cout << "    size of H-matrix = " << Mem::to_string( A->byte_size() ) << std::endl;
-
-        add_identity(A.get(), 20.0);
+        add_identity_to_hmatrix(A.get(), 20.0);
 
         if( verbose( 2 ) )
         {
-            mvis.svd( true );
-            mvis.print( A.get(), "custom_bem2d_A" );
+            visualize_hmatrix(A.get(), "custom_bem2d_A");
         }// if
+
+        TPSMatrixVis              mvis;
+        TTimer                    timer( WALL_TIME );
+        TConsoleProgressBar       progress;
+        TTruncAcc                 acc( eps, 0.0 );
 
         {
             std::cout << std::endl << "━━ solving system" << std::endl;
@@ -801,23 +869,29 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
         // LU decomposition
         //
 
-        auto  B = A->copy();
+        std::unique_ptr<HLIB::TFacInvMatrix> A_inv = hmatrix_factorized_inverse(A.get(), eps);
 
-        std::cout << std::endl << "━━ LU factorisation ( eps = " << eps << " )" << std::endl;
+//        auto  B = A->copy();
+//
+//        std::cout << std::endl << "━━ LU factorisation ( eps = " << eps << " )" << std::endl;
+//
+//        timer.start();
+//
+//        auto  A_inv = factorise_inv( B.get(), acc, & progress );
+//
+//        timer.pause();
+//        std::cout << "    done in " << timer << std::endl;
+//
+//        std::cout << "    size of LU factor = " << Mem::to_string( B->byte_size() ) << std::endl;
+//        std::cout << "    inversion error   = " << std::scientific << std::setprecision( 4 )
+//                  << inv_approx_2( A.get(), A_inv.get() ) << std::endl;
+//
 
-        timer.start();
 
-        auto  A_inv = factorise_inv( B.get(), acc, & progress );
-
-        timer.pause();
-        std::cout << "    done in " << timer << std::endl;
-
-        std::cout << "    size of LU factor = " << Mem::to_string( B->byte_size() ) << std::endl;
-        std::cout << "    inversion error   = " << std::scientific << std::setprecision( 4 )
-                  << inv_approx_2( A.get(), A_inv.get() ) << std::endl;
-
+//        char asdf = A_inv->matrix();
         if( verbose( 2 ) )
-            mvis.print( B.get(), "custom_bem2d_LU" );
+            mvis.print( A_inv->matrix(), "custom_bem2d_LU" );
+//            mvis.print( B.get(), "custom_bem2d_LU" );
 
         //
         // solve with LU decomposition
@@ -866,7 +940,23 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
 }
 
 
+
 PYBIND11_MODULE(hlibpro_experiments1, m) {
+    py::class_<HLIB::TFacInvMatrix>(m, "HLIB::TFacInvMatrix");
+
+    py::class_<HLIB::TMatrix>(m, "HLIB::TMatrix");
+
+    py::class_<TCoeffFn<real_t>>(m, "TCoeffFn<real_t>");
+
+    py::class_<CustomTLogCoeffFn, TCoeffFn<real_t>>(m, "CustomTLogCoeffFn")
+        .def(py::init<MatrixXd, // dof_coords
+             double, // xmin
+             double, // xmax
+             double, // ymin
+             double,  // ymax
+             MatrixXd // grid_values
+             >());
+
     py::class_<ProductConvolutionOneBatch>(m, "ProductConvolutionOneBatch")
         .def(py::init<MatrixXd, // eta
              std::vector<MatrixXd>, // ww
@@ -910,5 +1000,10 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
     m.def("initialize_hlibpro", &initialize_hlibpro, "initialize_hlibpro");
     m.def("visualize_cluster_tree", &visualize_cluster_tree, "visualize_cluster_tree");
     m.def("visualize_block_cluster_tree", &visualize_block_cluster_tree, "visualize_block_cluster_tree");
+    m.def("build_hmatrix", &build_hmatrix, "build_hmatrix from hlibpro");
+    m.def("add_identity_to_hmatrix", &add_identity_to_hmatrix, "add_identity from hlibpro");
+    m.def("visualize_hmatrix", &visualize_hmatrix, "visualize_hmatrix from hlibpro");
+    m.def("hmatrix_matvec", &hmatrix_matvec, "hmatrix_matvec from hlibpro");
+    m.def("hmatrix_factorized_inverse", &hmatrix_factorized_inverse, "hmatrix_factorized_inverse from hlibpro");
 }
 

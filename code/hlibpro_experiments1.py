@@ -1,9 +1,9 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 from time import time
-import hlibpro_experiments1
+import hlibpro_experiments1 as hpro
 
-hlibpro_experiments1.bem1d(100)
+hpro.bem1d(100)
 
 min_pt = np.array([-1.2, 0.5])
 max_pt = np.array([2.1, 3.3])
@@ -17,13 +17,13 @@ cc = min_pt.reshape((1,-1)) + np.random.rand(62683,2) * deltas.reshape((1,-1))
 # plt.plot(cc[:,0], cc[:,1], '.')
 
 t = time()
-ve = hlibpro_experiments1.grid_interpolate(cc, min_pt[0], max_pt[0], min_pt[1], max_pt[1], VG)
+ve = hpro.grid_interpolate(cc, min_pt[0], max_pt[0], min_pt[1], max_pt[1], VG)
 dt_cpp = time() - t
 print('dt_cpp=', dt_cpp)
 print(ve)
 
 t = time()
-ve1 = hlibpro_experiments1.grid_interpolate_vectorized(cc, min_pt[0], max_pt[0], min_pt[1], max_pt[1], VG)
+ve1 = hpro.grid_interpolate_vectorized(cc, min_pt[0], max_pt[0], min_pt[1], max_pt[1], VG)
 dt_cpp_vectorized = time() - t
 print('dt_cpp_vectorized=', dt_cpp_vectorized)
 print(ve1)
@@ -64,7 +64,7 @@ dof_coords = np.array([X2.reshape(-1), Y2.reshape(-1)]).T
 
 rhs_b = np.random.randn(dof_coords.shape[0])
 
-hlibpro_experiments1.Custom_bem1d(dof_coords, xmin, xmax, ymin, ymax, V, rhs_b)
+hpro.Custom_bem1d(dof_coords, xmin, xmax, ymin, ymax, V, rhs_b)
 
 #####
 
@@ -76,7 +76,7 @@ mus = pp + 0.1 * np.random.randn(num_batch_points, 2)
 Sigmas = [0.3*np.eye(2), 0.5*np.eye(2), np.eye(2)]
 tau = 1.5
 
-pcb = hlibpro_experiments1.ProductConvolutionOneBatch(eta_array, ww_arrays, pp, mus, Sigmas, tau, xmin, xmax, ymin, ymax)
+pcb = hpro.ProductConvolutionOneBatch(eta_array, ww_arrays, pp, mus, Sigmas, tau, xmin, xmax, ymin, ymax)
 
 num_eval_pts = 53
 ss = np.random.randn(num_eval_pts,2)
@@ -127,7 +127,7 @@ mus_batches = [pp_batches[0] + 0.1 * np.random.randn(nb1, 2), pp_batches[1] + 0.
 Sigmas_batches = [[0.3*np.eye(2), 0.5*np.eye(2), np.eye(2)], [0.3*np.eye(2), 0.5*np.eye(2), np.eye(2), 0.8*np.eye(2)]]
 tau = 1.2
 
-pcb_multi = hlibpro_experiments1.ProductConvolutionMultipleBatches(eta_array_batches,
+pcb_multi = hpro.ProductConvolutionMultipleBatches(eta_array_batches,
                                                                    ww_array_batches,
                                                                    pp_batches,
                                                                    mus_batches,
@@ -176,8 +176,16 @@ print('err_PCmulti=', err_PCmulti)
 
 ####
 
-hlibpro_experiments1.initialize_hlibpro()
-ct = hlibpro_experiments1.build_cluster_tree_from_dof_coords(dof_coords, 60)
-bct = hlibpro_experiments1.build_block_cluster_tree(ct, ct, 2.0)
-hlibpro_experiments1.visualize_cluster_tree(ct, "cluster_tree_from_python")
-hlibpro_experiments1.visualize_block_cluster_tree(bct, "block_cluster_tree_from_python")
+hpro.initialize_hlibpro()
+ct = hpro.build_cluster_tree_from_dof_coords(dof_coords, 60)
+bct = hpro.build_block_cluster_tree(ct, ct, 2.0)
+hpro.visualize_cluster_tree(ct, "cluster_tree_from_python")
+hpro.visualize_block_cluster_tree(bct, "block_cluster_tree_from_python")
+
+log_coeffn = hpro.CustomTLogCoeffFn(dof_coords, xmin, xmax, ymin, ymax, V)
+A_hmatrix = hpro.build_hmatrix(log_coeffn, ct, ct, bct, 1e-4)
+hpro.add_identity_to_hmatrix(A_hmatrix, 20.0)
+hpro.visualize_hmatrix(A_hmatrix, "hmatrix_from_python")
+
+x = np.random.randn(dof_coords.shape[0])
+y = hpro.hmatrix_matvec(A_hmatrix, ct, ct, x)
