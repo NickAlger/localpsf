@@ -173,3 +173,11 @@ print('dt_entries_multi_py=', dt_entries_multi_py)
 
 err_PCmulti = np.linalg.norm(vv_multi - vv_multi2)
 print('err_PCmulti=', err_PCmulti)
+
+####
+
+hlibpro_experiments1.initialize_hlibpro()
+ct = hlibpro_experiments1.build_cluster_tree_from_dof_coords(dof_coords, 60)
+bct = hlibpro_experiments1.build_block_cluster_tree(ct, ct, 2.0)
+hlibpro_experiments1.visualize_cluster_tree(ct, "cluster_tree_from_python")
+hlibpro_experiments1.visualize_block_cluster_tree(bct, "block_cluster_tree_from_python")

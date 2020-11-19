@@ -258,7 +258,7 @@ public:
                                   mus(mus), Sigmas(Sigmas), tau(tau)
                                   {}
 
-    VectorXd compute_entries(const MatrixXd & yy, const MatrixXd & xx)
+    VectorXd compute_entries(const MatrixXd & yy, const MatrixXd & xx) const
     {
         int num_batch_points = ww_arrays.size();
         int num_eval_points = xx.rows();
@@ -282,20 +282,6 @@ public:
     }
 };
 
-VectorXd compute_product_convolution_entries(const MatrixXd & yy, const MatrixXd & xx,
-                                             std::vector<ProductConvolutionOneBatch> & PC_batches)
-{
-    int num_batches = PC_batches.size();
-    int num_eval_points = xx.rows();
-
-    VectorXd pc_entries(num_eval_points);
-    pc_entries.setZero();
-    for (int i = 0; i < num_batches; ++i)
-    {
-        pc_entries += PC_batches[i].compute_entries(yy, xx);
-    }
-    return pc_entries;
-}
 
 class ProductConvolutionMultipleBatches
 {
@@ -303,9 +289,6 @@ private:
     std::vector<ProductConvolutionOneBatch> pc_batches;
 
 public:
-//    ProductConvolutionMultipleBatches(ProductConvolutionMultipleBatches pcb) : pc_batches(pcb.pc_batches)
-//    {}
-
     ProductConvolutionMultipleBatches(std::vector<MatrixXd> eta_array_batches,
                                       std::vector<std::vector<MatrixXd>> ww_array_batches,
                                       std::vector<MatrixXd> pp_batches,
@@ -328,7 +311,16 @@ public:
 
     VectorXd compute_entries(const MatrixXd & yy, const MatrixXd & xx) const
     {
-        return compute_product_convolution_entries(yy, xx, pc_batches);
+        int num_batches = pc_batches.size();
+        int num_eval_points = xx.rows();
+
+        VectorXd pc_entries(num_eval_points);
+        pc_entries.setZero();
+        for (int i = 0; i < num_batches; ++i)
+        {
+            pc_entries += pc_batches[i].compute_entries(yy, xx);
+        }
+        return pc_entries;
     }
 };
 
@@ -654,79 +646,82 @@ int bem1d ( int user_input )
 }
 
 
+std::unique_ptr<HLIB::TClusterTree> build_cluster_tree_from_dof_coords(const MatrixXd & dof_coords, const double nmin)
+{
+    size_t N = dof_coords.rows();
+    size_t d = dof_coords.cols();
+
+    vector< double * >  vertices( N );
+
+    for ( size_t i = 0; i < N; i++ )
+    {
+        double * v    = new double[d];
+        for (size_t j=0; j < d; ++j)
+            v[j] = dof_coords(i,j);
+
+        vertices[i] = v;
+    }// for
+
+    auto coord = make_unique< TCoordinate >( vertices, d );
+
+//    TAutoBSPPartStrat  part_strat;
+    TCardBSPPartStrat  part_strat;
+    TBSPCTBuilder      ct_builder( & part_strat, nmin );
+    std::unique_ptr<HLIB::TClusterTree>  ct = ct_builder.build( coord.get() );
+    return ct;
+}
+
+std::unique_ptr<HLIB::TBlockClusterTree> build_block_cluster_tree(HLIB::TClusterTree *  row_ct_ptr,
+                                                                  HLIB::TClusterTree * col_ct_ptr,
+                                                                  double admissibility_eta)
+{
+        TStdGeomAdmCond    adm_cond( admissibility_eta );
+        TBCBuilder         bct_builder;
+        std::unique_ptr<HLIB::TBlockClusterTree>  bct = bct_builder.build( row_ct_ptr, col_ct_ptr, & adm_cond );
+        return bct;
+}
+
+void initialize_hlibpro()
+{
+    int verbosity_level = 3;
+    INIT();
+    CFG::set_verbosity( verbosity_level );
+}
+
+void visualize_cluster_tree(HLIB::TClusterTree * ct_ptr, string title)
+{
+    TPSClusterVis        c_vis;
+    c_vis.print( ct_ptr->root(), title );
+}
+
+void visualize_block_cluster_tree(HLIB::TBlockClusterTree * bct_ptr, string title)
+{
+    TPSBlockClusterVis   bc_vis;
+    bc_vis.print( bct_ptr->root(), title );
+}
+
 int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, double ymax,
                   MatrixXd grid_values, VectorXd rhs_b)
 {
     real_t        eps  = real_t(1e-4);
     size_t        n    = dof_coords.rows();
     const size_t  nmin = 60;
-
-//    double h = 1.0 / double(n);
+    double admissibility_eta = 2.0;
 
     printf("This is user.Custom_bem1d\n\n");
 
     try
     {
-        //
-        // init HLIBpro
-        //
+        initialize_hlibpro();
 
-        INIT();
+        std::unique_ptr<HLIB::TClusterTree>  ct = build_cluster_tree_from_dof_coords(dof_coords, nmin);
 
-        CFG::set_verbosity( 3 );
-
-        //
-        // build coordinates
-        //
-
-        vector< double * >  vertices( n );
-//        vector< double * >  vertices( n, NULL );
-//        vector< double * >  bbmin( n, NULL );
-//        vector< double * >  bbmax( n, NULL );
-
-        for ( size_t i = 0; i < n; i++ )
-        {
-            double * v    = new double[2];
-            v[0] = dof_coords(i,0);
-            v[1] = dof_coords(i,1);
-            vertices[i] = v;
-//            vertices[i][0] = dof_coords(i,0);
-//            vertices[i][1] = dof_coords(i,1);
-
-//            // set bounding box (support) to [i/h,(i+1)/h]
-//            bbmin[i]       = new double[2];
-//            bbmin[i][0]    = vertices[i][0];
-//            bbmin[i][1]    = vertices[i][1];
-//
-//            bbmax[i]       = new double[2];
-//            bbmax[i][0]    = vertices[i][0];
-//            bbmax[i][1]    = vertices[i][1];
-        }// for
-
-//        unique_ptr< TCoordinate >  coord( new TCoordinate( vertices, 2, bbmin, bbmax ) );
-        auto coord = make_unique< TCoordinate >( vertices, 2 );
-
-        //
-        // build cluster tree and block cluster tree
-        //
-
-//        TAutoBSPPartStrat  part_strat;
-        TCardBSPPartStrat  part_strat;
-        TBSPCTBuilder      ct_builder( & part_strat, nmin );
-//        auto               ct = ct_builder.build( coord.get() );
-        std::unique_ptr<HLIB::TClusterTree>  ct = ct_builder.build( coord.get() );
-        TStdGeomAdmCond    adm_cond( 2.0 );
-        TBCBuilder         bct_builder;
-//        auto               bct = bct_builder.build( ct.get(), ct.get(), & adm_cond );
-        std::unique_ptr<HLIB::TBlockClusterTree>  bct = bct_builder.build( ct.get(), ct.get(), & adm_cond );
+        std::unique_ptr<HLIB::TBlockClusterTree>  bct = build_block_cluster_tree(ct.get(), ct.get(), admissibility_eta);
 
         if( verbose( 2 ) )
         {
-            TPSClusterVis        c_vis;
-            TPSBlockClusterVis   bc_vis;
-
-            c_vis.print( ct->root(), "custom_bem2d_ct" );
-            bc_vis.print( bct->root(), "custom_bem2d_bct" );
+            visualize_cluster_tree(ct.get(), "custom_bem2d_ct");
+            visualize_block_cluster_tree(bct.get(), "custom_bem2d_bct");
         }// if
 
         //
@@ -768,8 +763,8 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
 
             TMINRES      solver( 100 );
             TSolverInfo  solve_info( false, verbose( 2 ) );
-            auto         b = A->row_vector();
-            auto         x = A->col_vector();
+            std::unique_ptr<HLIB::TVector>         b = A->row_vector();
+            std::unique_ptr<HLIB::TVector>         x = A->col_vector();
 
             for ( size_t  i = 0; i < n; i++ )
                 b->set_entry( i, rhs_b( i) );
@@ -900,11 +895,20 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
                       >())
         .def("compute_entries", &ProductConvolutionMultipleBatches::compute_entries);
 
+    py::class_<HLIB::TClusterTree>(m, "HLIB::TClusterTree");
+    py::class_<HLIB::TBlockClusterTree>(m, "HLIB::TBlockClusterTree");
+
     m.doc() = "pybind11 bem1d plugin"; // optional module docstring
 
     m.def("bem1d", &bem1d, "bem1d from hlibpro");
     m.def("Custom_bem1d", &Custom_bem1d, "Custom_bem1d from hlibpro");
     m.def("grid_interpolate", &grid_interpolate, "grid_interpolate from cpp");
     m.def("grid_interpolate_vectorized", &grid_interpolate_vectorized, "grid_interpolate_vectorized from cpp");
-    m.def("compute_product_convolution_entries", &compute_product_convolution_entries, "compute_product_convolution_entries from cpp");
+//    m.def("compute_product_convolution_entries", &compute_product_convolution_entries, "compute_product_convolution_entries from cpp");
+    m.def("build_cluster_tree_from_dof_coords", &build_cluster_tree_from_dof_coords, "build_cluster_tree_from_dof_coords from hlibpro");
+    m.def("build_block_cluster_tree", &build_block_cluster_tree, "build_block_cluster_tree");
+    m.def("initialize_hlibpro", &initialize_hlibpro, "initialize_hlibpro");
+    m.def("visualize_cluster_tree", &visualize_cluster_tree, "visualize_cluster_tree");
+    m.def("visualize_block_cluster_tree", &visualize_block_cluster_tree, "visualize_block_cluster_tree");
 }
+
