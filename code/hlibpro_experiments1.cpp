@@ -1033,11 +1033,67 @@ void hmatrix_add_overwrites_second (const HLIB::TMatrix * A, HLIB::TMatrix* B, d
     add(1.0, A, 1.0, B, acc);
 }
 
-PYBIND11_MODULE(hlibpro_experiments1, m) {
-    py::class_<HLIB::TFacInvMatrix>(m, "HLIB::TFacInvMatrix");
 
-    py::class_<HLIB::TMatrix>(m, "HLIB::TMatrix");
-//        .def("copy", HLIB::TMatrix::copy);
+PYBIND11_MODULE(hlibpro_experiments1, m) {
+    py::class_<HLIB::TFacInvMatrix>(m, "TFacInvMatrix");
+
+    py::enum_<HLIB::matop_t>(m, "matop_t")
+        .value("MATOP_NORM", HLIB::matop_t::MATOP_NORM)
+        .value("apply_normal", HLIB::matop_t::apply_normal)
+        .value("MATOP_TRANS", HLIB::matop_t::MATOP_TRANS)
+        .value("apply_trans", HLIB::matop_t::apply_trans)
+        .value("apply_transposed", HLIB::matop_t::apply_transposed)
+        .value("MATOP_ADJ", HLIB::matop_t::MATOP_ADJ)
+        .value("MATOP_CONJTRANS", HLIB::matop_t::MATOP_CONJTRANS)
+        .value("apply_adj", HLIB::matop_t::apply_adj)
+        .value("apply_adjoint", HLIB::matop_t::apply_adjoint)
+        .value("apply_conjtrans", HLIB::matop_t::apply_conjtrans);
+
+    py::class_<HLIB::TTruncAcc>(m, "TTruncAcc")
+        .def("max_rank", &HLIB::TTruncAcc::max_rank)
+        .def("has_max_rank", &HLIB::TTruncAcc::has_max_rank)
+        .def("rel_eps", &HLIB::TTruncAcc::rel_eps)
+        .def("abs_eps", &HLIB::TTruncAcc::abs_eps)
+        .def(py::init<>())
+        .def(py::init<const int, double>(), py::arg("k"), py::arg("absolute_eps")=CFG::Arith::abs_eps)
+        .def(py::init<const double, double>(), py::arg("relative_eps"), py::arg("absolute_eps")=CFG::Arith::abs_eps);
+
+    py::class_<HLIB::TVector>(m, "TVector");
+
+    py::class_<HLIB::TMatrix>(m, "TMatrix")
+        .def("id", &HLIB::TMatrix::id)
+        .def("rows", &HLIB::TMatrix::rows)
+        .def("cols", &HLIB::TMatrix::cols)
+        .def("is_nonsym", &HLIB::TMatrix::is_nonsym)
+        .def("is_symmetric", &HLIB::TMatrix::is_symmetric)
+        .def("is_hermitian", &HLIB::TMatrix::is_hermitian)
+        .def("set_nonsym", &HLIB::TMatrix::set_nonsym)
+        .def("is_real", &HLIB::TMatrix::is_real)
+        .def("is_complex", &HLIB::TMatrix::is_complex)
+        .def("to_real", &HLIB::TMatrix::to_real)
+        .def("to_complex", &HLIB::TMatrix::to_complex)
+        .def("add_update", &HLIB::TMatrix::add_update)
+        .def("entry", &HLIB::TMatrix::entry)
+        .def("apply", &HLIB::TMatrix::apply, py::arg("x"), py::arg("y"), py::arg("op")=apply_normal)
+        .def("apply_add", static_cast<void
+                                      (HLIB::TMatrix::*)(const real_t,
+                                                         const HLIB::TVector *,
+                                                         HLIB::TVector *,
+                                                         const matop_t) const>(&HLIB::TMatrix::apply_add),
+                                      py::arg("alpha"), py::arg("x"), py::arg("y"), py::arg("op")=apply_normal)
+        .def("set_symmetric", &HLIB::TMatrix::set_symmetric)
+        .def("set_hermitian", &HLIB::TMatrix::set_hermitian)
+        .def("domain_dim", &HLIB::TMatrix::domain_dim)
+        .def("range_dim", &HLIB::TMatrix::range_dim)
+        .def("domain_vector", &HLIB::TMatrix::domain_vector)
+        .def("range_vector", &HLIB::TMatrix::range_vector)
+        .def("transpose", &HLIB::TMatrix::transpose)
+        .def("conjugate", &HLIB::TMatrix::conjugate)
+        .def("add", &HLIB::TMatrix::add)
+        .def("scale", &HLIB::TMatrix::scale)
+        .def("copy", static_cast<std::unique_ptr<TMatrix> (HLIB::TMatrix::*)() const>(&HLIB::TMatrix::copy));
+
+
 
     py::class_<HLIB::TCoeffFn<real_t>>(m, "TCoeffFn<real_t>");
 
