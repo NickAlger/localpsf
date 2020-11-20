@@ -732,6 +732,7 @@ std::unique_ptr<HLIB::TMatrix> build_hmatrix_from_sparse_matfile (string mat_fil
     cout << "    sparsity constant = " << bct_ptr->compute_c_sp() << endl;
 
     TSparseMBuilder    h_builder( S, row_ct_ptr->perm_i2e(), col_ct_ptr->perm_e2i() );
+
     TTruncAcc                 acc(0.0, 0.0);
     auto               A = h_builder.build( bct_ptr, acc );
 
@@ -1092,10 +1093,14 @@ void multiply_with_progress_bar(const T_value  	    alpha,
     std::cout << "    size of C = " << Mem::to_string( C->byte_size() ) << std::endl;
 }
 
+
 PYBIND11_MODULE(hlibpro_experiments1, m) {
     py::class_<HLIB::TProgressBar>(m, "TProgressBar");
-
     py::class_<HLIB::TFacInvMatrix>(m, "TFacInvMatrix");
+    py::class_<HLIB::TBlockCluster>(m, "TBlockCluster");
+
+    py::class_<HLIB::TBlockMatrix>(m, "TBlockMatrix")
+        .def(py::init<const TBlockCluster *>(), py::arg("bct")=nullptr);
 
     py::enum_<HLIB::matop_t>(m, "matop_t")
         .value("MATOP_NORM", HLIB::matop_t::MATOP_NORM)
@@ -1136,12 +1141,12 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
         .def("add_update", &HLIB::TMatrix::add_update)
         .def("entry", &HLIB::TMatrix::entry)
         .def("apply", &HLIB::TMatrix::apply, py::arg("x"), py::arg("y"), py::arg("op")=apply_normal)
-        .def("apply_add", static_cast<void
-                                      (HLIB::TMatrix::*)(const real_t,
-                                                         const HLIB::TVector *,
-                                                         HLIB::TVector *,
-                                                         const matop_t) const>(&HLIB::TMatrix::apply_add),
-                                      py::arg("alpha"), py::arg("x"), py::arg("y"), py::arg("op")=apply_normal)
+//        .def("apply_add", static_cast<void
+//                                      (HLIB::TMatrix::*)(const real_t,
+//                                                         const HLIB::TVector *,
+//                                                         HLIB::TVector *,
+//                                                         const matop_t) const>(&HLIB::TMatrix::apply_add),
+//                                      py::arg("alpha"), py::arg("x"), py::arg("y"), py::arg("op")=apply_normal)
         .def("set_symmetric", &HLIB::TMatrix::set_symmetric)
         .def("set_hermitian", &HLIB::TMatrix::set_hermitian)
         .def("domain_dim", &HLIB::TMatrix::domain_dim)
@@ -1162,6 +1167,8 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
         .def("print", &HLIB::TMatrix::print)
         .def("copy", static_cast<std::unique_ptr<TMatrix> (HLIB::TMatrix::*)() const>(&HLIB::TMatrix::copy))
         .def("copy_struct", &HLIB::TMatrix::copy_struct)
+        .def("create", &HLIB::TMatrix::create)
+        .def("cluster", &HLIB::TMatrix::cluster)
         .def("row_vector", &HLIB::TMatrix::row_vector)
         .def("col_vector", &HLIB::TMatrix::col_vector);
 

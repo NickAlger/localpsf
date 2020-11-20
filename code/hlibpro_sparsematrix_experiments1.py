@@ -8,6 +8,8 @@ import hlibpro_experiments1 as hpro
 default_rtol = 1e-6
 default_atol = 1e-16
 
+hpro.initialize_hlibpro()
+
 def h_add(A_hmatrix, B_hmatrix, alpha=1.0, beta=1.0, rtol=default_rtol, atol=default_atol):
     # C = A + alpha * B to tolerance given by truncation accuracy object acc
     acc = hpro.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
@@ -24,20 +26,13 @@ def h_scale(A_hmatrix, alpha):
 def h_mul(A_hmatrix, B_hmatrix, alpha=1.0, rtol=default_rtol, atol=default_atol, display_progress=True):
     # C = A * B
     acc = hpro.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
-    C_hmatrix = A_hmatrix.copy()
-    # C_hmatrix = B_hmatrix.copy()
-    C_hmatrix.set_nonsym()
-    A_hmatrix.set_nonsym()
-    B_hmatrix.set_nonsym()
+    C_hmatrix = A_hmatrix.copy_struct()
     if display_progress:
         hpro.multiply_with_progress_bar(alpha, hpro.apply_normal, A_hmatrix,
                                         hpro.apply_normal, B_hmatrix, 0.0, C_hmatrix, acc)
     else:
         hpro.multiply_without_progress_bar(alpha, hpro.apply_normal, A_hmatrix,
                                            hpro.apply_normal, B_hmatrix, 0.0, C_hmatrix, acc)
-
-    # A_hmatrix.set_symmetric()
-    # B_hmatrix.set_symmetric()
     return C_hmatrix
 
 def h_factorized_inverse(A_hmatrix, rtol=default_rtol, atol=default_atol, display_progress=True):
@@ -45,6 +40,13 @@ def h_factorized_inverse(A_hmatrix, rtol=default_rtol, atol=default_atol, displa
     iA_factors = A_hmatrix.copy()
     iA_hmatrix = hpro.factorize_inv_with_progress_bar(iA_factors, acc)
     return iA_hmatrix, iA_factors
+
+def build_hmatrix_from_scipy_sparse_matrix(A_csc, row_ct, col_ct, bct):
+    A_csc[1,0] += 1e-14 # Force non-symmetry
+    fname = "temp_sparse_matrix.mat"
+    savemat(fname, {'A': A_csc})
+    A_hmatrix = hpro.build_hmatrix_from_sparse_matfile(fname, row_ct, col_ct, bct)
+    return A_hmatrix
 
 mesh = fenics.UnitSquareMesh(85, 95)
 V = fenics.FunctionSpace(mesh, 'CG', 1)
@@ -66,23 +68,34 @@ def convert_fenics_csr_matrix_to_scipy_csr_matrix(A_fenics):
 
 K_csc = convert_fenics_csr_matrix_to_scipy_csr_matrix(K).tocsc()
 M_csc = convert_fenics_csr_matrix_to_scipy_csr_matrix(M).tocsc()
+
+# K_csc[1,0] += 1e-12
+# M_csc[1,0] += 1e-12
+
 A_csc = K_csc + M_csc
 
-stiffness_fname = 'sparse_stiffness_matrix.mat'
-savemat(stiffness_fname, {'K': K_csc})
 
-mass_fname = 'sparse_mass_matrix.mat'
-savemat(mass_fname, {'M': M_csc})
+
+# stiffness_fname = 'sparse_stiffness_matrix.mat'
+# savemat(stiffness_fname, {'K': K_csc})
+
+# mass_fname = 'sparse_mass_matrix.mat'
+# savemat(mass_fname, {'M': M_csc})
 
 #
 
-hpro.initialize_hlibpro()
+
+
+
 ct = hpro.build_cluster_tree_from_dof_coords(dof_coords, 60)
 bct = hpro.build_block_cluster_tree(ct, ct, 2.0)
 hpro.visualize_cluster_tree(ct, "sparsemat_cluster_tree_from_python")
 hpro.visualize_block_cluster_tree(bct, "sparsemat_block_cluster_tree_from_python")
 
-K_hmatrix = hpro.build_hmatrix_from_sparse_matfile (stiffness_fname, ct, ct, bct)
+K_hmatrix = build_hmatrix_from_scipy_sparse_matrix(K_csc, ct, ct, bct)
+M_hmatrix = build_hmatrix_from_scipy_sparse_matrix(M_csc, ct, ct, bct)
+
+# K_hmatrix = hpro.build_hmatrix_from_sparse_matfile (stiffness_fname, ct, ct, bct)
 hpro.visualize_hmatrix(K_hmatrix, "stiffness_hmatrix_from_python")
 
 x = np.random.randn(dof_coords.shape[0])
@@ -98,7 +111,7 @@ three_y = hpro.h_matvec(three_K_hmatrix, ct, ct, x)
 err_h_scale = np.linalg.norm(three_y - 3.0*y)
 print('err_h_scale=', err_h_scale)
 
-M_hmatrix = hpro.build_hmatrix_from_sparse_matfile (mass_fname, ct, ct, bct)
+# M_hmatrix = hpro.build_hmatrix_from_sparse_matfile (mass_fname, ct, ct, bct)
 hpro.visualize_hmatrix(M_hmatrix, "mass_hmatrix_from_python")
 
 x = np.random.randn(dof_coords.shape[0])
@@ -128,7 +141,8 @@ x = np.random.randn(dof_coords.shape[0])
 y = hpro.h_matvec(KM_hmatrix, ct, ct, x)
 
 y2 = hpro.h_matvec(K_hmatrix, ct, ct, hpro.h_matvec(M_hmatrix, ct, ct, x))
-y3 = K_csc * (M_csc * x)
+# y3 = K_csc * (M_csc * x)
+# y4 = 0.5 * (K_csc * (M_csc * x) + M_csc * (K_csc * x))
 err_H_mul = np.linalg.norm(y2 - y)/np.linalg.norm(y2)
 print('err_H_mul=', err_H_mul)
 
