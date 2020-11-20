@@ -1027,6 +1027,11 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
     return 0;
 }
 
+void hmatrix_add_overwrites_second (const HLIB::TMatrix * A, HLIB::TMatrix* B, double tol)
+{
+    TTruncAcc                 acc( tol, 0.0 );
+    add(1.0, A, 1.0, B, acc);
+}
 
 PYBIND11_MODULE(hlibpro_experiments1, m) {
     py::class_<HLIB::TFacInvMatrix>(m, "HLIB::TFacInvMatrix");
@@ -1098,5 +1103,6 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
     m.def("hmatrix_factorized_inverse_destructive", &hmatrix_factorized_inverse_destructive, "hmatrix_factorized_inverse_destructive from hlibpro");
     m.def("hmatrix_factorized_inverse_matvec", &hmatrix_factorized_inverse_matvec, "hmatrix_factorized_inverse_matvec from hlibpro");
     m.def("build_hmatrix_from_sparse_matfile", &build_hmatrix_from_sparse_matfile, "build_hmatrix_from_sparse_matfile from hlibpro");
+    m.def("hmatrix_add_overwrites_second", &hmatrix_add_overwrites_second, "hmatrix_add_overwrites_second from hlibpro");
 }
 

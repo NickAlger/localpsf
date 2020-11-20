@@ -14,19 +14,26 @@ dof_coords = V.tabulate_dof_coordinates()
 u_trial = fenics.TrialFunction(V)
 v_test = fenics.TestFunction(V)
 
-a = fenics.inner(fenics.grad(u_trial), fenics.grad(v_test))*fenics.dx + u_trial*v_test*fenics.dx
+stiffness_form = fenics.inner(fenics.grad(u_trial), fenics.grad(v_test))*fenics.dx
+mass_form = u_trial*v_test*fenics.dx
 
-A = fenics.assemble(a)
+K = fenics.assemble(stiffness_form)
+M = fenics.assemble(mass_form)
 
 def convert_fenics_csr_matrix_to_scipy_csr_matrix(A_fenics):
     ai, aj, av = fenics.as_backend_type(A_fenics).mat().getValuesCSR()
     A_scipy = sps.csr_matrix((av, aj, ai))
     return A_scipy
 
-A_csc = convert_fenics_csr_matrix_to_scipy_csr_matrix(A).tocsc()
+K_csc = convert_fenics_csr_matrix_to_scipy_csr_matrix(K).tocsc()
+M_csc = convert_fenics_csr_matrix_to_scipy_csr_matrix(M).tocsc()
+A_csc = K_csc + M_csc
 
-fname = 'test_sparse_matrix.mat'
-savemat(fname, {'A': A_csc})
+stiffness_fname = 'sparse_stiffness_matrix.mat'
+savemat(stiffness_fname, {'K': K_csc})
+
+mass_fname = 'sparse_mass_matrix.mat'
+savemat(mass_fname, {'M': M_csc})
 
 #
 
@@ -36,21 +43,41 @@ bct = hpro.build_block_cluster_tree(ct, ct, 2.0)
 hpro.visualize_cluster_tree(ct, "sparsemat_cluster_tree_from_python")
 hpro.visualize_block_cluster_tree(bct, "sparsemat_block_cluster_tree_from_python")
 
-A_hmatrix = hpro.build_hmatrix_from_sparse_matfile (fname, ct, ct, bct)
-hpro.visualize_hmatrix(A_hmatrix, "sparsemat_hmatrix_from_python")
+K_hmatrix = hpro.build_hmatrix_from_sparse_matfile (stiffness_fname, ct, ct, bct)
+hpro.visualize_hmatrix(K_hmatrix, "stiffness_hmatrix_from_python")
+
+x = np.random.randn(dof_coords.shape[0])
+y = hpro.hmatrix_matvec(K_hmatrix, ct, ct, x)
+
+y2 = K_csc * x
+err_hmat_stiffness = np.linalg.norm(y - y2)/np.linalg.norm(y2)
+print('err_hmat_stiffness=', err_hmat_stiffness)
+
+M_hmatrix = hpro.build_hmatrix_from_sparse_matfile (mass_fname, ct, ct, bct)
+hpro.visualize_hmatrix(M_hmatrix, "mass_hmatrix_from_python")
+
+x = np.random.randn(dof_coords.shape[0])
+y = hpro.hmatrix_matvec(M_hmatrix, ct, ct, x)
+
+y2 = M_csc * x
+err_hmat_mass = np.linalg.norm(y - y2)/np.linalg.norm(y2)
+print('err_hmat_mass=', err_hmat_mass)
+
+hpro.hmatrix_add_overwrites_second(K_hmatrix, M_hmatrix, 1e-5)
+A_hmatrix = M_hmatrix
 
 x = np.random.randn(dof_coords.shape[0])
 y = hpro.hmatrix_matvec(A_hmatrix, ct, ct, x)
 
 y2 = A_csc * x
-err_hmat = np.linalg.norm(y - y2)/np.linalg.norm(y2)
-print('err_hmat=', err_hmat)
+err_hmat_combined = np.linalg.norm(y - y2)/np.linalg.norm(y2)
+print('err_hmat_combined=', err_hmat_combined)
 
 inv_A = hpro.hmatrix_factorized_inverse_destructive(A_hmatrix, 1e-4)
-# x2 = hpro.hmatrix_factorized_inverse_matvec(inv_A, ct, ct, y)
-#
-# err_hfac = np.linalg.norm(x - x2)/np.linalg.norm(x2)
-# print('err_hfac=', err_hfac)
+x2 = hpro.hmatrix_factorized_inverse_matvec(inv_A, ct, ct, y)
+
+err_hfac = np.linalg.norm(x - x2)/np.linalg.norm(x2)
+print('err_hfac=', err_hfac)
 #
 #
 # ######
