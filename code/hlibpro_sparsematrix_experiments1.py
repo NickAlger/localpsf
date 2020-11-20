@@ -5,7 +5,29 @@ from scipy.io import savemat
 from time import time
 import hlibpro_experiments1 as hpro
 
+default_rtol = 1e-12
+default_atol = 1e-12
 
+def h_add(A_hmatrix, B_hmatrix, alpha=1.0, beta=1.0, rtol=default_rtol, atol=default_atol):
+    # C = A + alpha * B to tolerance given by truncation accuracy object acc
+    acc = hpro.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
+    C_hmatrix = B_hmatrix.copy()
+    hpro.add(alpha, A_hmatrix, beta, C_hmatrix, acc)
+    return C_hmatrix
+
+def h_scale(A_hmatrix, alpha):
+    # C = alpha * A
+    C_hmatrix = A_hmatrix.copy()
+    C_hmatrix.scale(alpha)
+    return C_hmatrix
+
+def h_mul(A_hmatrix, B_hmatrix, alpha=1.0, beta=1.0, rtol=default_rtol, atol=default_atol):
+    # C = A * B
+    acc = hpro.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
+    C_hmatrix = A_hmatrix.copy()
+    hpro.multiply_without_progress_bar(alpha, hpro.apply_normal, A_hmatrix,
+                                       hpro.apply_normal, B_hmatrix, beta, C_hmatrix, acc)
+    return C_hmatrix
 
 mesh = fenics.UnitSquareMesh(85, 95)
 V = fenics.FunctionSpace(mesh, 'CG', 1)
@@ -53,6 +75,12 @@ y2 = K_csc * x
 err_hmat_stiffness = np.linalg.norm(y - y2)/np.linalg.norm(y2)
 print('err_hmat_stiffness=', err_hmat_stiffness)
 
+three_K_hmatrix = h_scale(K_hmatrix, 3.0)
+three_y = hpro.hmatrix_matvec(three_K_hmatrix, ct, ct, x)
+
+err_h_scale = np.linalg.norm(three_y - 3.0*y)
+print('err_h_scale=', err_h_scale)
+
 M_hmatrix = hpro.build_hmatrix_from_sparse_matfile (mass_fname, ct, ct, bct)
 hpro.visualize_hmatrix(M_hmatrix, "mass_hmatrix_from_python")
 
@@ -63,21 +91,32 @@ y2 = M_csc * x
 err_hmat_mass = np.linalg.norm(y - y2)/np.linalg.norm(y2)
 print('err_hmat_mass=', err_hmat_mass)
 
-hpro.hmatrix_add_overwrites_second(K_hmatrix, M_hmatrix, 1e-5)
-A_hmatrix = M_hmatrix
+
+A_hmatrix = h_add(K_hmatrix, M_hmatrix)
 
 x = np.random.randn(dof_coords.shape[0])
 y = hpro.hmatrix_matvec(A_hmatrix, ct, ct, x)
 
 y2 = A_csc * x
-err_hmat_combined = np.linalg.norm(y - y2)/np.linalg.norm(y2)
-print('err_hmat_combined=', err_hmat_combined)
+err_h_add = np.linalg.norm(y - y2)/np.linalg.norm(y2)
+print('err_h_add=', err_h_add)
 
-inv_A = hpro.hmatrix_factorized_inverse_destructive(A_hmatrix, 1e-4)
-x2 = hpro.hmatrix_factorized_inverse_matvec(inv_A, ct, ct, y)
+KM_hmatrix = h_mul(K_hmatrix, M_hmatrix)
 
-err_hfac = np.linalg.norm(x - x2)/np.linalg.norm(x2)
-print('err_hfac=', err_hfac)
+x = np.random.randn(dof_coords.shape[0])
+y = hpro.hmatrix_matvec(KM_hmatrix, ct, ct, x)
+
+y2 = hpro.hmatrix_matvec(K_hmatrix, ct, ct, hpro.hmatrix_matvec(M_hmatrix, ct, ct, x))
+
+####
+
+
+
+# inv_A = hpro.hmatrix_factorized_inverse_destructive(A_hmatrix, 1e-4)
+# x2 = hpro.hmatrix_factorized_inverse_matvec(inv_A, ct, ct, y)
+#
+# err_hfac = np.linalg.norm(x - x2)/np.linalg.norm(x2)
+# print('err_hfac=', err_hfac)
 #
 #
 # ######

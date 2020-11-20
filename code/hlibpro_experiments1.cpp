@@ -1033,8 +1033,22 @@ void hmatrix_add_overwrites_second (const HLIB::TMatrix * A, HLIB::TMatrix* B, d
     add(1.0, A, 1.0, B, acc);
 }
 
+template < typename T_value >
+void multiply_without_progress_bar(const T_value  	    alpha,
+		                           const matop_t  	    op_A,
+                                   const TMatrix *      A,
+                                   const matop_t  	    op_B,
+                                   const TMatrix *      B,
+                                   const T_value  	    beta,
+                                   TMatrix *  	        C,
+                                   const TTruncAcc &  	acc)
+{
+    multiply(alpha, op_A, A, op_B, B, beta, C, acc);
+}
 
 PYBIND11_MODULE(hlibpro_experiments1, m) {
+    py::class_<HLIB::TProgressBar>(m, "TProgressBar");
+
     py::class_<HLIB::TFacInvMatrix>(m, "TFacInvMatrix");
 
     py::enum_<HLIB::matop_t>(m, "matop_t")
@@ -1047,7 +1061,8 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
         .value("MATOP_CONJTRANS", HLIB::matop_t::MATOP_CONJTRANS)
         .value("apply_adj", HLIB::matop_t::apply_adj)
         .value("apply_adjoint", HLIB::matop_t::apply_adjoint)
-        .value("apply_conjtrans", HLIB::matop_t::apply_conjtrans);
+        .value("apply_conjtrans", HLIB::matop_t::apply_conjtrans)
+        .export_values();
 
     py::class_<HLIB::TTruncAcc>(m, "TTruncAcc")
         .def("max_rank", &HLIB::TTruncAcc::max_rank)
@@ -1055,7 +1070,7 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
         .def("rel_eps", &HLIB::TTruncAcc::rel_eps)
         .def("abs_eps", &HLIB::TTruncAcc::abs_eps)
         .def(py::init<>())
-        .def(py::init<const int, double>(), py::arg("k"), py::arg("absolute_eps")=CFG::Arith::abs_eps)
+//        .def(py::init<const int, double>(), py::arg("k"), py::arg("absolute_eps")=CFG::Arith::abs_eps)
         .def(py::init<const double, double>(), py::arg("relative_eps"), py::arg("absolute_eps")=CFG::Arith::abs_eps);
 
     py::class_<HLIB::TVector>(m, "TVector");
@@ -1091,9 +1106,34 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
         .def("conjugate", &HLIB::TMatrix::conjugate)
         .def("add", &HLIB::TMatrix::add)
         .def("scale", &HLIB::TMatrix::scale)
-        .def("copy", static_cast<std::unique_ptr<TMatrix> (HLIB::TMatrix::*)() const>(&HLIB::TMatrix::copy));
+        .def("truncate", &HLIB::TMatrix::truncate)
+        .def("mul_vec", &HLIB::TMatrix::mul_vec, py::arg("alpha"), py::arg("x"),
+                                                 py::arg("beta"), py::arg("y"), py::arg("op")=MATOP_NORM)
+//        .def("mul_right", &HLIB::TMatrix::mul_right) // not implemented apparently
+//        .def("mul_left", &HLIB::TMatrix::mul_left) // not implemented apparently
+        .def("check_data", &HLIB::TMatrix::check_data)
+        .def("byte_size", &HLIB::TMatrix::byte_size)
+        .def("print", &HLIB::TMatrix::print)
+        .def("copy", static_cast<std::unique_ptr<TMatrix> (HLIB::TMatrix::*)() const>(&HLIB::TMatrix::copy))
+        .def("copy_struct", &HLIB::TMatrix::copy_struct)
+        .def("row_vector", &HLIB::TMatrix::row_vector)
+        .def("col_vector", &HLIB::TMatrix::col_vector);
 
 
+    m.def("add", &add<real_t>);
+    m.def("multiply_without_progress_bar", &multiply_without_progress_bar<real_t>);
+//    m.def("multiply", static_cast<void (*)(const real_t,
+//                                           const matop_t,
+//                                           const TMatrix *,
+//                                           const matop_t,
+//                                           const TMatrix *,
+//                                           const real_t,
+//                                           TMatrix *,
+//                                           const TTruncAcc &,
+//                                           TProgressBar *)>(&multiply<real_t>),
+//          py::arg("alpha"), py::arg("op_A"), py::arg("A"),
+//          py::arg("op_B"), py::arg("B"), py::arg("beta"), py::arg("C"),
+//          py::arg("acc"), py::arg("progress")=NULL);
 
     py::class_<HLIB::TCoeffFn<real_t>>(m, "TCoeffFn<real_t>");
 
