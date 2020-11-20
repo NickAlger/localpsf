@@ -5,8 +5,8 @@ from scipy.io import savemat
 from time import time
 import hlibpro_experiments1 as hpro
 
-default_rtol = 1e-12
-default_atol = 1e-12
+default_rtol = 1e-6
+default_atol = 1e-16
 
 def h_add(A_hmatrix, B_hmatrix, alpha=1.0, beta=1.0, rtol=default_rtol, atol=default_atol):
     # C = A + alpha * B to tolerance given by truncation accuracy object acc
@@ -21,13 +21,30 @@ def h_scale(A_hmatrix, alpha):
     C_hmatrix.scale(alpha)
     return C_hmatrix
 
-def h_mul(A_hmatrix, B_hmatrix, alpha=1.0, beta=1.0, rtol=default_rtol, atol=default_atol):
+def h_mul(A_hmatrix, B_hmatrix, alpha=1.0, rtol=default_rtol, atol=default_atol, display_progress=True):
     # C = A * B
     acc = hpro.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
     C_hmatrix = A_hmatrix.copy()
-    hpro.multiply_without_progress_bar(alpha, hpro.apply_normal, A_hmatrix,
-                                       hpro.apply_normal, B_hmatrix, beta, C_hmatrix, acc)
+    # C_hmatrix = B_hmatrix.copy()
+    # C_hmatrix.set_nonsym()
+    # A_hmatrix.set_nonsym()
+    # B_hmatrix.set_nonsym()
+    if display_progress:
+        hpro.multiply_with_progress_bar(alpha, hpro.apply_normal, A_hmatrix,
+                                        hpro.apply_normal, B_hmatrix, 0.0, C_hmatrix, acc)
+    else:
+        hpro.multiply_without_progress_bar(alpha, hpro.apply_normal, A_hmatrix,
+                                           hpro.apply_normal, B_hmatrix, 0.0, C_hmatrix, acc)
+
+    # A_hmatrix.set_symmetric()
+    # B_hmatrix.set_symmetric()
     return C_hmatrix
+
+def h_factorized_inverse(A_hmatrix, rtol=default_rtol, atol=default_atol, display_progress=True):
+    acc = hpro.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
+    iA_factors = A_hmatrix.copy()
+    iA_hmatrix = hpro.factorize_inv_with_progress_bar(iA_factors, acc)
+    return iA_hmatrix, iA_factors
 
 mesh = fenics.UnitSquareMesh(85, 95)
 V = fenics.FunctionSpace(mesh, 'CG', 1)
@@ -69,14 +86,14 @@ K_hmatrix = hpro.build_hmatrix_from_sparse_matfile (stiffness_fname, ct, ct, bct
 hpro.visualize_hmatrix(K_hmatrix, "stiffness_hmatrix_from_python")
 
 x = np.random.randn(dof_coords.shape[0])
-y = hpro.hmatrix_matvec(K_hmatrix, ct, ct, x)
+y = hpro.h_matvec(K_hmatrix, ct, ct, x)
 
 y2 = K_csc * x
 err_hmat_stiffness = np.linalg.norm(y - y2)/np.linalg.norm(y2)
 print('err_hmat_stiffness=', err_hmat_stiffness)
 
 three_K_hmatrix = h_scale(K_hmatrix, 3.0)
-three_y = hpro.hmatrix_matvec(three_K_hmatrix, ct, ct, x)
+three_y = hpro.h_matvec(three_K_hmatrix, ct, ct, x)
 
 err_h_scale = np.linalg.norm(three_y - 3.0*y)
 print('err_h_scale=', err_h_scale)
@@ -85,7 +102,7 @@ M_hmatrix = hpro.build_hmatrix_from_sparse_matfile (mass_fname, ct, ct, bct)
 hpro.visualize_hmatrix(M_hmatrix, "mass_hmatrix_from_python")
 
 x = np.random.randn(dof_coords.shape[0])
-y = hpro.hmatrix_matvec(M_hmatrix, ct, ct, x)
+y = hpro.h_matvec(M_hmatrix, ct, ct, x)
 
 y2 = M_csc * x
 err_hmat_mass = np.linalg.norm(y - y2)/np.linalg.norm(y2)
@@ -95,22 +112,33 @@ print('err_hmat_mass=', err_hmat_mass)
 A_hmatrix = h_add(K_hmatrix, M_hmatrix)
 
 x = np.random.randn(dof_coords.shape[0])
-y = hpro.hmatrix_matvec(A_hmatrix, ct, ct, x)
+y = hpro.h_matvec(A_hmatrix, ct, ct, x)
 
 y2 = A_csc * x
 err_h_add = np.linalg.norm(y - y2)/np.linalg.norm(y2)
 print('err_h_add=', err_h_add)
 
-KM_hmatrix = h_mul(K_hmatrix, M_hmatrix)
+KM_hmatrix = h_mul(K_hmatrix, M_hmatrix, rtol=1e-15)
 
 x = np.random.randn(dof_coords.shape[0])
-y = hpro.hmatrix_matvec(KM_hmatrix, ct, ct, x)
+# x = np.ones(dof_coords.shape[0])
+y = hpro.h_matvec(KM_hmatrix, ct, ct, x)
 
-y2 = hpro.hmatrix_matvec(K_hmatrix, ct, ct, hpro.hmatrix_matvec(M_hmatrix, ct, ct, x))
+y2 = hpro.h_matvec(K_hmatrix, ct, ct, hpro.h_matvec(M_hmatrix, ct, ct, x))
+err_H_mul = np.linalg.norm(y2 - y)/np.linalg.norm(y2)
+print('err_H_mul=', err_H_mul)
 
 ####
 
+iA_hmatrix, iA_factors = h_factorized_inverse(A_hmatrix, rtol=1e-9)
 
+x = np.random.randn(dof_coords.shape[0])
+y = hpro.h_matvec(A_hmatrix, ct, ct, x)
+
+x2 = hpro.h_factorized_inverse_matvec(iA_hmatrix, ct, ct, y)
+
+err_hfac = np.linalg.norm(x - x2)/np.linalg.norm(x2)
+print('err_hfac=', err_hfac)
 
 # inv_A = hpro.hmatrix_factorized_inverse_destructive(A_hmatrix, 1e-4)
 # x2 = hpro.hmatrix_factorized_inverse_matvec(inv_A, ct, ct, y)

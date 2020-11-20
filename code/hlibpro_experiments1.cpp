@@ -785,10 +785,10 @@ void visualize_hmatrix(HLIB::TMatrix * A_ptr, string title)
     mvis.print( A_ptr, title );
 }
 
-VectorXd hmatrix_matvec(HLIB::TMatrix * A_ptr,
-                        HLIB::TClusterTree * row_ct_ptr,
-                        HLIB::TClusterTree * col_ct_ptr,
-                        VectorXd x)
+VectorXd h_matvec(HLIB::TMatrix * A_ptr,
+                  HLIB::TClusterTree * row_ct_ptr,
+                  HLIB::TClusterTree * col_ct_ptr,
+                  VectorXd x)
 {
     // y = A * x
     std::unique_ptr<HLIB::TVector> y_hlib = A_ptr->row_vector();
@@ -815,7 +815,7 @@ VectorXd hmatrix_matvec(HLIB::TMatrix * A_ptr,
     return y;
 }
 
-VectorXd hmatrix_factorized_inverse_matvec(HLIB::TFacInvMatrix * inv_A_ptr,
+VectorXd h_factorized_inverse_matvec(HLIB::TFacInvMatrix * inv_A_ptr,
                                            HLIB::TClusterTree * row_ct_ptr,
                                            HLIB::TClusterTree * col_ct_ptr,
                                            VectorXd x)
@@ -843,6 +843,26 @@ VectorXd hmatrix_factorized_inverse_matvec(HLIB::TFacInvMatrix * inv_A_ptr,
         y(i) = y_hlib->entry( i );
 
     return y;
+}
+
+std::unique_ptr<HLIB::TFacInvMatrix> factorize_inv_with_progress_bar(HLIB::TMatrix * A_ptr, TTruncAcc acc)
+{
+    double rtol = acc.rel_eps();
+    TTimer                    timer( WALL_TIME );
+    TConsoleProgressBar       progress;
+
+    std::cout << std::endl << "━━ LU factorisation ( rtol = " << rtol << " )" << std::endl;
+
+    timer.start();
+
+    std::unique_ptr<HLIB::TFacInvMatrix> A_inv = factorise_inv( A_ptr, acc, & progress );
+
+    timer.pause();
+    std::cout << "    done in " << timer << std::endl;
+
+    std::cout << "    size of LU factor = " << Mem::to_string( A_ptr->byte_size() ) << std::endl;
+
+    return A_inv;
 }
 
 std::unique_ptr< HLIB::TFacInvMatrix > hmatrix_factorized_inverse_destructive(HLIB::TMatrix * A_ptr, double tol)
@@ -1046,6 +1066,32 @@ void multiply_without_progress_bar(const T_value  	    alpha,
     multiply(alpha, op_A, A, op_B, B, beta, C, acc);
 }
 
+template < typename T_value >
+void multiply_with_progress_bar(const T_value  	    alpha,
+		                        const matop_t  	    op_A,
+                                const TMatrix *      A,
+                                const matop_t  	    op_B,
+                                const TMatrix *      B,
+                                const T_value  	    beta,
+                                TMatrix *  	        C,
+                                const TTruncAcc &  	acc)
+{
+//    TTruncAcc              acc2( 1e-6 );
+    TTimer                    timer( WALL_TIME );
+    TConsoleProgressBar       progress;
+
+    std::cout << std::endl << "━━ H-matrix multiplication C=A*B " << std::endl;
+
+    timer.start();
+
+    multiply(alpha, op_A, A, op_B, B, beta, C, acc, & progress);
+
+    timer.pause();
+    std::cout << "    done in " << timer << std::endl;
+
+    std::cout << "    size of C = " << Mem::to_string( C->byte_size() ) << std::endl;
+}
+
 PYBIND11_MODULE(hlibpro_experiments1, m) {
     py::class_<HLIB::TProgressBar>(m, "TProgressBar");
 
@@ -1122,18 +1168,8 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
 
     m.def("add", &add<real_t>);
     m.def("multiply_without_progress_bar", &multiply_without_progress_bar<real_t>);
-//    m.def("multiply", static_cast<void (*)(const real_t,
-//                                           const matop_t,
-//                                           const TMatrix *,
-//                                           const matop_t,
-//                                           const TMatrix *,
-//                                           const real_t,
-//                                           TMatrix *,
-//                                           const TTruncAcc &,
-//                                           TProgressBar *)>(&multiply<real_t>),
-//          py::arg("alpha"), py::arg("op_A"), py::arg("A"),
-//          py::arg("op_B"), py::arg("B"), py::arg("beta"), py::arg("C"),
-//          py::arg("acc"), py::arg("progress")=NULL);
+    m.def("multiply_with_progress_bar", &multiply_with_progress_bar<real_t>);
+    m.def("factorize_inv_with_progress_bar", &factorize_inv_with_progress_bar);
 
     py::class_<HLIB::TCoeffFn<real_t>>(m, "TCoeffFn<real_t>");
 
@@ -1195,9 +1231,9 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
     m.def("build_hmatrix", &build_hmatrix, "build_hmatrix from hlibpro");
     m.def("add_identity_to_hmatrix", &add_identity_to_hmatrix, "add_identity from hlibpro");
     m.def("visualize_hmatrix", &visualize_hmatrix, "visualize_hmatrix from hlibpro");
-    m.def("hmatrix_matvec", &hmatrix_matvec, "hmatrix_matvec from hlibpro");
+    m.def("h_matvec", &h_matvec, "h_matvec from hlibpro");
     m.def("hmatrix_factorized_inverse_destructive", &hmatrix_factorized_inverse_destructive, "hmatrix_factorized_inverse_destructive from hlibpro");
-    m.def("hmatrix_factorized_inverse_matvec", &hmatrix_factorized_inverse_matvec, "hmatrix_factorized_inverse_matvec from hlibpro");
+    m.def("h_factorized_inverse_matvec", &h_factorized_inverse_matvec, "h_factorized_inverse_matvec from hlibpro");
     m.def("build_hmatrix_from_sparse_matfile", &build_hmatrix_from_sparse_matfile, "build_hmatrix_from_sparse_matfile from hlibpro");
     m.def("hmatrix_add_overwrites_second", &hmatrix_add_overwrites_second, "hmatrix_add_overwrites_second from hlibpro");
 }
