@@ -26,9 +26,9 @@ def h_mul(A_hmatrix, B_hmatrix, alpha=1.0, rtol=default_rtol, atol=default_atol,
     acc = hpro.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
     C_hmatrix = A_hmatrix.copy()
     # C_hmatrix = B_hmatrix.copy()
-    # C_hmatrix.set_nonsym()
-    # A_hmatrix.set_nonsym()
-    # B_hmatrix.set_nonsym()
+    C_hmatrix.set_nonsym()
+    A_hmatrix.set_nonsym()
+    B_hmatrix.set_nonsym()
     if display_progress:
         hpro.multiply_with_progress_bar(alpha, hpro.apply_normal, A_hmatrix,
                                         hpro.apply_normal, B_hmatrix, 0.0, C_hmatrix, acc)
@@ -108,6 +108,7 @@ y2 = M_csc * x
 err_hmat_mass = np.linalg.norm(y - y2)/np.linalg.norm(y2)
 print('err_hmat_mass=', err_hmat_mass)
 
+########    ADD    ########
 
 A_hmatrix = h_add(K_hmatrix, M_hmatrix)
 
@@ -118,6 +119,8 @@ y2 = A_csc * x
 err_h_add = np.linalg.norm(y - y2)/np.linalg.norm(y2)
 print('err_h_add=', err_h_add)
 
+########    MULT    ########
+
 KM_hmatrix = h_mul(K_hmatrix, M_hmatrix, rtol=1e-15)
 
 x = np.random.randn(dof_coords.shape[0])
@@ -125,10 +128,11 @@ x = np.random.randn(dof_coords.shape[0])
 y = hpro.h_matvec(KM_hmatrix, ct, ct, x)
 
 y2 = hpro.h_matvec(K_hmatrix, ct, ct, hpro.h_matvec(M_hmatrix, ct, ct, x))
+y3 = K_csc * (M_csc * x)
 err_H_mul = np.linalg.norm(y2 - y)/np.linalg.norm(y2)
 print('err_H_mul=', err_H_mul)
 
-####
+########    FACTORIZE    ########
 
 iA_hmatrix, iA_factors = h_factorized_inverse(A_hmatrix, rtol=1e-9)
 
