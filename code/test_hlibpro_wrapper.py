@@ -6,7 +6,7 @@ import hlibpro_wrapper as hpro
 
 ########    SETUP    ########
 
-mesh = fenics.UnitSquareMesh(85, 95)
+mesh = fenics.UnitSquareMesh(75, 75)
 V = fenics.FunctionSpace(mesh, 'CG', 1)
 dof_coords = V.tabulate_dof_coordinates()
 
