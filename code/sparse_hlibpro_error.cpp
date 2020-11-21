@@ -59,8 +59,7 @@ std::unique_ptr<HLIB::TClusterTree> build_cluster_tree_from_dof_coords(HLIB::TVe
 int
 main ( int argc, char ** argv )
 {
-    cout << (bool)argv[1] << endl;
-    bool use_perturbed_matrix = (bool)argv[1];
+    bool use_perturbed_matrix = false;
     try
     {
         cout << "use_perturbed_matrix = " << use_perturbed_matrix << endl << endl;
@@ -70,9 +69,6 @@ main ( int argc, char ** argv )
         string M2_fname;
         string M12_fname;
 
-//        M1_fname = "test_matrix_1_perturbed.mat";
-//        M2_fname = "test_matrix_2_perturbed.mat";
-//        M12_fname = "test_matrix_12_perturbed.mat";
         if(use_perturbed_matrix)
         {
             M1_fname = "test_matrix_1_perturbed.mat";
