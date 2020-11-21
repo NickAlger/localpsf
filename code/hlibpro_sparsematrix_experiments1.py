@@ -10,13 +10,6 @@ default_atol = 1e-16
 
 hpro.initialize_hlibpro()
 
-class HMatrixWrapper:
-    def __init__(me, cpp_hmatrix_object, block_cluster_tree):
-        me.cpp_hmatrix_object = cpp_hmatrix_object
-        me.bct = block_cluster_tree
-
-        me.row_ct = row_cluster_tree
-        me.col_ct = col_cluster_tree
 
 def h_add(A_hmatrix, B_hmatrix, alpha=1.0, beta=1.0, rtol=default_rtol, atol=default_atol):
     # C = A + alpha * B to tolerance given by truncation accuracy object acc

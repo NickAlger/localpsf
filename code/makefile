@@ -25,12 +25,14 @@ CXXFLAGS = -I$(HLIBPRO_INCLUDE) \
 
 LIBS := -lhpro -Wl,-rpath,$(HLIBPRO_LIB)
 
-MODULE_NAME = hlibpro_experiments1
+# MODULE_NAME = hlibpro_experiments1
+MODULE_NAME = hlibpro_bindings
 
 TARGET_NAME = $(addsuffix $(PYSUFFIX), $(MODULE_NAME))
 PRIMARY_CPP_FILE = $(addsuffix .cpp, $(MODULE_NAME))
 
-all: $(TARGET_NAME) sparse_hlibpro_error
+# all: $(TARGET_NAME) sparse_hlibpro_error
+all: $(TARGET_NAME)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
