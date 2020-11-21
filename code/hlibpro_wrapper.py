@@ -93,6 +93,8 @@ def h_matvec(A_hmatrix, x):
 def visualize_hmatrix(A_hmatrix, title):
     hpro_cpp.visualize_hmatrix(A_hmatrix.cpp_object, title)
 
+def visualize_inverse_factors(iA_factorized, title):
+    hpro_cpp.visualize_hmatrix(iA_factorized._factors_cpp_object, title)
 
 build_cluster_tree_from_dof_coords = hpro_cpp.build_cluster_tree_from_dof_coords
 build_block_cluster_tree = hpro_cpp.build_block_cluster_tree

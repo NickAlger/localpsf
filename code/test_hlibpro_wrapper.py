@@ -115,3 +115,4 @@ x2 = hpro.h_factorized_solve(iA_factorized, y)
 err_hfac = np.linalg.norm(x - x2)/np.linalg.norm(x2)
 print('err_hfac=', err_hfac)
 
+hpro.visualize_inverse_factors(iA_factorized, 'inv_A_factors')
