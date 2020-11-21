@@ -30,7 +30,7 @@ MODULE_NAME = hlibpro_experiments1
 TARGET_NAME = $(addsuffix $(PYSUFFIX), $(MODULE_NAME))
 PRIMARY_CPP_FILE = $(addsuffix .cpp, $(MODULE_NAME))
 
-all: $(TARGET_NAME)
+all: $(TARGET_NAME) sparse_hlibpro_error
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -38,6 +38,12 @@ all: $(TARGET_NAME)
 $(TARGET_NAME): $(PRIMARY_CPP_FILE)
 	@echo 'Building target: $@'
 	g++ $(CXXFLAGS) $(PYFLAGS) -o "$@" "$<" $(HLIBPRO_FLAGS) $(LDFLAGS) -I $(HLIBPRO_INCLUDE) $(LIBS)
+	@echo 'Finished building target: $@'
+	@echo ' '
+
+sparse_hlibpro_error: sparse_hlibpro_error.cpp
+	@echo 'Building target: $@'
+	g++ -o "$@" "$<" $(HLIBPRO_FLAGS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

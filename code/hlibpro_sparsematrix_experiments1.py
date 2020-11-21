@@ -5,7 +5,7 @@ from scipy.io import savemat
 from time import time
 import hlibpro_experiments1 as hpro
 
-default_rtol = 1e-6
+default_rtol = 1e-12
 default_atol = 1e-16
 
 hpro.initialize_hlibpro()
@@ -26,7 +26,8 @@ def h_scale(A_hmatrix, alpha):
 def h_mul(A_hmatrix, B_hmatrix, alpha=1.0, rtol=default_rtol, atol=default_atol, display_progress=True):
     # C = A * B
     acc = hpro.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
-    C_hmatrix = A_hmatrix.copy_struct()
+    # C_hmatrix = A_hmatrix.copy_struct()
+    C_hmatrix = A_hmatrix.copy()
     if display_progress:
         hpro.multiply_with_progress_bar(alpha, hpro.apply_normal, A_hmatrix,
                                         hpro.apply_normal, B_hmatrix, 0.0, C_hmatrix, acc)
@@ -141,10 +142,13 @@ x = np.random.randn(dof_coords.shape[0])
 y = hpro.h_matvec(KM_hmatrix, ct, ct, x)
 
 y2 = hpro.h_matvec(K_hmatrix, ct, ct, hpro.h_matvec(M_hmatrix, ct, ct, x))
-# y3 = K_csc * (M_csc * x)
 # y4 = 0.5 * (K_csc * (M_csc * x) + M_csc * (K_csc * x))
 err_H_mul = np.linalg.norm(y2 - y)/np.linalg.norm(y2)
 print('err_H_mul=', err_H_mul)
+
+y3 = K_csc * (M_csc * x)
+err_H_mul_exact = np.linalg.norm(y3 - y)/np.linalg.norm(y2)
+print('err_H_mul_exact=', err_H_mul_exact)
 
 ########    FACTORIZE    ########
 
