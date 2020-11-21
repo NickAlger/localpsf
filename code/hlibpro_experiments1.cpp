@@ -1220,8 +1220,22 @@ PYBIND11_MODULE(hlibpro_experiments1, m) {
                       >())
         .def("compute_entries", &ProductConvolutionMultipleBatches::compute_entries);
 
-    py::class_<HLIB::TClusterTree>(m, "HLIB::TClusterTree");
-    py::class_<HLIB::TBlockClusterTree>(m, "HLIB::TBlockClusterTree");
+    py::class_<HLIB::TClusterTree>(m, "HLIB::TClusterTree")
+        .def("perm_i2e", &HLIB::TClusterTree::perm_i2e)
+        .def("perm_e2i", &HLIB::TClusterTree::perm_e2i)
+        .def("nnodes", &HLIB::TClusterTree::nnodes)
+        .def("depth", &HLIB::TClusterTree::depth)
+        .def("byte_size", &HLIB::TClusterTree::byte_size);
+
+    py::class_<HLIB::TBlockClusterTree>(m, "HLIB::TBlockClusterTree")
+        .def("row_ct", &HLIB::TBlockClusterTree::row_ct)
+        .def("col_ct", &HLIB::TBlockClusterTree::col_ct)
+        .def("nnodes", &HLIB::TBlockClusterTree::nnodes)
+        .def("depth", &HLIB::TBlockClusterTree::depth)
+        .def("nnodes", &HLIB::TBlockClusterTree::nnodes)
+        .def("depth", &HLIB::TBlockClusterTree::depth)
+        .def("compute_c_sp", &HLIB::TBlockClusterTree::compute_c_sp)
+        .def("byte_size", &HLIB::TBlockClusterTree::byte_size);
 
     m.doc() = "pybind11 bem1d plugin"; // optional module docstring
 

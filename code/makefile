@@ -41,11 +41,11 @@ $(TARGET_NAME): $(PRIMARY_CPP_FILE)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-sparse_hlibpro_error: sparse_hlibpro_error.cpp
-	@echo 'Building target: $@'
-	g++ -o "$@" "$<" $(HLIBPRO_FLAGS)
-	@echo 'Finished building target: $@'
-	@echo ' '
+# sparse_hlibpro_error: sparse_hlibpro_error.cpp
+# 	@echo 'Building target: $@'
+# 	g++ -o "$@" "$<" $(HLIBPRO_FLAGS)
+# 	@echo 'Finished building target: $@'
+# 	@echo ' '
 
 -include $(OBJS:.o=.d)
 

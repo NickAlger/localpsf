@@ -10,6 +10,14 @@ default_atol = 1e-16
 
 hpro.initialize_hlibpro()
 
+class HMatrixWrapper:
+    def __init__(me, cpp_hmatrix_object, block_cluster_tree):
+        me.cpp_hmatrix_object = cpp_hmatrix_object
+        me.bct = block_cluster_tree
+
+        me.row_ct = row_cluster_tree
+        me.col_ct = col_cluster_tree
+
 def h_add(A_hmatrix, B_hmatrix, alpha=1.0, beta=1.0, rtol=default_rtol, atol=default_atol):
     # C = A + alpha * B to tolerance given by truncation accuracy object acc
     acc = hpro.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
@@ -26,8 +34,8 @@ def h_scale(A_hmatrix, alpha):
 def h_mul(A_hmatrix, B_hmatrix, alpha=1.0, rtol=default_rtol, atol=default_atol, display_progress=True):
     # C = A * B
     acc = hpro.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
-    # C_hmatrix = A_hmatrix.copy_struct()
-    C_hmatrix = A_hmatrix.copy()
+    C_hmatrix = A_hmatrix.copy_struct()
+    # C_hmatrix = A_hmatrix.copy()
     if display_progress:
         hpro.multiply_with_progress_bar(alpha, hpro.apply_normal, A_hmatrix,
                                         hpro.apply_normal, B_hmatrix, 0.0, C_hmatrix, acc)
@@ -36,11 +44,16 @@ def h_mul(A_hmatrix, B_hmatrix, alpha=1.0, rtol=default_rtol, atol=default_atol,
                                            hpro.apply_normal, B_hmatrix, 0.0, C_hmatrix, acc)
     return C_hmatrix
 
+class FactorizedInverseHMatrix:
+    def __init__(me, iA_hmatrix, iA_factors):
+        me.iA_hmatrix = iA_hmatrix
+        me._iA_factors = iA_factors  # Don't mess with this!! Could cause segfault if deleted
+
 def h_factorized_inverse(A_hmatrix, rtol=default_rtol, atol=default_atol, display_progress=True):
     acc = hpro.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
     iA_factors = A_hmatrix.copy()
     iA_hmatrix = hpro.factorize_inv_with_progress_bar(iA_factors, acc)
-    return iA_hmatrix, iA_factors
+    return FactorizedInverseHMatrix(iA_hmatrix, iA_factors)
 
 def build_hmatrix_from_scipy_sparse_matrix(A_csc, row_ct, col_ct, bct):
     A_csc[1,0] += 1e-14 # Force non-symmetry
