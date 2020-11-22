@@ -112,7 +112,8 @@ def remove_points_near_boundary(candidate_points, eval_boundary_function, bounda
 
 class LocalPSF:
     def __init__(me, apply_hessian_H, apply_hessian_transpose_Ht, function_space_V, error_epsilon=1e-2,
-                 boundary_tol=5e-1, num_standard_deviations_tau=3, max_batches=5, verbose=True):
+                 boundary_tol=5e-1, num_standard_deviations_tau=3, max_batches=5, verbose=True,
+                 mass_matrix_M=None, solve_mass_matrix_M=None):
         me.apply_H = apply_hessian_H
         me.apply_Ht = apply_hessian_transpose_Ht
         me.V = function_space_V
@@ -124,11 +125,16 @@ class LocalPSF:
         me.X = me.V.tabulate_dof_coordinates()
         me.N, me.d = me.X.shape
 
-        print('making mass matrix and solver')
-        me.M = make_mass_matrix(me.V)
-        me.solve_M = make_fenics_amg_solver(me.M)
-        # me.M, M_solver = make_mass_matrix_and_solver(function_space_V)
-        # me.solve_M = lambda x: M_solver.solve(x)
+        if (mass_matrix_M == None) or (solve_mass_matrix_M == None):
+            print('making mass matrix and solver')
+            me.M = make_mass_matrix(me.V)
+            me.solve_M = make_fenics_amg_solver(me.M)
+            # me.M, M_solver = make_mass_matrix_and_solver(function_space_V)
+            # me.solve_M = lambda x: M_solver.solve(x)
+        else:
+            me.M = mass_matrix_M
+            me.solve_M = solve_mass_matrix_M
+
 
         print('getting boundary function')
         me.boundary_function = get_boundary_function(me.V, me.apply_Ht, me.solve_M)
