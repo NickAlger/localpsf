@@ -190,7 +190,7 @@ if __name__ == "__main__":
             x,y,z = coord_sets[k][i]
             r     = np.sqrt(x**2+y**2)
             t     = np.arctan2(y, x)
-            coord_sets[k][i,2] = depth(r,t)*z + topography(r,t)
+            coord_sets[k][i,2] = depth(r,t, r0)*z + topography(r,t, r0)
             coord_sets[k][i] *= dilitation
 
     rank = dl.MPI.rank(mesh.mpi_comm())
