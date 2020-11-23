@@ -103,7 +103,7 @@ class FactorizedInverseHMatrixWrapper:
         me.cpp_object = cpp_object
         me.bct = inverse_bct
         me._factors_cpp_object = factors_cpp_object  # Don't mess with this!! Could cause segfault if deleted
-        me.shape = (me.factors_cpp_object.rows(), me.factors_cpp_object.cols())
+        me.shape = (me._factors_cpp_object.rows(), me._factors_cpp_object.cols())
 
     def row_ct(me):
         return me.bct.row_ct()
