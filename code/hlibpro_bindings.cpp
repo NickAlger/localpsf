@@ -399,8 +399,8 @@ public:
     }
     using TCoeffFn< real_t >::eval;
 
-    virtual matform_t  matrix_format  () const { return MATFORM_SYM; }
-
+//    virtual matform_t  matrix_format  () const { return MATFORM_SYM; }
+    virtual matform_t  matrix_format  () const { return MATFORM_NONSYM; }
 };
 
 
