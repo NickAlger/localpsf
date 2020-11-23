@@ -909,10 +909,48 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
 \end{frame}
 %---------------------------------------------------------------------------------%
 \begin{frame}
-  \frametitle{Fast high-rank Hessian approximation for Bayesian ice sheet inverse problems}
+  \frametitle{Fast high-rank Hessian approximation for Bayesian ice
+    sheet inverse problems}
+      \begin{itemize}
+      \item {\bf Stage 1: Hessian approximation via product-convolution
+        approximation:}
+        %leads to fast access to matrix entries, which
+        %makes
+        %the approximation well-suited for hierarchical matrix compression.
+        %to reduce the computational cost of the
+        %{$\mathcal{H}$-matrice compression, we first approximate the Hessian
+        %  using a {\note product-convolution approximation approach} that
+        %  takes advantage of the Hessian's local translation invariance.
+        \begin{itemize}
+        \item Compute {\bf the impulse responses} of the Hessian operator at
+          many points by applying the operator to a small number of Dirac
+          combs of point sources.
+          %\item Within each Dirac comb, the point sources must be spaced
+          %  sufficiently far apart so that the impulse responses to those
+          %  point sources do not overlap with each other or with the boundary.
+        \item Estimate the required spacing of point sources by applying the
+          operator to a small number of constant, linear, and quadratic
+          functions.
+        \item Once computed, the impulse responses are used to form a
+          low-rank approximation of the spatially varying impulse response
+          function (SVIR).
+        \end{itemize}
+      \item {\bf Stage 2: $\mathcal{H}$-matrix compression:}
+        \begin{itemize}
+        \item Convert the product-convolution Hessian approximation to
+          hierarchical matrix format.
+        \item Invert the compressed matrix using fast hierarchical matrix
+          arithmetic.
+        \end{itemize}
 
- 
- 
+        \item {\bf Stage 3: Hessian-approximation via
+          $\mathcal{H}$-matrix compression:}
+          \begin{itemize}
+            \item Use this approximation to solve the Newton system to
+              compute the MAP point and draw samples from the
+              posterior.
+          \end{itemize}
+      \end{itemize}
 \end{frame}
 %---------------------------------------------------------------------------------%
 %---------------------------------------------------------------------------------%
