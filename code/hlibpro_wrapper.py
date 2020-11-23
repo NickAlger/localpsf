@@ -103,12 +103,16 @@ class FactorizedInverseHMatrixWrapper:
         me.cpp_object = cpp_object
         me.bct = inverse_bct
         me._factors_cpp_object = factors_cpp_object  # Don't mess with this!! Could cause segfault if deleted
+        me.shape = (me.cpp_object.rows(), me.cpp_object.cols())
 
     def row_ct(me):
         return me.bct.row_ct()
 
     def col_ct(me):
         return me.bct.col_ct()
+
+    def matvec(me, x):
+        return h_factorized_solve(me, x)
 
 
 def h_factorized_inverse(A_hmatrix, rtol=default_rtol, atol=default_atol, display_progress=True):
