@@ -451,7 +451,7 @@
   {\small Tucker Hartland},\inst{2}
   {\small Omar Ghattas\inst{1}}}
 
-\institute[UCM]{%
+\institute[UT]{%
   \inst{1}{Oden Institute\\
     The University of Texas at Austin}\\\smallskip
   \inst{2}{Applied Mathematics, School of Natural Sciences\\
@@ -893,18 +893,122 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
 \fill[blue!90,nearly transparent] (5,2) -- (7,2.5) -- (3,2.5) -- (1,2) -- cycle;
 \end{tikzpicture}
    }
-      \only<2>{
+   \only<2>{
      \begin{center}
-       \includegraphics[width=0.6\columnwidth]{extraplots/Hess1_ordered.png}
+     	\includegraphics[width=0.6\columnwidth]{extraplots/translation_invariance_level_sets.pdf}
+       %\includegraphics[width=0.6\columnwidth]{extraplots/Hess1_ordered.png}
      \end{center}
    }
+	\only<3>{
+	\begin{center}
+		\includegraphics[width=0.6\columnwidth]{extraplots/Mesh_Height.png}
+	\end{center}
+	}
+	\only<4>{
+		\begin{center}
+			\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_2.pdf}
+		\end{center}
+	}
+	\only<5>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_3.pdf}
+	\end{center}
+}
+	\only<6>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_4.pdf}
+	\end{center}
+}
+	\only<7>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_5.pdf}
+	\end{center}
+}
+	\only<8>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_6.pdf}
+	\end{center}
+}
+	\only<9>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_7.pdf}
+	\end{center}
+}
+	\only<10>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_8.pdf}
+	\end{center}
+}
+	\only<11>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_9.pdf}
+	\end{center}
+}
+	\only<12>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_10.pdf}
+	\end{center}
+}
+	\only<13>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_11.pdf}
+	\end{center}
+}
+	\only<14>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_12.pdf}
+	\end{center}
+}
+	\only<15>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_13.pdf}
+	\end{center}
+}
+	\only<16>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_14.pdf}
+	\end{center}
+}
+	\only<17>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_15.pdf}
+	\end{center}
+}
+	\only<18>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_16.pdf}
+	\end{center}
+}
+	\only<19>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_17.pdf}
+	\end{center}
+}
+	\only<20>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_18.pdf}
+	\end{center}
+}
+	\only<21>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_19.pdf}
+	\end{center}
+}
+	\only<22>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_20.pdf}
+	\end{center}
+}
+	\only<23>{
+	\begin{center}
+		\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_21.pdf}
+	\end{center}
+}
+
+\begin{flushleft}Hessian properties:\end{flushleft}
 \begin{itemize}
-\item We expect (hope) for narrow sensitivities
-\item $\Rightarrow$ We hope that
-  $\boldsymbol{\hat{H}}:=\boldsymbol{\prcov^{-1/2}} { \bs
-  F }^T\boldsymbol{\ncov^{-1}} { \bs F
-}\boldsymbol{\prcov^{-1/2}}+ { \bs I }$ is concentrated on
-  the diagonal
+\item Local sensitivities
+\item Local translation invariance
 \end{itemize}
 \end{frame}
 %---------------------------------------------------------------------------------%
@@ -931,9 +1035,7 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
         \item Estimate the required spacing of point sources by applying the
           operator to a small number of constant, linear, and quadratic
           functions.
-        \item Once computed, the impulse responses are used to form a
-          low-rank approximation of the spatially varying impulse response
-          function (SVIR).
+        \item Once computed, the impulse responses are interpolated to approximate arbitrary Hessian entries.
         \end{itemize}
       \item {\bf Stage 2: $\mathcal{H}$-matrix compression:}
         \begin{itemize}
@@ -946,8 +1048,8 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
         \item {\bf Stage 3: Hessian-approximation via
           $\mathcal{H}$-matrix compression:}
           \begin{itemize}
-            \item Use this approximation to solve the Newton system to
-              compute the MAP point and draw samples from the
+            \item Use this approximation to precondition linear systems involving the Hessian (e.g., solve the Newton system to
+              compute the MAP point) and/or draw samples from the
               posterior.
           \end{itemize}
       \end{itemize}
@@ -955,309 +1057,105 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
 %---------------------------------------------------------------------------------%
 %---------------------------------------------------------------------------------%
 \begin{frame}
-  \frametitle{$\mathcal{H}$-matrices}
-
-  . . . add description of H-matrices . . .
-
-  . . . discuss computational cost . . .
-
-  . . . add reference and link to the H-matrix library that Nick used . . .
-  
-  %\framesubtitle{Hierarchical off-diagonal low-rank (HODLR) matrices}
-%  \small
-%  \vspace{-0.1in}
-%  \begin{align}
-%    \bs{H}_{\text{\tiny HODLR}}=&
-%    \begin{bmatrix}
-%      \boldsymbol{A}_{1}^{(1)} & \textcolor{red}{\boldsymbol{B}_{1}^{(1)}}\\
-%      \textcolor{red}{\boldsymbol{B}_{2}^{(1)}} & \boldsymbol{A}_{2}^{(1)}
-%    \end{bmatrix}\nonumber\hspace{5.5cm}\textcolor{red}{\bullet}\textrm{ Low-rank }\\
-%    =&\left[
-%      \begin{array}{c;{2pt/2pt}c}
-%        \begin{array}{cc}\boldsymbol{A}_{1}^{(2)} &  \textcolor{red}{\boldsymbol{B}_{1}^{(2)}}\\
-%          \textcolor{red}{\boldsymbol{B}_{2}^{(2)}} &  \boldsymbol{A}_{2}^{(2)}
-%        \end{array} &  \textcolor{red}{\boldsymbol{B}_{1}^{(1)}}\\ \hdashline[2pt/2pt]
-%        \textcolor{red}{\boldsymbol{B}_{2}^{(1)}} &
-%        \begin{array}{cc}\boldsymbol{A}_{3}^{(2)} &   \textcolor{red}{\boldsymbol{B}_{3}^{(2)}}\\
-%          \textcolor{red}{\boldsymbol{B}_{4}^{(2)}} &  \boldsymbol{A}_{4}^{(2)}
-%      \end{array} \end{array}\right]\nonumber\\
-%    =&\left[
-%      \begin{array}{c;{2pt/2pt}c}
-%        \begin{array}{c;{2pt/2pt}c}
-%          \begin{array}{cc}\boldsymbol{A}_{1}^{(3)} &  \textcolor{red}{\boldsymbol{B}_{1}^{(3)}}\\  \textcolor{red}{\boldsymbol{B}_{2}^{(3)}}  & \boldsymbol{A}_{2}^{(3)}
-%          \end{array} &  \textcolor{red}{\boldsymbol{B}_{1}^{(2)}}\\ \hdashline[2pt/2pt]
-%          \textcolor{red}{\boldsymbol{B}_{2}^{(2)} }&
-%          \begin{array}{cc}\boldsymbol{A}_{3}^{(3)} &  \textcolor{red}{\boldsymbol{B}_{3}^{(3)}}\\
-%            \textcolor{red}{\boldsymbol{B}_{4}^{(3)}}  & \boldsymbol{A}_{4}^{(3)}
-%          \end{array}
-%        \end{array} &  \textcolor{red}{\boldsymbol{B}_{1}^{(1)}}\\  \hdashline[2pt/2pt]
-%        \textcolor{red}{\boldsymbol{B}_{2}^{(1)}} &
-%        \begin{array}{c;{2pt/2pt}c}
-%          \begin{array}{cc}\boldsymbol{A}_{5}^{(3)} &  \textcolor{red}{\boldsymbol{B}_{5}^{(3)}}\\
-%            \textcolor{red}{\boldsymbol{B}_{6}^{(3)}}  & \boldsymbol{A}_{6}^{(3)}
-%          \end{array} &  \textcolor{red}{\boldsymbol{B}_{3}^{(2)}}\\  \hdashline[2pt/2pt]
-%          \textcolor{red}{\boldsymbol{B}_{4}^{(2)}} &
-%          \begin{array}{cc}\boldsymbol{A}_{7}^{(3)} &  \textcolor{red}{\boldsymbol{B}_{7}^{(3)}}\\  \textcolor{red}{\boldsymbol{B}_{8}^{(3)}}  & \boldsymbol{A}_{8}^{(3)}
-%          \end{array}
-%        \end{array}
-%      \end{array}
-%      \right]\nonumber
-%  \end{align}
-%  \vspace{-1mm}
-%  \begin{itemize}
-%  \item [] \scriptsize{Details in: J. Ballani, D. Kressner. {\em
-%      Matrices with Hierarchical Low-Rank Structures}, Exploiting
-%    Hidden Structure in Matrix Computations: Algorithms and
-%    Applications, 2016}
-%  \end{itemize}
+\frametitle{Product-convolution approximation}
+\framesubtitle{Batch of Hessian impulse responses}
+\begin{center}
+	\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_batch.pdf}
+\end{center}
 \end{frame}
-%--------------------------------------------------------------------------------
-%\begin{frame}
-%  \frametitle{Hierarchical off-diagonal low-rank (HODLR) matrices}
-%  \framesubtitle{Graphical representation for refinement levels $L=1,2,3$}
-%
-%  \begin{columns}
-%    \begin{column}{0.33\paperwidth}
-%		\begin{figure}[width=0.75\columnwidth]{
-%	\begin{tikzpicture}
-%	\begin{scope}[yscale=0.2, xscale=0.2]
-%	\pgfmathtruncatemacro{\L}{1};
-%	\pgfmathtruncatemacro{\scalefac}{16/(2^\L)};
-%	\pgfmathtruncatemacro{\shiftval}{2^(\L-1)};
-%	\begin{scope}[yscale=-1, xscale=1]
-%	\begin{scope}[yshift=-\shiftval, xshift=-\shiftval]
-%	\begin{scope}[yscale=\scalefac, xscale=\scalefac]
-%	\pgfmathtruncatemacro{\msize}{2^\L};
-%	%\pgfmathtruncatemacro{\gridstep}{2^(-\L)}
-%	\pgfmathtruncatemacro{\colstep}{80};
-%	%\pgfmathtruncatemacro{\colstep}{80/(\L-1)};
-%	%\draw[step=\gridstep cm, gray, very thin] (0, 0) grid (\msize, \msize);
-%	\foreach \l in {1,...,\L}
-%		{
-%		\pgfmathtruncatemacro{\delI}{\msize*2^(-\l)};
-%		\pgfmathtruncatemacro{\DelI}{2*\delI};
-%		%\pgfmathtruncatemacro{\colorl}{10+(\l-1)*\colstep};
-%		\pgfmathtruncatemacro{\colorl}{75};
-%		\pgfmathtruncatemacro{\maxi}{2^(\l-1)};
-%		\foreach \i in {1,...,\maxi}
-%			{
-%			\pgfmathtruncatemacro{\a}{(\i-1)*\DelI}
-%			\pgfmathtruncatemacro{\b}{(\i-1)*\DelI+\delI}
-%			\pgfmathtruncatemacro{\c}{\i*\DelI}
-%			\filldraw[fill=red!\colorl!white] (\a, \b) rectangle (\b, \c);
-%			\filldraw[fill=red!\colorl!white] (\b, \a) rectangle (\c, \b);
-%			}
-%		}
-%		% diagonal blocks
-%	\pgfmathtruncatemacro{\delI}{\msize*2^(-\L)};
-%	\pgfmathtruncatemacro{\DelI}{2*\delI};
-%	\pgfmathtruncatemacro{\colorl}{20+(\L-1)*\colstep};
-%	\pgfmathtruncatemacro{\maxi}{2^(\L-1)};
-%	\foreach \i in {1,...,\maxi}
-%		{
-%		\pgfmathtruncatemacro{\a}{(\i-1)*\DelI}
-%		\pgfmathtruncatemacro{\b}{(\i-1)*\DelI+\delI}
-%		\pgfmathtruncatemacro{\c}{\i*\DelI}
-%		\filldraw[fill=black] (\a, \a) rectangle (\b, \b);
-%		\filldraw[fill=black] (\b, \b) rectangle (\c, \c);
-%		}
-%	\end{scope}
-%	\end{scope}
-%	\end{scope}
-%	\end{scope}
-%\end{tikzpicture}
-%}
-%		\end{figure}
-%	%\end{center}
-%%\end{minipage}
-%    \end{column}
-%    \begin{column}{0.33\paperwidth}
-%%\begin{minipage}{.49\columnwidth}
-%	%\begin{center}
-%		\begin{figure}[width=0.75\columnwidth]{
-%	\begin{tikzpicture}
-%	\begin{scope}[yscale=0.2, xscale=0.2]
-%	\pgfmathtruncatemacro{\L}{2};
-%	\pgfmathtruncatemacro{\scalefac}{16/(2^\L)};
-%	\pgfmathtruncatemacro{\shiftval}{2^(\L-1)};
-%	\begin{scope}[yscale=-1, xscale=1]
-%	\begin{scope}[yshift=-\shiftval, xshift=-\shiftval]
-%	\begin{scope}[yscale=\scalefac, xscale=\scalefac]
-%	\pgfmathtruncatemacro{\msize}{2^\L};
-%	%\pgfmathtruncatemacro{\gridstep}{2^(-\L)}
-%	\pgfmathtruncatemacro{\colstep}{40/(\L-1)};
-%	%\draw[step=\gridstep cm, gray, very thin] (0, 0) grid (\msize, \msize);
-%	\foreach \l in {1,...,\L}
-%		{
-%		\pgfmathtruncatemacro{\delI}{\msize*2^(-\l)};
-%		\pgfmathtruncatemacro{\DelI}{2*\delI};
-%		%\pgfmathtruncatemacro{\colorl}{50+(\l-1)*\colstep};
-%		\pgfmathtruncatemacro{\colorl}{75};
-%		\pgfmathtruncatemacro{\maxi}{2^(\l-1)};
-%		\foreach \i in {1,...,\maxi}
-%			{
-%			\pgfmathtruncatemacro{\a}{(\i-1)*\DelI}
-%			\pgfmathtruncatemacro{\b}{(\i-1)*\DelI+\delI}
-%			\pgfmathtruncatemacro{\c}{\i*\DelI}
-%			\filldraw[fill=red!\colorl!white] (\a, \b) rectangle (\b, \c);
-%			\filldraw[fill=red!\colorl!white] (\b, \a) rectangle (\c, \b);
-%			}
-%		}
-%		% diagonal blocks
-%	\pgfmathtruncatemacro{\delI}{\msize*2^(-\L)};
-%	\pgfmathtruncatemacro{\DelI}{2*\delI};
-%	\pgfmathtruncatemacro{\colorl}{20+(\L-1)*\colstep};
-%	\pgfmathtruncatemacro{\maxi}{2^(\L-1)};
-%	\foreach \i in {1,...,\maxi}
-%		{
-%		\pgfmathtruncatemacro{\a}{(\i-1)*\DelI}
-%		\pgfmathtruncatemacro{\b}{(\i-1)*\DelI+\delI}
-%		\pgfmathtruncatemacro{\c}{\i*\DelI}
-%		\filldraw[fill=black] (\a, \a) rectangle (\b, \b);
-%		\filldraw[fill=black] (\b, \b) rectangle (\c, \c);
-%		}
-%	\end{scope}
-%	\end{scope}
-%	\end{scope}
-%	\end{scope}
-%\end{tikzpicture}
-%}
-%		\end{figure}
-%    \end{column}
-%	  \begin{column}{.33\paperwidth}
-%		\begin{figure}[width=0.75\columnwidth]{
-%	\begin{tikzpicture}
-%	\begin{scope}[yscale=0.2, xscale=0.2]
-%	\pgfmathtruncatemacro{\L}{3};
-%	\pgfmathtruncatemacro{\scalefac}{16/(2^\L)};
-%	\pgfmathtruncatemacro{\shiftval}{2^(\L-1)};
-%	\begin{scope}[yscale=-1, xscale=1]
-%	\begin{scope}[yshift=-\shiftval, xshift=-\shiftval]
-%	\begin{scope}[yscale=\scalefac, xscale=\scalefac]
-%	\pgfmathtruncatemacro{\msize}{2^\L};
-%	%\pgfmathtruncatemacro{\gridstep}{2^(-\L)}
-%	\pgfmathtruncatemacro{\colstep}{40/(\L-1)};
-%	%\draw[step=\gridstep cm, gray, very thin] (0, 0) grid (\msize, \msize);
-%	\foreach \l in {1,...,\L}
-%		{
-%		\pgfmathtruncatemacro{\delI}{\msize*2^(-\l)};
-%		\pgfmathtruncatemacro{\DelI}{2*\delI};
-%		%\pgfmathtruncatemacro{\colorl}{50+(\l-1)*\colstep};
-%		\pgfmathtruncatemacro{\colorl}{75};
-%		\pgfmathtruncatemacro{\maxi}{2^(\l-1)};
-%		\foreach \i in {1,...,\maxi}
-%			{
-%			\pgfmathtruncatemacro{\a}{(\i-1)*\DelI}
-%			\pgfmathtruncatemacro{\b}{(\i-1)*\DelI+\delI}
-%			\pgfmathtruncatemacro{\c}{\i*\DelI}
-%			\filldraw[fill=red!\colorl!white] (\a, \b) rectangle (\b, \c);
-%			\filldraw[fill=red!\colorl!white] (\b, \a) rectangle (\c, \b);
-%			}
-%		}
-%		% diagonal blocks
-%	\pgfmathtruncatemacro{\delI}{\msize*2^(-\L)};
-%	\pgfmathtruncatemacro{\DelI}{2*\delI};
-%	\pgfmathtruncatemacro{\colorl}{20+(\L-1)*\colstep};
-%	\pgfmathtruncatemacro{\maxi}{2^(\L-1)};
-%	\foreach \i in {1,...,\maxi}
-%		{
-%		\pgfmathtruncatemacro{\a}{(\i-1)*\DelI}
-%		\pgfmathtruncatemacro{\b}{(\i-1)*\DelI+\delI}
-%		\pgfmathtruncatemacro{\c}{\i*\DelI}
-%		\filldraw[fill=black] (\a, \a) rectangle (\b, \b);
-%		\filldraw[fill=black] (\b, \b) rectangle (\c, \c);
-%		}
-%	\end{scope}
-%	\end{scope}
-%	\end{scope}
-%	\end{scope}
-%\end{tikzpicture}
-%}
-%		\end{figure}
-%	  \end{column}
-%	  \end{columns}
-%%\begin{minipage}{.49\columnwidth}
-%        %\end{minipage}
-%
-%        \vspace{1in}
-%        \begin{itemize}
-%        \item [] \scriptsize{Details in: J. Ballani, D. Kressner. {\em
-%            Matrices with Hierarchical Low-Rank Structures}, Exploiting
-%          Hidden Structure in Matrix Computations: Algorithms and
-%          Applications, 2016}
-%        \end{itemize}
-%\end{frame}
-%%------------------------------------------------------------------------------
-%-------------------------------------------------------------%
+
 \begin{frame}
-  \frametitle{$\mathcal{H}$-matrices}
-  \framesubtitle{Computational cost}
+	\frametitle{Product-convolution approximation}
+	\framesubtitle{Weighting functions used for interpolation of impulse responses}
+	\begin{center}
+		\includegraphics[width=0.3\columnwidth]{extraplots/ice_hessian_weighting_function_5.pdf}
+		\includegraphics[width=0.3\columnwidth]{extraplots/ice_hessian_weighting_function_8.pdf}
+		\includegraphics[width=0.3\columnwidth]{extraplots/ice_hessian_weighting_function_27.pdf}
+	\end{center}
+\end{frame}
 
-  . . .  Tucker, please adapt this slide if you can . . .
-  
-\noindent \textbf{HODLR Compression/Approximation:}
-\begin{itemize}
-\item Cost: $\mathcal{O} (k \log N)$ Hessian-applies, where $k$ is the
-  off-diagonal (local) rank, and $N$ is the parameter dimension.
-\item Apply $\bs{H}$ to random vectors with specified null entries to
-  sample the column spaces of the off-diagonal blocks.
-\vspace{1mm}
 
-The samples are likely aligned with dominant modes, thus affording low
-rank approximations.
-
-\item [] \scriptsize{Details in: P.G. Martinsson, {\em Compressing
-    Rank-Structured Matrices Via Randomized Sampling}, SIAM Journal on
-  Scientific Computing, 2016}
-\end{itemize}
-\vspace{1mm}
-
-\noindent \textbf{Inverse Hessian-apply / Posterior covariance apply:}
-\begin{itemize}
-\item At $\mathcal{O}\left(k^2 N\,\log^{2} N \right)$ cost, one can
-  factor the $L$ times refined $\boldsymbol{H}$ as:
-  $\boldsymbol{H}_{\rm
-    HODLR}=\boldsymbol{K}_{L}\boldsymbol{K}_{L-1}\boldsymbol{K}_{L-2}\cdots\boldsymbol{K}_{1}\boldsymbol{K}_{0}$,
-  where
-
-$\bs{K}_{i}$, $i\in\left\{0,1,\dots,L-1\right\}$ is block diagonal and
-  each diagonal block is a low-rank update of the identity.
-\item Making gratuitous use of the Sherman-Morrison-Woodbury formula
-  one has a $\mathcal{O}\left(k \, N\,\log N \right)$ means of
-  applying $\left(\bs{H}_{\rm HODLR}\right)^{-1}$ to vectors.
-\item [] \scriptsize{Details in: S. Ambikasaran, E. Darve, {\em An
-    $\mathcal{O}(N\, \log N)$ Fast Direct Solver for Partial
-    Hierarchically Semi-Separable Matrices}, Springer Journal of
-  Scientific Computing, 2013}
-\end{itemize}
-\vspace{1mm}
+\begin{frame}
+	\frametitle{$\mathcal{H}$-matrix approximation}
+	
+	\begin{minipage}{0.49\textwidth} 
+		\begin{itemize}
+			\item Mesh points are 
+			hierarchically partitioned into
+			clusters by recursive hyperplane splitting.
+			\item If two clusters are well separated, then the associated
+			submatrix is low-rank.
+		\end{itemize}
+	\end{minipage}
+	\begin{minipage}{0.49\textwidth}
+		\begin{figure}[htb]
+			\centering\includegraphics[width=0.5\textwidth]
+			{extraplots/heat_inverse_problem_Hfull_hmatrix.eps}
+		\end{figure}
+		\begin{center}
+			{\tiny $\mathcal{H}$-matrix structure of a diffusion
+				inverse problem Hessian \\}
+		\end{center}
+	\end{minipage}
+	
+	\begin{itemize}
+		\item 
+		$\mathcal{H}$-matrix operations are fast: $\mathcal{O}\left(n\,\log\left(n\right)\right)$
+		matrix-vector product, $\mathcal{O}\left(n\,\log^{2}\left(n\right)\right)$
+		LU factorization.
+	\end{itemize}
+	
+	\scriptsize{
+		\begin{itemize}
+%			\item[]    Details in:
+%			\item[]    N. Halko, P.G. Martinsson, J Tropp.
+%			{\em Finding structure with randomness: Probabilistic
+%				algorithms for constructing approximate matrix
+%				decompositions}, SIAM review, 2011.
+			\item[]  R. Kriemann.
+			{\em HLIBpro user manual}, Max-Planck-Institute
+			for Mathematics in the Sciences, Leipzig, 2008
+			\item[]   J. Ballani, D. Kressner.
+			{\em Matrices with Hierarchical Low-Rank Structures},
+			Exploiting Hidden Structure in Matrix Compuations:
+			Algorithms and Applications, 2016
+		\end{itemize}
+	}
+	
+\end{frame}
+\begin{frame}
+	\frametitle{Hessian approximation is a good preconditioner}
+	\begin{center}
+		\includegraphics[width=0.75\columnwidth]{extraplots/ice_gmres_convergence.pdf}
+	\end{center}
+\begin{center}
+	H-matrix compressed Hessian approximation, used as a preconditioner, leads to fast Krylov method convergence.
+\end{center}
 \end{frame}
 %--------------------------------------------------------------------------
 \begin{frame}
   \frametitle{Summary}
 
   \begin{itemize}
-  \item Hessian operators arising in inverse problems governed by
-    partial differential equations play an essential role in
-    delivering efficient, dimension-independent methods for both
+  \item Hessians in inverse problems governed by
+    partial differential equations are essential for
+    efficient, dimension-independent methods for both
     \begin{itemize}
     \item Newton solution of deterministic inverse problems (i.e., for
       computing the MAP point);
       \vspace{0.05in}
-    \item Markov chain Monte Carlo sampling to characterize the full
+    \item Markov chain Monte Carlo sampling to characterize the
       posterior.
     \end{itemize}
     \vspace{0.05in}
-  \item Low-rank approximations of the Hessian are effective when the
-    data contain limited information about the parameters but become
+  \item Low-rank approximations of the Hessian become
     prohibitive as the data becomes more informative (as is the case
     for ice sheet inverse problems).
     \vspace{0.05in}
   \item Hierarchical matrix representations promise a more efficient
-    Hessian approximation, in the case of a low noise (i.e., higher
-    effective rank, large informative data) regime.
+    Hessian approximation.
   \end{itemize}
-
+    \vspace{0.2in}
   \begin{itemize}
   \item [] \scriptsize{Details in: N. Alger, T. Hartland, N. Petra,
     and O. Ghattas. {\em Fast matrix-free approximation of smoothly
