@@ -188,7 +188,7 @@ class LocalPSF:
 
     def add_new_batch(me):
         new_inds = choose_sample_points_batch(me.candidate_mu, me.candidate_Sigma,
-                                              me.tau, np.array(me.candidate_inds))
+                                              me.tau, np.array(me.candidate_inds), randomize=False)
         new_points = me.candidate_points[new_inds, :]
         me.point_batches.append(new_points)
         me.candidate_inds = list(np.setdiff1d(me.candidate_inds, new_inds))

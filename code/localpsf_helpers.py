@@ -43,12 +43,15 @@ def point_minkowski_sum_helper(pp_plus_qq, pp, qq):
 
 
 @jit(nopython=True)
-def choose_sample_points_batch(mu, Sigma, num_standard_deviations_tau, candidate_inds):
+def choose_sample_points_batch(mu, Sigma, num_standard_deviations_tau, candidate_inds, randomize=True):
     N = len(candidate_inds)
     mu_candidates = mu[candidate_inds, :]
     Sigma_candidates = Sigma[candidate_inds, :, :]
 
-    perm_inds = np.random.permutation(N)
+    if randomize:
+        perm_inds = np.random.permutation(N)
+    else:
+        perm_inds = np.arange(N)
     mu_perm = mu_candidates[perm_inds, :]
     Sigma_perm = Sigma_candidates[perm_inds, :, :]
 
