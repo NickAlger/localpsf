@@ -842,6 +842,25 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
   %
 \end{itemize}
 \end{frame}
+
+%---------------------------------------------------------------------------------%
+%---------------------------------------------------------------------------------%
+%Story:
+%
+%Existing Hessian approximations are based on low-rank approximation
+%methods, which require computing twice as many linearized forward or
+%adjoint partial differential equation (PDE) solves as the numerical
+%rank of the Hessian.
+%
+%These methods are inefficient when the numerical rank of the Hessian
+%is large, as is the case in continental scale ice sheet inverse
+%problems.
+%
+%Our goal is to take advantage of the off-diagonal low-rank structure
+%of the Hessian and use {\note hierarchical matrix compression} to
+%reduce the computational cost of solving the Bayesian ice sheet
+%inverse problem.
+%---------------------------------------------------------------------------------%
 %---------------------------------------------------------------------------------%
 \begin{frame}
  \frametitle{Exploiting the problem structure}
@@ -888,6 +907,14 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
   the diagonal
 \end{itemize}
 \end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+  \frametitle{Fast high-rank Hessian approximation for Bayesian ice sheet inverse problems}
+
+ 
+ 
+\end{frame}
+%---------------------------------------------------------------------------------%
 %---------------------------------------------------------------------------------%
 \begin{frame}
   \frametitle{$\mathcal{H}$-matrices}
