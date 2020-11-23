@@ -842,6 +842,25 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
   %
 \end{itemize}
 \end{frame}
+
+%---------------------------------------------------------------------------------%
+%---------------------------------------------------------------------------------%
+%Story:
+%
+%Existing Hessian approximations are based on low-rank approximation
+%methods, which require computing twice as many linearized forward or
+%adjoint partial differential equation (PDE) solves as the numerical
+%rank of the Hessian.
+%
+%These methods are inefficient when the numerical rank of the Hessian
+%is large, as is the case in continental scale ice sheet inverse
+%problems.
+%
+%Our goal is to take advantage of the off-diagonal low-rank structure
+%of the Hessian and use {\note hierarchical matrix compression} to
+%reduce the computational cost of solving the Bayesian ice sheet
+%inverse problem.
+%---------------------------------------------------------------------------------%
 %---------------------------------------------------------------------------------%
 \begin{frame}
  \frametitle{Exploiting the problem structure}
@@ -888,6 +907,14 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
   the diagonal
 \end{itemize}
 \end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+  \frametitle{Fast high-rank Hessian approximation for Bayesian ice sheet inverse problems}
+
+ 
+ 
+\end{frame}
+%---------------------------------------------------------------------------------%
 %---------------------------------------------------------------------------------%
 \begin{frame}
   \frametitle{$\mathcal{H}$-matrices}
@@ -1194,10 +1221,11 @@ $\bs{K}_{i}$, $i\in\left\{0,1,\dots,L-1\right\}$ is block diagonal and
   \end{itemize}
 
   \begin{itemize}
-  \item [] \scriptsize{Details in: T. Hartland, G. Stadler, and
-    N. Petra. {\em Hierarchical off-diagonal low-rank (HODLR)
-      approximation for Hessians in Bayesian inference with
-      application to ice sheet models}, In preparation.}
+  \item [] \scriptsize{Details in: N. Alger, T. Hartland, N. Petra,
+    and O. Ghattas. {\em Fast matrix-free approximation of smoothly
+      varying blur operators, with application to Hessians in
+      PDE-constrained inverse problems with highly informative data},
+    In preparation.}
   \end{itemize}
 \end{frame}
 \end{document}
