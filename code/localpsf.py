@@ -187,8 +187,20 @@ class LocalPSF:
         me.put_flat_list_into_batched_list_of_lists(eval_ww_flat, me.eval_weighting_functions_by_batch)
 
     def add_new_batch(me):
+        qq = me.X[me.candidate_inds, :]
+        dd = np.inf * np.ones(len(me.candidate_inds))
+        for pp in me.point_batches:
+            for k in range(pp.shape[0]):
+                pk = pp[k,:].reshape((1,-1))
+                ddk = np.linalg.norm(pk - qq, axis=1)
+                dd = np.min([dd, ddk], axis=0)
+        candidate_inds_ordered_by_distance = np.array(me.candidate_inds)[np.argsort(dd)]
+
         new_inds = choose_sample_points_batch(me.candidate_mu, me.candidate_Sigma,
-                                              me.tau, np.array(me.candidate_inds), randomize=False)
+                                              me.tau, candidate_inds_ordered_by_distance, randomize=False)
+
+        # new_inds = choose_sample_points_batch(me.candidate_mu, me.candidate_Sigma,
+        #                                       me.tau, np.array(me.candidate_inds))
         new_points = me.candidate_points[new_inds, :]
         me.point_batches.append(new_points)
         me.candidate_inds = list(np.setdiff1d(me.candidate_inds, new_inds))
