@@ -187,7 +187,7 @@ class LocalPSF:
         me.put_flat_list_into_batched_list_of_lists(eval_ww_flat, me.eval_weighting_functions_by_batch)
 
     def add_new_batch(me):
-        qq = me.X[me.candidate_inds, :]
+        qq = me.candidate_points[me.candidate_inds, :]
         dd = np.inf * np.ones(len(me.candidate_inds))
         for pp in me.point_batches:
             for k in range(pp.shape[0]):

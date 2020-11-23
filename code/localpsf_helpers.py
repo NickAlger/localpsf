@@ -58,6 +58,7 @@ def choose_sample_points_batch(mu, Sigma, num_standard_deviations_tau, candidate
     P_inds_perm = list(range(N))
     X_inds_perm = list()
     while P_inds_perm:
+    # for _ in range(1):
         p_ind = P_inds_perm.pop()
         p_is_acceptable = True
         for x_ind in X_inds_perm:
