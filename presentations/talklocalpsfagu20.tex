@@ -606,7 +606,7 @@
     manipulation of the Hessian (and its square root and inverse)
     actions needed by sampling or CG solvers, hence \alert{seek
       approaches to approximate the Hessian(-applies)}.
-  \item These approximations will then be used as
+  \item These approximations can then be used as
     \alert{pre-conditioners}, and to \alert{build MCMC proposals} based
     on local Gaussian approximations.
   \end{itemize}
@@ -1057,7 +1057,7 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
 %---------------------------------------------------------------------------------%
 %---------------------------------------------------------------------------------%
 \begin{frame}
-\frametitle{Product-convolution approximation}
+\frametitle{Stage 1: Product-convolution approximation}
 \framesubtitle{Batch of Hessian impulse responses}
 \begin{center}
 	\includegraphics[width=0.45\columnwidth]{extraplots/ice_hessian_impulse_response_batch.pdf}
@@ -1065,7 +1065,7 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
 \end{frame}
 
 \begin{frame}
-	\frametitle{Product-convolution approximation}
+	\frametitle{Stage 1: Product-convolution approximation}
 	\framesubtitle{Weighting functions used for interpolation of impulse responses}
 	\begin{center}
 		\includegraphics[width=0.3\columnwidth]{extraplots/ice_hessian_weighting_function_5.pdf}
@@ -1076,7 +1076,7 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
 
 
 \begin{frame}
-	\frametitle{$\mathcal{H}$-matrix approximation}
+	\frametitle{Stage 2: $\mathcal{H}$-matrix approximation}
 	
 	\begin{minipage}{0.49\textwidth} 
 		\begin{itemize}
@@ -1124,7 +1124,7 @@ $\bs{F}^T\ncov^{-1}\bs{F} \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
 	
 \end{frame}
 \begin{frame}
-	\frametitle{Hessian approximation is a good preconditioner}
+	\frametitle{Stage 3: Hessian approximation is a good preconditioner}
 	\begin{center}
 		\includegraphics[width=0.75\columnwidth]{extraplots/ice_gmres_convergence.pdf}
 	\end{center}
