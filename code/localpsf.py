@@ -109,6 +109,9 @@ def remove_points_near_boundary(candidate_points, eval_boundary_function, bounda
     near_boundary_inds = (abs(eval_boundary_function(candidate_points)) > boundary_epsilon)
     return candidate_points[near_boundary_inds, :]
 
+##
+
+
 
 class LocalPSF:
     def __init__(me, apply_hessian_H, apply_hessian_transpose_Ht, function_space_V, error_epsilon=1e-2,
