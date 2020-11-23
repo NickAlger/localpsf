@@ -133,8 +133,34 @@ double grid_interpolate_at_one_point(const VectorXd p,
     double hy = y_width / num_cells_y;
 
     double value_at_p;
-    if( (p(0) < xmin) || (p(0) >= xmax) || (p(1) < ymin) || (p(1) >= ymax))
+    if( (p(0) < xmin) || (p(0) > xmax) || (p(1) < ymin) || (p(1) > ymax))
         value_at_p = 0.0;
+//    else if ((p(0) == xmax) && (p(1) == xmax))
+//    {
+//        value_at_p = grid_values(nx-1, ny-1);
+//    }
+//    else if (p(0) == xmax)
+//    {
+//        double quoty = (p(1) - ymin) / hy;
+//        int j = (int)quoty;
+//        double t = quoty - ((double)j);
+//
+//        double v10 = grid_values(nx-1, j);
+//        double v11 = grid_values(nx-1, j+1);
+//
+//        value_at_p = (1.0-t)*v10 + t*v11;
+//    }
+//    else if (p(1) == xmax)
+//    {
+//        double quotx = (p(0) - xmin) / hx;
+//        int i = (int)quotx;
+//        double s = quotx - ((double)i);
+//
+//        double v01 = grid_values(i,   ny-1);
+//        double v11 = grid_values(i+1, ny-1);
+//
+//        value_at_p = (1.0-s)*v01 + s*v11;
+//    }
     else
     {
         double quotx = (p(0) - xmin) / hx;
@@ -272,12 +298,14 @@ public:
                 Vector2d z = pp.row(i) + yy.row(k) - xx.row(k);
                 if (point_is_in_ellipsoid(z, mus.row(i), Sigmas[i], tau))
                 {
+                    Vector2d z = pp.row(i) + yy.row(k) - xx.row(k);
                     double w_ik = grid_interpolate_at_one_point(xx.row(k), xmin, xmax, ymin, ymax, ww_arrays[i]);
                     double phi_ik = grid_interpolate_at_one_point(z, xmin, xmax, ymin, ymax, eta_array);
                     pc_entries(k) += w_ik * phi_ik;
                 }
             }
         }
+
         return pc_entries;
     }
 };

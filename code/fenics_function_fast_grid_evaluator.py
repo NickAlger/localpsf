@@ -20,7 +20,7 @@ class FenicsFunctionFastGridEvaluator:
 
         output_shape = f(np.zeros(d)).shape
 
-        nn = (oversampling_parameter * (max_point - min_point) / hmin).astype(int)
+        nn = 1 + (oversampling_parameter * (max_point - min_point) / hmin).astype(int)
         me.xx = tuple([np.linspace(min_point[i], max_point[i], nn[i]) for i in range(d)])
         XX = np.meshgrid(*me.xx, indexing='ij')
         pp = np.array([X.reshape(-1) for X in XX]).T
