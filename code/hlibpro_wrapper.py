@@ -1,3 +1,4 @@
+import numpy as np
 from scipy.io import savemat
 import hlibpro_bindings as hpro_cpp
 
@@ -10,6 +11,7 @@ class HMatrixWrapper:
     def __init__(me, cpp_hmatrix_object, bct):
         me.cpp_object = cpp_hmatrix_object
         me.bct = bct
+        me.shape = (me.cpp_object.rows(), me.cpp_object.cols())
 
     def row_ct(me):
         return me.bct.row_ct()
@@ -22,6 +24,49 @@ class HMatrixWrapper:
 
     def copy_struct(me):
         return HMatrixWrapper(me.cpp_object.copy_struct(), me.bct)
+
+    def matvec(me, x):
+        return h_matvec(me, x)
+
+    def __add__(me, other, rtol=default_rtol, atol=default_atol):
+        if isinstance(other, HMatrixWrapper):
+            return h_add(me, other, rtol=rtol, atol=atol)
+
+        else:
+            raise RuntimeError('cannot add HMatrixWrapper to ' + str(other.type))
+
+    def __sub__(me, other, rtol=default_rtol, atol=default_atol):
+        if isinstance(other, HMatrixWrapper):
+            return h_add(me, other, beta=-1.0, rtol=rtol, atol=atol)
+
+        else:
+            raise RuntimeError('cannot add HMatrixWrapper to ' + str(other.type))
+
+    def __mul__(me, other, rtol=default_rtol, atol=default_atol, display_progress=True):
+        if isinstance(other, HMatrixWrapper):
+            return h_mul(me, other, rtol=rtol, atol=atol, display_progress=display_progress)
+
+        if isinstance(other, float) or isinstance(other, np.number):
+            return h_scale(me, other)
+
+        if isinstance(other, np.ndarray) and ( other.shape == (me.shape[1],) ):
+            return me.matvec(other)
+
+        else:
+            raise RuntimeError('cannot multiply HMatrixWrapper with ' + str(other.type))
+
+    def __rmul__(me, other, rtol=default_rtol, atol=default_atol, display_progress=True):
+        if isinstance(other, HMatrixWrapper):
+            return h_mul(other, me, rtol=rtol, atol=atol, display_progress=display_progress)
+
+        if isinstance(other, float) or isinstance(other, np.number):
+            return h_scale(me, other)
+
+        else:
+            raise RuntimeError('cannot right multiply HMatrixWrapper with ' + str(other.type))
+
+    def factorized_inverse(me, rtol=default_rtol, atol=default_atol, display_progress=True):
+        return h_factorized_inverse(me, rtol=rtol, atol=atol, display_progress=display_progress)
 
 
 def h_add(A_hmatrix, B_hmatrix, alpha=1.0, beta=1.0, rtol=default_rtol, atol=default_atol):

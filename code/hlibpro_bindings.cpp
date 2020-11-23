@@ -778,12 +778,14 @@ std::unique_ptr<HLIB::TMatrix> build_hmatrix_from_sparse_matfile (string mat_fil
 }
 
 
-std::unique_ptr<HLIB::TMatrix> build_hmatrix(TCoeffFn<real_t> & coefffn,
-                                             HLIB::TClusterTree * row_ct_ptr,
-                                             HLIB::TClusterTree * col_ct_ptr,
-                                             HLIB::TBlockClusterTree * bct_ptr,
-                                             double tol)
+std::unique_ptr<HLIB::TMatrix> build_hmatrix_from_coefffn(TCoeffFn<real_t> & coefffn,
+//                                                          HLIB::TClusterTree * row_ct_ptr,
+//                                                          HLIB::TClusterTree * col_ct_ptr,
+                                                          HLIB::TBlockClusterTree * bct_ptr,
+                                                          double tol)
 {
+    const HLIB::TClusterTree * row_ct_ptr = bct_ptr->row_ct();
+    const HLIB::TClusterTree * col_ct_ptr = bct_ptr->col_ct();
     std::cout << "━━ building H-matrix ( tol = " << tol << " )" << std::endl;
     TTimer                    timer( WALL_TIME );
     TConsoleProgressBar       progress;
@@ -938,7 +940,8 @@ int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, do
         }// if
 
         CustomTLogCoeffFn log_coefffn( dof_coords, xmin, xmax, ymin, ymax, grid_values );
-        std::unique_ptr<HLIB::TMatrix> A = build_hmatrix(log_coefffn, ct.get(), ct.get(), bct.get(), eps);
+//        std::unique_ptr<HLIB::TMatrix> A = build_hmatrix_from_coefffn(log_coefffn, ct.get(), ct.get(), bct.get(), eps);
+        std::unique_ptr<HLIB::TMatrix> A = build_hmatrix_from_coefffn(log_coefffn, bct.get(), eps);
 
         add_identity_to_hmatrix(A.get(), 20.0);
 
@@ -1278,7 +1281,7 @@ PYBIND11_MODULE(hlibpro_bindings, m) {
     m.def("initialize_hlibpro", &initialize_hlibpro, "initialize_hlibpro");
     m.def("visualize_cluster_tree", &visualize_cluster_tree, "visualize_cluster_tree");
     m.def("visualize_block_cluster_tree", &visualize_block_cluster_tree, "visualize_block_cluster_tree");
-    m.def("build_hmatrix", &build_hmatrix, "build_hmatrix from hlibpro");
+    m.def("build_hmatrix_from_coefffn", &build_hmatrix_from_coefffn, "build_hmatrix_from_coefffn from hlibpro");
     m.def("add_identity_to_hmatrix", &add_identity_to_hmatrix, "add_identity from hlibpro");
     m.def("visualize_hmatrix", &visualize_hmatrix, "visualize_hmatrix from hlibpro");
     m.def("h_matvec", &h_matvec, "h_matvec from hlibpro");

@@ -403,8 +403,11 @@ class LocalPSF:
                                                                   me.tau, grid_xmin, grid_xmax, grid_ymin, grid_ymax)
         return BPC_cpp
 
-    def build_H_matrix(me, block_cluster_tree):
+    def build_hmatrix(me, block_cluster_tree, tol=1e-6):
         BPC_coefffn = hpro.hpro_cpp.ProductConvolutionCoeffFn(me.BPC_cpp, me.X)
+        hmatrix_cpp_object = hpro.hpro_cpp.build_hmatrix_from_coefffn(BPC_coefffn, block_cluster_tree, tol)
+        A_hmatrix = hpro.HMatrixWrapper(hmatrix_cpp_object, block_cluster_tree)
+        return A_hmatrix
 
 
 
