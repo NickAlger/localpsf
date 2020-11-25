@@ -25,23 +25,34 @@ CXXFLAGS = -I$(HLIBPRO_INCLUDE) \
 
 LIBS := -lhpro -Wl,-rpath,$(HLIBPRO_LIB)
 
-# MODULE_NAME = hlibpro_experiments1
-MODULE_NAME = hlibpro_bindings
-
-TARGET_NAME = $(addsuffix $(PYSUFFIX), $(MODULE_NAME))
-PRIMARY_CPP_FILE = $(addsuffix .cpp, $(MODULE_NAME))
+HLIBPRO_BINDINGS_TARGET = $(addsuffix $(PYSUFFIX), hlibpro_bindings)
 
 # all: $(TARGET_NAME) sparse_hlibpro_error
-all: $(TARGET_NAME)
+all: $(HLIBPRO_BINDINGS_TARGET)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Tool invocations
-$(TARGET_NAME): $(PRIMARY_CPP_FILE)
+$(HLIBPRO_BINDINGS_TARGET): hlibpro_bindings.o grid_interpolate.o
 	@echo 'Building target: $@'
-	g++ $(CXXFLAGS) $(PYFLAGS) -o "$@" "$<" $(HLIBPRO_FLAGS) $(LDFLAGS) -I $(HLIBPRO_INCLUDE) $(LIBS)
+# 	g++ $(CXXFLAGS) $(PYFLAGS) -o "$@" "$<" $(HLIBPRO_FLAGS) $(LDFLAGS) -I $(HLIBPRO_INCLUDE) $(LIBS)
+	g++ $(CXXFLAGS) $(PYFLAGS) -o "$@" hlibpro_bindings.o grid_interpolate.o $(HLIBPRO_FLAGS) $(LDFLAGS) -I $(HLIBPRO_INCLUDE) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
+
+hlibpro_bindings.o: hlibpro_bindings.cpp
+	@echo 'Building target: $@'
+# 	g++ $(CXXFLAGS) $(PYFLAGS) -o "$@" "$<" $(HLIBPRO_FLAGS) $(LDFLAGS) -I $(HLIBPRO_INCLUDE) $(LIBS)
+	g++ $(CXXFLAGS) $(PYFLAGS) -o hlibpro_bindings.o -c hlibpro_bindings.cpp $(HLIBPRO_FLAGS) $(LDFLAGS) -I $(HLIBPRO_INCLUDE) $(LIBS)
+	@echo 'Finished building target: $@'
+	@echo ' '
+
+grid_interpolate.o: grid_interpolate.cpp
+	@echo 'Building target: $@'
+	g++ $(CXXFLAGS) $(PYFLAGS) -o grid_interpolate.o -c grid_interpolate.cpp $(HLIBPRO_FLAGS) $(LDFLAGS) -I $(HLIBPRO_INCLUDE) $(LIBS)
+	@echo 'Finished building target: $@'
+	@echo ' '
+
 
 # sparse_hlibpro_error: sparse_hlibpro_error.cpp
 # 	@echo 'Building target: $@'
