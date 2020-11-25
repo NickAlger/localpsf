@@ -1,22 +1,11 @@
 #include "grid_interpolate.h"
-
 #include <cstdlib>
-//#include <cmath>
 #include <iostream>
-//#include <iomanip>
-//#include <vector>
-//#include <cmath>
-
-//#include <pybind11/pybind11.h>
-
 #include <Eigen/Dense>
 #include <Eigen/LU>
-//#include <Eigen/CXX11/Tensor>
 
 using namespace Eigen;
 using namespace std;
-
-// The order that the above two header files are loaded seems to affect the result slightly.
 
 double grid_interpolate_at_one_point(const VectorXd p,
                                      const double xmin, const double xmax,

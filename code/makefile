@@ -26,7 +26,7 @@ all: $(BUILD_DIR)/$(HLIBPRO_BINDINGS_TARGET)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-$(BUILD_DIR)/$(HLIBPRO_BINDINGS_TARGET): $(OBJ_DIR)/hlibpro_bindings.o $(OBJ_DIR)/grid_interpolate.o
+$(BUILD_DIR)/$(HLIBPRO_BINDINGS_TARGET): $(OBJ_DIR)/hlibpro_bindings.o $(OBJ_DIR)/grid_interpolate.o $(OBJ_DIR)/product_convolution_hmatrix.o
 	@echo 'Building target: $@'
 	g++ -o "$@" "$<" \
 	    $(CXXFLAGS) $(HLIBPRO_FLAGS) $(PYFLAGS) \
@@ -44,6 +44,15 @@ $(OBJ_DIR)/hlibpro_bindings.o: $(SRC_DIR)/hlibpro_bindings.cpp
 	@echo 'Finished building target: $@'
 	@echo ' '
 
+$(OBJ_DIR)/product_convolution_hmatrix.o: $(SRC_DIR)/product_convolution_hmatrix.cpp
+	@echo 'Building target: $@'
+	g++ -o "$@" "$<" \
+	    $(CXXFLAGS) $(HLIBPRO_FLAGS) $(PYFLAGS) \
+	    -I $(HLIBPRO_INCLUDE) -I$(EIGEN_INCLUDE) \
+	    $(LDFLAGS) $(LIBS)
+	@echo 'Finished building target: $@'
+	@echo ' '
+
 $(OBJ_DIR)/grid_interpolate.o: $(SRC_DIR)/grid_interpolate.cpp
 	@echo 'Building target: $@'
 	g++ -o "$@" -c "$<" $(CXXFLAGS) -I$(EIGEN_INCLUDE)
@@ -51,6 +60,7 @@ $(OBJ_DIR)/grid_interpolate.o: $(SRC_DIR)/grid_interpolate.cpp
 	@echo ' '
 
 clean:
+	-rm -rf $(OBJ_DIR)/product_convolution_hmatrix.o
 	-rm -rf $(OBJ_DIR)/hlibpro_bindings.o
 	-rm -rf $(OBJ_DIR)/grid_interpolate.o
 	-rm -rf $(BUILD_DIR)/$(HLIBPRO_BINDINGS_TARGET)
