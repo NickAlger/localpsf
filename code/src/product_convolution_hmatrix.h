@@ -9,21 +9,21 @@
 
 //#include "grid_interpolate.h"
 
-//#include <pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <hlib.hh>
 
 #include <Eigen/Dense>
 #include <Eigen/LU>
 //#include <Eigen/CXX11/Tensor>
-//#include <pybind11/eigen.h>
-//#include <pybind11/stl.h>
+#include <pybind11/eigen.h>
+#include <pybind11/stl.h>
 
 using namespace Eigen;
 
 
 // The order that the above two header files are loaded seems to affect the result slightly.
 
-//namespace py = pybind11;
+namespace py = pybind11;
 
 using namespace std;
 using namespace HLIB;
@@ -100,3 +100,6 @@ public:
 //    virtual matform_t  matrix_format  () const { return MATFORM_SYM; }
     virtual matform_t  matrix_format  () const { return MATFORM_NONSYM; }
 };
+
+
+//void init_product_convolution_hmatrix_bindings(py::module &m);
