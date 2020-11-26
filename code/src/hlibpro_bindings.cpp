@@ -13,9 +13,6 @@
 #include <vector>
 #include <cmath>
 
-//#include "grid_interpolate.h"
-#include "product_convolution_hmatrix.h"
-
 #include <pybind11/pybind11.h>
 #include <hlib.hh>
 
@@ -24,6 +21,8 @@
 //#include <Eigen/CXX11/Tensor>
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
+
+//#include "grid_interpolate.h"
 
 using namespace Eigen;
 
@@ -121,73 +120,231 @@ rhs ( const idx_t  i,
 }
 
 
-class CustomTLogCoeffFn : public TCoeffFn< real_t >
+
+bool point_is_in_ellipsoid(VectorXd z, VectorXd mu, MatrixXd Sigma, double tau)
 {
-private:
-    MatrixXd dof_coords;
-    double xmin;
-    double xmax;
-    double ymin;
-    double ymax;
-    MatrixXd grid_values;
+    VectorXd p = z - mu;
+    return ( p.dot(Sigma.lu().solve(p)) < pow(tau, 2) );
+}
 
-public:
-    // constructor
-    CustomTLogCoeffFn (MatrixXd dof_coords,
-                 double xmin, double xmax, double ymin, double ymax,
-                 MatrixXd grid_values)
-            : dof_coords(dof_coords), xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax), grid_values(grid_values)
-    {}
-
-    //
-    // coefficient evaluation
-    //
-    virtual void eval  ( const std::vector< idx_t > &  rowidxs,
-                         const std::vector< idx_t > &  colidxs,
-                         real_t *                      matrix ) const
-    {
-        const size_t  n = rowidxs.size();
-        const size_t  m = colidxs.size();
-
-        MatrixXd eval_coords;
-        eval_coords.resize(n*m, 2);
-
-        for ( size_t  j = 0; j < m; ++j )
-        {
-            const idx_t  idxj = colidxs[ j ];
-            for ( size_t  i = 0; i < n; ++i )
-            {
-                const idx_t  idxi = rowidxs[ i ];
-                eval_coords(j*n + i, 0) = dof_coords(idxj,0) - dof_coords(idxi,0);
-                eval_coords(j*n + i, 1) = dof_coords(idxj,1) - dof_coords(idxi,1);
-            }// for
-        }// for
-
-        VectorXd eval_values = grid_interpolate_vectorized(eval_coords, xmin, xmax, ymin, ymax, grid_values);
-
-        for ( size_t  j = 0; j < m; ++j )
-            {
-                const idx_t  idxj = colidxs[ j ];
-                for ( size_t  i = 0; i < n; ++i )
-                {
-                    const idx_t  idxi = rowidxs[ i ];
-                    matrix[ j*n + i ] = eval_values(j*n + i);
-//                    if (idxj == idxi)
-//                    {
-////                        matrix[ j*n + i ] = 1.0;
-//                        matrix[ j*n + i ] = matrix[ j*n + i ] + 20.0;
-//                    }
-                }// for
-            }// for
-    }
-    using TCoeffFn< real_t >::eval;
-
-    //
-    // return format of matrix, e.g. symmetric or hermitian
-    //
-    virtual matform_t  matrix_format  () const { return MATFORM_SYM; }
-
-};
+//class ProductConvolutionOneBatch
+//{
+//private:
+//    double xmin;
+//    double xmax;
+//    double ymin;
+//    double ymax;
+//    MatrixXd eta_array;
+//    std::vector<MatrixXd> ww_arrays;
+//    MatrixXd pp;
+//    MatrixXd mus;
+//    std::vector<MatrixXd> Sigmas;
+//    double tau;
+//
+//public:
+//    ProductConvolutionOneBatch(): xmin(), xmax(), ymin(), ymax(),
+//                                  eta_array(), ww_arrays(), pp(),
+//                                  mus(), Sigmas(), tau()
+//                                  {}
+//
+//    ProductConvolutionOneBatch(MatrixXd eta_array,
+//                               std::vector<MatrixXd> ww_arrays,
+//                               MatrixXd pp,
+//                               MatrixXd mus,
+//                               std::vector<MatrixXd> Sigmas,
+//                               double tau, double xmin, double xmax, double ymin, double ymax)
+//                                : xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax),
+//                                  eta_array(eta_array), ww_arrays(ww_arrays), pp(pp),
+//                                  mus(mus), Sigmas(Sigmas), tau(tau)
+//                                  {}
+//
+//    VectorXd compute_entries(const MatrixXd & yy, const MatrixXd & xx) const
+//    {
+//        int num_batch_points = ww_arrays.size();
+//        int num_eval_points = xx.rows();
+//
+//        VectorXd pc_entries(num_eval_points);
+//        pc_entries.setZero();
+//        for ( int  i = 0; i < num_batch_points; ++i )
+//        {
+//            for ( int k = 0; k < num_eval_points; ++k )
+//            {
+//                Vector2d z = pp.row(i) + yy.row(k) - xx.row(k);
+//                if (point_is_in_ellipsoid(z, mus.row(i), Sigmas[i], tau))
+//                {
+//                    Vector2d z = pp.row(i) + yy.row(k) - xx.row(k);
+//                    double w_ik = grid_interpolate_at_one_point(xx.row(k), xmin, xmax, ymin, ymax, ww_arrays[i]);
+//                    double phi_ik = grid_interpolate_at_one_point(z, xmin, xmax, ymin, ymax, eta_array);
+//                    pc_entries(k) += w_ik * phi_ik;
+//                }
+//            }
+//        }
+//
+//        return pc_entries;
+//    }
+//};
+//
+//
+//class ProductConvolutionMultipleBatches
+//{
+//private:
+//    std::vector<ProductConvolutionOneBatch> pc_batches;
+//
+//public:
+//    ProductConvolutionMultipleBatches(std::vector<MatrixXd> eta_array_batches,
+//                                      std::vector<std::vector<MatrixXd>> ww_array_batches,
+//                                      std::vector<MatrixXd> pp_batches,
+//                                      std::vector<MatrixXd> mus_batches,
+//                                      std::vector<std::vector<MatrixXd>> Sigmas_batches,
+//                                      double tau, double xmin, double xmax, double ymin, double ymax) : pc_batches()
+//                                      {
+//                                        int num_batches = eta_array_batches.size();
+//                                        pc_batches.resize(num_batches);
+//                                        for (int i = 0; i < num_batches; ++i)
+//                                        {
+//                                            pc_batches[i] = ProductConvolutionOneBatch(eta_array_batches[i],
+//                                                                                       ww_array_batches[i],
+//                                                                                       pp_batches[i],
+//                                                                                       mus_batches[i],
+//                                                                                       Sigmas_batches[i],
+//                                                                                       tau, xmin, xmax, ymin, ymax);
+//                                        }
+//                                      }
+//
+//    VectorXd compute_entries(const MatrixXd & yy, const MatrixXd & xx) const
+//    {
+//        int num_batches = pc_batches.size();
+//        int num_eval_points = xx.rows();
+//
+//        VectorXd pc_entries(num_eval_points);
+//        pc_entries.setZero();
+//        for (int i = 0; i < num_batches; ++i)
+//        {
+//            pc_entries += pc_batches[i].compute_entries(yy, xx);
+//        }
+//        return pc_entries;
+//    }
+//};
+//
+//
+//class ProductConvolutionCoeffFn : public TCoeffFn< real_t >
+//{
+//private:
+//    ProductConvolutionMultipleBatches pcb;
+//    MatrixXd dof_coords;
+//
+//public:
+//    ProductConvolutionCoeffFn (const ProductConvolutionMultipleBatches & pcb, MatrixXd dof_coords)
+//            : pcb(pcb), dof_coords(dof_coords)
+//    {}
+//
+//    virtual void eval  ( const std::vector< idx_t > &  rowidxs,
+//                         const std::vector< idx_t > &  colidxs,
+//                         real_t *                      matrix ) const
+//    {
+//        const size_t  n = rowidxs.size();
+//        const size_t  m = colidxs.size();
+//
+//        MatrixXd xx(n*m,2);
+//        MatrixXd yy(n*m,2);
+//        for (int i = 0; i < n; ++i)
+//        {
+//            const idx_t  idxi = rowidxs[ i ];
+//            for (int j = 0; j < m; ++j)
+//            {
+//                const idx_t  idxj = colidxs[ j ];
+//                xx(j*n+i, 0) = dof_coords(idxi, 0);
+//                xx(j*n+i, 1) = dof_coords(idxi, 1);
+//
+//                yy(j*n+i, 0) = dof_coords(idxj, 0);
+//                yy(j*n+i, 1) = dof_coords(idxj, 1);
+//            }
+//        }
+//
+//        VectorXd eval_values = pcb.compute_entries(yy, xx);
+//
+//        for ( size_t  j = 0; j < m; ++j )
+//            {
+//                for ( size_t  i = 0; i < n; ++i )
+//                {
+//                    matrix[ j*n + i ] = eval_values(j*n + i);
+//                }// for
+//            }// for
+//    }
+//    using TCoeffFn< real_t >::eval;
+//
+////    virtual matform_t  matrix_format  () const { return MATFORM_SYM; }
+//    virtual matform_t  matrix_format  () const { return MATFORM_NONSYM; }
+//};
+//
+//
+//class CustomTLogCoeffFn : public TCoeffFn< real_t >
+//{
+//private:
+//    MatrixXd dof_coords;
+//    double xmin;
+//    double xmax;
+//    double ymin;
+//    double ymax;
+//    MatrixXd grid_values;
+//
+//public:
+//    // constructor
+//    CustomTLogCoeffFn (MatrixXd dof_coords,
+//                 double xmin, double xmax, double ymin, double ymax,
+//                 MatrixXd grid_values)
+//            : dof_coords(dof_coords), xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax), grid_values(grid_values)
+//    {}
+//
+//    //
+//    // coefficient evaluation
+//    //
+//    virtual void eval  ( const std::vector< idx_t > &  rowidxs,
+//                         const std::vector< idx_t > &  colidxs,
+//                         real_t *                      matrix ) const
+//    {
+//        const size_t  n = rowidxs.size();
+//        const size_t  m = colidxs.size();
+//
+//        MatrixXd eval_coords;
+//        eval_coords.resize(n*m, 2);
+//
+//        for ( size_t  j = 0; j < m; ++j )
+//        {
+//            const idx_t  idxj = colidxs[ j ];
+//            for ( size_t  i = 0; i < n; ++i )
+//            {
+//                const idx_t  idxi = rowidxs[ i ];
+//                eval_coords(j*n + i, 0) = dof_coords(idxj,0) - dof_coords(idxi,0);
+//                eval_coords(j*n + i, 1) = dof_coords(idxj,1) - dof_coords(idxi,1);
+//            }// for
+//        }// for
+//
+//        VectorXd eval_values = grid_interpolate_vectorized(eval_coords, xmin, xmax, ymin, ymax, grid_values);
+//
+//        for ( size_t  j = 0; j < m; ++j )
+//            {
+//                const idx_t  idxj = colidxs[ j ];
+//                for ( size_t  i = 0; i < n; ++i )
+//                {
+//                    const idx_t  idxi = rowidxs[ i ];
+//                    matrix[ j*n + i ] = eval_values(j*n + i);
+////                    if (idxj == idxi)
+////                    {
+//////                        matrix[ j*n + i ] = 1.0;
+////                        matrix[ j*n + i ] = matrix[ j*n + i ] + 20.0;
+////                    }
+//                }// for
+//            }// for
+//    }
+//    using TCoeffFn< real_t >::eval;
+//
+//    //
+//    // return format of matrix, e.g. symmetric or hermitian
+//    //
+//    virtual matform_t  matrix_format  () const { return MATFORM_SYM; }
+//
+//};
 
 int bem1d ( int user_input )
 {
@@ -634,168 +791,168 @@ std::unique_ptr< HLIB::TFacInvMatrix > hmatrix_factorized_inverse_destructive(HL
     return A_inv;
 }
 
-int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, double ymax,
-                  MatrixXd grid_values, VectorXd rhs_b)
-{
-    real_t        eps  = real_t(1e-4);
-    size_t        n    = dof_coords.rows();
-    const size_t  nmin = 60;
-    double admissibility_eta = 2.0;
-
-    printf("This is user.Custom_bem1d\n\n");
-
-    try
-    {
-        initialize_hlibpro();
-        std::unique_ptr<HLIB::TClusterTree>  ct = build_cluster_tree_from_dof_coords(dof_coords, nmin);
-        std::unique_ptr<HLIB::TBlockClusterTree>  bct = build_block_cluster_tree(ct.get(), ct.get(), admissibility_eta);
-
-        if( verbose( 2 ) )
-        {
-            visualize_cluster_tree(ct.get(), "custom_bem2d_ct");
-            visualize_block_cluster_tree(bct.get(), "custom_bem2d_bct");
-        }// if
-
-        CustomTLogCoeffFn log_coefffn( dof_coords, xmin, xmax, ymin, ymax, grid_values );
-//        std::unique_ptr<HLIB::TMatrix> A = build_hmatrix_from_coefffn(log_coefffn, ct.get(), ct.get(), bct.get(), eps);
-        std::unique_ptr<HLIB::TMatrix> A = build_hmatrix_from_coefffn(log_coefffn, bct.get(), eps);
-
-        add_identity_to_hmatrix(A.get(), 20.0);
-
-        if( verbose( 2 ) )
-        {
-            visualize_hmatrix(A.get(), "custom_bem2d_A");
-        }// if
-
-        TPSMatrixVis              mvis;
-        TTimer                    timer( WALL_TIME );
-        TConsoleProgressBar       progress;
-        TTruncAcc                 acc( eps, 0.0 );
-
-        {
-            std::cout << std::endl << "━━ solving system" << std::endl;
-
-            TMINRES      solver( 100 );
-            TSolverInfo  solve_info( false, verbose( 2 ) );
-            std::unique_ptr<HLIB::TVector>         b = A->row_vector();
-            std::unique_ptr<HLIB::TVector>         x = A->col_vector();
-
-            for ( size_t  i = 0; i < n; i++ )
-                b->set_entry( i, rhs_b( i) );
-
-            // bring into H-ordering
-            ct->perm_e2i()->permute( b.get() );
-
-            timer.start();
-
-            solver.solve( A.get(), x.get(), b.get(), NULL, & solve_info );
-
-            if ( solve_info.has_converged() )
-                std::cout << "  converged in " << timer << " and "
-                          << solve_info.n_iter() << " steps with rate " << solve_info.conv_rate()
-                          << ", |r| = " << solve_info.res_norm() << std::endl;
-            else
-                std::cout << "  not converged in " << timer << " and "
-                          << solve_info.n_iter() << " steps " << std::endl;
-
-            {
-                auto  sol = b->copy();
-
-                sol->fill( 1.0 );
-
-                // bring into external ordering to compare with exact solution
-                ct->perm_i2e()->permute( x.get() );
-
-                x->axpy( 1.0, sol.get() );
-                std::cout << "  |x-x~| = " << x->norm2() << std::endl;
-            }
-        }
-
-        //
-        // LU decomposition
-        //
-        auto  B = A->copy(); // B gets deleted when this function ends ACK.
-
-        std::unique_ptr<HLIB::TFacInvMatrix> A_inv = hmatrix_factorized_inverse_destructive(B.get(), eps);
-
-        std::cout << "    inversion error   = " << std::scientific << std::setprecision( 4 )
-            << inv_approx_2( A.get(), A_inv.get() ) << std::endl;
-
-//        auto  B = A->copy();
+//int Custom_bem1d (MatrixXd dof_coords, double xmin, double xmax, double ymin, double ymax,
+//                  MatrixXd grid_values, VectorXd rhs_b)
+//{
+//    real_t        eps  = real_t(1e-4);
+//    size_t        n    = dof_coords.rows();
+//    const size_t  nmin = 60;
+//    double admissibility_eta = 2.0;
 //
-//        std::cout << std::endl << "━━ LU factorisation ( eps = " << eps << " )" << std::endl;
+//    printf("This is user.Custom_bem1d\n\n");
+//
+//    try
+//    {
+//        initialize_hlibpro();
+//        std::unique_ptr<HLIB::TClusterTree>  ct = build_cluster_tree_from_dof_coords(dof_coords, nmin);
+//        std::unique_ptr<HLIB::TBlockClusterTree>  bct = build_block_cluster_tree(ct.get(), ct.get(), admissibility_eta);
+//
+//        if( verbose( 2 ) )
+//        {
+//            visualize_cluster_tree(ct.get(), "custom_bem2d_ct");
+//            visualize_block_cluster_tree(bct.get(), "custom_bem2d_bct");
+//        }// if
+//
+//        CustomTLogCoeffFn log_coefffn( dof_coords, xmin, xmax, ymin, ymax, grid_values );
+////        std::unique_ptr<HLIB::TMatrix> A = build_hmatrix_from_coefffn(log_coefffn, ct.get(), ct.get(), bct.get(), eps);
+//        std::unique_ptr<HLIB::TMatrix> A = build_hmatrix_from_coefffn(log_coefffn, bct.get(), eps);
+//
+//        add_identity_to_hmatrix(A.get(), 20.0);
+//
+//        if( verbose( 2 ) )
+//        {
+//            visualize_hmatrix(A.get(), "custom_bem2d_A");
+//        }// if
+//
+//        TPSMatrixVis              mvis;
+//        TTimer                    timer( WALL_TIME );
+//        TConsoleProgressBar       progress;
+//        TTruncAcc                 acc( eps, 0.0 );
+//
+//        {
+//            std::cout << std::endl << "━━ solving system" << std::endl;
+//
+//            TMINRES      solver( 100 );
+//            TSolverInfo  solve_info( false, verbose( 2 ) );
+//            std::unique_ptr<HLIB::TVector>         b = A->row_vector();
+//            std::unique_ptr<HLIB::TVector>         x = A->col_vector();
+//
+//            for ( size_t  i = 0; i < n; i++ )
+//                b->set_entry( i, rhs_b( i) );
+//
+//            // bring into H-ordering
+//            ct->perm_e2i()->permute( b.get() );
+//
+//            timer.start();
+//
+//            solver.solve( A.get(), x.get(), b.get(), NULL, & solve_info );
+//
+//            if ( solve_info.has_converged() )
+//                std::cout << "  converged in " << timer << " and "
+//                          << solve_info.n_iter() << " steps with rate " << solve_info.conv_rate()
+//                          << ", |r| = " << solve_info.res_norm() << std::endl;
+//            else
+//                std::cout << "  not converged in " << timer << " and "
+//                          << solve_info.n_iter() << " steps " << std::endl;
+//
+//            {
+//                auto  sol = b->copy();
+//
+//                sol->fill( 1.0 );
+//
+//                // bring into external ordering to compare with exact solution
+//                ct->perm_i2e()->permute( x.get() );
+//
+//                x->axpy( 1.0, sol.get() );
+//                std::cout << "  |x-x~| = " << x->norm2() << std::endl;
+//            }
+//        }
+//
+//        //
+//        // LU decomposition
+//        //
+//        auto  B = A->copy(); // B gets deleted when this function ends ACK.
+//
+//        std::unique_ptr<HLIB::TFacInvMatrix> A_inv = hmatrix_factorized_inverse_destructive(B.get(), eps);
+//
+//        std::cout << "    inversion error   = " << std::scientific << std::setprecision( 4 )
+//            << inv_approx_2( A.get(), A_inv.get() ) << std::endl;
+//
+////        auto  B = A->copy();
+////
+////        std::cout << std::endl << "━━ LU factorisation ( eps = " << eps << " )" << std::endl;
+////
+////        timer.start();
+////
+////        auto  A_inv = factorise_inv( B.get(), acc, & progress );
+////
+////        timer.pause();
+////        std::cout << "    done in " << timer << std::endl;
+////
+////        std::cout << "    size of LU factor = " << Mem::to_string( B->byte_size() ) << std::endl;
+////        std::cout << "    inversion error   = " << std::scientific << std::setprecision( 4 )
+////                  << inv_approx_2( A.get(), A_inv.get() ) << std::endl;
+////
+//
+//
+////        char asdf = A_inv->matrix();
+//        if( verbose( 2 ) )
+//            mvis.print( A_inv->matrix(), "custom_bem2d_LU" );
+////            mvis.print( B.get(), "custom_bem2d_LU" );
+//
+//        //
+//        // solve with LU decomposition
+//        //
+//
+//        auto  b = A->row_vector();
+//
+//        for ( size_t  i = 0; i < n; i++ )
+//            b->set_entry( i, rhs_b( i ) );
+//
+//
+//        std::cout << std::endl << "━━ solving system" << std::endl;
+//
+//        TAutoSolver  solver( 1000 );
+//        TSolverInfo  solve_info( false, verbose( 2 ) );
+//        auto         x = A->col_vector();
+//
+//        A_inv->apply(b.get(), x.get());
+//        auto b2 = x->copy();
+//        A->apply(x.get(), b2.get());
+//
+//        b2->axpy( -1.0, b.get() );
+//        std::cout << "  |b-b2~| = " << b2->norm2() << std::endl;
 //
 //        timer.start();
 //
-//        auto  A_inv = factorise_inv( B.get(), acc, & progress );
+//        solver.solve( A.get(), x.get(), b.get(), A_inv.get(), & solve_info );
 //
-//        timer.pause();
-//        std::cout << "    done in " << timer << std::endl;
+//        if ( solve_info.has_converged() )
+//            std::cout << "  converged in " << timer << " and "
+//                      << solve_info.n_iter() << " steps with rate " << solve_info.conv_rate()
+//                      << ", |r| = " << solve_info.res_norm() << std::endl;
+//        else
+//            std::cout << "  not converged in " << timer << " and "
+//                      << solve_info.n_iter() << " steps " << std::endl;
 //
-//        std::cout << "    size of LU factor = " << Mem::to_string( B->byte_size() ) << std::endl;
-//        std::cout << "    inversion error   = " << std::scientific << std::setprecision( 4 )
-//                  << inv_approx_2( A.get(), A_inv.get() ) << std::endl;
+//        {
+//            auto  sol = b->copy();
 //
-
-
-//        char asdf = A_inv->matrix();
-        if( verbose( 2 ) )
-            mvis.print( A_inv->matrix(), "custom_bem2d_LU" );
-//            mvis.print( B.get(), "custom_bem2d_LU" );
-
-        //
-        // solve with LU decomposition
-        //
-
-        auto  b = A->row_vector();
-
-        for ( size_t  i = 0; i < n; i++ )
-            b->set_entry( i, rhs_b( i ) );
-
-
-        std::cout << std::endl << "━━ solving system" << std::endl;
-
-        TAutoSolver  solver( 1000 );
-        TSolverInfo  solve_info( false, verbose( 2 ) );
-        auto         x = A->col_vector();
-
-        A_inv->apply(b.get(), x.get());
-        auto b2 = x->copy();
-        A->apply(x.get(), b2.get());
-
-        b2->axpy( -1.0, b.get() );
-        std::cout << "  |b-b2~| = " << b2->norm2() << std::endl;
-
-        timer.start();
-
-        solver.solve( A.get(), x.get(), b.get(), A_inv.get(), & solve_info );
-
-        if ( solve_info.has_converged() )
-            std::cout << "  converged in " << timer << " and "
-                      << solve_info.n_iter() << " steps with rate " << solve_info.conv_rate()
-                      << ", |r| = " << solve_info.res_norm() << std::endl;
-        else
-            std::cout << "  not converged in " << timer << " and "
-                      << solve_info.n_iter() << " steps " << std::endl;
-
-        {
-            auto  sol = b->copy();
-
-            sol->fill( 1.0 );
-            x->axpy( 1.0, sol.get() );
-
-            std::cout << "  |x-x~| = " << x->norm2() << std::endl;
-        }
-
-        DONE();
-    }// try
-    catch ( Error & e )
-    {
-        std::cout << e.to_string() << std::endl;
-    }// catch
-
-    return 0;
-}
+//            sol->fill( 1.0 );
+//            x->axpy( 1.0, sol.get() );
+//
+//            std::cout << "  |x-x~| = " << x->norm2() << std::endl;
+//        }
+//
+//        DONE();
+//    }// try
+//    catch ( Error & e )
+//    {
+//        std::cout << e.to_string() << std::endl;
+//    }// catch
+//
+//    return 0;
+//}
 
 void hmatrix_add_overwrites_second (const HLIB::TMatrix * A, HLIB::TMatrix* B, double tol)
 {
@@ -929,45 +1086,45 @@ PYBIND11_MODULE(hlibpro_bindings, m) {
 
     py::class_<HLIB::TCoeffFn<real_t>>(m, "TCoeffFn<real_t>");
 
-    py::class_<ProductConvolutionCoeffFn, HLIB::TCoeffFn<real_t>>(m, "ProductConvolutionCoeffFn")
-        .def(py::init<const ProductConvolutionMultipleBatches &, MatrixXd>());
+//    py::class_<ProductConvolutionCoeffFn, HLIB::TCoeffFn<real_t>>(m, "ProductConvolutionCoeffFn")
+//        .def(py::init<const ProductConvolutionMultipleBatches &, MatrixXd>());
 
-    py::class_<CustomTLogCoeffFn, HLIB::TCoeffFn<real_t>>(m, "CustomTLogCoeffFn")
-        .def(py::init<MatrixXd, // dof_coords
-             double, // xmin
-             double, // xmax
-             double, // ymin
-             double,  // ymax
-             MatrixXd // grid_values
-             >());
+//    py::class_<CustomTLogCoeffFn, HLIB::TCoeffFn<real_t>>(m, "CustomTLogCoeffFn")
+//        .def(py::init<MatrixXd, // dof_coords
+//             double, // xmin
+//             double, // xmax
+//             double, // ymin
+//             double,  // ymax
+//             MatrixXd // grid_values
+//             >());
 
-    py::class_<ProductConvolutionOneBatch>(m, "ProductConvolutionOneBatch")
-        .def(py::init<MatrixXd, // eta
-             std::vector<MatrixXd>, // ww
-             MatrixXd, // pp
-             MatrixXd, // mus
-             std::vector<MatrixXd>, // Sigmas
-             double, // tau
-             double, // xmin
-             double, // xmax
-             double, // ymin
-             double  // ymax
-             >())
-        .def("compute_entries", &ProductConvolutionOneBatch::compute_entries);
-
-    py::class_<ProductConvolutionMultipleBatches>(m, "ProductConvolutionMultipleBatches")
-        .def(py::init<std::vector<MatrixXd>, // eta_array_batches
-                      std::vector<std::vector<MatrixXd>>, // ww_array_batches
-                      std::vector<MatrixXd>, // pp_batches
-                      std::vector<MatrixXd>, // mus_batches
-                      std::vector<std::vector<MatrixXd>>, // Sigmas_batches
-                      double, // tau
-                      double, // xmin
-                      double, // xmax
-                      double, // ymin
-                      double // ymax
-                      >())
-        .def("compute_entries", &ProductConvolutionMultipleBatches::compute_entries);
+//    py::class_<ProductConvolutionOneBatch>(m, "ProductConvolutionOneBatch")
+//        .def(py::init<MatrixXd, // eta
+//             std::vector<MatrixXd>, // ww
+//             MatrixXd, // pp
+//             MatrixXd, // mus
+//             std::vector<MatrixXd>, // Sigmas
+//             double, // tau
+//             double, // xmin
+//             double, // xmax
+//             double, // ymin
+//             double  // ymax
+//             >())
+//        .def("compute_entries", &ProductConvolutionOneBatch::compute_entries);
+//
+//    py::class_<ProductConvolutionMultipleBatches>(m, "ProductConvolutionMultipleBatches")
+//        .def(py::init<std::vector<MatrixXd>, // eta_array_batches
+//                      std::vector<std::vector<MatrixXd>>, // ww_array_batches
+//                      std::vector<MatrixXd>, // pp_batches
+//                      std::vector<MatrixXd>, // mus_batches
+//                      std::vector<std::vector<MatrixXd>>, // Sigmas_batches
+//                      double, // tau
+//                      double, // xmin
+//                      double, // xmax
+//                      double, // ymin
+//                      double // ymax
+//                      >())
+//        .def("compute_entries", &ProductConvolutionMultipleBatches::compute_entries);
 
     py::class_<HLIB::TClusterTree>(m, "HLIB::TClusterTree")
         .def("perm_i2e", &HLIB::TClusterTree::perm_i2e)
@@ -989,9 +1146,9 @@ PYBIND11_MODULE(hlibpro_bindings, m) {
     m.doc() = "pybind11 bem1d plugin"; // optional module docstring
 
     m.def("bem1d", &bem1d, "bem1d from hlibpro");
-    m.def("Custom_bem1d", &Custom_bem1d, "Custom_bem1d from hlibpro");
-    m.def("grid_interpolate", &grid_interpolate, "grid_interpolate from cpp");
-    m.def("grid_interpolate_vectorized", &grid_interpolate_vectorized, "grid_interpolate_vectorized from cpp");
+//    m.def("Custom_bem1d", &Custom_bem1d, "Custom_bem1d from hlibpro");
+//    m.def("grid_interpolate", &grid_interpolate, "grid_interpolate from cpp");
+//    m.def("grid_interpolate_vectorized", &grid_interpolate_vectorized, "grid_interpolate_vectorized from cpp");
 //    m.def("compute_product_convolution_entries", &compute_product_convolution_entries, "compute_product_convolution_entries from cpp");
     m.def("build_cluster_tree_from_dof_coords", &build_cluster_tree_from_dof_coords, "build_cluster_tree_from_dof_coords from hlibpro");
     m.def("build_block_cluster_tree", &build_block_cluster_tree, "build_block_cluster_tree");
