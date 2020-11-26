@@ -11,8 +11,8 @@ PYFLAGS  = $(shell python3 -m pybind11 --includes)
 PYSUFFIX = $(shell python3-config --extension-suffix)
 
 SRC_DIR  := ./src
-# OBJ_DIR  := ./obj
-OBJ_DIR  := .
+OBJ_DIR  := ./obj
+# OBJ_DIR  := .
 # BUILD_DIR  := ./build
 BUILD_DIR  := .
 
@@ -21,48 +21,39 @@ CXXFLAGS = -O3 -Wall -shared -fPIC -std=c++11
 
 LIBS := -lhpro -Wl,-rpath,$(HLIBPRO_LIB)
 
+ALL_COMPILE_STUFF = $(CXXFLAGS) $(HLIBPRO_FLAGS) $(PYFLAGS) \
+					-I $(HLIBPRO_INCLUDE) -I$(EIGEN_INCLUDE) \
+					$(LDFLAGS) $(LIBS)
+
 HLIBPRO_BINDINGS_TARGET = $(addsuffix $(PYSUFFIX), hlibpro_bindings)
 
 all: $(BUILD_DIR)/$(HLIBPRO_BINDINGS_TARGET)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-# $(BUILD_DIR)/$(HLIBPRO_BINDINGS_TARGET): $(OBJ_DIR)/hlibpro_bindings.o $(OBJ_DIR)/grid_interpolate.o $(OBJ_DIR)/product_convolution_hmatrix.o
-# $(BUILD_DIR)/$(HLIBPRO_BINDINGS_TARGET): $(OBJ_DIR)/hlibpro_bindings.o $(OBJ_DIR)/grid_interpolate.o
-$(OBJ_DIR)/$(HLIBPRO_BINDINGS_TARGET): $(OBJ_DIR)/hlibpro_bindings.o $(OBJ_DIR)/grid_interpolate.o
+$(BUILD_DIR)/$(HLIBPRO_BINDINGS_TARGET): $(OBJ_DIR)/hlibpro_bindings.o $(OBJ_DIR)/grid_interpolate.o $(OBJ_DIR)/product_convolution_hmatrix.o
+# # $(BUILD_DIR)/$(HLIBPRO_BINDINGS_TARGET): $(OBJ_DIR)/hlibpro_bindings.o $(OBJ_DIR)/grid_interpolate.o
+# $(OBJ_DIR)/$(HLIBPRO_BINDINGS_TARGET): $(OBJ_DIR)/hlibpro_bindings.o $(OBJ_DIR)/grid_interpolate.o
 	@echo 'Building target: $@'
-	g++ -o "$@" "$<" \
-	    $(CXXFLAGS) $(HLIBPRO_FLAGS) $(PYFLAGS) \
-	    -I $(HLIBPRO_INCLUDE) -I$(EIGEN_INCLUDE) \
-	    $(LDFLAGS) $(LIBS)
+	g++ -o "$@" "$<" $(ALL_COMPILE_STUFF)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 $(OBJ_DIR)/hlibpro_bindings.o: $(SRC_DIR)/hlibpro_bindings.cpp
 	@echo 'Building target: $@'
-	g++ -o "$@" -c "$<" \
-		$(CXXFLAGS) $(HLIBPRO_FLAGS) $(PYFLAGS) \
-		-I $(HLIBPRO_INCLUDE) -I$(EIGEN_INCLUDE) \
-		$(LDFLAGS) $(LIBS)
+	g++ -o "$@" -c "$<" $(ALL_COMPILE_STUFF)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 $(OBJ_DIR)/product_convolution_hmatrix.o: $(SRC_DIR)/product_convolution_hmatrix.cpp
 	@echo 'Building target: $@'
-	g++ -o "$@" -c "$<" \
-	    $(CXXFLAGS) $(HLIBPRO_FLAGS) $(PYFLAGS) \
-	    -I $(HLIBPRO_INCLUDE) -I$(EIGEN_INCLUDE) \
-	    $(LDFLAGS) $(LIBS)
+	g++ -o "$@" -c "$<" $(ALL_COMPILE_STUFF)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 $(OBJ_DIR)/grid_interpolate.o: $(SRC_DIR)/grid_interpolate.cpp
 	@echo 'Building target: $@'
-# 	g++ -o "$@" -c "$<" $(CXXFLAGS) -I$(EIGEN_INCLUDE)
-	g++ -o "$@" -c "$<" \
-	    $(CXXFLAGS) $(HLIBPRO_FLAGS) $(PYFLAGS) \
-	    -I $(HLIBPRO_INCLUDE) -I$(EIGEN_INCLUDE) \
-	    $(LDFLAGS) $(LIBS)
+	g++ -o "$@" -c "$<" $(ALL_COMPILE_STUFF)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
