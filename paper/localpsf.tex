@@ -71,11 +71,11 @@ where $\Omega \subset \mathbb{R}^d$ is a bounded domain, and the integral kernel
 %We seek to approximate operators $\mathcal{A}$ in the ``matrix free'' setting, in which access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$. Here ($\mathcal{A}^Tv)(u) := (\mathcal{A}u)(v)$. 
 Integral kernel representation \eqref{eq:kernel_representation}, is assumed to exist,
 %e.g., by the Schwarz kernel theorem,
-but one cannot easily access entries $A(y,x)$ of the kernel. We assume that $A$ is locally supported in the sense that the impulse response of $\mathcal{A}$ to a point source at $x$, 
-\begin{equation*}
-	\varphi_x(y) := A(y+x, x),
-\end{equation*}
-is supported in a region near $0$, and we assume that $\mathcal{A}$ is locally translation invariant in the sense that
+but one cannot easily access entries $A(y,x)$ of the kernel. We assume that the impulse response of $\mathcal{A}$ is locally supported in the sense that the function 
+$
+A(~\cdot~, x)
+$
+is supported in a region near $x$, and we assume that $\mathcal{A}$ is locally translation invariant in the sense that
 \begin{equation*}
 A(y+h, x+h) \approx A(y,x),
 \end{equation*}
