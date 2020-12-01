@@ -71,11 +71,17 @@ with integral kernel $A:\Omega \times \Omega \rightarrow \mathbb{R}$. We focus o
 \item[Local translation invariance:] $A(y+h, x+h) \approx A(y,x)$
 if $h$ is not too large.
 \end{description}
-Access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$.
-Integral kernel representation \eqref{eq:kernel_representation} is assumed to exist,
+If $\mathcal{A}$ were translation invariant---i.e., if the exact equality $A(y+h, x+h) = A(y,x)$ held for arbitrary $x$, $y$, $h$---then it is straightforward to show that $\mathcal{A}$ would take the form of a convolution operator $\left(\mathcal{A}u\right)(v) = \left\langle v, \varphi_p \ast u\right\rangle_{L^2(\Omega)}$. The convolution kernel,
+\begin{equation*}
+	\varphi_x(y) := A(y+x,x)
+\end{equation*}
+is the result of applying $\mathcal{A}$ to a point source at some fixed point $x$, then translating the resulting impulse response function re-center it at zero instead of $x$. Locally translation invariant operators therefore act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies as $x$ changes.
+
+%Access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$.
+%Integral kernel representation \eqref{eq:kernel_representation} is assumed to exist,
 %e.g., by the Schwarz kernel theorem,
-but o
-One cannot easily access entries $A(y,x)$ of the kernel.
+%but o
+%One cannot easily access entries $A(y,x)$ of the kernel.
 
 
 % is non-negative in the sense that  $A(y,x) \ge 0$ for all $(y,x) \in \Omega \times \Omega$. 
@@ -85,14 +91,14 @@ One cannot easily access entries $A(y,x)$ of the kernel.
 %	(\mathcal{A}u)(v) := a(v,u).
 %\end{equation*}
 %We seek to approximate operators $\mathcal{A}$ in the ``matrix free'' setting, in which access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$. Here ($\mathcal{A}^Tv)(u) := (\mathcal{A}u)(v)$. 
-Integral kernel representation \eqref{eq:kernel_representation} is assumed to exist,
+%Integral kernel representation \eqref{eq:kernel_representation} is assumed to exist,
 %e.g., by the Schwarz kernel theorem,
-but one cannot easily access entries $A(y,x)$ of the kernel. We assume that the impulse response of $\mathcal{A}$ is locally supported in the sense that the function 
-$y \mapsto A(y, x)$ is supported in a region near $y=x$, and we assume that $\mathcal{A}$ is locally translation invariant in the sense that
-\begin{equation*}
-A(y+h, x+h) \approx A(y,x),
-\end{equation*}
-so long as $h$ is not too large.
+%but one cannot easily access entries $A(y,x)$ of the kernel. We assume that the impulse response of $\mathcal{A}$ is locally supported in the sense that the function 
+%$y \mapsto A(y, x)$ is supported in a region near $y=x$, and we assume that $\mathcal{A}$ is locally translation invariant in the sense that
+%\begin{equation*}
+%A(y+h, x+h) \approx A(y,x),
+%\end{equation*}
+%so long as $h$ is not too large.
 
 The \emph{point spread function} (PSF) of $\mathcal{A}$ at $x\in \Omega$ is
 \begin{equation*}
