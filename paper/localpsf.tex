@@ -78,11 +78,11 @@ If $\mathcal{A}$ were translation invariant---i.e., if the exact equality $A(y+h
 \end{equation*}
 is the result of applying $\mathcal{A}$ to a point source at some fixed point $x$, then translating the resulting impulse response function re-center it at zero instead of $x$. Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies as $x$ changes. We therefore sample $\varphi_{x_i}$ at a collection of points $\{x_i\}_{i=1}^r \subset \Omega$, and patch together the local convolution operators $u \mapsto \varphi_{x_i} \ast u$ using smooth weighting functions $w_i(x)$. This yields a product-convolution approximation, $\widetilde{\mathcal{A}} \approx \mathcal{A}$, given by
 \begin{equation*}
-	\left(\widetilde{\mathcal{A}}u\right)(v) := \left\langle v, \sum_{i=1}^r \varphi_{x_i} \ast \left(w_i \cdot u\right) \right\rangle_{L^2(\Omega)}.
+	\left(\widetilde{\mathcal{A}}u\right)(v) := \left\langle v, \sum_{i=1}^r \varphi_{x_i} \ast \left(w_i \cdot u\right) \right\rangle_{L^2(\Omega)},
 \end{equation*}
-Here $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$.
+where $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$.
 
-While kernel entries $\mathcal{A}(y,x)$ are not easily computable, kernel entries $\widetilde{A}(y,x)$ are given by the formula
+While kernel entries $A(y,x)$ are not easily computable, kernel entries $\widetilde{A}(y,x)$ are given by the formula
 \begin{equation*}
 	\widetilde{A}(y,x) = \sum_{i=1}^r w_i(x) \varphi_{x_i}(y-x).
 \end{equation*}
