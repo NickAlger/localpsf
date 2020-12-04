@@ -40,7 +40,7 @@
 
 % REQUIRED
 \begin{abstract}
-  We present an efficient matrix-free method for approximating locally translation invariant operators with locally supported non-negative integral kernels. The idea of the method is to compute impulse responses of the operator at a collection of scattered points, interpolate the computed impulse responses to approximate impulse responses at other arbitrary points. We convert the resulting approximation to hierarchical matrix format, which allows us to perform matrix inversion and other matrix operations using fast hierarchical matrix arithmetic. Impulse responses are computed by applying the operator to a small number of Dirac comb ``batches'' of point sources. A key innovation of our method is a matrix-free procedure for choosing as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problem with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. Our method is able to form high quality approximations of high rank Hessians using only a small number of Hessian matrix-vector products.
+  We present an efficient matrix-free method for approximating locally translation invariant operators that have locally supported non-negative integral kernels. The idea of the method is to compute impulse responses of the operator at a collection of scattered points, then interpolate these computed impulse responses to approximate impulse responses at other arbitrary points. This results in a product-convolution approximation, which we convert to hierarchical matrix format. Once the approximation is represented in hierarchical matrix format, we perform matrix inversion and other matrix operations using fast hierarchical matrix arithmetic. Impulse responses are computed by applying the operator to a small number of Dirac comb ``batches'' of point sources. A key innovation of our method is a matrix-free procedure for choosing as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problem with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. Our method is able to form high quality approximations of high rank Hessians using only a small number of Hessian matrix-vector products.
 %  Within each Dirac comb, the point sources must be spaced sufficiently far apart so that the impulse responses to those point sources do not overlap. We estimate the required spacing of point sources by applying the operator to a small number of constant, linear, and quadratic functions, then postprocessing the results.
 \end{abstract}
 
@@ -65,7 +65,7 @@ Let $\Omega \subset \mathbb{R}^d$ be a bounded domain, and let $\mathcal{A}:L^2(
 \end{equation}
 with integral kernel $A:\Omega \times \Omega \rightarrow \mathbb{R}$. We focus on operators of this form which have the following properties:
 \begin{description}
-\item[Matrix-free:] One cannot easily access kernel entries $A(y,x)$. Access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors. That is, evaluation of the functions
+\item[Matrix-free:] One cannot easily access kernel entries $A(y,x)$. Access to $\mathcal{A}$ is available only through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors. That is, evaluation of the functions
 \begin{equation*}
 	u \mapsto\mathcal{A}u \quad \text{and} \quad v \mapsto\mathcal{A}^Tv.
 \end{equation*} 
@@ -92,20 +92,20 @@ If $\mathcal{A}$ were perfectly translation invariant (i.e., if equality held in
 \label{eq:convolution_kernel}
 	\varphi_x(y) := A(y+x,x).
 \end{equation}
-The function $\varphi_x$ is the result of applying $\mathcal{A}$ to a point source at some fixed point $x \in \Omega$, then translating the resulting impulse response function re-center it at zero instead of $x$. Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies as $x$ changes. Locally translation invariant operators may therefore be approximated by spatially varying weighted sums of convolution operators of the form
+The function $\varphi_x$ is the result of applying $\mathcal{A}$ to a point source, $\delta_x$, at some fixed point $x \in \Omega$, then translating the resulting impulse response function, $\mathcal{A}\delta_x$, to re-center it at zero instead of $x$. Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies as $x$ changes. Locally translation invariant operators may therefore be approximated by spatially varying weighted sums of convolution operators of the form
 \begin{equation}
 \label{eq:product_convolution}
 	\left(\mathcal{A}u\right)(v) \approx \left(\widetilde{\mathcal{A}}u\right)(v) := \left\langle v,~ \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right) \right\rangle_{L^2(\Omega)},
 \end{equation}
 where $f \cdot g$ denotes pointwise multiplication, and $f \ast g$ denotes convolution of the functions $f$ and $g$. Here
 \begin{itemize}
-	\item $\varphi_i := \varphi_{x_i}$ is given by formula \eqref{eq:convolution_kernel}, but with $x$ replaced by $x_i$.
+	\item The local convolution kernels, $\varphi_i := \varphi_{x_i}$, are given by formula \eqref{eq:convolution_kernel}, but with $x$ replaced by $x_i$.
 	\item $\{x_i\}_{i=1}^r \subset \Omega$ is a collection of points scattered throughout the domain.
 	\item The functions $w_i(x)$ are spatially varying weighting function that interpolate the convolution kernels $\varphi_i$.
 \end{itemize}
 Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. The more locally translation invariant an operator is (i.e., the smaller the discrepancy between the left hand side and right hand side in \eqref{eq:local_translation_invariance}), the smaller the number of terms that are required in \eqref{eq:product_convolution} to achieve an accurate product-convolution approximation. 
 
-The core content of this paper is specifying (a) how we choose the points, $x_i$, and compute the convolution kernels, $\varphi_i$ (Section \ref{sec:choosing_sample_points}), and (b) what weighting functions $w_i$ that we use (Section \ref{sec:weighting_functions}). Briefly, we compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a sum of point sources, $\delta_{x_i},$ at many points $x_i$ (a ``Dirac comb''). That is, we compute
+The core content of this paper is specifying (a) how we choose the points, $x_i$, (b) how we compute the convolution kernels, $\varphi_i$, and (c) what weighting functions $w_i$ that we use. Briefly, we compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a sum of point sources, $\delta_{x_i},$ at many points $x_i$ (a ``Dirac comb''). That is, we compute
 \begin{equation*}
 	\eta = \mathcal{A} \left(\sum_{i=1}^m \delta_{x_i}\right).
 \end{equation*}
