@@ -9,6 +9,8 @@
 \usepackage{amsfonts}
 \usepackage{graphicx}
 \usepackage{epstopdf}
+\usepackage{amsmath}
+%\usepackage{amsmath,amsthm}
 %\usepackage[noend]{algorithmic}
 %\usepackage{algorithmic}
 \usepackage[algo2e, ruled, noend, linesnumbered]{algorithm2e}
@@ -31,6 +33,10 @@
 \newsiamthm{prop}{Proposition}
 \newsiamthm{defn}{Definition}
 \newsiamthm{thm}{Theorem}
+
+
+\newcommand{\norm}[1]{\|#1\|}
+
 
 % Sets running headers as well as PDF title and authors
 \headers{Fast matrix-free approximation of smoothly varying blur operators}{N. Alger, N. Petra, and O. Ghattas}
