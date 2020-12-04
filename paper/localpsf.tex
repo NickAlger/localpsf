@@ -40,7 +40,7 @@
 
 % REQUIRED
 \begin{abstract}
-  We present an efficient matrix-free method for approximating locally translation invariant operators with locally supported non-negative integral kernels. The idea of the method is to compute impulse responses of the operator at a collection of scattered points, then interpolate the computed impulse responses to approximate impulse responses at other arbitrary points. We convert the resulting approximation to hierarchical matrix format, which allows us to perform matrix inversion and other matrix operations using fast hierarchical matrix arithmetic. Impulse responses are computed by applying the operator to a small number of Dirac comb ``batches'' of point sources. A key innovation of our method is a matrix-free procedure for choosing as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problem with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. Our method is able to form high quality approximations of high rank Hessians using only a small number of Hessian matrix-vector products.
+  We present an efficient matrix-free method for approximating locally translation invariant operators with locally supported non-negative integral kernels. The idea of the method is to compute impulse responses of the operator at a collection of scattered points, interpolate the computed impulse responses to approximate impulse responses at other arbitrary points. We convert the resulting approximation to hierarchical matrix format, which allows us to perform matrix inversion and other matrix operations using fast hierarchical matrix arithmetic. Impulse responses are computed by applying the operator to a small number of Dirac comb ``batches'' of point sources. A key innovation of our method is a matrix-free procedure for choosing as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problem with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. Our method is able to form high quality approximations of high rank Hessians using only a small number of Hessian matrix-vector products.
 %  Within each Dirac comb, the point sources must be spaced sufficiently far apart so that the impulse responses to those point sources do not overlap. We estimate the required spacing of point sources by applying the operator to a small number of constant, linear, and quadratic functions, then postprocessing the results.
 \end{abstract}
 
@@ -82,21 +82,27 @@ The function $\varphi_x$ is the result of applying $\mathcal{A}$ to a point sour
 \label{eq:product_convolution}
 	\left(\mathcal{A}u\right)(v) \approx \left(\widetilde{\mathcal{A}}u\right)(v) := \left\langle v, \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right) \right\rangle_{L^2(\Omega)},
 \end{equation}
-Where $f \cdot g$ denotes pointwise multiplication, and $f \ast g$ denotes convolution of the functions $f$ and $g$. Here
+here $f \cdot g$ denotes pointwise multiplication, and $f \ast g$ denotes convolution of the functions $f$ and $g$. Here
 \begin{itemize}
 	\item $\varphi_i := \varphi_{x_i}$ is given by formula \eqref{eq:convolution_kernel}, but with $x$ replaced by $x_i$.
 	\item $\{x_i\}_{i=1}^r \subset \Omega$ is a collection of points scattered throughout the domain.
 	\item The functions $w_i(x)$ are spatially varying weighting function that interpolate the convolution kernels $\varphi_i$.
 \end{itemize}
-Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. For background on product-convolution approximations, we recommend [CITES]. 
+Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. The more locally translation invariant an operator is, the smaller the number of terms that are required in \eqref{eq:product_convolution} to achieve an accurate approximation.
+
+Let $\widetilde{A}$ denote the integral kernel associated with $\widetilde{\mathcal{A}}$. While $A(y,x)$ is not easily computable, $\widetilde{A}(y,x)$ is given by
+\begin{equation}
+\label{eq:kernel_entries}
+	\widetilde{A}(y,x) = \sum_{i=1}^r \varphi_i(y-x) w_i(x).
+\end{equation}
+Formula \eqref{eq:kernel_entries} provides fast access to kernel entries $\widetilde{A}(y,x)$, which allows us to construct a hierarchical matrix (H-matrix) representation of $\widetilde{\mathcal{A}}$. Using this H-matrix representation, one can invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations with $\widetilde{\mathcal{A}}$, using fast H-matrix arithmetic.
+
+For background on product-convolution approximations, we recommend reading the following papers: [CITES]. 
 
 
-While kernel entries $A(y,x)$ are not easily computable, kernel entries $\widetilde{A}(y,x)$ are given by the formula
-\begin{equation*}
-	\widetilde{A}(y,x) = \sum_{i=1}^r w_i(x) \varphi_{x_i}(y-x).
-\end{equation*}
 
- $\left(\mathcal{A}u\right)(v) = \left\langle v, \varphi_p \ast u\right\rangle_{L^2(\Omega)}$. Here $f \ast g$ denotes convolution of the functions $f$ and $g$, and the convolution kernel,
+
+% $\left(\mathcal{A}u\right)(v) = \left\langle v, \varphi_p \ast u\right\rangle_{L^2(\Omega)}$. Here $f \ast g$ denotes convolution of the functions $f$ and $g$, and the convolution kernel,
 
 
 %Access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$.
