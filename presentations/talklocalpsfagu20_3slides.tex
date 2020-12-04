@@ -1,0 +1,527 @@
+% Tikz plot for UQ. This is based on the tikz code of
+% Fabian Schuh for the tikz examples website
+\documentclass[10pt,final,xcolor=dvipsnames]{beamer}
+%\usepackage{etex}
+
+\usetheme{Madrid}
+
+\usepackage{xspace}
+%\usepackage{enumitem}
+\usepackage[mathscr]{euscript}
+%\usepackage{subfigure}
+\hypersetup{colorlinks,linkcolor=,urlcolor=blue}
+
+% \usetheme{Boadilla}
+% \usecolortheme{seahorse}
+
+% the macros, packages, etc:
+\usepackage[absolute,overlay]{textpos}
+\setbeamertemplate{items}[ball]
+\setbeamertemplate{blocks}[rounded][shadow=true]
+\setbeamertemplate{navigation symbols}{}
+\newenvironment{reference}[2]{%
+  \begin{textblock*}{\textwidth}(#1,#2)
+  \scriptsize{\it\color{black}}}{\end{textblock*}}
+\setbeamertemplate{blocks}[rounded]% [shadow=false]
+\newenvironment{boxalertenv}{\begin{altenv}%
+      {\usebeamertemplate{alerted text begin}\usebeamercolor[fg]{alerted text}\usebeamerfont{alerted text}\colorbox{bg}}
+      {\usebeamertemplate{alerted text end}}{\color{.}}{}}{\end{altenv}}
+
+\newcommand{\tcmag}[1]{\textcolor{magenta}{{#1}}}
+\usepackage{graphicx}
+\usepackage{multirow,color}
+\usepackage{bbm}
+\usepackage{amsfonts,amsmath,amssymb,amsbsy,amsthm}
+\usepackage{movie15}
+\usepackage{arydshln}
+\usepackage{subfig}
+
+\makeatletter
+\renewcommand*\env@matrix[1][*\c@MaxMatrixCols c]{%
+  \hskip -\arraycolsep
+  \let\@ifnextchar\new@ifnextchar
+  \array{#1}}
+
+%\usepackage{movie15}
+%\usepackage{multimedia}
+% custom commands (add your own macros here)
+
+\definecolor{bronze}{rgb}{0.8, 0.5, 0.2}
+\definecolor{goldenyellow}{rgb}{1.0, 0.87, 0.0}
+\definecolor{amber}{rgb}{1.0, 0.75, 0.0}
+\definecolor{azure}{rgb}{0.94, 1.0, 1.0}
+\definecolor{bittersweet}{rgb}{1.0, 0.44, 0.37}
+\definecolor{brass}{rgb}{0.71, 0.65, 0.26}
+\definecolor{camel}{rgb}{0.76, 0.6, 0.42}
+\setbeamercolor{block body}{bg=camel!30}
+\usefonttheme[onlymath]{serif}
+\usepackage{color}
+
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{tikz}
+\usepackage{amsfonts,amsmath,amssymb,amsbsy,amsthm}
+%\usecolortheme{tango}
+
+%\usefonttheme{serif}     % Font theme: serif
+%\usefonttheme[stillsansseriftext]{serif} 
+%\renewcommand*\familydefault{\sfdefault}
+
+\usepackage{pgf}
+%\usepackage{pgfplots}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{verbatim}
+%\usepackage{movie15}
+\usepackage{tikz,pgfplots}
+
+%\usepackage[active,tightpage]{preview}
+%\PreviewEnvironment{tikzpicture}
+\usetikzlibrary{arrows,automata}
+\usetikzlibrary{positioning}
+\usetikzlibrary{fit}
+
+%\input{ccgodef}
+\newcommand{\iparb}{\bar{\ipar}}
+\newcommand{\euclidnorm}[1]{\left\| {#1} \right\|_2}
+\newcommand{\incu}{\upupsilon}
+\newcommand{\incp}{\uprho}
+\newcommand{\QoIquad}{\QoI_\text{quad}}
+\newcommand{\tcblue}[1]{\textcolor{blue}{#1}}
+
+%\input{defjcp14.tex}
+\tikzset{
+    state/.style={
+           rectangle,
+           rounded corners,
+           draw=black, very thick,
+           minimum height=3em,
+           inner sep=1pt,
+           text centered,
+           },
+}
+
+%
+\newcommand{\zapspace}{\topsep=0pt\partopsep=0pt\itemsep=0pt\parskip=0pt}
+
+%
+\newcommand{\notice}[1]{\textcolor{Chameleon3}{#1}}
+\newcommand{\Notice}[1]{\textcolor{ScarletRed2}{#1}}
+\newcommand{\nnote}[1]{\noindent\emph{\textcolor{grass}{N: #1\,}}}
+\newcommand{\emil}[1]{\noindent\emph{\textcolor{blue}{Emil: #1\,}}}
+\newcommand{\julie}[1]{\noindent\emph{\textcolor{red}{Julie: #1\,}}}
+\newcommand{\unote}[1]{\noindent\emph{\textcolor{blue}{U: #1\,}}}
+\newcommand{\onote}[1]{\noindent\emph{\textcolor{red}{O: #1\,}}}
+\definecolor{mygreen}{rgb}{0.5,0.05,0.15}
+\newcommand{\cosmin}[1]{\noindent\emph{\textcolor{mygreen}{#1\,}}}
+
+%
+\definecolor{utorange}{rgb}{0.8,0.33,0.}
+\definecolor{themec}{RGB}{51,108,121}
+\definecolor{darkred}{rgb}{.6,.1,.1}
+\definecolor{darkblue}{rgb}{.1,.1,.9}
+\definecolor{greenback}{rgb}{.19,.94,.13}
+\definecolor{orange}{rgb}{.76,.39,.13}
+\definecolor{grass}{rgb}{.19,.64,.13}
+\definecolor{sierp}{RGB}{209,28,209}
+\definecolor{bgorange}{rgb}{1.,.95,.78}
+\definecolor{grassgreen}{RGB}{92,135,39}
+\definecolor{thinbox}{rgb}{.7,.8,1.}
+
+%
+\newcommand{\defeq}{\vcentcolon=}
+%
+\renewcommand{\vec}[1]{{\mathchoice
+                     {\mbox{\boldmath$\displaystyle{#1}$}}
+                     {\mbox{\boldmath$\textstyle{#1}$}}
+                     {\mbox{\boldmath$\scriptstyle{#1}$}}
+                     {\mbox{\boldmath$\scriptscriptstyle{#1}$}}}}
+\renewcommand{\ker}{\mathsf{ker}}
+\newcommand{\ran}{\mathsf{range}}
+\newcommand{\dom}{\mathsf{dom}}
+\newcommand{\trace}{\mathsf{tr}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\norm}[1]{\left\| {#1} \right\|}
+\newcommand{\ip}[2]{{\left\langle {#1}, {#2} \right\rangle}}
+\newcommand{\mip}[2]{\left\langle{#1}, {#2}\right\rangle_{\!\scriptscriptstyle{\text{M}}}}
+\newcommand{\mat}[1]{\mathbf{{#1}}}
+\newcommand\restr[2]{{
+  \left.\kern-\nulldelimiterspace %
+  {#1}\vphantom{\big|} \right|_{#2}}}
+\newcommand{\angles}[1]{\left\langle #1 \right\rangle}
+
+%
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+
+\newcommand{\BB}{\mat{B}}
+\newcommand{\Amat}{\mat{A}}
+\newcommand{\VV}{\mat{V}}
+\newcommand{\RR}{\mat{R}}
+
+%
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\B}{\mathcal{B}}
+\newcommand{\C}{\mathcal{C}}
+\newcommand{\D}{\mathcal{D}}
+\newcommand{\E}{\mathcal{E}}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\G}{\mathcal{G}}
+\newcommand{\J}{\mathcal{J}}
+\newcommand{\U}{\mathcal{U}}
+\newcommand{\Reg}{\mathcal{R}}
+
+%
+\newcommand{\bit}{\begin{itemize}}
+\newcommand{\eit}{\end{itemize}}
+\newcommand{\bdm} {\begin{displaymath}}
+\newcommand{\edm} {\end{displaymath}}
+
+%
+\newcommand{\prob}{\mathsf{Prob}}
+\newcommand{\borel}{\mathscr{B}}
+\newcommand{\ProbMeasClass}{\mathcal{P}}
+\newcommand{\ProbMeas}{\mathbbm{P}}
+\newcommand{\SigmaAlg}{F}
+\newcommand{\ave}{\mathsf{E}}
+\newcommand{\GM}[2]{\mathcal{N}\!\left( {#1}, {#2}\right)}
+
+%
+\newcommand{\NoiseForcing}{\xi}
+\newcommand{\noisem}{\mu_{\text{noise}}}
+\newcommand{\obs}{\F}%
+\newcommand{\dobs}{{\vec{d}}}
+\newcommand{\obsT}{{\vec{d}_{\scriptscriptstyle\text{obs}}}}
+\newcommand{\ipar}{m}
+\newcommand{\iparT}{m_{\mathrm T}}
+\newcommand{\iparpr}{m_{\text{prior}}}
+\newcommand{\iparmap}{m_{\scriptscriptstyle\text{MAP}}}
+\newcommand{\dpar}{\vec{m}}
+\newcommand{\dparmap}{\vec{m}_{\scriptscriptstyle\text{MAP}}}
+%
+%
+\newcommand{\M}{\mat{M}}%
+%
+\newcommand{\ff}{\mathcal{F}} %
+\newcommand{\noise}{\bs e}
+\newcommand{\observables}{\bs d}
+\newcommand{\data}{ \observables_{\rm{obs}} }
+\newcommand{\uobs}{ \uu_{\rm{obs}} }
+\newcommand{\datacomponent}[1]{ \observables_{\rm{obs}}^{#1} }
+\newcommand{\FF}{{\ensuremath{\mat{F}}}}
+\newcommand{\W}{{\ensuremath{\mat{W}}}}
+\newcommand{\I}{{\ensuremath{\mat{I}}}}
+\newcommand{\ScoreFcn}{S}
+\newcommand{\Nobs}{M}
+\newcommand{\Expectation}{\mathbb{E}}
+
+
+\newcommand{\prior} {\pi_{\mbox{\tiny prior}}}
+\newcommand{\like}{\pi_{\mbox{\tiny like}}}
+\newcommand{\piobs}{\pi_{\mbox{\tiny obs}}}
+\newcommand{\pinoise}{\pi_{\mbox{\tiny $\xi$}}}
+\newcommand{\post}{\pi_{\mbox{\tiny post}}}
+
+\newcommand{\mupost}{\mu_{\mbox{\tiny post}}}
+\newcommand{\muprior}{\mu_{\mbox{\tiny prior}}}
+
+\newcommand{\ncov} {\bs{\Gamma}_{\!\mbox{\tiny noise}} }
+\newcommand{\prcov} {\bs{\Gamma}_{\!\mbox{\tiny prior}} }
+\newcommand{\postcov} {\bs{\Gamma}_{\!\mbox{\tiny post}} }
+
+\newcommand{\Cprior}{\mathcal{C}_{\text{\tiny{prior}}}}
+\newcommand{\Cpost}{\mathcal{C}_{\text{\tiny{post}}}}
+
+\newcommand{\map} {{m}_{\mbox{\tiny MAP}} }
+\newcommand{\dmap} {{\vec{m}}_{\mbox{\tiny MAP}} }
+\newcommand{\mpr} {{\vec{m}}_{\mbox{\tiny pr}} }
+\newcommand{\dbeta}{\vec{m}}
+
+\newcommand{\Hpost}  { \bs H }
+\newcommand{\Hmisfit}{ \mat{H}_{\mbox{\tiny misfit}} }
+\newcommand{\tHmisfit}{\tilde{\mat{H}}_{\mbox{\tiny misfit}} }
+\newcommand{\HT}{\matrix{\tilde{H}}_{\mbox{\tiny misfit}}}
+\newcommand{\HTinf}{\tilde{H}_{\text{misfit}}}
+\newcommand{\Vr} {\bs V_r}
+\newcommand{\Dr} {\bs D_r}
+\newcommand{\Ir} {\bs I_r}
+
+%
+%
+\newcommand{\Ge}{ \mathcal{G}_{\!\mbox{\tiny e}}}
+\newcommand{\Op}{ \mathcal{O}_{\!\mbox{\tiny p}}}
+\newcommand{\HH}{ \ensuremath{\matrix{H}} }
+\newcommand{\SI}{ \ensuremath{{\Sigma}} }
+\newcommand{\PP}{ \ensuremath{\matrix{\Psi}} }
+%
+\newcommand{\WW}{ \mathcal{W}}
+
+%
+\newcommand{\adjMacroMM}[1]{{#1}^*}
+\newcommand{\adjMacroME}[1]{{#1}^\natural}
+\newcommand{\adjMacroEM}[1]{{#1}^\diamond}
+\newcommand{\adjMacroEMINV}[1]{{#1}^{-\diamond}}
+\newcommand{\Aadj}{\adjMacroMM{\A}}
+\newcommand{\Badj}{\adjMacroMM{\BB}}
+\newcommand{\iFadj}{\adjMacroME{\iF}}
+\newcommand{\Fadj}{\adjMacroME{\F}}
+\newcommand{\Vadj}{\adjMacroEM{\VV}}
+\newcommand{\Ladj}{\adjMacroEM{\L}}
+
+\def\bfG{\mbox{\boldmath$G$}}
+\newcommand{\mc}[1]{\mathcal{#1}}
+
+%
+%
+%
+\newcommand{\SNR}{\ensuremath{\text{SNR}}}
+
+\newcommand{\gbf}[1]{\boldsymbol{#1}}
+\newcommand{\bs}[1]{\ensuremath{\boldsymbol{#1}}}
+
+\newcommand{\edot}{\dot{\gbf{\varepsilon}}}
+\newcommand{\edotsec}{\edot_\mathrm{II}}
+\newcommand{\secinve}{\edot_\mathrm{II}}
+
+\DeclareMathOperator{\sym}{sym}
+%
+%
+
+\newcommand{\Div}{\mbox{div}}
+\newcommand{\Grad}{{\bf \nabla}}
+
+\newcommand{\pt}{\tilde{p}}
+\newcommand{\vt}{\tilde{\vv}}
+\newcommand{\qt}{\tilde{q}}
+\newcommand{\betat}{\tilde{\beta}}
+
+\newcommand{\uh}{\hat{\uu}}
+\newcommand{\ph}{\hat{p}}
+\newcommand{\vh}{\hat{\vv}}
+\newcommand{\qh}{\hat{q}}
+\newcommand{\betah}{\hat{\beta}}
+
+\newcommand{\permeab}{\mathrm{m}}
+
+\renewcommand{\vec}[1]{\gbf{#1}}
+\newcommand{\cvec}[1]{{#1}}
+
+\newcommand{\uu}{\ensuremath{\vec{u}}}
+\newcommand{\vv}{\ensuremath{\vec{v}}}
+
+\newcommand{\tcb}[1]{\textcolor{blue}{{#1}}}
+\newcommand{\tcdb}[1]{\textcolor{darkblue}{{#1}}}
+\newcommand{\tcr}[1]{\ensuremath{\textcolor{red}{{#1}}}}
+\newcommand{\tcdr}[1]{\textcolor{darkred}{{#1}}}
+\newcommand{\tcm}[1]{\textcolor{ForestGreen}{{#1}}}
+\newcommand{\tco}[1]{\textcolor{VioletRed}{{#1}}}
+\newcommand{\tcc}[1]{\textcolor{cyan}{{#1}}}
+\newcommand{\dg}[1]{\textcolor{black!65!green}{{#1}}}
+\newcommand{\tcg}[1]{\textcolor{blue!70!black!30!green}{{#1}}}
+\newcommand{\tcdg}[1]{\textcolor{blue!20!black!50!green}{{#1}}}
+\newcommand{\tcch}[1]{\textcolor{cyan}{\hat{{#1}}}}
+\newcommand{\tcmhb}[1]{\textcolor{magenta}{\hat{\gbf{{#1}}}}}
+\newcommand{\tcmh}[1]{\textcolor{magenta}{\hat{{#1}}}}
+\newcommand{\tcbb}[1]{\textcolor{blue}{\gbf{{#1}}}}
+\newcommand{\tcgb}[1]{\textcolor{grass}{\gbf{{#1}}}}
+\newcommand{\tcct}[1]{\textcolor{cyan}{\tilde{{#1}}}}
+\newcommand{\tcmtb}[1]{\textcolor{magenta}{\tilde{\gbf{{#1}}}}}
+\newcommand{\tcmt}[1]{\textcolor{magenta}{\tilde{{#1}}}}
+\newcommand{\tcotb}[1]{\textcolor{utorange}{\tilde{\gbf{{#1}}}}}
+\newcommand{\tcot}[1]{\textcolor{utorange}{\tilde{{#1}}}}
+\newcommand{\tcohb}[1]{\textcolor{utorange}{\hat{\gbf{{#1}}}}}
+\newcommand{\tcoh}[1]{\textcolor{utorange}{\hat{{#1}}}}
+
+
+
+\renewcommand{\matrix}[1] {\ensuremath{\boldsymbol{#1}}}
+
+\newcommand{\bndFS}{\Gamma_{\!\mbox{\scriptsize $FS$}}}
+\newcommand{\bndB}{\Gamma_{\!\mbox{\scriptsize $B$}}}
+\newcommand{\bndT}{\Gamma_{\!\mbox{\scriptsize $T$}}}
+
+\usepackage{xspace}
+\newcommand{\software}[1]{\texttt{#1}\xspace}
+\newcommand{\hip}{\texttt{hIPPYlib}\xspace}
+\newcommand{\bhip}{\texttt{{\bf hIPPYlib}}\xspace}
+\newcommand{\Fe}{\texttt{FEniCS}\xspace}
+\newcommand{\pet}{\texttt{PETSc}\xspace}
+
+
+\newcommand{\del}{\partial}
+%
+\newcommand{\Ns}{{N_s}}
+\newcommand{\Ntau}{{N_{\tau}}}
+\newcommand{\iFF}{\mathcal{F}}
+%
+\newcommand{\Acal}{\mc{A}}
+%
+\newcommand{\iparpost}{\ipar_\text{post}}
+\newcommand{\dd}{\vec{\bar{d}}}
+\newcommand{\obsop}{\mathcal{B}}
+
+\newcommand{\GN}{\ensuremath{\Gamma_{\!\!N}}}
+\newcommand{\Exp}[1]{e^{{#1}}}
+\newcommand{\GD}{\ensuremath{\Gamma_{\!\!D}}}
+\newcommand{\Vg}{\mathscr{V}_{\!g}}
+\newcommand{\V}{\mathscr{V}_{\!\scriptscriptstyle{0}}}
+\newcommand{\eip}[2]{\left\langle{#1}, {#2}\right\rangle_{\!{\R^q}}}
+\newcommand{\Wn}{\mat{W}_{\!\sigma}}
+\newcommand{\cip}[2]{\left\langle{#1}, {#2}\right\rangle_{\!\CM}}
+\newcommand{\CM}{\mathscr{E}}
+\newcommand{\LI}{\mathscr{L}}
+\renewcommand{\H}{\mathcal{H}}
+\newcommand{\Nd}{{n_{\text{d}}}}
+\newcommand{\Ntr}{{n_{\text{tr}}}}
+\newcommand{\ipart}{m_{\scriptscriptstyle\text{true}}}
+\newcommand{\epsobs}{\varepsilon_{\scriptscriptstyle\text{obs}}}
+\newcommand{\grad}{\nabla}
+\newcommand{\ut}[1]{\ensuremath{\tilde{#1}}}
+
+\newcommand{\LRp}[1]{\left( #1 \right)}
+\newcommand{\LRs}[1]{\left[ #1 \right]}
+\newcommand{\LRa}[1]{\left< #1 \right>}
+\newcommand{\LRc}[1]{\left\{ #1 \right\}}
+
+\newcommand{\xx}{\ensuremath{\boldsymbol x}}
+\newcommand{\rr}{\ensuremath{\boldsymbol r}}
+\newcommand{\e}{\ensuremath{\boldsymbol e}}
+\newcommand{\x}{\xx}
+\newcommand{\y}{\ensuremath{\boldsymbol y}}
+\newcommand{\z}{\ensuremath{\boldsymbol z}}
+\renewcommand{\r}{\ensuremath{\boldsymbol r}}
+\newcommand{\s}{\ensuremath{\boldsymbol s}}
+
+\newcommand{\hilb}{\mathscr{H}}
+\newcommand{\half} {\ensuremath{\frac{1}{2}}}
+\newcommand{\nor}[1]{\left\| #1 \right\|}
+\newcommand{\equaldef}{{:=}}
+\newcommand{\iFFadj}{\adjMacroMM{\iFF}}
+
+\newcommand{\NEns}{{N_s}}
+\newcommand{\ES}{{\mathrm{ES}}}
+
+\newcommand{\CovFcn}{\rm{k}}
+\newcommand{\dt}{{\Delta t}}
+\newcommand{\tidx}{k}
+
+\newcommand{\XGen}{{X_{\rm Gen}}}
+\newcommand{\YGen}{{Y_{\rm Gen}}}
+\newcommand{\YNet}{{Y_{\rm Net}}}
+
+\newcommand{\di}{\mathrm{d}}
+
+
+\newcommand{\priorcov}{\mat{\Gamma}{\scriptscriptstyle\text{prior}}}
+\newcommand{\priordensity}{\pi_{\scriptscriptstyle\text{prior}}}
+
+\newcommand{\istate}{u}
+\newcommand{\iparspace}{\mathcal{M}}
+\newcommand{\iadj}{p}
+\DeclareMathOperator*{\argmin}{argmin} 
+\DeclareMathOperator{\diag}{diag} 
+\newcommand{\iparref}{m_{\scriptscriptstyle\text{ref}}}
+\newcommand{\Hmatrix}{\bs{H}}
+
+%\DeclareMathOperator{\diag}{diag}
+%\newcommand{\Hmatrix}{\bs{H}}
+% argument #1: any options
+\newenvironment{customlegend}[1][]{%
+    \begingroup
+    % inits/clears the lists (which might be populated from previous
+    % axes):
+    \csname pgfplots@init@cleared@structures\endcsname
+    \pgfplotsset{#1}%
+}{%
+    % draws the legend:
+    \csname pgfplots@createlegend\endcsname
+    \endgroup
+}
+\def\addlegendimage{\csname pgfplots@addlegendimage\endcsname}
+
+% title, authors, etc:
+\title[]{Fast high-rank Hessian approximation for Bayesian ice sheet inverse problems}
+
+\author[Nick Alger]{{Nick Alger}\inst{1}\\[2ex]
+  {\small \textcolor{themec}{Joint work with:}}
+  \\
+  {\small No\'{e}mi Petra},\inst{2}
+  {\small Tucker Hartland},\inst{2}
+  {\small Omar Ghattas\inst{1}}}
+
+\institute[UT]{%
+  \inst{1}{Oden Institute\\
+    The University of Texas at Austin}\\\smallskip
+  \inst{2}{Applied Mathematics, School of Natural Sciences\\
+    University of California, Merced}\\\smallskip
+}
+
+\date[December 14, 2020]{%
+  \footnotesize
+  NG003--Advances in Data Assimilation, Predictability, and Uncertainty Quantification I\\
+  American Geophysical Union Conference\\
+  December 14, 2020}
+
+ \begin{document}
+%%----------- titlepage ----------------------------------------------%
+\begin{frame}[plain]
+%  \titlepage
+\frametitle{Fast high-rank Hessian approximation for Bayesian ice sheet inverse problems}
+\begin{center}
+\begin{figure}
+	\centering
+	\subfloat[Model problem considered here\label{fig:a}]{\includegraphics[width=0.4\columnwidth]{extraplots/Mesh_Height.png}}\qquad
+	\subfloat[Antarctic ice sheet\label{fig:b}]{\includegraphics[width=0.3\columnwidth]{extraplots/ScienceRignot-crop.pdf}}
+\end{figure}
+
+\vspace{2em}
+
+\begin{itemize}
+	\setlength\itemsep{1em}
+	\item \textbf{Goal:} Infer basal sliding friction field for ice sheet using surface velocity observations, and quantify uncertainty
+	\item \textbf{Problem:} Existing methods are based on low-rank Hessian approximation, but Hessian is high rank!
+\end{itemize}
+\end{center}
+\end{frame}
+% -------------------------------------------------------------------
+
+
+%--------------------------------------------------------------------------
+\begin{frame}
+  \frametitle{Key result}
+
+Product-convolution approximation combined with Hierarchical matrix representations promise a more efficient
+Hessian approximation.
+
+\vspace{1em}
+
+\begin{center}
+	\includegraphics[width=0.75\columnwidth]{extraplots/ice_gmres_convergence.pdf}
+\end{center}
+
+\end{frame}
+
+\begin{frame}
+	\frametitle{Broader impact}
+
+\begin{itemize}
+	\setlength\itemsep{1em}
+	\item Antarctic ice sheet flow is expected to be the dominant contributor to 21st century sea level rise.
+	\item A leading source of uncertainty is the basal sliding friction.
+	\item Our Hessian approximation reduces the computational cost of estimating the basal sliding friction and quantifying its uncertainty.
+\end{itemize}
+	
+\vspace{2em}
+
+\textbf{Authors:} Nick Alger, Tucker Hartland, Noemi Petra, Omar Ghattas
+
+\textbf{Paper:} Fast matrix-free approximation of smoothly
+varying blur operators, with application to Hessians in
+PDE-constrained inverse problems with highly informative data (in preparation)
+
+\textbf{Contact:} \texttt{nalger@oden.utexas.edu}
+
+\end{frame}
+\end{document}
