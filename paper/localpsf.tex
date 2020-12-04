@@ -56,7 +56,7 @@
 
 \section{Introduction}
 
-In this paper, we present a fast matrix free method for approximating locally translation-invariant operators, $\mathcal{A}$, that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in reduced space methods for solving partial differential equations (PDEs), and as Hessians in distributed parameter PDE-constrained inverse problems.
+We present a fast matrix free method for approximating locally translation-invariant operators, $\mathcal{A}$, that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in reduced space methods for solving partial differential equations (PDEs), and as Hessians in distributed parameter PDE-constrained inverse problems.
 
 Let $\Omega \subset \mathbb{R}^d$ be a bounded domain, and let $\mathcal{A}:L^2(\Omega)\rightarrow L^2(\Omega)'$ be an integral operator of the form
 \begin{equation}
@@ -65,39 +65,64 @@ Let $\Omega \subset \mathbb{R}^d$ be a bounded domain, and let $\mathcal{A}:L^2(
 \end{equation}
 with integral kernel $A:\Omega \times \Omega \rightarrow \mathbb{R}$. We focus on operators of this form which have the following properties:
 \begin{description}
-\item[Matrix-free:] One cannot easily access kernel entries $A(y,x)$. Access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$. 
-\item[Non-negative:] $A(y,x) \ge 0$ for all $(y,x) \in \Omega \times \Omega$.
+\item[Matrix-free:] One cannot easily access kernel entries $A(y,x)$. Access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors. That is, evaluation of the functions
+\begin{equation*}
+	u \mapsto\mathcal{A}u \quad \text{and} \quad v \mapsto\mathcal{A}^Tv.
+\end{equation*} 
+\item[Non-negative kernel:] For all $(y,x) \in \Omega \times \Omega$, we have
+\begin{equation*}
+	A(y,x) \ge 0.
+\end{equation*}
 \item[Local support:] $A(y, x)$ is supported near $y=x$.
-\item[Local translation invariance:] $A(y+h, x+h) \approx A(y,x)$
-if $h$ is not too large.
+\item[Local translation invariance:] If $h$ is not too large, then
+\begin{equation}
+	\label{eq:local_translation_invariance}
+	A(y+h, x+h) \approx A(y,x).
+\end{equation}
 \end{description}
-
-If $\mathcal{A}$ were translation invariant (that is, if $A(y+h, x+h) = A(y,x)$ for all $x$, $y$, $h$) then it is straightforward to show that $\mathcal{A}$ would be a convolution operator, and the convolution kernel, $\varphi_x$, would be given by
+Local translation invariance is illustrated in Figure FIG. 
+%We qualify the degree of local translation invariance with the words ``perfectly'', ``highly'', and ``poorly''.
+%\begin{itemize}
+%\item If equality holds in \eqref{eq:local_translation_invariance} for all $x$, $y$, and $h$, then we say $\mathcal{A}$ is \emph{perfectly translation invariant}. 
+%\item If the discrepancy between left hand side and right hand side of \eqref{eq:local_translation_invariance} is small for a large set of points $x$, $y$, and $h$, then we say that $\mathcal{A}$ is \emph{highly locally translation invariant}. 
+%\item If the discrepancy between left hand side and right hand side of \eqref{eq:local_translation_invariance} is large, or if the discrepancy is only small for a small set of $x$, $y$, and $h$, then we say that $\mathcal{A}$ is \emph{poorly locally translation invariant}.
+%\end{itemize} 
+If $\mathcal{A}$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then it is straightforward to show that $\mathcal{A}$ would be a convolution operator, and the convolution kernel, $\varphi_x$, would be given by
 \begin{equation}
 \label{eq:convolution_kernel}
 	\varphi_x(y) := A(y+x,x).
 \end{equation}
-The function $\varphi_x$ is the result of applying $\mathcal{A}$ to a point source at some fixed point $x$, then translating the resulting impulse response function re-center it at zero instead of $x$. Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies as $x$ changes. Locally translation invariant operators may therefore be approximated by spatially varying weighted sums of convolution operators of the form
+The function $\varphi_x$ is the result of applying $\mathcal{A}$ to a point source at some fixed point $x \in \Omega$, then translating the resulting impulse response function re-center it at zero instead of $x$. Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies as $x$ changes. Locally translation invariant operators may therefore be approximated by spatially varying weighted sums of convolution operators of the form
 \begin{equation}
 \label{eq:product_convolution}
 	\left(\mathcal{A}u\right)(v) \approx \left(\widetilde{\mathcal{A}}u\right)(v) := \left\langle v,~ \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right) \right\rangle_{L^2(\Omega)},
 \end{equation}
-here $f \cdot g$ denotes pointwise multiplication, and $f \ast g$ denotes convolution of the functions $f$ and $g$. Here
+where $f \cdot g$ denotes pointwise multiplication, and $f \ast g$ denotes convolution of the functions $f$ and $g$. Here
 \begin{itemize}
 	\item $\varphi_i := \varphi_{x_i}$ is given by formula \eqref{eq:convolution_kernel}, but with $x$ replaced by $x_i$.
 	\item $\{x_i\}_{i=1}^r \subset \Omega$ is a collection of points scattered throughout the domain.
 	\item The functions $w_i(x)$ are spatially varying weighting function that interpolate the convolution kernels $\varphi_i$.
 \end{itemize}
-Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. The more locally translation invariant an operator is, the smaller the number of terms that are required in \eqref{eq:product_convolution} to achieve an accurate approximation.
+Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. The more locally translation invariant an operator is (i.e., the smaller the discrepancy between the left hand side and right hand side in \eqref{eq:local_translation_invariance}), the smaller the number of terms that are required in \eqref{eq:product_convolution} to achieve an accurate product-convolution approximation. 
 
-Let $\widetilde{A}$ denote the integral kernel associated with $\widetilde{\mathcal{A}}$. While $A(y,x)$ is not easily computable, $\widetilde{A}(y,x)$ is given by
+The core content of this paper is specifying (a) how we choose the points, $x_i$, and compute the convolution kernels, $\varphi_i$ (Section \ref{sec:choosing_sample_points}), and (b) what weighting functions $w_i$ that we use (Section \ref{sec:weighting_functions}). Briefly, we compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a sum of point sources, $\delta_{x_i},$ at many points $x_i$ (a ``Dirac comb''). That is, we compute
+\begin{equation*}
+	\eta = \mathcal{A} \left(\sum_{i=1}^m \delta_{x_i}\right).
+\end{equation*}
+The batch of points $x_i$ are chosen so that the support of $\mathcal{A}\delta_{x_i}$ and the support of $\mathcal{A}\delta_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Since the impulse responses do not overlap, we may post-process $\eta$ to recover $\varphi_i$ for all of the points $x_i$ in the batch---by applying $\mathcal{A}$ to one vector, we recover many $\varphi_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\varphi_i$'s, until the approximation is sufficiently accurate or a maximum number of sample points is reached. The supports of the impulse responses $\mathcal{A}\delta_x$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\mathcal{A}^T$ to a small number of constant, linear, and quadratic functions. This procedure for estimating the support of $\mathcal{A}\delta_x$ a-priori is the only part of the paper that requires non-negativity of the integral kernel. The functions $w_i$ are the defined as the smoothest functions, in a certain least-squares sense, that interpolate the points $x_i$.
+
+%A small number of terms in \eqref{eq:product_convolution} are required to accurately approximate a highly locally translation invariant operator, while a large number of terms are required to accurately approximate a poorly locally translation invariant operator.
+
+
+
+Let $\widetilde{A}$ denote the integral kernel associated with $\widetilde{\mathcal{A}}$. While $A(y,x)$ is not easily computable, $\widetilde{A}(y,x)$ is given by the formula
 \begin{equation}
 \label{eq:kernel_entries}
 	\widetilde{A}(y,x) = \sum_{i=1}^r \varphi_i(y-x) w_i(x).
 \end{equation}
-Formula \eqref{eq:kernel_entries} provides fast access to kernel entries $\widetilde{A}(y,x)$, which allows us to construct a hierarchical matrix (H-matrix) representation of $\widetilde{\mathcal{A}}$. Using this H-matrix representation, one can invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations with $\widetilde{\mathcal{A}}$, using fast H-matrix arithmetic.
+Formula \eqref{eq:kernel_entries} provides fast access to kernel entries $\widetilde{A}(y,x)$, which allows us to construct a hierarchical matrix (H-matrix) representation of $\widetilde{\mathcal{A}}$ using the conventional adaptive cross H-matrix construction method [CITE]. Once the H-matrix representation is formed, one can invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations with $\widetilde{\mathcal{A}}$, using fast H-matrix arithmetic.
 
-For background on product-convolution approximations, we recommend reading the following papers: [CITES]. For background on H-matrices, we recommend reading the following papers: [CITES].
+For background on product-convolution approximations, we recommend reading the following papers: [CITES]. In [CITE], Escande and Weiss explored the idea of approximating linear operators from scattered impulse responses using a product-convolution scheme of the same form as \eqref{eq:product_convolution}. In our previous work [CITE MY PAPER], we choose the point locations with an adaptive grid. However,  
 
 
 
@@ -148,6 +173,17 @@ PSFs that satisfy the following properties:
 \end{enumerate}
 If $\varphi_x$ was constant in $x$, then $\mathcal{A}$ would be the convolution operator $\left(\mathcal{A}v\right)^* = \varphi_0 \ast v$. Operators satisfying property 1 therefore act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies smoothly as $x$ changes. Operators satisfying property 2 are local, in the sense that sources at point $x$ have no impact on points far away from $x$. Operators satisfying property 3 blur inputs: their action on a point source consists of scaling the source, then spreading the energy of the scaled point source across a region nonuniformly. We call operators satisfying these properties \emph{smoothly varying blur operators}.
 
+
+
+% Computing the functions $w_i$ requires solving two Poisson PDEs for each point $x_i$, and these Poisson PDEs may be solved cheaply with multigrid.
+
+%Specifically, since the integral kernel for $\mathcal{A}$ is non-negative, $\langle\mathcal{A},\delta_x\rangle^*$ may be interpreted as a scaled probability distribution. We compute the mean and covariance of this probability distribution for all points $x \in \Omega$ simultaneously, by applying $\mathcal{A}^T$ to a small number of constant, linear, and quadratic functions. We then estimate the support of $\langle\mathcal{A},\delta_x\rangle^*$ to be contained within a small number of standard deviations of the mean of this probability distribution.
+
+
+
+%We interpret $\langle\mathcal{A},\delta_{x_i}\rangle^*$ as a scaled probability distribution, and estimate the support of $\langle\mathcal{A},\delta_{x_i}\rangle^*$ to be contained within a small number of standard deviations of the mean of this probability distribution (this is why we require a non-negative kernel).  The mean and covariance of $\langle\mathcal{A},\delta_{x}\rangle^*$ can be simultaneously computed for all points $x \in \Omega$ by applying $\mathcal{A}^T$ to a small number of constant, linear, and quadratic functions. 
+
+The functions $w_i$ are the defined as the smoothest functions, in a certain least-squares sense, that interpolate the points $x_i$. Computing the functions $w_i$ requires solving two Poisson PDEs for each point $x_i$, and these Poisson PDEs may be solved cheaply with multigrid.
 
 The idea of our method is to sample $\varphi_{x}$ at a collection of points $x_i$ by applying $\mathcal{A}$ to a sum of point sources at the points $x_i$ (a ``Dirac comb''). The points $x_i$ are chosen so that the support of $\langle\mathcal{A},\delta_{x_i}\rangle^*$ and the support of $\langle\mathcal{A},\delta_{x_j}\rangle^*$ do not overlap (or do not overlap much) if $i \neq j$. Since the point sources do not overlap, by applying $\mathcal{A}$ to one vector, we recover $\varphi_{x_i}$ for many points $x_i$. The process is repeated to get $\varphi_{x_i}$ at more points, until an error estimate is satisfied. The $\varphi_{x_i}$ are interpolated smoothly to construct $\varphi_x$ for arbitrary $x$, which yields an approximation $\widetilde{A}(y,x)$ to the kernel $A(y,x)$, and an approximation $\widetilde{\mathcal{A}}$ to the operator $\mathcal{A}$. While $A(y,x)$ is inaccessible, we can evaluate $\widetilde{A}(y,x)$ at arbitrary $(y,x)$ points. This allows us to construct a hierarchical matrix representation of $\widetilde{\mathcal{A}}$, which allows us to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations, using fast hierarchical matrix arithmetic.
 
@@ -289,7 +325,6 @@ $\mathbf{M} \in \mathbb{R}^{N \times N}$ is the \emph{mass matrix} which has ent
 	\mathbf{M}_{ij} = \left(\phi_i, \phi_j\right)_{L^2(\Omega)} = \int_{\Omega} \phi_i(x) \phi_j(x) dx.
 \end{equation*}
 Direct calculation shows that $V_h$ is isometrically isomorphic $\mathbb{R}^N_\mathbf{M}$, in the sense that functions $u_h \in V_h$ are in bijective correspondence to coefficient vectors $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u},\mathbf{v}\right)_\mathbf{M}$. Likewise, the dual space of continuous linear functionals $\psi_h:V_h \rightarrow \mathbb{R}$, denoted $V_h'$, is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. All operations on functions in $V_h$ and linear functionals in $V_h'$ may therefore be performed on coefficient vectors in $\mathbb{R}^N_\mathbf{M}$ and coefficient dual vectors in $\mathbb{R}^N_{\mathbf{M}^{-1}}$. We summarize coefficient vector versions of the function space operation that are used in this paper in Appendix \ref{app:discretized_operations}.
-
 
 
 
@@ -555,6 +590,7 @@ The coefficient vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ for $\e
 \section{Interpolating impulse response samples}
 
 \section{Poisson PSF interpolation}
+\label{sec:weighting_functions}
 
 We form an interpolant, $\widetilde{\varphi}_x$, of the point spread function (PSF), $\varphi_x$, as follows:
 \begin{equation*}
