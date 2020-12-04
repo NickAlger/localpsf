@@ -115,12 +115,12 @@ The batch of points $x_i$ are chosen so that the support of $\mathcal{A}\delta_{
 
 
 
-Let $\widetilde{A}$ denote the integral kernel associated with $\widetilde{\mathcal{A}}$. While $A(y,x)$ is not easily computable, $\widetilde{A}(y,x)$ is given by the formula
+Once the $\varphi_i$ and $w_i$ are computed, we convert $\widetilde{\mathcal{A}}$ to hierarchical matrix (H-matrix) format. Let $\widetilde{A}$ denote the integral kernel associated with $\widetilde{\mathcal{A}}$. While $A(y,x)$ is not easily computable, $\widetilde{A}(y,x)$ is given by the formula
 \begin{equation}
 \label{eq:kernel_entries}
 	\widetilde{A}(y,x) = \sum_{i=1}^r \varphi_i(y-x) w_i(x).
 \end{equation}
-Formula \eqref{eq:kernel_entries} provides fast access to kernel entries $\widetilde{A}(y,x)$, which allows us to construct a hierarchical matrix (H-matrix) representation of $\widetilde{\mathcal{A}}$ using the conventional adaptive cross H-matrix construction method [CITE]. Once the H-matrix representation is formed, one can invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations with $\widetilde{\mathcal{A}}$, using fast H-matrix arithmetic.
+Formula \eqref{eq:kernel_entries} provides fast access to kernel entries $\widetilde{A}(y,x)$, which allows us to construct a H-matrix representation of $\widetilde{\mathcal{A}}$ using the conventional adaptive cross H-matrix construction method [CITE]. Once in H-matrix format, fast H-matrix arithmetic can be used to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations.
 
 For background on product-convolution approximations, we recommend reading the following papers: [CITES]. In [CITE], Escande and Weiss explored the idea of approximating linear operators from scattered impulse responses using a product-convolution scheme of the same form as \eqref{eq:product_convolution}. In our previous work [CITE MY PAPER], we choose the point locations with an adaptive grid. However,  
 
