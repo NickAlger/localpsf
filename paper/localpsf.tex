@@ -128,7 +128,18 @@ Formula \eqref{eq:kernel_entries} allows us to construct a H-matrix representati
 
 \subsection{Connection to existing methods}
 
-For background on product-convolution approximations, we recommend reading the following papers: [CITES]. In [CITE], Escande and Weiss explored the idea of approximating linear operators from scattered impulse responses using a product-convolution scheme of the same form as \eqref{eq:product_convolution}. In our previous work [CITE MY PAPER], we choose the point locations with an adaptive grid. However,  
+In general, product-convolution approximations are approximations of the form \eqref{eq:product_convolution}, but where $\varphi_i$ and $w_i$ may be arbitrary functions. 
+For background on product-convolution approximations, we recommend reading the following excellent papers: [CITES]. 
+
+In [CITE], Escande and Weiss explored the idea of approximating linear operators from scattered impulse responses using a product-convolution scheme of the same form as \eqref{eq:product_convolution}. In our previous work [CITE MY PAPER], we choose the point locations with an adaptive grid. However,  
+
+Nagy's paper: breaking domain into regular grid, using piecewise linear interpolation.
+
+Use for approximating Hessians in PDE-constrained optimization: Georg's paper, my paper.
+
+Getting many impulse responses at once (batching). 
+
+Geometry-aware weighting functions vs radial basis functions
 
 \subsection{old stuff}
 
@@ -308,10 +319,11 @@ where $A(y,\cdot)$ is the function $x \mapsto A(y,x)$. This is derived formally 
 	&= \int_\Omega w(y) \int_\Omega A(y,x) \textrm{``} \mu(x) \textrm{''} dx \\
 	&= \int_\Omega w(y) \mu\left(A(y,\cdot)\right) dx.
 \end{align*}
-For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, and the action of $\mathcal{A}$ on $\delta_x$ is given by
+For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, the action of $\mathcal{A}$ on $\delta_x$ is given by
 \begin{equation*}
-	\langle\mathcal{A},\delta_x\rangle(w)	= \int_\Omega w(y) A(y,x) dy.
+	\langle\mathcal{A},\delta_x\rangle(w)	= \int_\Omega w(y) A(y,x) dy,
 \end{equation*}
+and so the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$ is given by $\langle\mathcal{A},\delta_x\rangle^* = A(~\cdot~,x)$. That is, $\langle\mathcal{A},\delta_x\rangle^*$ is the function $y \mapsto A(y,x)$.
 
 
 \subsubsection{Discretization}
