@@ -95,20 +95,21 @@ If $\mathcal{A}$ were perfectly translation invariant (i.e., if equality held in
 The function $\varphi_x$ is the result of applying $\mathcal{A}$ to a point source, $\delta_x$, at some fixed point $x \in \Omega$, then translating the resulting impulse response function, $\mathcal{A}\delta_x$, to re-center it at zero instead of $x$. Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies as $x$ changes. We therefore approximate $\mathcal{A}$ by a spatially varying weighted sum of convolution operators of the form
 \begin{equation}
 \label{eq:product_convolution}
-	\left(\mathcal{A}u\right)(v) \approx \left(\widetilde{\mathcal{A}}u\right)(v) := \left\langle v,~ \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right) \right\rangle_{L^2(\Omega)},
+	\left(\mathcal{A}u\right)(v) \approx \left(\widetilde{\mathcal{A}}u\right)(v) := \left( v,~ \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
 \end{equation}
-where $f \cdot g$ denotes pointwise multiplication, and $f \ast g$ denotes convolution of the functions $f$ and $g$. Here
+where $f \cdot g$ denotes pointwise multiplication, $f \ast g$ denotes convolution, and $\left(f, g\right)_{L^2(\Omega)}$ denotes the $L^2$ inner product on $\Omega$, for functions $f,g \in L^2(\Omega)$. Here
 \begin{itemize}
 	\item The local convolution kernels, $\varphi_i := \varphi_{x_i}$, are given by formula \eqref{eq:convolution_kernel}, but with $x$ replaced by $x_i$.
 	\item $\{x_i\}_{i=1}^r \subset \Omega$ is a collection of points scattered throughout the domain.
-	\item The functions $w_i(x)$ are spatially varying weighting functions that interpolate the convolution kernels $\varphi_i$.
+	\item The functions $w_i$ are spatially varying weighting functions that interpolate the convolution kernels $\varphi_i$.
 \end{itemize}
 Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. The more locally translation invariant an operator is (i.e., the smaller the discrepancy between the left hand side and right hand side in \eqref{eq:local_translation_invariance}), the smaller the number of terms that are required in \eqref{eq:product_convolution} to achieve an accurate product-convolution approximation. 
 
 \subsection{Overview of the method}
 
-Our approximation method is defined by how we compute the convolution kernels, $\varphi_i$, (Section \ref{sec:get_impulse_response}) how we choose the points, $x_i$, (Section \ref{sec:choosing_sample_points}) and what weighting functions, $w_i$, that we use (Section \ref{sec:weighting_functions}). 
-Briefly, we compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a sum of point sources, $\delta_{x_i},$ at many points $x_i$ (a ``Dirac comb''). That is, we compute
+Our operator approximation method is defined by how we compute the convolution kernels, $\varphi_i$, (Section \ref{sec:get_impulse_response}) how we choose the points, $x_i$, (Section \ref{sec:choosing_sample_points}) what weighting functions, $w_i$, that we use (Section \ref{sec:weighting_functions}), and how we use the resulting product-convolution approximation to perform linear algebra operations such as solving linear systems (Section \ref{sec:H_matrix}). In this section we summarize the answers to these questions.
+
+We compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a sum of point sources, $\delta_{x_i},$ at many points $x_i$ (a ``Dirac comb''). That is, we compute
 \begin{equation*}
 	\eta := \sum_{i=1}^m A(~\cdot~, x_i) = \left\langle \mathcal{A}, \sum_{i=1}^m \delta_{x_i} \right\rangle^*.
 \end{equation*}
@@ -123,7 +124,7 @@ Once the $\varphi_i$ and $w_i$ are computed, we convert $\widetilde{\mathcal{A}}
 \label{eq:kernel_entries}
 	\widetilde{A}(y,x) = \sum_{i=1}^r \varphi_i(y-x) w_i(x).
 \end{equation}
-Formula \eqref{eq:kernel_entries} allows us to construct a H-matrix representation of $\widetilde{\mathcal{A}}$ using the conventional adaptive cross H-matrix construction method, in which one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks [CITE]. Once in H-matrix format, fast H-matrix arithmetic can is used to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations.
+Formula \eqref{eq:kernel_entries} allows us to construct a H-matrix representation of $\widetilde{\mathcal{A}}$ using the conventional adaptive cross H-matrix construction method, in which one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks [CITE]. Once in H-matrix format, fast H-matrix arithmetic is used to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations.
 
 \subsection{Connection to existing methods}
 
