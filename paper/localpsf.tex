@@ -126,10 +126,20 @@ Once the $\varphi_i$ and $w_i$ are computed, we convert $\widetilde{\mathcal{A}}
 \end{equation}
 Formula \eqref{eq:kernel_entries} allows us to construct a H-matrix representation of $\widetilde{\mathcal{A}}$ using the conventional adaptive cross H-matrix construction method, in which one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks [CITE]. Once in H-matrix format, fast H-matrix arithmetic is used to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations.
 
-\subsection{Connection to existing methods}
+\subsection{Existing work}
 
-In general, product-convolution approximations are approximations of the form \eqref{eq:product_convolution}, but where $\varphi_i$ and $w_i$ may be arbitrary functions. 
+In general, product-convolution approximations take the form \eqref{eq:product_convolution}, but $\varphi_i$ and $w_i$ may be arbitrary functions. Product-convolution approximations have been used in a wide variety of fields going back several decades [CITE BIG LIST].
 For background on product-convolution approximations, we recommend reading the following excellent papers: [CITES]. 
+
+We build upon a line of work in which the convolution kernels, $\varphi_i$, are impulse responses of $\mathcal{A}$ to point sources [CITE BIG LIST]. The primary question in methods of this type are how to choose the points $x_i$, and how to choose the weighting functions $w_i$. In [CITE NAGY], the impulse responses are sampled on a regular rectilinear grid, and interpolated with piecewise linear weighting functions, $w_i$, on a triangle mesh subordinate to that grid. Adaptive refinement of the grid was proposed in [CITE], and we demonstrated a practical algorithm for adaptive refinement in our previous work [CITE MY PAPER]. The issue with all of these existing methods, however, is computing each $\varphi_i$ requires one matrix vector product with $\mathcal{H}$, so that $r$ matrix-vector products are required. This is expensive when $\mathcal{H}$ is the Hessian in a PDE-constrained inverse problem, because each matrix vector product with $\mathcal{H}$ requires solving two PDEs. A key innovation in this paper is that we pick points $x_i$ in such a way that many $\varphi_i$ are computed with each matrix vector product with $\mathcal{H}$, thereby greatly reducing the number of matrix-vector products with $\mathcal{H}$ that are required. 
+
+We do this by taking advantage of the local support property of $\mathcal{A}$.
+
+SVIR low rank: sample columns of matrix
+
+Pros and cons of different point picking strategies depend on the application of interest.
+
+In astronomy image deblurring applications, the point source positions typically correspond to locations of stars in an image, which are fixed. 
 
 In [CITE], Escande and Weiss explored the idea of approximating linear operators from scattered impulse responses using a product-convolution scheme of the same form as \eqref{eq:product_convolution}. In our previous work [CITE MY PAPER], we choose the point locations with an adaptive grid. However,  
 
@@ -137,9 +147,15 @@ Nagy's paper: breaking domain into regular grid, using piecewise linear interpol
 
 Use for approximating Hessians in PDE-constrained optimization: Georg's paper, my paper.
 
+H-matrices for Hessians: Ilonas paper with KAUST people
+
+Demanet matrix probing can be interpreted as convolution-product.
+
+Resolution analysis: uses matvecs with random functions to estimate spatial covariance. Was inspiration for us.
+
 Getting many impulse responses at once (batching). 
 
-Geometry-aware weighting functions vs radial basis functions
+Geometry-aware weighting functions vs radial basis functions. Kriging.
 
 \subsection{old stuff}
 
@@ -254,7 +270,7 @@ In the deterministic approach to inverse problems, one typically finds $m$ as th
 	\min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + R(m),
 \end{equation}
 where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $R(m)$ is a regularization term. Approximation of the Hessian of the objective function, $\mathcal{H}$, allows for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
-We only have access to $\mathcal{H}$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary PDEs.
+We only have access to $\mathcal{H}$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary linear PDEs.
 
 %The regularization term in the Hessian, $\mathcal{H}_R := \frac{d^2 R}{dm^2}$, is typically an elliptic differential operator, and is therefore easy to work with. The data misfit term, $\mathcal{H}_d = \frac{d^2 J}{dm^2}$, is difficult to work with. The data misfit term $\mathcal{H}_d$ is not directly accessible because it depends on $u$, which depends on $m$ implicitly through the solution of the PDE \eqref{eq:state_equation}. 
 %
