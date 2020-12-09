@@ -126,12 +126,18 @@ Once the $\varphi_i$ and $w_i$ are computed, we convert $\widetilde{\mathcal{A}}
 \end{equation}
 Formula \eqref{eq:kernel_entries} allows us to construct a H-matrix representation of $\widetilde{\mathcal{A}}$ using the conventional adaptive cross H-matrix construction method, in which one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks [CITE]. Once in H-matrix format, fast H-matrix arithmetic is used to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations.
 
-\subsection{Existing work}
+\subsection{Connection to existing work}
 
-In general, product-convolution approximations take the form \eqref{eq:product_convolution}, but $\varphi_i$ and $w_i$ may be arbitrary functions. Product-convolution approximations have been used in a wide variety of fields going back several decades [CITE BIG LIST].
+In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\varphi_i$ and $w_i$ may be arbitrary functions. Product-convolution approximations have been used in a wide variety of fields going back several decades [CITE BIG LIST].
 For background on product-convolution approximations, we recommend reading the following excellent papers: [CITES]. 
 
-We build upon a line of work in which the convolution kernels, $\varphi_i$, are impulse responses of $\mathcal{A}$ to point sources [CITE BIG LIST]. The primary question in methods of this type are how to choose the points $x_i$, and how to choose the weighting functions $w_i$. In [CITE NAGY], the impulse responses are sampled on a regular rectilinear grid, and interpolated with piecewise linear weighting functions, $w_i$, on a triangle mesh subordinate to that grid. Adaptive refinement of the grid was proposed in [CITE], and we demonstrated a practical algorithm for adaptive refinement in our previous work [CITE MY PAPER]. The issue with all of these existing methods, however, is computing each $\varphi_i$ requires one matrix vector product with $\mathcal{H}$, so that $r$ matrix-vector products are required. This is expensive when $\mathcal{H}$ is the Hessian in a PDE-constrained inverse problem, because each matrix vector product with $\mathcal{H}$ requires solving two PDEs. A key innovation in this paper is that we pick points $x_i$ in such a way that many $\varphi_i$ are computed with each matrix vector product with $\mathcal{H}$, thereby greatly reducing the number of matrix-vector products with $\mathcal{H}$ that are required. 
+We build upon a class of product convolution approximations in which the functions, $\varphi_i$, are impulse responses of $\mathcal{A}$ to point sources at a collection of points $x_i$ [CITE BIG LIST]. 
+%The primary question in methods of this type are how to choose the points $x_i$, and how to choose the weighting functions $w_i$.
+A popular choice for methods in this class is to choose the points $x_i$ to be nodes in a regular grid, and interpolate the functions $\varphi_i$ with piecewise linear interpolation [CITE NAGY], or splines [CITE SPLINES]. Adaptive refinement of the grid was proposed in [CITE], and we demonstrated a practical algorithm for adaptive refinement in our previous work [CITE MY PAPER]. The issue with these existing methods is that computing each $\varphi_i$ requires one matrix vector product with $\mathcal{H}$, and each of these matrix vector products is computationally costly. The key innovation in this paper is that we pick points $x_i$ in such a way that many $\varphi_i$ are computed with each matrix vector product. 
+
+Our method of estimating the support of $\varphi_i$ was inspired by resolution analysis [CITE], in which the 
+
+The goal of these existing papers is to pick points $x_i$ so that the required the number of $\varphi_i$ is minimized. Our goal here is to minimize the required number of matrix vector products with $\mathcal{H}$.
 
 We do this by taking advantage of the local support property of $\mathcal{A}$.
 
