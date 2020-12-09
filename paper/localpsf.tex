@@ -126,6 +126,58 @@ Once the $\varphi_i$ and $w_i$ are computed, we convert $\widetilde{\mathcal{A}}
 \end{equation}
 Formula \eqref{eq:kernel_entries} allows us to construct a H-matrix representation of $\widetilde{\mathcal{A}}$ using the conventional adaptive cross H-matrix construction method, in which one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks [CITE]. Once in H-matrix format, fast H-matrix arithmetic is used to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations.
 
+\subsection{Motivation: PDE constrained inverse problems with highly informative data}
+\label{sec:PDE_hessian_motivation}
+
+Our motivation for this work is approximation of Hessians in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field, $m$, from noisy observations, 
+\begin{equation*}
+y=f(m,u(m)) + \text{noise},
+\end{equation*}
+which depend on  a state variable $u$. In turn, $u$ depends on $m$ implicitly through the solution of a PDE, 
+\begin{equation}
+\label{eq:state_pde}
+0=g(m,u).
+\end{equation}
+Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function of $m$.
+%
+%That is, inverse problems in which one seeks to reconstruct an unknown parameter field, $m$, from noisy measurements,
+%\begin{equation*}
+%	y = B(m,u) + \xi,
+%\end{equation*}
+%of a state variable, $u$, which depends on $m$ indirectly through the solution of a PDE,
+%\begin{equation}
+%\label{eq:state_equation}
+%	0=F(m,u).	
+%\end{equation}
+%Here $\xi$ is the noise. The observations $y$ are known, while $m$, $u$, and $\xi$ are unknown. In the deterministic setting, the inverse problem of finding $m$ is commonly framed as a least squares minimization problem
+%\begin{equation}
+%\label{eq:minimization_problem}
+%	\min_m \quad J_d(m) + R(m),
+%\end{equation}
+%where
+%\begin{equation*}
+%	J_d(m) := \frac{1}{2}\|y - B(m,u(m))\|_{\Gamma}^2
+%\end{equation*}
+%is a data misfit term, $\Gamma$ is the noise covariance, $R(m)$ is a regularization term, and $u(m)$ denotes the solution $u$ of the PDE \eqref{eq:state_equation} as a function of $m$, . 
+%
+%Approximation of the Hessian,
+%\begin{equation*}
+%	\mathcal{H} = \mathcal{H}_d + \mathcal{H}_R := \frac{d^2 J_d}{dm^2} + \frac{d^2 R}{dm^2},
+%\end{equation*}
+In the deterministic approach to inverse problems, one typically finds $m$ as the solution to the minimization problem 
+\begin{equation}
+\label{eq:minimization_problem}
+\min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + R(m),
+\end{equation}
+where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $R(m)$ is a regularization term. Approximation of the Hessian of the objective function, $\mathcal{H}$, allows for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
+We only have access to $\mathcal{H}$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary linear PDEs.
+
+%The regularization term in the Hessian, $\mathcal{H}_R := \frac{d^2 R}{dm^2}$, is typically an elliptic differential operator, and is therefore easy to work with. The data misfit term, $\mathcal{H}_d = \frac{d^2 J}{dm^2}$, is difficult to work with. The data misfit term $\mathcal{H}_d$ is not directly accessible because it depends on $u$, which depends on $m$ implicitly through the solution of the PDE \eqref{eq:state_equation}. 
+%
+%We only have access to $\mathcal{H}_d$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary PDEs. We show how to evaluate $v \mapsto \mathcal{H} v$ in Appendix ADSF.
+
+The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term [CITE LOTS OF STUFF]. Either the Lanczos method or the randomized singular value decomposition are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---as more informative data is used in the inversion, the numerical rank of the data misfit term in the Hessian grows, so more matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is therefore the worst case scenario from a computational perspective (large computational cost) [CITE MY DISSERTATION]. In our numerical results, we show that our operator approximation method can efficiently approximate the data misfit term in the Hessian in certain PDE constrained inverse problems. The method in this paper offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because the rank of the approximation is not limited by the number of matrix-vector products used to construct the approximation. High-rank approximations of an operator can be formed using a small number of matrix-vector products.
+
 \subsection{Connection to existing work}
 
 In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\varphi_i$ and $w_i$ may be arbitrary functions. Product-convolution approximations have been used in a wide variety of fields going back several decades [CITE BIG LIST].
@@ -169,126 +221,7 @@ Geometry-aware weighting functions vs radial basis functions. Kriging.
 
 Wavelets [CITE ESCANDE] vs. H-matrices.
 
-\subsection{old stuff}
 
-
-% $\left(\mathcal{A}u\right)(v) = \left\langle v, \varphi_p \ast u\right\rangle_{L^2(\Omega)}$. Here $f \ast g$ denotes convolution of the functions $f$ and $g$, and the convolution kernel,
-
-
-%Access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$.
-%Integral kernel representation \eqref{eq:kernel_representation} is assumed to exist,
-%e.g., by the Schwarz kernel theorem,
-%but o
-%One cannot easily access entries $A(y,x)$ of the kernel.
-
-
-% is non-negative in the sense that  $A(y,x) \ge 0$ for all $(y,x) \in \Omega \times \Omega$. 
-%Let $\mathcal{A}:L^2(\Omega)\rightarrow L^2(\Omega)'$ be the corresponding linear operator generated by currying. That is, for each $u\in L^2(\Omega)$, the linear functional $\mathcal{A}u:L^2(\Omega)\rightarrow \mathbb{R}$ is 
-%We approximate the operator $\mathcal{A}:L^2(\Omega)\rightarrow L^2(\Omega)'$ defined by
-%\begin{equation*}
-%	(\mathcal{A}u)(v) := a(v,u).
-%\end{equation*}
-%We seek to approximate operators $\mathcal{A}$ in the ``matrix free'' setting, in which access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$. Here ($\mathcal{A}^Tv)(u) := (\mathcal{A}u)(v)$. 
-%Integral kernel representation \eqref{eq:kernel_representation} is assumed to exist,
-%e.g., by the Schwarz kernel theorem,
-%but one cannot easily access entries $A(y,x)$ of the kernel. We assume that the impulse response of $\mathcal{A}$ is locally supported in the sense that the function 
-%$y \mapsto A(y, x)$ is supported in a region near $y=x$, and we assume that $\mathcal{A}$ is locally translation invariant in the sense that
-%\begin{equation*}
-%A(y+h, x+h) \approx A(y,x),
-%\end{equation*}
-%so long as $h$ is not too large.
-
-The \emph{point spread function} (PSF) of $\mathcal{A}$ at $x\in \Omega$ is
-\begin{equation*}
-	\varphi_x(y) := \langle \mathcal{A},\delta_x\rangle^*(y+x) = A(y+x,x).
-\end{equation*}
-Here $\langle \mathcal{A}, \delta_x \rangle \in L^2(\Omega)'$ is the result of applying $\mathcal{A}$ to a point source $\delta_x$ (delta distribution) centered at $x$, and $\langle\mathcal{A},\delta_x\rangle^* \in L^2(\Omega)$ is the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$. The PSF, $\varphi_x$, is the result of translating $\langle\mathcal{A},\delta_x\rangle^*$ to re-center it at zero instead of $x$. Recall the Riesz representation of a linear functional $\psi \in L^2(\Omega)'$ is the unique vector $\psi^* \in L^2(\Omega)$ satisfying $\left(\psi^*, v\right)_{L^2(\Omega)} = \psi(v)$ for all $v \in \L^2(\Omega)$.
-
-%In this paper we present an efficient matrix-free method for approximating operators $\mathcal{A}$ with a product-convolution approximation, $\widetilde{A}$, of the form
-%\begin{equation*}
-%	\left(\mathcal{A}u\right) \approx \left(\widetilde{\mathcal{A}}u\right) := \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right)
-%\end{equation*}
-%
-%
-%PSFs that satisfy the following properties:
-%\begin{enumerate}
-%	\item $\varphi_x$ varies smoothly as a function of $x$.
-%	\item $\varphi_x(y)$ is zero (or small) when $|y|$ is large.
-%	\item $\varphi_x$ is a non-negative (or mostly non-negative) function.
-%\end{enumerate}
-%If $\varphi_x$ was constant in $x$, then $\mathcal{A}$ would be the convolution operator $\left(\mathcal{A}v\right)^* = \varphi_0 \ast v$. Operators satisfying property 1 therefore act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies smoothly as $x$ changes. Operators satisfying property 2 are local, in the sense that sources at point $x$ have no impact on points far away from $x$. Operators satisfying property 3 blur inputs: their action on a point source consists of scaling the source, then spreading the energy of the scaled point source across a region nonuniformly. We call operators satisfying these properties \emph{smoothly varying blur operators}.
-
-
-
-% Computing the functions $w_i$ requires solving two Poisson PDEs for each point $x_i$, and these Poisson PDEs may be solved cheaply with multigrid.
-
-%Specifically, since the integral kernel for $\mathcal{A}$ is non-negative, $\langle\mathcal{A},\delta_x\rangle^*$ may be interpreted as a scaled probability distribution. We compute the mean and covariance of this probability distribution for all points $x \in \Omega$ simultaneously, by applying $\mathcal{A}^T$ to a small number of constant, linear, and quadratic functions. We then estimate the support of $\langle\mathcal{A},\delta_x\rangle^*$ to be contained within a small number of standard deviations of the mean of this probability distribution.
-
-
-
-%We interpret $\langle\mathcal{A},\delta_{x_i}\rangle^*$ as a scaled probability distribution, and estimate the support of $\langle\mathcal{A},\delta_{x_i}\rangle^*$ to be contained within a small number of standard deviations of the mean of this probability distribution (this is why we require a non-negative kernel).  The mean and covariance of $\langle\mathcal{A},\delta_{x}\rangle^*$ can be simultaneously computed for all points $x \in \Omega$ by applying $\mathcal{A}^T$ to a small number of constant, linear, and quadratic functions. 
-
-%The functions $w_i$ are the defined as the smoothest functions, in a certain least-squares sense, that interpolate the points $x_i$. Computing the functions $w_i$ requires solving two Poisson PDEs for each point $x_i$, and these Poisson PDEs may be solved cheaply with multigrid.
-
-%The idea of our method is to sample $\varphi_{x}$ at a collection of points $x_i$ by applying $\mathcal{A}$ to a sum of point sources at the points $x_i$ (a ``Dirac comb''). The points $x_i$ are chosen so that the support of $\langle\mathcal{A},\delta_{x_i}\rangle^*$ and the support of $\langle\mathcal{A},\delta_{x_j}\rangle^*$ do not overlap (or do not overlap much) if $i \neq j$. Since the point sources do not overlap, by applying $\mathcal{A}$ to one vector, we recover $\varphi_{x_i}$ for many points $x_i$. The process is repeated to get $\varphi_{x_i}$ at more points, until an error estimate is satisfied. The $\varphi_{x_i}$ are interpolated smoothly to construct $\varphi_x$ for arbitrary $x$, which yields an approximation $\widetilde{A}(y,x)$ to the kernel $A(y,x)$, and an approximation $\widetilde{\mathcal{A}}$ to the operator $\mathcal{A}$. While $A(y,x)$ is inaccessible, we can evaluate $\widetilde{A}(y,x)$ at arbitrary $(y,x)$ points. This allows us to construct a hierarchical matrix representation of $\widetilde{\mathcal{A}}$, which allows us to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations, using fast hierarchical matrix arithmetic.
-
-%Properties 1 and 2 are essential to our method. Property 3 is only required in the subprocedure for estimating the support of $\langle\mathcal{A},\delta_x\rangle^*$, and may be dropped if other methods for estimating the support are available. 
-
-The approximation $\widetilde{A}(y,x)$ may not be accurate if both $x$ and $y$ are near the boundary. Other approximation methods, if available, should be considered for the block of the operator associated with boundary-boundary interactions. Nevertheless, in our numerical results we see that approximation works well for the the inverse problem considered, without any modifications to the boundary-boundary block.
-
-
-
-\subsection{Motivation: PDE constrained inverse problems with highly informative data}
-\label{sec:PDE_hessian_motivation}
-
-Our motivation for this work is approximation of Hessians in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field, $m$, from noisy observations, 
-\begin{equation*}
-y=f(m,u(m)) + \text{noise},
-\end{equation*}
-which depend on  a state variable $u$. In turn, $u$ depends on $m$ implicitly through the solution of a PDE, 
-\begin{equation}
-\label{eq:state_pde}
-	0=g(m,u).
-\end{equation}
-Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function of $m$.
-%
-%That is, inverse problems in which one seeks to reconstruct an unknown parameter field, $m$, from noisy measurements,
-%\begin{equation*}
-%	y = B(m,u) + \xi,
-%\end{equation*}
-%of a state variable, $u$, which depends on $m$ indirectly through the solution of a PDE,
-%\begin{equation}
-%\label{eq:state_equation}
-%	0=F(m,u).	
-%\end{equation}
-%Here $\xi$ is the noise. The observations $y$ are known, while $m$, $u$, and $\xi$ are unknown. In the deterministic setting, the inverse problem of finding $m$ is commonly framed as a least squares minimization problem
-%\begin{equation}
-%\label{eq:minimization_problem}
-%	\min_m \quad J_d(m) + R(m),
-%\end{equation}
-%where
-%\begin{equation*}
-%	J_d(m) := \frac{1}{2}\|y - B(m,u(m))\|_{\Gamma}^2
-%\end{equation*}
-%is a data misfit term, $\Gamma$ is the noise covariance, $R(m)$ is a regularization term, and $u(m)$ denotes the solution $u$ of the PDE \eqref{eq:state_equation} as a function of $m$, . 
-%
-%Approximation of the Hessian,
-%\begin{equation*}
-%	\mathcal{H} = \mathcal{H}_d + \mathcal{H}_R := \frac{d^2 J_d}{dm^2} + \frac{d^2 R}{dm^2},
-%\end{equation*}
-In the deterministic approach to inverse problems, one typically finds $m$ as the solution to the minimization problem 
-\begin{equation}
-\label{eq:minimization_problem}
-	\min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + R(m),
-\end{equation}
-where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $R(m)$ is a regularization term. Approximation of the Hessian of the objective function, $\mathcal{H}$, allows for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
-We only have access to $\mathcal{H}$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary linear PDEs.
-
-%The regularization term in the Hessian, $\mathcal{H}_R := \frac{d^2 R}{dm^2}$, is typically an elliptic differential operator, and is therefore easy to work with. The data misfit term, $\mathcal{H}_d = \frac{d^2 J}{dm^2}$, is difficult to work with. The data misfit term $\mathcal{H}_d$ is not directly accessible because it depends on $u$, which depends on $m$ implicitly through the solution of the PDE \eqref{eq:state_equation}. 
-%
-%We only have access to $\mathcal{H}_d$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary PDEs. We show how to evaluate $v \mapsto \mathcal{H} v$ in Appendix ADSF.
-
-The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term. Either the Lanczos method or randomized SVD are used to perform the low rank approximation using only matrix-vector products. The larger the rank of the approximation, the more matrix-vector products are required. These methods suffer from a ``data predicament''---as more informative data is used in the inversion, the numerical rank of the data misfit term in the Hessian grows. The ideal scenario from a scientific perspective (highly informative data) is therefore the worst case scenario from a computational perspective (large computational cost). In our numerical results, we show that our operator approximation method can efficiently approximate the data misfit term in the Hessian in certain PDE constrained inverse problems. The method in this paper offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because the rank of the approximation is not limited by the number of matrix-vector products used to construct the approximation. High-rank approximations of an operator can be formed using a small number of matrix-vector products.
 
 
 %\subsection{Operator access levels}
@@ -1509,6 +1442,76 @@ The finite element function space $V_h$ is isometrically isomorphic to the coeff
 		\psi_h = \langle \mathcal{B}_h, \mu_h \rangle \quad \Leftrightarrow \quad \psi_h = \mathcal{B}_h \mu_h^* \quad \Leftrightarrow \quad \boldsymbol{\psi} = \mathbf{B} \mathbf{M}^{-1} \boldsymbol{\mu}.
 	\end{equation*}
 \end{description}
+
+
+
+
+\section{old stuff}
+
+% $\left(\mathcal{A}u\right)(v) = \left\langle v, \varphi_p \ast u\right\rangle_{L^2(\Omega)}$. Here $f \ast g$ denotes convolution of the functions $f$ and $g$, and the convolution kernel,
+
+
+%Access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$.
+%Integral kernel representation \eqref{eq:kernel_representation} is assumed to exist,
+%e.g., by the Schwarz kernel theorem,
+%but o
+%One cannot easily access entries $A(y,x)$ of the kernel.
+
+
+% is non-negative in the sense that  $A(y,x) \ge 0$ for all $(y,x) \in \Omega \times \Omega$. 
+%Let $\mathcal{A}:L^2(\Omega)\rightarrow L^2(\Omega)'$ be the corresponding linear operator generated by currying. That is, for each $u\in L^2(\Omega)$, the linear functional $\mathcal{A}u:L^2(\Omega)\rightarrow \mathbb{R}$ is 
+%We approximate the operator $\mathcal{A}:L^2(\Omega)\rightarrow L^2(\Omega)'$ defined by
+%\begin{equation*}
+%	(\mathcal{A}u)(v) := a(v,u).
+%\end{equation*}
+%We seek to approximate operators $\mathcal{A}$ in the ``matrix free'' setting, in which access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$. Here ($\mathcal{A}^Tv)(u) := (\mathcal{A}u)(v)$. 
+%Integral kernel representation \eqref{eq:kernel_representation} is assumed to exist,
+%e.g., by the Schwarz kernel theorem,
+%but one cannot easily access entries $A(y,x)$ of the kernel. We assume that the impulse response of $\mathcal{A}$ is locally supported in the sense that the function 
+%$y \mapsto A(y, x)$ is supported in a region near $y=x$, and we assume that $\mathcal{A}$ is locally translation invariant in the sense that
+%\begin{equation*}
+%A(y+h, x+h) \approx A(y,x),
+%\end{equation*}
+%so long as $h$ is not too large.
+
+The \emph{point spread function} (PSF) of $\mathcal{A}$ at $x\in \Omega$ is
+\begin{equation*}
+\varphi_x(y) := \langle \mathcal{A},\delta_x\rangle^*(y+x) = A(y+x,x).
+\end{equation*}
+Here $\langle \mathcal{A}, \delta_x \rangle \in L^2(\Omega)'$ is the result of applying $\mathcal{A}$ to a point source $\delta_x$ (delta distribution) centered at $x$, and $\langle\mathcal{A},\delta_x\rangle^* \in L^2(\Omega)$ is the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$. The PSF, $\varphi_x$, is the result of translating $\langle\mathcal{A},\delta_x\rangle^*$ to re-center it at zero instead of $x$. Recall the Riesz representation of a linear functional $\psi \in L^2(\Omega)'$ is the unique vector $\psi^* \in L^2(\Omega)$ satisfying $\left(\psi^*, v\right)_{L^2(\Omega)} = \psi(v)$ for all $v \in \L^2(\Omega)$.
+
+%In this paper we present an efficient matrix-free method for approximating operators $\mathcal{A}$ with a product-convolution approximation, $\widetilde{A}$, of the form
+%\begin{equation*}
+%	\left(\mathcal{A}u\right) \approx \left(\widetilde{\mathcal{A}}u\right) := \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right)
+%\end{equation*}
+%
+%
+%PSFs that satisfy the following properties:
+%\begin{enumerate}
+%	\item $\varphi_x$ varies smoothly as a function of $x$.
+%	\item $\varphi_x(y)$ is zero (or small) when $|y|$ is large.
+%	\item $\varphi_x$ is a non-negative (or mostly non-negative) function.
+%\end{enumerate}
+%If $\varphi_x$ was constant in $x$, then $\mathcal{A}$ would be the convolution operator $\left(\mathcal{A}v\right)^* = \varphi_0 \ast v$. Operators satisfying property 1 therefore act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies smoothly as $x$ changes. Operators satisfying property 2 are local, in the sense that sources at point $x$ have no impact on points far away from $x$. Operators satisfying property 3 blur inputs: their action on a point source consists of scaling the source, then spreading the energy of the scaled point source across a region nonuniformly. We call operators satisfying these properties \emph{smoothly varying blur operators}.
+
+
+
+% Computing the functions $w_i$ requires solving two Poisson PDEs for each point $x_i$, and these Poisson PDEs may be solved cheaply with multigrid.
+
+%Specifically, since the integral kernel for $\mathcal{A}$ is non-negative, $\langle\mathcal{A},\delta_x\rangle^*$ may be interpreted as a scaled probability distribution. We compute the mean and covariance of this probability distribution for all points $x \in \Omega$ simultaneously, by applying $\mathcal{A}^T$ to a small number of constant, linear, and quadratic functions. We then estimate the support of $\langle\mathcal{A},\delta_x\rangle^*$ to be contained within a small number of standard deviations of the mean of this probability distribution.
+
+
+
+%We interpret $\langle\mathcal{A},\delta_{x_i}\rangle^*$ as a scaled probability distribution, and estimate the support of $\langle\mathcal{A},\delta_{x_i}\rangle^*$ to be contained within a small number of standard deviations of the mean of this probability distribution (this is why we require a non-negative kernel).  The mean and covariance of $\langle\mathcal{A},\delta_{x}\rangle^*$ can be simultaneously computed for all points $x \in \Omega$ by applying $\mathcal{A}^T$ to a small number of constant, linear, and quadratic functions. 
+
+%The functions $w_i$ are the defined as the smoothest functions, in a certain least-squares sense, that interpolate the points $x_i$. Computing the functions $w_i$ requires solving two Poisson PDEs for each point $x_i$, and these Poisson PDEs may be solved cheaply with multigrid.
+
+%The idea of our method is to sample $\varphi_{x}$ at a collection of points $x_i$ by applying $\mathcal{A}$ to a sum of point sources at the points $x_i$ (a ``Dirac comb''). The points $x_i$ are chosen so that the support of $\langle\mathcal{A},\delta_{x_i}\rangle^*$ and the support of $\langle\mathcal{A},\delta_{x_j}\rangle^*$ do not overlap (or do not overlap much) if $i \neq j$. Since the point sources do not overlap, by applying $\mathcal{A}$ to one vector, we recover $\varphi_{x_i}$ for many points $x_i$. The process is repeated to get $\varphi_{x_i}$ at more points, until an error estimate is satisfied. The $\varphi_{x_i}$ are interpolated smoothly to construct $\varphi_x$ for arbitrary $x$, which yields an approximation $\widetilde{A}(y,x)$ to the kernel $A(y,x)$, and an approximation $\widetilde{\mathcal{A}}$ to the operator $\mathcal{A}$. While $A(y,x)$ is inaccessible, we can evaluate $\widetilde{A}(y,x)$ at arbitrary $(y,x)$ points. This allows us to construct a hierarchical matrix representation of $\widetilde{\mathcal{A}}$, which allows us to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations, using fast hierarchical matrix arithmetic.
+
+%Properties 1 and 2 are essential to our method. Property 3 is only required in the subprocedure for estimating the support of $\langle\mathcal{A},\delta_x\rangle^*$, and may be dropped if other methods for estimating the support are available. 
+
+The approximation $\widetilde{A}(y,x)$ may not be accurate if both $x$ and $y$ are near the boundary. Other approximation methods, if available, should be considered for the block of the operator associated with boundary-boundary interactions. Nevertheless, in our numerical results we see that approximation works well for the the inverse problem considered, without any modifications to the boundary-boundary block.
+
 
 
 \section*{Acknowledgments}
