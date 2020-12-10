@@ -207,6 +207,8 @@ In [CITE], Escande and Weiss explored the idea of approximating linear operators
 
 A product-convolution type approximation of the Hessian in a seismic imaging problem was used in [CITE GEORG]. 
 
+Matrix-vector products with product-convolution approximations can be performed using the fast Fourier transform if the problem is discretized on a regular grid [CITE]. The product-convolution approximation can then replace the original operator when using Krylov methods to solve linear systems with the original operator as the coefficient operator [CITE]. However, for complex geometries, problems are rarely discretized using regular grids, so we cannot easily use the fast Fourier transform. Furthermore, in big-data inverse problems the Hessian is typically highly ill-conditioned, so the number of Krylov iterations required is large. Thus, after constructing the product-convolution approximation, it is desirable to convert the product-convolution approximation to other matrix formats that are more amenable to linear algebra operations. Wavelet compression methods have been used for this purpose [CITE WAVELETS]. Here we follow our previous work [CITE MY PAPER], in which we converting the product-convolution approximation to H-matrix format. 
+
 Conventional H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. There are matrix-free methods for H-matrix approximation [CITE LEXING PAPER, CITE MARTINSSON, CITE OTHERS], and these methods have been used to form H-matrix compressions of Hessians in PDE constrained inverse problems [CITE ILONA, CITE NOEMI/TUCKER HODLR]. While these matrix-free H-matrix construction methods are asymptotically scalable in theory, the required number of matrix vector products is large in practice. 
 
 %H-matrices for Hessians: Ilonas paper with KAUST people
@@ -219,7 +221,7 @@ Demanet matrix probing can be interpreted as convolution-product.
 
 Geometry-aware weighting functions vs radial basis functions. Kriging.
 
-Wavelets [CITE ESCANDE] vs. H-matrices.
+
 
 
 
