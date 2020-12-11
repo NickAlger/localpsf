@@ -115,7 +115,15 @@ We compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a sum of 
 \end{equation*}
 Here $\sum_{i=1}^m \delta_{x_i}$ is the Dirac comb distribution, and $\left\langle \mathcal{A}, \sum_{i=1}^m \delta_{x_i} \right\rangle^*$ denotes the Riesz representation of the application of $\mathcal{A}$ to the Dirac comb. In computations, this amounts to computing $\boldsymbol{\eta} = \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \left(\sum_{i=1}^m \boldsymbol{\delta}_{x_i}\right)$, where $\boldsymbol{\eta}$, $\mathbf{A}$, and $\boldsymbol{\delta}_{x_i}$ are discretized versions of $\eta$, $A$, and $\delta_{x_i}$, respectively, and $\mathbf{M}$ is a mass matrix. The batch of points $x_i$ are chosen so that the support of $\left\langle \mathcal{A}, \delta_{x_i}\right\rangle^*$ and the support of $\left\langle \mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap (or do not overlap much) if $i \neq j$. Since the impulse responses do not overlap, we may post-process $\eta$ to recover $\varphi_i$ for all of the points $x_i$ in the batch---by applying $\mathcal{A}$ to one distribution, we recover many $\varphi_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\varphi_i$'s, until the approximation is sufficiently accurate or a maximum number of sample points is reached. In order to choose the points $x_i$, we need to estimate the support of $\left\langle \mathcal{A}, \delta_{x_i}\right\rangle^*$ \emph{before} we compute it. The supports of the impulse responses $\left\langle \mathcal{A}, \delta_{x}\right\rangle^*$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\mathcal{A}^T$ to a small number of constant, linear, and quadratic functions (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
 
-We choose the weighting functions $w_i$ to be the smoothest functions, in a least-squares sense, that interpolate the points $x_i$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid.
+We choose the weighting functions, $w_i$, to be the solutions to the following optimization problems:
+\begin{equation}
+\label{eq:wi_optimization_problem_intro}
+\begin{aligned}
+\min_{w_i} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
+\text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
+\end{aligned}
+\end{equation}
+Here $\Delta$ is the Laplacian on $\Omega$ with pure Neumann boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. These are the smoothest functions, in a least-squares sense, that interpolate the points $x_i$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid. We call this interpolation scheme \emph{Poisson interpolation}. The advantage of Poisson interpolation over other interpolation methods, most notably radial basis function interpolation [cite Escande etc], is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. Consider the Pine island glacier geometry shown in Figure REF. Regions of the glacier are separated by thin inlets of ocean. With radial basis function interpolation, points on one side of the inlet inappropriately influence the interpolation on the other side of the inlet. With Poisson interpolation, the PSF samples only influence the interpolation on their own side of the inlet.
 
 %A small number of terms in \eqref{eq:product_convolution} are required to accurately approximate a highly locally translation invariant operator, while a large number of terms are required to accurately approximate a poorly locally translation invariant operator.
 
@@ -181,7 +189,7 @@ The most popular existing Hessian approximation methods are based on forming a l
 \subsection{Connection to existing work}
 
 In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\varphi_i$ and $w_i$ may be arbitrary functions. Product-convolution approximations have been used in a wide variety of fields going back several decades [CITE BIG LIST].
-For background on product-convolution approximations, we recommend reading the following papers: [CITES]. 
+For background on product-convolution approximations, we recommend reading the following papers: [CITES, INCLUDE ESCANDE SCATTERED]. 
 
 We build upon the class of product convolution approximations in which the functions, $\varphi_i$, are impulse responses of $\mathcal{A}$ to point sources at a collection of points $x_i$ [CITE BIG LIST]. 
 %The primary question in methods of this type are how to choose the points $x_i$, and how to choose the weighting functions $w_i$.
@@ -199,17 +207,23 @@ Our method of estimating the support of the functions $\varphi_i$ was inspired b
 
 %In astronomy image deblurring applications, the point source positions typically correspond to locations of stars in an image, which are fixed. 
 
-In [CITE], Escande and Weiss explored the idea of approximating linear operators from scattered impulse responses using a product-convolution scheme of the same form as \eqref{eq:product_convolution}. 
+%In [CITE], Escande and Weiss explored the idea of approximating linear operators from scattered impulse responses using a product-convolution scheme of the same form as \eqref{eq:product_convolution}. 
+
+
+
+
 
 %In our previous work [CITE MY PAPER], we choose the point locations with an adaptive grid. However,  
 
 %Nagy's paper: breaking domain into regular grid, using piecewise linear interpolation.
 
-A product-convolution type approximation of the Hessian in a seismic imaging problem was used in [CITE GEORG]. 
 
 Matrix-vector products with product-convolution approximations can be performed using the fast Fourier transform if the problem is discretized on a regular grid [CITE]. The product-convolution approximation can then replace the original operator when using Krylov methods to solve linear systems with the original operator as the coefficient operator [CITE]. However, for complex geometries, problems are rarely discretized using regular grids, so we cannot easily use the fast Fourier transform. Furthermore, in big-data inverse problems the Hessian is typically highly ill-conditioned, so the number of Krylov iterations required is large. After constructing the product-convolution approximation, it is therefore desirable to convert the product-convolution approximation to other matrix formats that are more amenable to linear algebra operations. Wavelet compression methods have been used for this purpose [CITE WAVELETS]. Here we follow our previous work [CITE MY PAPER], in which we convert the product-convolution approximation to H-matrix format. 
 
 Conventional H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. There are matrix-free methods for H-matrix approximation [CITE LEXING PAPER, CITE MARTINSSON, CITE OTHERS], and these methods have been used to form H-matrix compressions of Hessians in PDE constrained inverse problems [CITE ILONA, CITE NOEMI/TUCKER HODLR]. While these matrix-free H-matrix construction methods are asymptotically scalable in theory, the required number of matrix vector products is large in practice. 
+
+
+A product-convolution type approximation of the Hessian in a seismic imaging problem was used in [CITE GEORG]. 
 
 %H-matrices for Hessians: Ilonas paper with KAUST people
 
@@ -531,8 +545,6 @@ We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to 
 \end{aligned}
 \end{equation}
 Here $\Delta$ is the Laplacian on $\Omega$ with pure Neumann boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. Since the Laplacian measures local deviation from flatness [cite Jacobsen], the weighting function $w_i$ is the ``flattest possible'' function (in a least-squares sense) that has Neumann boundary conditions and takes the value $1$ at point $x_i$, and zero at the points $x_j$, $j \neq i$. In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense. Then in Section \ref{sec:computation_of_weighting_functions}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$. Constructing all $q$ of the functions $w_i$ requires solving the Poisson equation $2q$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All the existing weighting functions, $\{w_i\}_{i=1}^q$, will change if a new point, $x_{q+1}$, is added. However, we present an efficient incremental algorithm for updating these weighting functions when a new point is added, so that we only need to perform two new Poisson PDE solves, rather than $2(q+1)$ new PDE solves.
-
-A key advantage of Poisson interpolation over other PSF interpolation methods, most notably radial basis functions [cite Escande etc], is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. Consider the Pine island glacier geometry shown in Figure REF. Regions of the glacier are separated by thin inlets of ocean. With radial basis function interpolation, PSF samples on one side of the inlet inappropriately influence the interpolation on the other side of the inlet. With Poisson interpolation, the PSF samples only influence the interpolation on their own side of the inlet.
 
 It is important to note that optimization problems \eqref{eq:wi_optimization_problem} only has a unique continuous solution when the spatial dimension is $1$, $2$, or $3$. When inverting for parameter fields defined on $4$ or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used\footnote{The reason for this dependence on spatial dimension is related to the fact that the fundamental solution of the biharmonic equation is continuous in $3$ or less dimensions, but singular in $4$ or more dimensions. In the unusual scenario where one is inverting for a parameter field in $4$ or more spatial dimensions, one could use a modified Poisson interpolation where $\Delta$ is replaced with $\Delta^\alpha$ in the objective function of \eqref{eq:wi_optimization_problem}, where $\alpha>1$ is chosen so that the fundamental solution of $\Delta^{2\alpha}$ is continuous.}. 
 
