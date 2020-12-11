@@ -746,19 +746,18 @@ The columns of $\Psi$ are the responses of $A^+$ to point sources (delta distrib
 	%	\Begin{
 	{	
 		\For{$i=1,2, \dots, r$}{
-			Compute $\psi_i$ as the solution to following Poisson problem with pure Neumann boundary conditions and a point source at $x_i$:
-			$$\begin{cases}
-			\Delta \psi_i = \delta_{x_i}, & \text{in }\Omega,\\
-			\nu \cdot \nabla \psi_i = 0, & \text{on }\partial \Omega,\\
-			\int_\Omega \psi_i(x) dx = 0.
-			\end{cases}$$
+			Compute $\psi_i$ as the solution to the Poisson problem
+			\begin{equation*}
+				\Delta \psi_i = \delta_{x_i}, \quad \text{in }\Omega,
+			\end{equation*}
+			with Neumann boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
 			
-			Compute $\theta_i$ as the solution to the following Poisson problem with pure Neumann boundary conditions and source $\psi_i$:
-			$$\begin{cases}
-			\Delta \theta_i = \psi_i, & \text{in }\Omega,\\
-			\nu \cdot \nabla \theta_i = 0, & \text{on }\partial \Omega,\\
-			\int_\Omega \theta_i(x) dx = 0.
-			\end{cases}$$
+			Compute $\theta_i$ as the solution to the Poisson problem
+			\begin{equation*}
+			\Delta \theta_i = \psi_i, \quad \text{in }\Omega,
+			\end{equation*}
+			with Neumann boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
+			
 		}
 	
 		Form the $r \times r$ matrix $S$ with entries
@@ -774,7 +773,7 @@ The columns of $\Psi$ are the responses of $A^+$ to point sources (delta distrib
 			\lambda = -S^{-1} \left(e_i - \alpha \mathbf{1} \right).
 			\end{equation*}
 			
-			Compute
+			Form the weighting function
 			$$w_i = -\sum_{k=1}^r \lambda_k \theta_k + \alpha C,$$
 			where we recall that $C$ is the constant function $C(x)=1$ on $\Omega$.
 		}
@@ -783,34 +782,6 @@ The columns of $\Psi$ are the responses of $A^+$ to point sources (delta distrib
 	\label{alg:weighting_functions_incremental}
 \end{algorithm2e}
 
-The solution to this system of equations is found by the following process:
-\begin{enumerate}
-	\item Compute 
-	\begin{equation*}
-		\Psi := K^+ E^T
-	\end{equation*}
-	by solving Neumann poisson problems for point source right hand sides, with point sources located at the points $x_i$, $i=1,\dots,q$.
-	\item Compute 
-	\begin{equation*}
-		\Theta := K^+ M \Psi
-	\end{equation*}
-	by solving Neumann Poisson problems with the columns of $\Psi$ as distributed sources.
-	\item Form 
-	\begin{equation*}
-		S = \Psi^T M \Psi
-	\end{equation*}.
-	\item Compute \begin{equation*}
-		\alpha = \left(\mathbf{1}^T S^{-1} \mathbf{1}\right)^{-1}\mathbf{1}^T S^{-1} \mathbf{y}.
-	\end{equation*}
-	\item Compute 
-	\begin{equation*}
-		\boldsymbol{\lambda} = -S^{-1} \left(\mathbf{y} - \alpha \mathbf{1} \right).
-	\end{equation*}
-	\item Compute
-	\begin{equation*}
-		\mathbf{u} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c}
-	\end{equation*}
-\end{enumerate}
 
 \begin{thm}
 	The weighting functions form a partition of unity.
@@ -1516,6 +1487,36 @@ Here $\langle \mathcal{A}, \delta_x \rangle \in L^2(\Omega)'$ is the result of a
 %Properties 1 and 2 are essential to our method. Property 3 is only required in the subprocedure for estimating the support of $\langle\mathcal{A},\delta_x\rangle^*$, and may be dropped if other methods for estimating the support are available. 
 
 The approximation $\widetilde{A}(y,x)$ may not be accurate if both $x$ and $y$ are near the boundary. Other approximation methods, if available, should be considered for the block of the operator associated with boundary-boundary interactions. Nevertheless, in our numerical results we see that approximation works well for the the inverse problem considered, without any modifications to the boundary-boundary block.
+
+The solution to this system of equations is found by the following process:
+\begin{enumerate}
+	\item Compute 
+	\begin{equation*}
+	\Psi := K^+ E^T
+	\end{equation*}
+	by solving Neumann poisson problems for point source right hand sides, with point sources located at the points $x_i$, $i=1,\dots,q$.
+	\item Compute 
+	\begin{equation*}
+	\Theta := K^+ M \Psi
+	\end{equation*}
+	by solving Neumann Poisson problems with the columns of $\Psi$ as distributed sources.
+	\item Form 
+	\begin{equation*}
+	S = \Psi^T M \Psi
+	\end{equation*}.
+	\item Compute \begin{equation*}
+	\alpha = \left(\mathbf{1}^T S^{-1} \mathbf{1}\right)^{-1}\mathbf{1}^T S^{-1} \mathbf{y}.
+	\end{equation*}
+	\item Compute 
+	\begin{equation*}
+	\boldsymbol{\lambda} = -S^{-1} \left(\mathbf{y} - \alpha \mathbf{1} \right).
+	\end{equation*}
+	\item Compute
+	\begin{equation*}
+	\mathbf{u} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c}
+	\end{equation*}
+\end{enumerate}
+
 
 \subsection{Determination of the boundary region}
 \label{sec:boundary}
