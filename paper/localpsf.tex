@@ -318,56 +318,6 @@ Ensuring that the points $x_i$ are well separated from each other requires estim
 
 
 
-\subsection{Determination of the boundary region}
-\label{sec:boundary}
-
-Define $\Omega_B \subset \Omega$ to be the set of points that are too close to $\partial \Omega$, in the sense that $x \in \Omega_B$ if $\varphi_x(y-x) \neq 0$ for some $y \in \partial \Omega$. Further, define $\Omega_I := \Omega \setminus \Omega_B$ as the set of points that are in the interior of $\Omega$ and are not too close to $\partial B$. In Proposition \ref{prop:boundary_source} we show that $\Omega_B$ can be determined by applying $\mathcal{A}^T$ to a boundary source distribution and post-processing the result. The resulting algorithm for determining $\Omega_B$ and $\Omega_I$ in the discretized setting is shown in Algorithm \ref{alg:boundary_region}.
-
-\begin{prop}
-	\label{prop:boundary_source}
-	Let $\delta_{\partial \Omega}: C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ be the boundary source distribution defined by
-	\begin{equation}
-	\label{eq:boundary_source}
-	\delta_{\partial \Omega}(v) = \int_{\partial \Omega} v(y) dy
-	\end{equation}
-	for all $v \in C(\overline{\Omega})$. We have $\varphi_x(y-x) = 0$ for almost every $y \in \partial \Omega$ if and only if $\langle\mathcal{A}^T, \delta_{\partial \Omega}\rangle^*(x) = 0$.
-\end{prop}
-
-The proof of Proposition \ref{prop:boundary_source} is shown in Appendix \ref{app:proofs}.
-
-
-%Straightforward analysis shows that $\varphi_x(y-x) = 0$ for $y \in \partial \Omega$ almost everywhere if and only if $\left(\mathcal{A}^T \delta_{\partial \Omega}\right)(x) = 0$, where $\delta_{\partial \Omega}$ is the uniform boundary source distribution. That is, the distribution that acts on a test function $v$ by performing a surface integral of $v$ over the boundary of the domain:
-%%\begin{equation}
-%%\label{eq:boundary_source}
-%%	\delta_{\partial \Omega}(v) = \int_{\partial \Omega} v(y) dy.
-%%\end{equation}
-%We therefore compute $b  = \mathcal{A}^T \delta_{\partial \Omega}$, then identify $\Omega_B$ as the set of points $x \in \Omega$ for which $|b(x)|$ is larger than a small tolerance $\epsilon$. This is described in Algorithm \ref{alg:boundary_region}.
-
-
-\begin{algorithm2e}
-	\SetAlgoNoLine
-	\SetKwInOut{Input}{Input}
-	\SetKwInOut{Output}{Output}
-	{
-		
-		Construct boundary source $\boldsymbol{\delta}_{\partial \Omega} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$, $\displaystyle \left(\boldsymbol{\delta}_{\partial \Omega}\right)_i = \int_{\partial \Omega} \phi_i(s) ds$, $i=1,\dots,N$
-		
-%		\For{$i=1,\dots,N$}{
-%			$\displaystyle \mathbf{b}_i \gets \int_{\partial \Omega} \phi_i(s) ds$
-%		}
-
-		$\mathbf{b} = \mathbf{M}^{-1}\mathbf{A}^T\mathbf{M}^{-1}\boldsymbol{\delta}_{\partial \Omega}$
-		
-		$\Omega_B = \{x \in \Omega : |b_h(x)| \ge \epsilon\}$
-		
-		$\Omega_I = \Omega \setminus \Omega_B$
-		
-	}
-	\caption{Compute boundary region $\Omega_B$ and interior region $\Omega_I$}
-	\label{alg:boundary_region}
-\end{algorithm2e}
-
-One should only expect $\widetilde{A}(y,x)$ to be accurate for $x \in \Omega_I$, $y \in \Omega$. If $\mathcal{A}$ is symmetric then one may overwrite potentially innacurate entries $\widetilde{A}(y,x)$, $x \in \Omega_b$, $y \in \Omega_I$, with the accurate entries $\widetilde{A}(x,y)$. If $\mathcal{A}$ is nonsymmetric, one may form an accurate approximation of these entries by applying our procedure to $\mathcal{A}^T$. Our method will furnish an approximation $\widetilde{A}(y,x)$ for $x \in \Omega_B$, $y \in \Omega_B$ (the block of $\widetilde{H}$ corresponding to boundary-boundary interactions), but this part of the approximation is unlikely to satisfy Condition 1 ($\varphi_x$ varies smoothly as a function of $x$).
 
 
 \subsection{Mean and covariance estimation}
@@ -660,14 +610,15 @@ In the remainder of this section we will derive an efficient algorithm for solvi
 
 \begin{remark}
 	Computing $\mathbf{g} = K^+\mathbf{f}$ is equivalent to solving the discretized Poisson problem with $f$ as the right hand side source, with pure Neumann boundary conditions, and with the constraint that the solution has average value equal to zero. That is,
-	\begin{equation*}
+	\begin{equation}
+	\label{eq:pure_neumann_poisson}
 		\mathbf{g} = K^+ \mathbf{f} \quad \Leftrightarrow \quad 
 		\begin{cases}
 			\Delta g = f, & \text{in }\Omega,\\
 			\nu \cdot \nabla g = 0, & \text{on }\partial \Omega,\\
 			\int_\Omega g(x) dx = 0,
 		\end{cases}
-	\end{equation*}
+	\end{equation}
 	where $\nu$ denotes the normal to the boundary.
 	
 	Hence, the $i^\text{th}$ column of $\Psi$ is the result of solving the discretized pure Neumann Poisson problem, with a point source at location $x_i$. The $i^\text{th}$ column of $\Theta$ is the result of solving the discretized pure Neumann Poisson problem with distributed source given by the $i^\text{th}$ column of $\Psi$.
@@ -782,16 +733,66 @@ and
 \end{equation*}
 The columns of $\Psi$ are the responses of $A^+$ to point sources (delta distributions) centered at the sample points $x_i$. The columns of $\Theta$ are the responses of $A^+M^{-1} A$ to these point sources. The matrices $\Psi$ and $\Theta$ may be constructed incrementally as new points are added. 
 
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	%	\Input{Function $v \mapsto \mathcal{H}^Tv$}
+	
+	%	\mbox{}\\
+	
+	%	\Output{Spatially varying mean $\mu:\Omega \rightarrow \mathbb{R}^d$, \\ 
+	%		Spatially varying covariance $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}$}
+	%	\Begin{
+	{	
+		\For{$i=1,2, \dots, r$}{
+			Compute $\psi_i$ as the solution to following Poisson problem with pure Neumann boundary conditions and a point source at $x_i$:
+			$$\begin{cases}
+			\Delta \psi_i = \delta_{x_i}, & \text{in }\Omega,\\
+			\nu \cdot \nabla \psi_i = 0, & \text{on }\partial \Omega,\\
+			\int_\Omega \psi_i(x) dx = 0.
+			\end{cases}$$
+			
+			Compute $\theta_i$ as the solution to the following Poisson problem with pure Neumann boundary conditions and source $\psi_i$:
+			$$\begin{cases}
+			\Delta \theta_i = \psi_i, & \text{in }\Omega,\\
+			\nu \cdot \nabla \theta_i = 0, & \text{on }\partial \Omega,\\
+			\int_\Omega \theta_i(x) dx = 0.
+			\end{cases}$$
+		}
+	
+		Form the $r \times r$ matrix $S$ with entries
+		$$S_{ij} = \left(\psi_i, \psi_j\right)_{L^2(\Omega)}.$$
+		
+		\For{$i=1,2,\dots,r$}{
+			Compute
+			$$\alpha = \frac{\mathbf{1}^T S^{-1} e_i}{\mathbf{1}^T S^{-1} \mathbf{1}},$$
+			where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one, and $e_i = (0,\dots,0,1,0,\dots,0)$ is the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero.
+			
+			Compute 
+			\begin{equation*}
+			\lambda = -S^{-1} \left(e_i - \alpha \mathbf{1} \right).
+			\end{equation*}
+			
+			Compute
+			$$w_i = -\sum_{k=1}^r \lambda_k \theta_k + \alpha C,$$
+			where we recall that $C$ is the constant function $C(x)=1$ on $\Omega$.
+		}
+	}
+	\caption{Compute weighting functions $w_i$, $i=1,\dots,r$.}
+	\label{alg:weighting_functions_incremental}
+\end{algorithm2e}
+
 The solution to this system of equations is found by the following process:
 \begin{enumerate}
 	\item Compute 
 	\begin{equation*}
-		\Psi := A^+ B^T
+		\Psi := K^+ E^T
 	\end{equation*}
 	by solving Neumann poisson problems for point source right hand sides, with point sources located at the points $x_i$, $i=1,\dots,q$.
 	\item Compute 
 	\begin{equation*}
-		\Theta := A^+ M \Psi
+		\Theta := K^+ M \Psi
 	\end{equation*}
 	by solving Neumann Poisson problems with the columns of $\Psi$ as distributed sources.
 	\item Form 
@@ -1273,6 +1274,9 @@ If $\mathcal{E}$ is larger than a desired tolerance, we compute more eigenmodes 
 Some conclusions here. 
 
 \appendix
+
+\section{Discretized algorithms}
+
 \section{Fast ellipsoid intersection test}
 The procedure for choosing sample points relies on quickly determining whether two ellipsoids intersect. Let $E_p$ and $E_q$ be the ellipsoids defined as
 \begin{align*}
@@ -1513,10 +1517,62 @@ Here $\langle \mathcal{A}, \delta_x \rangle \in L^2(\Omega)'$ is the result of a
 
 The approximation $\widetilde{A}(y,x)$ may not be accurate if both $x$ and $y$ are near the boundary. Other approximation methods, if available, should be considered for the block of the operator associated with boundary-boundary interactions. Nevertheless, in our numerical results we see that approximation works well for the the inverse problem considered, without any modifications to the boundary-boundary block.
 
+\subsection{Determination of the boundary region}
+\label{sec:boundary}
+
+Define $\Omega_B \subset \Omega$ to be the set of points that are too close to $\partial \Omega$, in the sense that $x \in \Omega_B$ if $\varphi_x(y-x) \neq 0$ for some $y \in \partial \Omega$. Further, define $\Omega_I := \Omega \setminus \Omega_B$ as the set of points that are in the interior of $\Omega$ and are not too close to $\partial B$. In Proposition \ref{prop:boundary_source} we show that $\Omega_B$ can be determined by applying $\mathcal{A}^T$ to a boundary source distribution and post-processing the result. The resulting algorithm for determining $\Omega_B$ and $\Omega_I$ in the discretized setting is shown in Algorithm \ref{alg:boundary_region}.
+
+\begin{prop}
+	\label{prop:boundary_source}
+	Let $\delta_{\partial \Omega}: C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ be the boundary source distribution defined by
+	\begin{equation}
+	\label{eq:boundary_source}
+	\delta_{\partial \Omega}(v) = \int_{\partial \Omega} v(y) dy
+	\end{equation}
+	for all $v \in C(\overline{\Omega})$. We have $\varphi_x(y-x) = 0$ for almost every $y \in \partial \Omega$ if and only if $\langle\mathcal{A}^T, \delta_{\partial \Omega}\rangle^*(x) = 0$.
+\end{prop}
+
+The proof of Proposition \ref{prop:boundary_source} is shown in Appendix \ref{app:proofs}.
+
+
+%Straightforward analysis shows that $\varphi_x(y-x) = 0$ for $y \in \partial \Omega$ almost everywhere if and only if $\left(\mathcal{A}^T \delta_{\partial \Omega}\right)(x) = 0$, where $\delta_{\partial \Omega}$ is the uniform boundary source distribution. That is, the distribution that acts on a test function $v$ by performing a surface integral of $v$ over the boundary of the domain:
+%%\begin{equation}
+%%\label{eq:boundary_source}
+%%	\delta_{\partial \Omega}(v) = \int_{\partial \Omega} v(y) dy.
+%%\end{equation}
+%We therefore compute $b  = \mathcal{A}^T \delta_{\partial \Omega}$, then identify $\Omega_B$ as the set of points $x \in \Omega$ for which $|b(x)|$ is larger than a small tolerance $\epsilon$. This is described in Algorithm \ref{alg:boundary_region}.
+
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	{
+		
+		Construct boundary source $\boldsymbol{\delta}_{\partial \Omega} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$, $\displaystyle \left(\boldsymbol{\delta}_{\partial \Omega}\right)_i = \int_{\partial \Omega} \phi_i(s) ds$, $i=1,\dots,N$
+		
+		%		\For{$i=1,\dots,N$}{
+		%			$\displaystyle \mathbf{b}_i \gets \int_{\partial \Omega} \phi_i(s) ds$
+		%		}
+		
+		$\mathbf{b} = \mathbf{M}^{-1}\mathbf{A}^T\mathbf{M}^{-1}\boldsymbol{\delta}_{\partial \Omega}$
+		
+		$\Omega_B = \{x \in \Omega : |b_h(x)| \ge \epsilon\}$
+		
+		$\Omega_I = \Omega \setminus \Omega_B$
+		
+	}
+	\caption{Compute boundary region $\Omega_B$ and interior region $\Omega_I$}
+	\label{alg:boundary_region}
+\end{algorithm2e}
+
+One should only expect $\widetilde{A}(y,x)$ to be accurate for $x \in \Omega_I$, $y \in \Omega$. If $\mathcal{A}$ is symmetric then one may overwrite potentially inaccurate entries $\widetilde{A}(y,x)$, $x \in \Omega_b$, $y \in \Omega_I$, with the accurate entries $\widetilde{A}(x,y)$. If $\mathcal{A}$ is nonsymmetric, one may form an accurate approximation of these entries by applying our procedure to $\mathcal{A}^T$. Our method will furnish an approximation $\widetilde{A}(y,x)$ for $x \in \Omega_B$, $y \in \Omega_B$ (the block of $\widetilde{H}$ corresponding to boundary-boundary interactions), but this part of the approximation is unlikely to satisfy Condition 1 ($\varphi_x$ varies smoothly as a function of $x$).
+
+
 
 
 \section*{Acknowledgments}
-We acknowledge 
+We thank J.J. Alger for helpful discussions
 
 \bibliographystyle{siamplain}
 \bibliography{references}
