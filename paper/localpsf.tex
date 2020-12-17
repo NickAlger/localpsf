@@ -518,7 +518,7 @@ Here $\Delta$ is the Laplacian on $\Omega$ with pure Neumann boundary conditions
 
 In Section \ref{sec:computation_of_weighting_functions}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$. Constructing all $q$ of the functions $w_i$ requires solving the Poisson equation $2q$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All the existing weighting functions, $\{w_i\}_{i=1}^q$, will change if a new point, $x_{q+1}$, is added. However, we present an efficient incremental algorithm for updating these weighting functions when a new point is added, so that we only need to perform two new Poisson PDE solves, rather than $2(q+1)$ new PDE solves.
 
-It is important to note that functions in $H^2$ only have pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used\footnote{The reason for this dependence on spatial dimension is related to the fact that the fundamental solution of the biharmonic equation is continuous in $3$ or less dimensions, but singular in $4$ or more dimensions. In the unusual scenario where one is inverting for a parameter field in $4$ or more spatial dimensions, one could use a modified Poisson interpolation where $\Delta$ is replaced with $\Delta^\alpha$ in the objective function of \eqref{eq:wi_optimization_problem}, where $\alpha>1$ is chosen so that the fundamental solution of $\Delta^{2\alpha}$ is continuous.}. 
+It is important to note that functions in $H^2$ only have pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. 
 
 \begin{defn}
 	\label{def:stiffness_mass}
@@ -575,19 +575,20 @@ It is important to note that functions in $H^2$ only have pointwise values if th
 
 \begin{cor}
 	\label{cor:linearity_of_solution_operator}
-	Let $\mathcal{S}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization}	as a function of $f$. That is, 
+	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization}	as a function of $f$. That is, 
 	\begin{equation*}
-		\mathcal{S}(f) := u^*,
+		\mathcal{T}(f) := u^*,
 	\end{equation*}
-	where $u^*$ is the minimizer of \eqref{eq:generic_optimization}. The operator $\mathcal{S}$ is a linear operator.
+	where $u^*$ is the minimizer of \eqref{eq:generic_optimization}. The operator $\mathcal{T}$ is a linear operator.
 \end{cor}
 
 \begin{thm}
 	\label{thm:smoothest_interpolant}
 Here let $u$ be the function
-\begin{equation*}
+\begin{equation}
+\label{eq:u_defn_in_thm}
 u(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \widetilde{A}\left(y+x,x\right)
-\end{equation*}
+\end{equation}
 for an arbitrary but fixed value of $y$, where the weighting functions $w_i$ are the solutions to optimization problems \eqref{eq:wi_optimization_problem}. Then $u$ solves the optimization problem
 \begin{equation}
 \label{eq:uy_optimization_problem}
@@ -598,13 +599,13 @@ for an arbitrary but fixed value of $y$, where the weighting functions $w_i$ are
 \end{equation}
 \end{thm}
 \begin{proof}
-	Let $f = (\varphi_1(y), \varphi_2(y), \dots, \varphi_r(y))$. The solution to optimization problem \eqref{eq:uy_optimization_problem} is given by
+	Let $f = (\varphi_1(y), \varphi_2(y), \dots, \varphi_r(y))$ and let $e_i = (0,\dots,0,1,0,\dots,0)$ be the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero. The solution to optimization problem \eqref{eq:uy_optimization_problem} is given by
 	\begin{align*}
-		\mathcal{S}(f) &= \varphi_1(y) \mathcal{S}(\delta_{1j}) + \varphi_2(y) \mathcal{S}(\delta_{2j}) + \dots +\varphi_r(y) \mathcal{S}(\delta_{rj}) \\
+		\mathcal{T}(f) &= \varphi_1(y) \mathcal{T}(e_1) + \varphi_2(y) \mathcal{T}(e_2) + \dots +\varphi_r(y) \mathcal{T}(e_r) \\
 		&= \varphi_1(y) w_1 + \varphi_2(y) w_2 + \dots +\varphi_r(y) w_r \\
-		&= u
+		&= u.
 	\end{align*}
- 	because of linearity of the solution map, $\mathcal{S}$.
+ 	In the first line we used linearity of the solution map, $\mathcal{T}$ (Corollary \ref{cor:linearity_of_solution_operator}), in the second line we used the fact that $w_i = \mathcal{T}(e_i)$, and in the third line we used the definition of $u$ in \eqref{eq:u_defn_in_thm}.
 \end{proof}
 
 \begin{thm}
@@ -617,7 +618,11 @@ for an arbitrary but fixed value of $y$, where the weighting functions $w_i$ are
 \end{thm}
 
 \begin{proof}
-asdf
+	By linearity of $\mathcal{T}$ (Corollary \ref{cor:linearity_of_solution_operator}), we have
+	\begin{equation*}
+		\sum_{i=1}^r w_i(x) = \sum_{i=1}^r \mathcal{T}(e_i)(x) = \mathcal{T}\left(\sum_{i=1}^r e_i\right)(x) = \mathcal{T}(\mathbf{1})(x) = 1,
+	\end{equation*}
+	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality, $\mathcal{T}(\mathbf{1})(x) = 1$, holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint $C(x_i) = 1$ for all $x_i$, $i=1,\dots,r$, and yields the minimum possible value of zero for the objective function, $\frac{1}{2}\|\Delta C\|^2 = 0$.
 \end{proof}
 
 %Since the Laplacian measures local deviation from flatness [cite Jacobsen], from \eqref{eq:uy_optimization_problem} we see that the interpolant $x \mapsto u_y(x) = \widetilde{\varphi}_x(y)$ is the ``flattest possible'' function (in a least-squares sense) that has Neumann boundary conditions and interpolates the data $\varphi_{x_i}(y)$. 
@@ -1516,6 +1521,8 @@ The coefficient vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ for $\e
 \end{equation*}
 
 \section{old stuff}
+
+\footnote{The reason for this dependence on spatial dimension is related to the fact that the fundamental solution of the biharmonic equation is continuous in $3$ or less dimensions, but singular in $4$ or more dimensions. In the unusual scenario where one is inverting for a parameter field in $4$ or more spatial dimensions, one could use a modified Poisson interpolation where $\Delta$ is replaced with $\Delta^\alpha$ in the objective function of \eqref{eq:wi_optimization_problem}, where $\alpha>1$ is chosen so that the fundamental solution of $\Delta^{2\alpha}$ is continuous.}
 
 % $\left(\mathcal{A}u\right)(v) = \left\langle v, \varphi_p \ast u\right\rangle_{L^2(\Omega)}$. Here $f \ast g$ denotes convolution of the functions $f$ and $g$, and the convolution kernel,
 
