@@ -537,12 +537,13 @@ It is important to note that functions in $H^2$ only have pointwise values if th
 \begin{prop}
 	\label{prop:equivalent_writing_of_weighting_optimization}
 	Let $f \in \mathbb{R}^r$ be arbitrary. The optimization problem
-	\begin{equation*}
+	\begin{equation}
+	\label{eq:generic_optimization_initial}
 	\begin{aligned}
 	\min_{u \in H^2(\Omega)} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
 	\text{such that} &\quad u(x_i) = f_i, \quad i=1,\dots,r
 	\end{aligned}
-	\end{equation*}
+	\end{equation}
 	may be rewritten as follows:
 	\begin{equation}
 		\label{eq:generic_optimization}
@@ -622,7 +623,7 @@ for an arbitrary but fixed value of $y$, where the weighting functions $w_i$ are
 	\begin{equation*}
 		\sum_{i=1}^r w_i(x) = \sum_{i=1}^r \mathcal{T}(e_i)(x) = \mathcal{T}\left(\sum_{i=1}^r e_i\right)(x) = \mathcal{T}(\mathbf{1})(x) = 1,
 	\end{equation*}
-	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality, $\mathcal{T}(\mathbf{1})(x) = 1$, holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint $C(x_i) = 1$ for all $x_i$, $i=1,\dots,r$, and yields the minimum possible value of zero for the objective function, $\frac{1}{2}\|\Delta C\|^2 = 0$.
+	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality ($\mathcal{T}(\mathbf{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \mathbf{1}$, and yields the minimum possible value of zero for the objective function (i.e., $C(x_i) = 1$ for $i=1,\dots,r$,  and $\frac{1}{2}\|\Delta C\|^2 = 0$).
 \end{proof}
 
 %Since the Laplacian measures local deviation from flatness [cite Jacobsen], from \eqref{eq:uy_optimization_problem} we see that the interpolant $x \mapsto u_y(x) = \widetilde{\varphi}_x(y)$ is the ``flattest possible'' function (in a least-squares sense) that has Neumann boundary conditions and interpolates the data $\varphi_{x_i}(y)$. 
