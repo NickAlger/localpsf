@@ -58,7 +58,7 @@
 
 We present a fast matrix free method for approximating locally translation-invariant operators, $\mathcal{A}$, that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in reduced space methods for solving partial differential equations (PDEs), and as Hessians in distributed parameter PDE-constrained inverse problems.
 
-Let $\Omega \subset \mathbb{R}^d$ be a bounded domain, and let $\mathcal{A}:L^2(\Omega)\rightarrow L^2(\Omega)'$ be an integral operator of the form
+Let $\Omega \subset \mathbb{R}^d$ be a bounded domain in dimension $d=1$, $2$, or $3$, and let $\mathcal{A}:L^2(\Omega)\rightarrow L^2(\Omega)'$ be an integral operator of the form
 \begin{equation}
 \label{eq:kernel_representation}
 (\mathcal{A}u)(v) := \int_\Omega \int_\Omega v(y) A(y,x) u(x) dx dy,
@@ -121,11 +121,11 @@ We choose the weighting functions, $w_i$, to be the solutions to the following o
 \begin{equation}
 \label{eq:wi_optimization_problem_intro}
 \begin{aligned}
-\min_{w_i} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
+\min_{w_i \in H^2(\Omega)} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
 \text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
 \end{aligned}
 \end{equation}
-Here $\Delta$ is the Laplacian on $\Omega$ with pure Neumann boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. Since the Laplacian measures local deviation from flatness [CITE JACOBSEN], the functions $w_i$ are the flattest functions, in a least-squares sense, that interpolate the points $x_i$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid. We call this interpolation scheme \emph{Poisson interpolation}. The advantage of Poisson interpolation over other interpolation methods, most notably radial basis function interpolation [cite Escande etc], is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. This is illustrated in Figure FIG. 
+Here $\Delta$ is the Laplacian on $\Omega$ with pure Neumann boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. Since the Laplacian measures local deviation from flatness [CITE JACOBSEN], the function $w_i$ is the flattest function, in a least-squares sense, that takes the value one at the sample point $x_i$, and the value zero at the other sample points $x_j$, $i \neq j$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid. We call this interpolation scheme \emph{Poisson interpolation}. The advantage of Poisson interpolation over other interpolation methods, most notably radial basis function interpolation [cite Escande etc], is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. This is illustrated in Figure FIG. 
 
 %A small number of terms in \eqref{eq:product_convolution} are required to accurately approximate a highly locally translation invariant operator, while a large number of terms are required to accurately approximate a poorly locally translation invariant operator.
 
@@ -306,35 +306,16 @@ For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)
 and so the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$ is given by $\langle\mathcal{A},\delta_x\rangle^* = A(~\cdot~,x)$. That is, $\langle\mathcal{A},\delta_x\rangle^*$ is the function $y \mapsto A(y,x)$.
 
 
-\subsection{Background: discretization}
-\label{sec:discretization}
-
-Let $\phi_i$, $i=1,\dots,N$ be a set of finite element basis functions, and let
-\begin{equation*}
-	V_h = \Span\left(\phi_1, \phi_2, \dots, \phi_N\right).
-\end{equation*}
-be the corresponding  finite element space approximating $L^2(\Omega)$. Here $V_h$ inherits the $L^2$ inner product, and $h$ denotes the mesh size parameter. Functions $u\in L^2(\Omega)$ are approximated by functions $u_h \in V_h$. In turn, functions $u_h\in V_h$ are represented in computations by length $N$ arrays $\mathbf{u}$, such that the array entries of $\mathbf{u}$ are the coordinates of $u_h$ in the finite element basis. That is,
-\begin{equation*}
-	u(x) \approx u_h(x) = \sum_{i=1}^N \mathbf{u}_i \phi_i(x).
-\end{equation*}
-We say that the coefficient arrays $\mathbf{u}$ reside $\mathbb{R}^N_\mathbf{M}$, which is the space $\mathbb{R}^N$ with the matrix-weighted inner product $\left(\mathbf{u},\mathbf{v}\right)_\mathbf{M} := \left(\mathbf{M} \mathbf{u}\right)^T \mathbf{v}$, where
-$\mathbf{M} \in \mathbb{R}^{N \times N}$ is the \emph{mass matrix} which has entries
-\begin{equation*}
-	\mathbf{M}_{ij} = \left(\phi_i, \phi_j\right)_{L^2(\Omega)} = \int_{\Omega} \phi_i(x) \phi_j(x) dx.
-\end{equation*}
-Direct calculation shows that $V_h$ is isometrically isomorphic $\mathbb{R}^N_\mathbf{M}$, in the sense that functions $u_h \in V_h$ are in bijective correspondence to coefficient vectors $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u},\mathbf{v}\right)_\mathbf{M}$. Likewise, the dual space of continuous linear functionals $\psi_h:V_h \rightarrow \mathbb{R}$, denoted $V_h'$, is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. All operations on functions in $V_h$ and linear functionals in $V_h'$ may therefore be performed on coefficient vectors in $\mathbb{R}^N_\mathbf{M}$ and coefficient dual vectors in $\mathbb{R}^N_{\mathbf{M}^{-1}}$. We summarize coefficient vector versions of the function space operation that are used in this paper in Appendix \ref{app:discretized_operations}.
-
 \subsection{Background: hierarchical matrices}
 
-\section{Sampling impulse responses}
+\section{Choosing sample points}
+\label{sec:choosing_sample_points}
 
-We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points. The challenge is to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$.
-
-The function $\varphi_x(y)$ is undefined when $x + y \notin \Omega$, which can occur even if $x \in \Omega$ and $y \in \Omega$. Extending $\varphi_x$ by zero makes it defined for all $y \in \mathbb{R}^d$, but this extension is only reasonable if $x$ is far enough from $\partial \Omega$ that $\varphi_x(y)$ decays to zero, as a function of $y$, before $y$ reaches $\partial \Omega$. We therefore choose sample points $x_i$ from a region $\Omega_I \subset \Omega$ which is not too close to the boundary. We determine $\Omega_I$ by applying $\mathcal{A}^T$ to a boundary source, then post processing the result.
+We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points. In this section we describe how we choose the points $x_i$. The challenge is to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$.
 
 Ensuring that the points $x_i$ are well separated from each other requires estimating the supports of the functions $\langle\mathcal{A},\delta_{x}\rangle^*$. Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnegative, $\langle\mathcal{A},\delta_{x}\rangle^*$ is a scaled probability distribution. We compute the scaling factors for all $x$ simultaneously by applying $\mathcal{A}$ to a constant function. We then compute the mean and covariance of the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. The support of $\langle\mathcal{A},\delta_{x}\rangle^*$ is estimated to be contained in an ellipsoid of points that are within a small number of standard deviations of the mean for a Gaussian distribution with the same mean and covariance as the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$.
 
-
+The function $\varphi_x(y)$ is undefined when $x + y \notin \Omega$, which can occur even if $x \in \Omega$ and $y \in \Omega$. Extending $\varphi_x$ by zero makes it defined for all $y \in \mathbb{R}^d$, but this extension is only reasonable if $x$ is far enough from $\partial \Omega$ that $\varphi_x(y)$ decays to zero, as a function of $y$, before $y$ reaches $\partial \Omega$. We therefore choose exclude sample points $x_i$ if the ellipsoid associated with that point overlaps the boundary.
 
 
 
@@ -418,16 +399,10 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 	\label{alg:varhpi_mean_cov}
 \end{algorithm2e}
 
-\paragraph{Discretization} In computations, $\alpha$, $\mu^{i}$, and $\Sigma^{ij}$ are replaced with finite element approximations $\alpha_h, \mu_h^i, \Sigma_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\alpha}, \boldsymbol{\mu}^{ij}, \boldsymbol{\Sigma}^{ij}\in\mathbb{R}^N_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with their $L^2$ projections onto $V_h$, which are denoted by $C_h$, $L_h^i$, and $Q_h^{ij}$, respectively. The corresponding coefficient vectors are $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
-\begin{align*}
-	\boldsymbol{\alpha} &= \mathbf{M}^{-1}\mathbf{A}^T\mathbf{C} \\
-	\boldsymbol{\mu}^i &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right) / \boldsymbol{\alpha}\\
-	\boldsymbol{\Sigma}^{ij} &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{Q}^{ij}\right) / \boldsymbol{\alpha} - \boldsymbol{\mu}^i\cdot \boldsymbol{\mu}^j,
-\end{align*}
-respectively. Here $\mathbf{f} \cdot \mathbf{g}$ and $\mathbf{f} / \mathbf{g}$ denote the element-wise multiplication and division of vectors, respectively.
 
-\subsection{Choosing sample points}
-\label{sec:choosing_sample_points}
+
+\subsection{Greedy point selection algorithm}
+\label{sec:greedy_point_selection}
 
 Ideally, sample points $x_i$ and $x_j$ should be far enough apart from each other that the supports of $\left\langle\mathcal{A}, \delta_{x_i}\right\rangle^*$ and $\left\langle\mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap. Since it is too expensive compute the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ directly, we instead estimate that the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ is contained in the ellipsoid
 \begin{equation*}
@@ -526,15 +501,6 @@ for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_
 %	\label{alg:dirac_comb_response}
 %\end{algorithm2e}
 
-\paragraph{Discretization}
-In computations, the Dirac comb $\xi^b$ is replaced by its restriction to $V_h$, denoted $\xi^b \in V_h'$. The response $\eta^b$ is replaced by the finite element approximation $\eta_h^b \in V_h$. The coefficient dual vector for $\xi_h^b$ is the vector $\boldsymbol{\xi}^b \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ which has entries
-\begin{equation*}
-	\boldsymbol{\xi}^b_i = \sum_{x_j \in S_b} \phi_i(x_j), \quad i=1,\dots,N.
-\end{equation*}
-The coefficient vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ for $\eta_h^b$ is given by
-\begin{equation*}
-	\boldsymbol{\eta}^b = \mathbf{M}^{-1} \mathbf{A}^T \mathbf{M}^{-1}\boldsymbol{\xi}^b.
-\end{equation*}
 
 
 \section{Poisson interpolation weighting functions}
@@ -544,23 +510,85 @@ We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to 
 \begin{equation}
 \label{eq:wi_optimization_problem}
 \begin{aligned}
-\min_{w_i} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
+\min_{w_i \in H^2(\Omega)} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
 \text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
 \end{aligned}
 \end{equation}
-Here $\Delta$ is the Laplacian on $\Omega$ with pure Neumann boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. Since the Laplacian measures local deviation from flatness [cite Jacobsen], the weighting function $w_i$ is the ``flattest possible'' function (in a least-squares sense) that has Neumann boundary conditions and takes the value $1$ at point $x_i$, and zero at the points $x_j$, $j \neq i$. In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense. Then in Section \ref{sec:computation_of_weighting_functions}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$. Constructing all $q$ of the functions $w_i$ requires solving the Poisson equation $2q$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All the existing weighting functions, $\{w_i\}_{i=1}^q$, will change if a new point, $x_{q+1}$, is added. However, we present an efficient incremental algorithm for updating these weighting functions when a new point is added, so that we only need to perform two new Poisson PDE solves, rather than $2(q+1)$ new PDE solves.
+Here $\Delta$ is the Laplacian on $\Omega$ with pure Neumann boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense. Theorem \ref{thm:smoothest_interpolant} relies on some straightforward prerequisites that we present in Definition \ref{def:stiffness_mass}, Proposition \ref{prop:equivalent_writing_of_weighting_optimization}, and Corollary \ref{cor:linearity_of_solution_operator}. In Theorem \ref{thm:wi_sum_to_one} we note that the weighting functions sum to one pointwise.
 
-It is important to note that optimization problems \eqref{eq:wi_optimization_problem} only has a unique continuous solution when the spatial dimension is $1$, $2$, or $3$. When inverting for parameter fields defined on $4$ or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used\footnote{The reason for this dependence on spatial dimension is related to the fact that the fundamental solution of the biharmonic equation is continuous in $3$ or less dimensions, but singular in $4$ or more dimensions. In the unusual scenario where one is inverting for a parameter field in $4$ or more spatial dimensions, one could use a modified Poisson interpolation where $\Delta$ is replaced with $\Delta^\alpha$ in the objective function of \eqref{eq:wi_optimization_problem}, where $\alpha>1$ is chosen so that the fundamental solution of $\Delta^{2\alpha}$ is continuous.}. 
+In Section \ref{sec:computation_of_weighting_functions}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$. Constructing all $q$ of the functions $w_i$ requires solving the Poisson equation $2q$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All the existing weighting functions, $\{w_i\}_{i=1}^q$, will change if a new point, $x_{q+1}$, is added. However, we present an efficient incremental algorithm for updating these weighting functions when a new point is added, so that we only need to perform two new Poisson PDE solves, rather than $2(q+1)$ new PDE solves.
 
+It is important to note that functions in $H^2$ only have pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used\footnote{The reason for this dependence on spatial dimension is related to the fact that the fundamental solution of the biharmonic equation is continuous in $3$ or less dimensions, but singular in $4$ or more dimensions. In the unusual scenario where one is inverting for a parameter field in $4$ or more spatial dimensions, one could use a modified Poisson interpolation where $\Delta$ is replaced with $\Delta^\alpha$ in the objective function of \eqref{eq:wi_optimization_problem}, where $\alpha>1$ is chosen so that the fundamental solution of $\Delta^{2\alpha}$ is continuous.}. 
 
+\begin{defn}
+	\label{def:stiffness_mass}
+	We define $\mathcal{K}:H^2(\Omega)\rightarrow H^{-2}(\Omega)$ and $\mathcal{M}:L^2(\Omega) \rightarrow L^2(\Omega)'$ to be the following stiffness and mass linear operators:
+	\begin{align*}
+	\left(\mathcal{K}u\right)(v) :=& \int_\Omega \nabla u \cdot \nabla v ~dx \\
+	\left(\mathcal{M}u\right)(v) :=& \int_\Omega u v ~dx,
+	\end{align*}
+	and $\mathcal{P}:H^2(\Omega)\rightarrow \mathbb{R}^r$ to be the following pointwise observation operator:
+	\begin{equation*}
+	(\mathcal{P}u)_i = u(x_i)
+	\end{equation*}
+	for $i=1,\dots,r$.
+\end{defn}
+
+\begin{prop}
+	\label{prop:equivalent_writing_of_weighting_optimization}
+	Let $f \in \mathbb{R}^r$ be arbitrary. The optimization problem
+	\begin{equation*}
+	\begin{aligned}
+	\min_{u \in H^2(\Omega)} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
+	\text{such that} &\quad u(x_i) = f_i, \quad i=1,\dots,r
+	\end{aligned}
+	\end{equation*}
+	may be rewritten as follows:
+	\begin{equation}
+		\label{eq:generic_optimization}
+		\begin{aligned}
+		\min_{u \in H^2(\Omega)} &\quad \frac{1}{2} \left(\mathcal{K}\mathcal{M}^{-1}\mathcal{K}u\right)(u) \\
+		\text{such that} &\quad 
+		\mathcal{P} u = f.
+		\end{aligned}
+	\end{equation}
+\end{prop}
+
+\begin{prop}
+	There exists a unique solution to optimization problem \eqref{eq:generic_optimization}. The solution to \eqref{eq:generic_optimization}, $u^*$, and the adjoint variable for enforcing the constraint, $\lambda^*$, solve the following Karun-Kush-Tucker (KKT) system:
+	\begin{equation}
+	\label{eq:weighting_kkt}
+		\begin{bmatrix}
+			\mathcal{K}\mathcal{M}^{-1}\mathcal{K} & \mathcal{P}^T \\
+			\mathcal{P} & 0
+		\end{bmatrix}
+		\begin{bmatrix}
+			u^* \\ \lambda^*
+		\end{bmatrix}
+		=
+		\begin{bmatrix}
+			0 \\ f
+		\end{bmatrix},
+	\end{equation}
+	where we use block-matrix notation to denote block-operators.
+\end{prop}
+
+\begin{cor}
+	\label{cor:linearity_of_solution_operator}
+	Let $\mathcal{S}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization}	as a function of $f$. That is, 
+	\begin{equation*}
+		\mathcal{S}(f) := u^*,
+	\end{equation*}
+	where $u^*$ is the minimizer of \eqref{eq:generic_optimization}. The operator $\mathcal{S}$ is a linear operator.
+\end{cor}
 
 \begin{thm}
 	\label{thm:smoothest_interpolant}
-Let $u$ be the function
+Here let $u$ be the function
 \begin{equation*}
 u(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \widetilde{A}\left(y+x,x\right)
 \end{equation*}
-for an arbitrary but fixed value of $y$. Then $u$ solves the optimization problem
+for an arbitrary but fixed value of $y$, where the weighting functions $w_i$ are the solutions to optimization problems \eqref{eq:wi_optimization_problem}. Then $u$ solves the optimization problem
 \begin{equation}
 \label{eq:uy_optimization_problem}
 \begin{aligned}
@@ -570,7 +598,26 @@ for an arbitrary but fixed value of $y$. Then $u$ solves the optimization proble
 \end{equation}
 \end{thm}
 \begin{proof}
-This follows from linearity of the KKT system associated with \eqref{eq:wi_optimization_problem}, which in turn follows from the fact that the the objective function in \eqref{eq:wi_optimization_problem} is quadratic, and the constraint is linear.
+	Let $f = (\varphi_1(y), \varphi_2(y), \dots, \varphi_r(y))$. The solution to optimization problem \eqref{eq:uy_optimization_problem} is given by
+	\begin{align*}
+		\mathcal{S}(f) &= \varphi_1(y) \mathcal{S}(\delta_{1j}) + \varphi_2(y) \mathcal{S}(\delta_{2j}) + \dots +\varphi_r(y) \mathcal{S}(\delta_{rj}) \\
+		&= \varphi_1(y) w_1 + \varphi_2(y) w_2 + \dots +\varphi_r(y) w_r \\
+		&= u
+	\end{align*}
+ 	because of linearity of the solution map, $\mathcal{S}$.
+\end{proof}
+
+\begin{thm}
+	\label{thm:wi_sum_to_one}
+	We have
+	\begin{equation*}
+		\sum_{i=1}^r w_i(x) = 1
+	\end{equation*}
+	for all $x \in \Omega$.
+\end{thm}
+
+\begin{proof}
+asdf
 \end{proof}
 
 %Since the Laplacian measures local deviation from flatness [cite Jacobsen], from \eqref{eq:uy_optimization_problem} we see that the interpolant $x \mapsto u_y(x) = \widetilde{\varphi}_x(y)$ is the ``flattest possible'' function (in a least-squares sense) that has Neumann boundary conditions and interpolates the data $\varphi_{x_i}(y)$. 
@@ -798,10 +845,6 @@ The columns of $\Psi$ are the responses of $A^+$ to point sources (delta distrib
 	\label{alg:weighting_functions_incremental}
 \end{algorithm2e}
 
-
-\begin{thm}
-	The weighting functions form a partition of unity.
-\end{thm}
 
 \section{Interpolating impulse response samples old}
 
@@ -1376,7 +1419,25 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 	
 \end{proof}
 
-\section{Discretized function space operations}
+\section{Discretization}
+\label{sec:discretization}
+
+Let $\phi_i$, $i=1,\dots,N$ be a set of finite element basis functions, and let
+\begin{equation*}
+V_h = \Span\left(\phi_1, \phi_2, \dots, \phi_N\right).
+\end{equation*}
+be the corresponding  finite element space approximating $L^2(\Omega)$. Here $V_h$ inherits the $L^2$ inner product, and $h$ denotes the mesh size parameter. Functions $u\in L^2(\Omega)$ are approximated by functions $u_h \in V_h$. In turn, functions $u_h\in V_h$ are represented in computations by length $N$ arrays $\mathbf{u}$, such that the array entries of $\mathbf{u}$ are the coordinates of $u_h$ in the finite element basis. That is,
+\begin{equation*}
+u(x) \approx u_h(x) = \sum_{i=1}^N \mathbf{u}_i \phi_i(x).
+\end{equation*}
+We say that the coefficient arrays $\mathbf{u}$ reside $\mathbb{R}^N_\mathbf{M}$, which is the space $\mathbb{R}^N$ with the matrix-weighted inner product $\left(\mathbf{u},\mathbf{v}\right)_\mathbf{M} := \left(\mathbf{M} \mathbf{u}\right)^T \mathbf{v}$, where
+$\mathbf{M} \in \mathbb{R}^{N \times N}$ is the \emph{mass matrix} which has entries
+\begin{equation*}
+\mathbf{M}_{ij} = \left(\phi_i, \phi_j\right)_{L^2(\Omega)} = \int_{\Omega} \phi_i(x) \phi_j(x) dx.
+\end{equation*}
+Direct calculation shows that $V_h$ is isometrically isomorphic $\mathbb{R}^N_\mathbf{M}$, in the sense that functions $u_h \in V_h$ are in bijective correspondence to coefficient vectors $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u},\mathbf{v}\right)_\mathbf{M}$. Likewise, the dual space of continuous linear functionals $\psi_h:V_h \rightarrow \mathbb{R}$, denoted $V_h'$, is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. All operations on functions in $V_h$ and linear functionals in $V_h'$ may therefore be performed on coefficient vectors in $\mathbb{R}^N_\mathbf{M}$ and coefficient dual vectors in $\mathbb{R}^N_{\mathbf{M}^{-1}}$. We summarize coefficient vector versions of the function space operation that are used in this paper in Appendix \ref{app:discretized_operations}.
+
+\subsection{Discretized operations}
 \label{app:discretized_operations}
 
 As described in Section \ref{sec:discretization}, a function $u_h$ in a finite element space $V_h$ may be written in terms of its vector of coefficients, $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, with respect the finite element basis $\{\phi_i\}_{i=1}^N$. Recall that $\mathbf{M}$ is the mass matrix. We have
@@ -1435,8 +1496,24 @@ The finite element function space $V_h$ is isometrically isomorphic to the coeff
 	\end{equation*}
 \end{description}
 
+\subsection{Discretized mean and covariance estimation} In computations, $\alpha$, $\mu^{i}$, and $\Sigma^{ij}$ are replaced with finite element approximations $\alpha_h, \mu_h^i, \Sigma_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\alpha}, \boldsymbol{\mu}^{ij}, \boldsymbol{\Sigma}^{ij}\in\mathbb{R}^N_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with their $L^2$ projections onto $V_h$, which are denoted by $C_h$, $L_h^i$, and $Q_h^{ij}$, respectively. The corresponding coefficient vectors are $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
+\begin{align*}
+\boldsymbol{\alpha} &= \mathbf{M}^{-1}\mathbf{A}^T\mathbf{C} \\
+\boldsymbol{\mu}^i &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right) / \boldsymbol{\alpha}\\
+\boldsymbol{\Sigma}^{ij} &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{Q}^{ij}\right) / \boldsymbol{\alpha} - \boldsymbol{\mu}^i\cdot \boldsymbol{\mu}^j,
+\end{align*}
+respectively. Here $\mathbf{f} \cdot \mathbf{g}$ and $\mathbf{f} / \mathbf{g}$ denote the element-wise multiplication and division of vectors, respectively.
 
 
+\subsection{Discretized sampling of impulse responses}
+In computations, the Dirac comb $\xi^b$ is replaced by its restriction to $V_h$, denoted $\xi^b \in V_h'$. The response $\eta^b$ is replaced by the finite element approximation $\eta_h^b \in V_h$. The coefficient dual vector for $\xi_h^b$ is the vector $\boldsymbol{\xi}^b \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ which has entries
+\begin{equation*}
+\boldsymbol{\xi}^b_i = \sum_{x_j \in S_b} \phi_i(x_j), \quad i=1,\dots,N.
+\end{equation*}
+The coefficient vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ for $\eta_h^b$ is given by
+\begin{equation*}
+\boldsymbol{\eta}^b = \mathbf{M}^{-1} \mathbf{A}^T \mathbf{M}^{-1}\boldsymbol{\xi}^b.
+\end{equation*}
 
 \section{old stuff}
 
