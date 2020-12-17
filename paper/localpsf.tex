@@ -518,13 +518,13 @@ Here $\Delta$ is the Laplacian on $\Omega$ with pure Neumann boundary conditions
 
 In Section \ref{sec:computation_of_weighting_functions}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$. Constructing all $q$ of the functions $w_i$ requires solving the Poisson equation $2q$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All the existing weighting functions, $\{w_i\}_{i=1}^q$, will change if a new point, $x_{q+1}$, is added. However, we present an efficient incremental algorithm for updating these weighting functions when a new point is added, so that we only need to perform two new Poisson PDE solves, rather than $2(q+1)$ new PDE solves.
 
-It is important to note that functions in $H^2$ only have pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. 
+It is important to note that functions in $H^2$ only have well-defined pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. 
 
 \begin{defn}
 	\label{def:stiffness_mass}
-	We define $\mathcal{K}:H^2(\Omega)\rightarrow H^{-2}(\Omega)$ and $\mathcal{M}:L^2(\Omega) \rightarrow L^2(\Omega)'$ to be the following stiffness and mass linear operators:
+	We define $\mathcal{K}:H^2(\Omega)\rightarrow L^2(\Omega)'$ and $\mathcal{M}:L^2(\Omega) \rightarrow L^2(\Omega)'$ to be the following linear operators:
 	\begin{align*}
-	\left(\mathcal{K}u\right)(v) :=& \int_\Omega \nabla u \cdot \nabla v ~dx \\
+	\left(\mathcal{K}u\right)(v) :=& \int_\Omega v \Delta u ~dx \\
 	\left(\mathcal{M}u\right)(v) :=& \int_\Omega u v ~dx,
 	\end{align*}
 	and $\mathcal{P}:H^2(\Omega)\rightarrow \mathbb{R}^r$ to be the following pointwise observation operator:
@@ -548,7 +548,7 @@ It is important to note that functions in $H^2$ only have pointwise values if th
 	\begin{equation}
 		\label{eq:generic_optimization}
 		\begin{aligned}
-		\min_{u \in H^2(\Omega)} &\quad \frac{1}{2} \left(\mathcal{K}\mathcal{M}^{-1}\mathcal{K}u\right)(u) \\
+		\min_{u \in H^2(\Omega)} &\quad \frac{1}{2} \left(\mathcal{K}^T\mathcal{M}^{-1}\mathcal{K}u\right)(u) \\
 		\text{such that} &\quad 
 		\mathcal{P} u = f.
 		\end{aligned}
@@ -560,7 +560,7 @@ It is important to note that functions in $H^2$ only have pointwise values if th
 	\begin{equation}
 	\label{eq:weighting_kkt}
 		\begin{bmatrix}
-			\mathcal{K}\mathcal{M}^{-1}\mathcal{K} & \mathcal{P}^T \\
+			\mathcal{K}^T\mathcal{M}^{-1}\mathcal{K} & \mathcal{P}^T \\
 			\mathcal{P} & 0
 		\end{bmatrix}
 		\begin{bmatrix}
@@ -623,7 +623,7 @@ for an arbitrary but fixed value of $y$, where the weighting functions $w_i$ are
 	\begin{equation*}
 		\sum_{i=1}^r w_i(x) = \sum_{i=1}^r \mathcal{T}(e_i)(x) = \mathcal{T}\left(\sum_{i=1}^r e_i\right)(x) = \mathcal{T}(\mathbf{1})(x) = 1,
 	\end{equation*}
-	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality ($\mathcal{T}(\mathbf{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \mathbf{1}$, and yields the minimum possible value of zero for the objective function (i.e., $C(x_i) = 1$ for $i=1,\dots,r$,  and $\frac{1}{2}\|\Delta C\|^2 = 0$).
+	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality ($\mathcal{T}(\mathbf{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \mathbf{1}$, and yields the minimum possible value of zero for the objective function.
 \end{proof}
 
 %Since the Laplacian measures local deviation from flatness [cite Jacobsen], from \eqref{eq:uy_optimization_problem} we see that the interpolant $x \mapsto u_y(x) = \widetilde{\varphi}_x(y)$ is the ``flattest possible'' function (in a least-squares sense) that has Neumann boundary conditions and interpolates the data $\varphi_{x_i}(y)$. 
@@ -709,72 +709,73 @@ In the remainder of this section we will derive an efficient algorithm for solvi
 \begin{proof}
 	Let
 	\begin{equation*}
-		\mathbf{v} := K \mathbf{w}.
+		v := \mathcal{K} w_i,
 	\end{equation*}
+	and for the remainder of this proof let $e := e_i$.
 	Since the null-space of the Laplacian with pure Neumann boundary conditions is the set of all constant functions, we have
 	\begin{equation}
 	\label{eq:definition_of_w}
-	\mathbf{w} = K^+ \mathbf{v} + \alpha \mathbf{c}
+	w_i = \mathcal{K}^+ v + \alpha C
 	\end{equation}
 	for some scalar $\alpha$.
 	
-	Writing optimization problem \eqref{eq:discrete_poisson_optimization_1} in terms of $\mathbf{v}$ and $\alpha$ instead of $\mathbf{w}$ yields the following equivalent optimization problem:
+	Writing optimization problem \eqref{eq:wi_optimization_problem} in terms of $v$ and $\alpha$ instead of $w_i$ yields the following equivalent optimization problem:
 	\begin{equation}
 	\label{eq:discrete_poisson_optimization_2}
 	\begin{aligned}
-	\min_{\mathbf{v}, \alpha} &\quad \frac{1}{2}\mathbf{v}^T M^{-1} \mathbf{v} \\
-	\text{such that} &\quad EK^+ \mathbf{v} + \alpha \mathbf{1} = \mathbf{d}.
+	\min_{v \in L^2(\Omega)', \alpha \in \mathbb{R}} &\quad \frac{1}{2} v\left(\mathcal{M}^{-1} v\right) \\
+	\text{such that} &\quad \mathcal{P}\mathcal{K}^+ v + \alpha \mathbf{1} = e.
 	\end{aligned}
 	\end{equation}
 	The Lagrangian for optimization problem \eqref{eq:discrete_poisson_optimization_2} is
 	\begin{equation*}
-		\mathcal{L} = \frac{1}{2}\mathbf{v}^T M^{-1} \mathbf{v} + \boldsymbol{\lambda}^T\left(EK^+ \mathbf{v} + \alpha \mathbf{1} - \mathbf{d}\right).
+		\mathcal{L} = \frac{1}{2}v\left( \mathcal{M}^{-1} v\right) + \lambda^T\left(\mathcal{P}\mathcal{K}^+ v + \alpha \mathbf{1} - e\right).
 	\end{equation*}
 	The solution to this optimization problem is the stationary point of the Lagrangian, i.e., the point at which the gradient of the Lagrangian is zero:
 	\begin{equation*}
 		0 = \nabla \mathcal{L} = 
 		\begin{bmatrix}
-			\nabla_\mathbf{v} \mathcal{L} \\
-			\nabla_{\boldsymbol{\lambda}} \mathcal{L} \\
+			\nabla_{v} \mathcal{L} \\
+			\nabla_{\lambda} \mathcal{L} \\
 			\nabla_\alpha \mathcal{L}
 		\end{bmatrix} 
 		= \begin{bmatrix}
-			M^{-1} \mathbf{v} + K^+ E^T \boldsymbol{\lambda} \\
-			EK^+\mathbf{v} + \alpha \mathbf{1} - \mathbf{d} \\
-			\mathbf{1}^T \boldsymbol{\lambda}
+			\mathcal{M}^{-1} v + \mathcal{K}^+ \mathcal{P}^T \lambda \\
+			\mathcal{P}\mathcal{K}^+v + \alpha \mathbf{1} - e \\
+			\mathbf{1}^T \lambda
 		\end{bmatrix}.
 	\end{equation*}
 	This equation may be rewritten as the following block $3 \times 3$ linear system:
 	\begin{equation*}
 		\begin{bmatrix}
-			M^{-1} & K^+ E^T & 0 \\
-			EK^+ & 0 & \mathbf{1} \\
+			\mathcal{M}^{-1} & \mathcal{K}^+ \mathcal{P}^T & 0 \\
+			\mathcal{P}\mathcal{K}^+ & 0 & \mathbf{1} \\
 			0 & \mathbf{1}^T & 0
 		\end{bmatrix}
 		\begin{bmatrix}
-			\mathbf{v} \\ \boldsymbol{\lambda} \\ \alpha
+			v \\ \lambda \\ \alpha
 		\end{bmatrix}
 		=
 		\begin{bmatrix}
-			0 \\ \mathbf{d} \\ 0
+			0 \\ e \\ 0
 		\end{bmatrix}.
 	\end{equation*}
 	Performing block Gaussian elimination on this system allows us to reduce the system to the following block triangular form
 	\begin{equation*}
 		\begin{bmatrix}
-			M^{-1} & K^+ E^T & 0 \\
+			\mathcal{M}^{-1} & \mathcal{K}^+ \mathcal{P}^T & 0 \\
 			& -S & \mathbf{1} \\
 			0 & 0 & \mathbf{1}^T S^{-1} \mathbf{1}
 		\end{bmatrix}
 		\begin{bmatrix}
-			\mathbf{v} \\ \boldsymbol{\lambda} \\ \alpha
+			v \\ \lambda \\ \alpha
 		\end{bmatrix}
 		=
 		\begin{bmatrix}
-			0 \\ \mathbf{y} \\ \mathbf{1}^T S^{-1} y
+			0 \\ e \\ \mathbf{1}^T S^{-1} e
 		\end{bmatrix}
 	\end{equation*}
-	where we recall that $S := \Psi^T M \Psi = EK^+ M K^+ E^T$. From this block triangular system, we read off the solution as:
+	where we recall that $S := \Psi^T \mathcal{M} \Psi = \mathcal{P}\mathcal{K}^+ \mathcal{M} \mathcal{K}^+ \mathcal{P}^T$. From this block triangular system, we read off the solution as:
 	\begin{align*}
 		\alpha =& \left(\mathbf{1}^T S^{-1} \mathbf{1}\right)^{-1}\mathbf{1}^T S^{-1} \mathbf{d} \\
 		\boldsymbol{\lambda} =& -S^{-1} \left(\mathbf{d} - \alpha \mathbf{1} \right) \\
