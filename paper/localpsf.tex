@@ -740,7 +740,7 @@ In the remainder of this section we will derive an efficient algorithm for solvi
 			\nabla_\alpha \mathcal{L}
 		\end{bmatrix} 
 		= \begin{bmatrix}
-			\mathcal{M}^{-1} v + \mathcal{K}^+ \mathcal{P}^T \lambda \\
+			\mathcal{M}^{-1} v + \left(\mathcal{K}^+\right)^T \mathcal{P}^T \lambda \\
 			\mathcal{P}\mathcal{K}^+v + \alpha \mathbf{1} - e \\
 			\mathbf{1}^T \lambda
 		\end{bmatrix}.
@@ -748,7 +748,7 @@ In the remainder of this section we will derive an efficient algorithm for solvi
 	This equation may be rewritten as the following block $3 \times 3$ linear system:
 	\begin{equation*}
 		\begin{bmatrix}
-			\mathcal{M}^{-1} & \mathcal{K}^+ \mathcal{P}^T & 0 \\
+			\mathcal{M}^{-1} & \left(\mathcal{K}^+\right)^T \mathcal{P}^T & 0 \\
 			\mathcal{P}\mathcal{K}^+ & 0 & \mathbf{1} \\
 			0 & \mathbf{1}^T & 0
 		\end{bmatrix}
@@ -763,7 +763,7 @@ In the remainder of this section we will derive an efficient algorithm for solvi
 	Performing block Gaussian elimination on this system allows us to reduce the system to the following block triangular form
 	\begin{equation*}
 		\begin{bmatrix}
-			\mathcal{M}^{-1} & \mathcal{K}^+ \mathcal{P}^T & 0 \\
+			\mathcal{M}^{-1} & \left(\mathcal{K}^+\right)^T \mathcal{P}^T & 0 \\
 			& -S & \mathbf{1} \\
 			0 & 0 & \mathbf{1}^T S^{-1} \mathbf{1}
 		\end{bmatrix}
@@ -775,7 +775,7 @@ In the remainder of this section we will derive an efficient algorithm for solvi
 			0 \\ e \\ \mathbf{1}^T S^{-1} e
 		\end{bmatrix}
 	\end{equation*}
-	where we recall that $S := \Psi^T \mathcal{M} \Psi = \mathcal{P}\mathcal{K}^+ \mathcal{M} \mathcal{K}^+ \mathcal{P}^T$. From this block triangular system, we read off the solution as:
+	where we recall that $S := \Psi^T \mathcal{M} \Psi = \mathcal{P}\mathcal{K}^+ \mathcal{M} \left(\mathcal{K}^+\right)^T \mathcal{P}^T$. From this block triangular system, we read off the solution as:
 	\begin{align*}
 		\alpha =& \left(\mathbf{1}^T S^{-1} \mathbf{1}\right)^{-1}\mathbf{1}^T S^{-1} \mathbf{d} \\
 		\boldsymbol{\lambda} =& -S^{-1} \left(\mathbf{d} - \alpha \mathbf{1} \right) \\
