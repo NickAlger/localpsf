@@ -514,7 +514,7 @@ We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to 
 \text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
 \end{aligned}
 \end{equation}
-Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense. In Proposition \ref{thm:wi_sum_to_one} we note that the weighting functions sum to one pointwise. These theorems rely on straightforward prerequisites that we present in Lemma \ref{lem:T_is_linear} 
+Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense. In Proposition \ref{thm:wi_sum_to_one} we note that the weighting functions sum to one pointwise. These results rely on straightforward prerequisites that we present in Lemma \ref{lem:T_is_linear} 
 
 In Algorithm \ref{alg:weighting_functions_incremental}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$. We prove correctness of Algorithm \ref{alg:weighting_functions_incremental} in Theorem \ref{thm:wi_alg_is_correct}. Theorem \ref{thm:wi_alg_is_correct} relies on a prerequisite result which we present in Lemma \ref{lem:psi_delta_eval}. Constructing all $r$ of the functions $w_i$ requires solving the Poisson equation $2r$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All the existing weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. The Poisson PDE solves can be performed incrementally, so that we only need to perform two new Poisson PDE solves when a new point is added, rather than $2(r+1)$ new PDE solves.
 
@@ -545,7 +545,7 @@ Let $y \in \mathbb{R}^d$, and let $u$ be the function
 \label{eq:u_defn_in_thm}
 u(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \widetilde{A}\left(y+x,x\right)
 \end{equation}
-where the weighting functions $w_i$ are the solutions to optimization problems \eqref{eq:wi_optimization_problem}. Then $u$ solves the optimization problem
+where the weighting functions $w_i$ are the solutions to optimization problem \eqref{eq:wi_optimization_problem}. Then $u$ solves the optimization problem
 \begin{equation}
 \label{eq:uy_optimization_problem}
 \begin{aligned}
@@ -574,7 +574,7 @@ where the weighting functions $w_i$ are the solutions to optimization problems \
 \end{prop}
 
 \begin{proof}
-	By linearity of $\mathcal{T}$ (Corollary \ref{cor:linearity_of_solution_operator}), we have
+	By linearity of $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), we have
 	\begin{equation*}
 		\sum_{i=1}^r w_i(x) = \sum_{i=1}^r \mathcal{T}(e_i)(x) = \mathcal{T}\left(\sum_{i=1}^r e_i\right)(x) = \mathcal{T}(\mathbf{1})(x) = 1,
 	\end{equation*}
@@ -656,7 +656,7 @@ where the weighting functions $w_i$ are the solutions to optimization problems \
 \end{lem}
 
 \begin{proof}
-	This follows from integration by parts and the definition of $\psi$ in \eqref{eq:psi_eq}.
+	This is a standard result that follows from integration by parts and the definition of $\psi$ in \eqref{eq:psi_eq}.
 \end{proof}
 
 \begin{thm}[Correctness of Algorithm \ref{alg:weighting_functions_incremental}]
@@ -671,6 +671,8 @@ where the weighting functions $w_i$ are the solutions to optimization problems \
 	\begin{equation*}
 		\mathcal{L}(w,\lambda) = \frac{1}{2}\|\Delta w\|^2 + \sum_{j=1}^r \lambda_j\left(w(x_j) - e_j\right).
 	\end{equation*}
+	We will prove the theorem by showing that $\nabla \mathcal{L}(w,\lambda)=0$.
+	
 	Using the definition of $w_i$ in \eqref{eq:definition_of_wi_alg}, we may write the gradient of $\mathcal{L}$ with respect to $\lambda_j$ as
 	\begin{equation*}
 		\nabla_{\lambda_j} \mathcal{L}(w, \lambda) = w(x_j) - e_j
@@ -704,7 +706,7 @@ where the weighting functions $w_i$ are the solutions to optimization problems \
 		&= -\mathbf{1}^T S^{-1} e + \alpha \mathbf{1}^T S^{-1} \mathbf{1} \\
 		&= -\mathbf{1}^T S^{-1} e + \frac{\mathbf{1}^T S^{-1} e}{\mathbf{1}^T S^{-1} \mathbf{1}} \mathbf{1}^T S^{-1} \mathbf{1} = 0,
 	\end{align*}
-	which implies that the second term in \eqref{eq:L_w_38} is zero. Thus $\nabla_w \mathcal{L}(w, \lambda) = 0$. Since $\nabla \mathcal{L}(w, \lambda)=0$, Algorithm \ref{alg:weighting_functions_incremental} correctly produces the solution to optimization problem \ref{eq:wi_optimization_problem}.
+	which implies that the second term in \eqref{eq:L_w_38} is zero. Thus $\nabla_w \mathcal{L}(w, \lambda) = 0$, so Algorithm \ref{alg:weighting_functions_incremental} produces the solution to optimization problem \ref{eq:wi_optimization_problem}.
 \end{proof}
 
 
@@ -727,164 +729,6 @@ where the weighting functions $w_i$ are the solutions to optimization problems \
 
 % One may also show that the weighting functions $w_i$ sum to one pointwise.
 
-
-\subsection{Computation of Poisson weighting functions}
-\label{sec:computation_of_weighting_functions}
-
-
-
-
-
-%Radial basis function interpolation of $\varphi_x(y)$ is cheaper per sample point because radial basis functions are given by analytic formulas. However, the cost of these Poisson PDE solves is typically cheap compared to the cost of computing the impulse response samples, $\varphi_{x_i}$. Computing the impulse response samples, $\varphi_{x_i}$, requires applying the Hessian to vectors, which in turn requires performing PDE solves of the linearized forward and ajoint equations for the inverse problem. These forward and adjoint PDE solves are typically much more expensive than Poisson PDE solves, because the Poisson equation is well-studied and easy to solve with multigrid. 
-
-After discretization, optimization problem \eqref{eq:wi_optimization_problem} becomes
-\begin{equation}
-\label{eq:discrete_poisson_optimization_1}
-\begin{aligned}
-\min_{\mathbf{w}} &\quad \frac{1}{2}\mathbf{w}^T K^T M^{-1} K \mathbf{w} \\
-\text{such that} &\quad E \mathbf{w} = \mathbf{d}.
-\end{aligned}
-\end{equation}
-Here $\mathbf{w}$ is the discretization of $w_i$, $K$ is the stiffness matrix for the discretized Poisson problem with pure Neumann boundary conditions, $M$ is the mass matrix, and $\mathbf{d}=(0,\dots,0,1,0,\dots,0)$ is the length-$q$ vector with $i^\text{th}$ entry one and all other entries zero. Furthermore, $E$ is the pointwise observation matrix defined by $\left(E\mathbf{u}\right)_j = u(x_j)$, where $u$ denotes the function represented by the vector $\mathbf{u}$. Here we dropped the subscripts $i$ from variables for notational convenience. One must solve $q$ optimization problems of the form \eqref{eq:discrete_poisson_optimization_1}; one for each $i=1,\dots,q$. 
-
-In the remainder of this section we will derive an efficient algorithm for solving \eqref{eq:discrete_poisson_optimization_1}. The algorithm (Algorithm REF) is based on explicit formula for the solution of \eqref{eq:discrete_poisson_optimization_1} which we present in Proposition \ref{prop:poisson_interpolation_formula}. The formulas in Proposition \ref{prop:poisson_interpolation_formula} rely on certain matrices that we define in Definition \ref{defn:poisson_interpolation_matrices}. The primary computational cost of the algorithm is the solution of Poisson problems with pure Neumann boundary conditions.
-
-\begin{defn}
-	\label{defn:poisson_interpolation_matrices}
-	Let 
-	\begin{align*}
-		\Psi :=& K^+ E^T, \\
-		\Theta :=& K^+ M \Psi \\
-		S :=& \Psi^T M \Psi,
-	\end{align*}
-	where $K^+$ is the Moore-Penrose pseudoinverse of $K$. Further, let $\mathbf{c}$ dente the discretization of the constant function $c(x)=1$ on $\Omega$, and let $\mathbf{1}:=(1,\dots,1)$ denote the vector of length $q$ with all entries equal to one.
-\end{defn}
-
-\begin{remark}
-	Computing $\mathbf{g} = K^+\mathbf{f}$ is equivalent to solving the discretized Poisson problem with $f$ as the right hand side source, with pure Neumann boundary conditions, and with the constraint that the solution has average value equal to zero. That is,
-	\begin{equation}
-	\label{eq:pure_neumann_poisson}
-		\mathbf{g} = K^+ \mathbf{f} \quad \Leftrightarrow \quad 
-		\begin{cases}
-			\Delta g = f, & \text{in }\Omega,\\
-			\nu \cdot \nabla g = 0, & \text{on }\partial \Omega,\\
-			\int_\Omega g(x) dx = 0,
-		\end{cases}
-	\end{equation}
-	where $\nu$ denotes the normal to the boundary.
-	
-	Hence, the $i^\text{th}$ column of $\Psi$ is the result of solving the discretized pure Neumann Poisson problem, with a point source at location $x_i$. The $i^\text{th}$ column of $\Theta$ is the result of solving the discretized pure Neumann Poisson problem with distributed source given by the $i^\text{th}$ column of $\Psi$.
-\end{remark}
-
-\begin{prop}
-	\label{prop:poisson_interpolation_formula}
-	The solution to optimization problem \eqref{eq:discrete_poisson_optimization_1} is given by
-	\begin{equation*}
-		\mathbf{w} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c},
-	\end{equation*}
-	where
-	\begin{align*}
-		\alpha =& \left(\mathbf{1}^T S^{-1} \mathbf{1}\right)^{-1}\mathbf{1}^T S^{-1} \mathbf{d} \\
-		\boldsymbol{\lambda} =& -S^{-1} \left(\mathbf{d} - \alpha \mathbf{1} \right). \\
-	\end{align*}
-\end{prop}
-
-\begin{proof}
-	Let
-	\begin{equation*}
-		v := \mathcal{K} w_i,
-	\end{equation*}
-	and for the remainder of this proof let $e := e_i$.
-	Since the null-space of the Laplacian with pure Neumann boundary conditions is the set of all constant functions, we have
-	\begin{equation}
-	\label{eq:definition_of_w}
-	w_i = \mathcal{K}^+ v + \alpha C
-	\end{equation}
-	for some scalar $\alpha$.
-	
-	Writing optimization problem \eqref{eq:wi_optimization_problem} in terms of $v$ and $\alpha$ instead of $w_i$ yields the following equivalent optimization problem:
-	\begin{equation}
-	\label{eq:discrete_poisson_optimization_2}
-	\begin{aligned}
-	\min_{v \in L^2(\Omega)', \alpha \in \mathbb{R}} &\quad \frac{1}{2} v\left(\mathcal{M}^{-1} v\right) \\
-	\text{such that} &\quad \mathcal{P}\mathcal{K}^+ v + \alpha \mathbf{1} = e.
-	\end{aligned}
-	\end{equation}
-	The Lagrangian for optimization problem \eqref{eq:discrete_poisson_optimization_2} is
-	\begin{equation*}
-		\mathcal{L} = \frac{1}{2}v\left( \mathcal{M}^{-1} v\right) + \lambda^T\left(\mathcal{P}\mathcal{K}^+ v + \alpha \mathbf{1} - e\right).
-	\end{equation*}
-	The solution to this optimization problem is the stationary point of the Lagrangian, i.e., the point at which the gradient of the Lagrangian is zero:
-	\begin{equation*}
-		0 = \nabla \mathcal{L} = 
-		\begin{bmatrix}
-			\nabla_{v} \mathcal{L} \\
-			\nabla_{\lambda} \mathcal{L} \\
-			\nabla_\alpha \mathcal{L}
-		\end{bmatrix} 
-		= \begin{bmatrix}
-			\mathcal{M}^{-1} v + \left(\mathcal{K}^+\right)^T \mathcal{P}^T \lambda \\
-			\mathcal{P}\mathcal{K}^+v + \alpha \mathbf{1} - e \\
-			\mathbf{1}^T \lambda
-		\end{bmatrix}.
-	\end{equation*}
-	This equation may be rewritten as the following block $3 \times 3$ linear system:
-	\begin{equation*}
-		\begin{bmatrix}
-			\mathcal{M}^{-1} & \left(\mathcal{K}^+\right)^T \mathcal{P}^T & 0 \\
-			\mathcal{P}\mathcal{K}^+ & 0 & \mathbf{1} \\
-			0 & \mathbf{1}^T & 0
-		\end{bmatrix}
-		\begin{bmatrix}
-			v \\ \lambda \\ \alpha
-		\end{bmatrix}
-		=
-		\begin{bmatrix}
-			0 \\ e \\ 0
-		\end{bmatrix}.
-	\end{equation*}
-	Performing block Gaussian elimination on this system allows us to reduce the system to the following block triangular form
-	\begin{equation*}
-		\begin{bmatrix}
-			\mathcal{M}^{-1} & \left(\mathcal{K}^+\right)^T \mathcal{P}^T & 0 \\
-			& -S & \mathbf{1} \\
-			0 & 0 & \mathbf{1}^T S^{-1} \mathbf{1}
-		\end{bmatrix}
-		\begin{bmatrix}
-			v \\ \lambda \\ \alpha
-		\end{bmatrix}
-		=
-		\begin{bmatrix}
-			0 \\ e \\ \mathbf{1}^T S^{-1} e
-		\end{bmatrix}
-	\end{equation*}
-	where we recall that $S := \Psi^T \mathcal{M} \Psi = \mathcal{P}\mathcal{K}^+ \mathcal{M} \left(\mathcal{K}^+\right)^T \mathcal{P}^T$. From this block triangular system, we read off the solution as:
-	\begin{align*}
-		\alpha =& \left(\mathbf{1}^T S^{-1} \mathbf{1}\right)^{-1}\mathbf{1}^T S^{-1} \mathbf{d} \\
-		\boldsymbol{\lambda} =& -S^{-1} \left(\mathbf{d} - \alpha \mathbf{1} \right) \\
-		\mathbf{v} =& -M K^+ E^T \boldsymbol{\lambda}
-	\end{align*}
-	Substituting these results into the definition of $\mathbf{w}$ in \eqref{eq:definition_of_w}, we have
-	\begin{equation*}
-		\mathbf{w} = -K^+ M K^+ E^T \boldsymbol{\lambda} + \alpha \mathbf{c} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c},
-	\end{equation*}
-	as required.
-\end{proof}
-
-We now design an incremental algorithm for constructing interpolants $\mathbf{u}$, in which we can add points $x_i$ more efficiently. Let
-\begin{align*}
-	\Psi :=& K^+ E^T \\
-	\Theta :=& K^+ M \Psi
-\end{align*}
-so that 
-\begin{equation*}
-	S = \Psi^T M \Psi
-\end{equation*}
-and
-\begin{equation*}
-	\mathbf{u} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c}
-\end{equation*}
-The columns of $\Psi$ are the responses of $A^+$ to point sources (delta distributions) centered at the sample points $x_i$. The columns of $\Theta$ are the responses of $A^+M^{-1} A$ to these point sources. The matrices $\Psi$ and $\Theta$ may be constructed incrementally as new points are added. 
 
 
 
@@ -1773,6 +1617,164 @@ The proof of Proposition \ref{prop:boundary_source} is shown in Appendix \ref{ap
 One should only expect $\widetilde{A}(y,x)$ to be accurate for $x \in \Omega_I$, $y \in \Omega$. If $\mathcal{A}$ is symmetric then one may overwrite potentially inaccurate entries $\widetilde{A}(y,x)$, $x \in \Omega_b$, $y \in \Omega_I$, with the accurate entries $\widetilde{A}(x,y)$. If $\mathcal{A}$ is nonsymmetric, one may form an accurate approximation of these entries by applying our procedure to $\mathcal{A}^T$. Our method will furnish an approximation $\widetilde{A}(y,x)$ for $x \in \Omega_B$, $y \in \Omega_B$ (the block of $\widetilde{H}$ corresponding to boundary-boundary interactions), but this part of the approximation is unlikely to satisfy Condition 1 ($\varphi_x$ varies smoothly as a function of $x$).
 
 
+
+\subsection{Computation of Poisson weighting functions}
+\label{sec:computation_of_weighting_functions}
+
+
+
+
+
+%Radial basis function interpolation of $\varphi_x(y)$ is cheaper per sample point because radial basis functions are given by analytic formulas. However, the cost of these Poisson PDE solves is typically cheap compared to the cost of computing the impulse response samples, $\varphi_{x_i}$. Computing the impulse response samples, $\varphi_{x_i}$, requires applying the Hessian to vectors, which in turn requires performing PDE solves of the linearized forward and ajoint equations for the inverse problem. These forward and adjoint PDE solves are typically much more expensive than Poisson PDE solves, because the Poisson equation is well-studied and easy to solve with multigrid. 
+
+After discretization, optimization problem \eqref{eq:wi_optimization_problem} becomes
+\begin{equation}
+\label{eq:discrete_poisson_optimization_1}
+\begin{aligned}
+\min_{\mathbf{w}} &\quad \frac{1}{2}\mathbf{w}^T K^T M^{-1} K \mathbf{w} \\
+\text{such that} &\quad E \mathbf{w} = \mathbf{d}.
+\end{aligned}
+\end{equation}
+Here $\mathbf{w}$ is the discretization of $w_i$, $K$ is the stiffness matrix for the discretized Poisson problem with pure Neumann boundary conditions, $M$ is the mass matrix, and $\mathbf{d}=(0,\dots,0,1,0,\dots,0)$ is the length-$q$ vector with $i^\text{th}$ entry one and all other entries zero. Furthermore, $E$ is the pointwise observation matrix defined by $\left(E\mathbf{u}\right)_j = u(x_j)$, where $u$ denotes the function represented by the vector $\mathbf{u}$. Here we dropped the subscripts $i$ from variables for notational convenience. One must solve $q$ optimization problems of the form \eqref{eq:discrete_poisson_optimization_1}; one for each $i=1,\dots,q$. 
+
+In the remainder of this section we will derive an efficient algorithm for solving \eqref{eq:discrete_poisson_optimization_1}. The algorithm (Algorithm REF) is based on explicit formula for the solution of \eqref{eq:discrete_poisson_optimization_1} which we present in Proposition \ref{prop:poisson_interpolation_formula}. The formulas in Proposition \ref{prop:poisson_interpolation_formula} rely on certain matrices that we define in Definition \ref{defn:poisson_interpolation_matrices}. The primary computational cost of the algorithm is the solution of Poisson problems with pure Neumann boundary conditions.
+
+\begin{defn}
+	\label{defn:poisson_interpolation_matrices}
+	Let 
+	\begin{align*}
+	\Psi :=& K^+ E^T, \\
+	\Theta :=& K^+ M \Psi \\
+	S :=& \Psi^T M \Psi,
+	\end{align*}
+	where $K^+$ is the Moore-Penrose pseudoinverse of $K$. Further, let $\mathbf{c}$ dente the discretization of the constant function $c(x)=1$ on $\Omega$, and let $\mathbf{1}:=(1,\dots,1)$ denote the vector of length $q$ with all entries equal to one.
+\end{defn}
+
+\begin{remark}
+	Computing $\mathbf{g} = K^+\mathbf{f}$ is equivalent to solving the discretized Poisson problem with $f$ as the right hand side source, with pure Neumann boundary conditions, and with the constraint that the solution has average value equal to zero. That is,
+	\begin{equation}
+	\label{eq:pure_neumann_poisson}
+	\mathbf{g} = K^+ \mathbf{f} \quad \Leftrightarrow \quad 
+	\begin{cases}
+	\Delta g = f, & \text{in }\Omega,\\
+	\nu \cdot \nabla g = 0, & \text{on }\partial \Omega,\\
+	\int_\Omega g(x) dx = 0,
+	\end{cases}
+	\end{equation}
+	where $\nu$ denotes the normal to the boundary.
+	
+	Hence, the $i^\text{th}$ column of $\Psi$ is the result of solving the discretized pure Neumann Poisson problem, with a point source at location $x_i$. The $i^\text{th}$ column of $\Theta$ is the result of solving the discretized pure Neumann Poisson problem with distributed source given by the $i^\text{th}$ column of $\Psi$.
+\end{remark}
+
+\begin{prop}
+	\label{prop:poisson_interpolation_formula}
+	The solution to optimization problem \eqref{eq:discrete_poisson_optimization_1} is given by
+	\begin{equation*}
+	\mathbf{w} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c},
+	\end{equation*}
+	where
+	\begin{align*}
+	\alpha =& \left(\mathbf{1}^T S^{-1} \mathbf{1}\right)^{-1}\mathbf{1}^T S^{-1} \mathbf{d} \\
+	\boldsymbol{\lambda} =& -S^{-1} \left(\mathbf{d} - \alpha \mathbf{1} \right). \\
+	\end{align*}
+\end{prop}
+
+\begin{proof}
+	Let
+	\begin{equation*}
+	v := \mathcal{K} w_i,
+	\end{equation*}
+	and for the remainder of this proof let $e := e_i$.
+	Since the null-space of the Laplacian with pure Neumann boundary conditions is the set of all constant functions, we have
+	\begin{equation}
+	\label{eq:definition_of_w}
+	w_i = \mathcal{K}^+ v + \alpha C
+	\end{equation}
+	for some scalar $\alpha$.
+	
+	Writing optimization problem \eqref{eq:wi_optimization_problem} in terms of $v$ and $\alpha$ instead of $w_i$ yields the following equivalent optimization problem:
+	\begin{equation}
+	\label{eq:discrete_poisson_optimization_2}
+	\begin{aligned}
+	\min_{v \in L^2(\Omega)', \alpha \in \mathbb{R}} &\quad \frac{1}{2} v\left(\mathcal{M}^{-1} v\right) \\
+	\text{such that} &\quad \mathcal{P}\mathcal{K}^+ v + \alpha \mathbf{1} = e.
+	\end{aligned}
+	\end{equation}
+	The Lagrangian for optimization problem \eqref{eq:discrete_poisson_optimization_2} is
+	\begin{equation*}
+	\mathcal{L} = \frac{1}{2}v\left( \mathcal{M}^{-1} v\right) + \lambda^T\left(\mathcal{P}\mathcal{K}^+ v + \alpha \mathbf{1} - e\right).
+	\end{equation*}
+	The solution to this optimization problem is the stationary point of the Lagrangian, i.e., the point at which the gradient of the Lagrangian is zero:
+	\begin{equation*}
+	0 = \nabla \mathcal{L} = 
+	\begin{bmatrix}
+	\nabla_{v} \mathcal{L} \\
+	\nabla_{\lambda} \mathcal{L} \\
+	\nabla_\alpha \mathcal{L}
+	\end{bmatrix} 
+	= \begin{bmatrix}
+	\mathcal{M}^{-1} v + \left(\mathcal{K}^+\right)^T \mathcal{P}^T \lambda \\
+	\mathcal{P}\mathcal{K}^+v + \alpha \mathbf{1} - e \\
+	\mathbf{1}^T \lambda
+	\end{bmatrix}.
+	\end{equation*}
+	This equation may be rewritten as the following block $3 \times 3$ linear system:
+	\begin{equation*}
+	\begin{bmatrix}
+	\mathcal{M}^{-1} & \left(\mathcal{K}^+\right)^T \mathcal{P}^T & 0 \\
+	\mathcal{P}\mathcal{K}^+ & 0 & \mathbf{1} \\
+	0 & \mathbf{1}^T & 0
+	\end{bmatrix}
+	\begin{bmatrix}
+	v \\ \lambda \\ \alpha
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	0 \\ e \\ 0
+	\end{bmatrix}.
+	\end{equation*}
+	Performing block Gaussian elimination on this system allows us to reduce the system to the following block triangular form
+	\begin{equation*}
+	\begin{bmatrix}
+	\mathcal{M}^{-1} & \left(\mathcal{K}^+\right)^T \mathcal{P}^T & 0 \\
+	& -S & \mathbf{1} \\
+	0 & 0 & \mathbf{1}^T S^{-1} \mathbf{1}
+	\end{bmatrix}
+	\begin{bmatrix}
+	v \\ \lambda \\ \alpha
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	0 \\ e \\ \mathbf{1}^T S^{-1} e
+	\end{bmatrix}
+	\end{equation*}
+	where we recall that $S := \Psi^T \mathcal{M} \Psi = \mathcal{P}\mathcal{K}^+ \mathcal{M} \left(\mathcal{K}^+\right)^T \mathcal{P}^T$. From this block triangular system, we read off the solution as:
+	\begin{align*}
+	\alpha =& \left(\mathbf{1}^T S^{-1} \mathbf{1}\right)^{-1}\mathbf{1}^T S^{-1} \mathbf{d} \\
+	\boldsymbol{\lambda} =& -S^{-1} \left(\mathbf{d} - \alpha \mathbf{1} \right) \\
+	\mathbf{v} =& -M K^+ E^T \boldsymbol{\lambda}
+	\end{align*}
+	Substituting these results into the definition of $\mathbf{w}$ in \eqref{eq:definition_of_w}, we have
+	\begin{equation*}
+	\mathbf{w} = -K^+ M K^+ E^T \boldsymbol{\lambda} + \alpha \mathbf{c} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c},
+	\end{equation*}
+	as required.
+\end{proof}
+
+We now design an incremental algorithm for constructing interpolants $\mathbf{u}$, in which we can add points $x_i$ more efficiently. Let
+\begin{align*}
+\Psi :=& K^+ E^T \\
+\Theta :=& K^+ M \Psi
+\end{align*}
+so that 
+\begin{equation*}
+S = \Psi^T M \Psi
+\end{equation*}
+and
+\begin{equation*}
+\mathbf{u} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c}
+\end{equation*}
+The columns of $\Psi$ are the responses of $A^+$ to point sources (delta distributions) centered at the sample points $x_i$. The columns of $\Theta$ are the responses of $A^+M^{-1} A$ to these point sources. The matrices $\Psi$ and $\Theta$ may be constructed incrementally as new points are added. 
 
 
 \section*{Acknowledgments}
