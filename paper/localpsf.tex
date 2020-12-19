@@ -516,7 +516,7 @@ We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to 
 \end{equation}
 Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense. In Theorem \ref{thm:wi_sum_to_one} we note that the weighting functions sum to one pointwise. These theorems rely on straightforward prerequisites that we present in Lemma \ref{lem:T_is_linear} 
 
-In Algorithm \ref{alg:weighting_functions_incremental}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$. We prove \ref{alg:weighting_functions_incremental} in Theorem \ref{thm:wi_alg_is_correct}. Constructing all $r$ of the functions $w_i$ requires solving the Poisson equation $2r$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All the existing weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. The Poisson PDE solves can be performed incrementally, so that we only need to perform two new Poisson PDE solves when a new point is added, rather than $2(r+1)$ new PDE solves.
+In Algorithm \ref{alg:weighting_functions_incremental}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$. We prove correctness of Algorithm \ref{alg:weighting_functions_incremental} in Theorem \ref{thm:wi_alg_is_correct}. Constructing all $r$ of the functions $w_i$ requires solving the Poisson equation $2r$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All the existing weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. The Poisson PDE solves can be performed incrementally, so that we only need to perform two new Poisson PDE solves when a new point is added, rather than $2(r+1)$ new PDE solves.
 
 It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. 
 
@@ -595,21 +595,26 @@ where the weighting functions $w_i$ are the solutions to optimization problems \
 	{	
 		\For{$i=1,2, \dots, r$}{
 			Compute $\psi_i$ as the solution to the Poisson problem
-			\begin{equation*}
+			\begin{equation}
+			\label{eq:psi_eq}
 			\Delta \psi_i = \delta_{x_i}, \quad \text{in }\Omega,
-			\end{equation*}
-			with Neumann boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
+			\end{equation}
+			with Neumann zero boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
 			
 			Compute $\theta_i$ as the solution to the Poisson problem
-			\begin{equation*}
+			\begin{equation}
+			\label{eq:theta_eq}
 			\Delta \theta_i = \psi_i, \quad \text{in }\Omega,
-			\end{equation*}
-			with Neumann boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
+			\end{equation}
+			with Neumann zero boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
 			
 		}
 		
 		Form the $r \times r$ matrix $S$ with entries
-		$$S_{ij} = \left(\psi_i, \psi_j\right)_{L^2(\Omega)}.$$
+		\begin{equation}
+		\label{eq:defn_of_S_alg}
+		S_{ij} = \left(\psi_i, \psi_j\right)_{L^2(\Omega)}.
+		\end{equation}
 		
 		\For{$i=1,2,\dots,r$}{
 			Compute
@@ -617,12 +622,16 @@ where the weighting functions $w_i$ are the solutions to optimization problems \
 			where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one, and $e_i = (0,\dots,0,1,0,\dots,0)$ is the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero.
 			
 			Compute 
-			\begin{equation*}
+			\begin{equation}
+			\label{eq:definition_of_mu_alg}
 			\lambda = -S^{-1} \left(e_i - \alpha \mathbf{1} \right).
-			\end{equation*}
+			\end{equation}
 			
 			Form the weighting function $w_i$ given by
-			$$w_i(x) = \alpha - \sum_{k=1}^r \lambda_k \theta_k(x).$$
+			\begin{equation}
+			\label{eq:definition_of_wi_alg}
+				w_i(x) = \alpha - \sum_{k=1}^r \lambda_k \theta_k(x).
+			\end{equation}
 		}
 	}
 	\caption{Compute weighting functions $w_i$, $i=1,\dots,r$.}
@@ -634,6 +643,51 @@ where the weighting functions $w_i$ are the solutions to optimization problems \
 \label{thm:wi_alg_is_correct}
 	The weighting functions $w_i$ computed by Algorithm \ref{alg:weighting_functions_incremental} solve optimization problem \ref{eq:wi_optimization_problem}.
 \end{thm}
+
+\begin{proof}
+	For notational convenience, in this proof we write $w$, $\lambda$, and $e$ instead of $w_i$, $\lambda_i$, and $e_i$, respectively. Here subscripts for $\lambda$, and $e$ instead denote components of those vectors. For example, here $\lambda_j$ denotes the $j^\text{th}$ component of the vector $\lambda$, which corresponds to the $j^\text{th}$ of the vector $\lambda_i$ in Algorithm \ref{alg:weighting_functions_incremental}.
+	
+	In this proof, we will repeatedly make use of the fact that
+	\begin{equation}
+	\label{eq:inline_wi_lemma}
+	\left(\psi_j, \Delta h\right)_{L^2(\Omega)} = h(x_j)
+	\end{equation}
+	for all $h\in H^2_N(\Omega)$. This follows from integration by parts and the definition of $\psi$ in \eqref{eq:psi_eq}.
+	
+	From standard optimization theory, the solution to optimization problem \ref{eq:wi_optimization_problem} is the stationary point of the Lagrangian,
+	\begin{equation*}
+		\mathcal{L}(w,\lambda) = \frac{1}{2}\|\Delta w\|^2 + \sum_{j=1}^r \lambda_j\left(e_j - w(x_j)\right).
+	\end{equation*}
+	Using the definition of $w_i$ in \eqref{eq:definition_of_wi_alg}, we may write the gradient of $\mathcal{L}$ with respect to $\lambda_j$ as
+	\begin{equation*}
+		\nabla_{\lambda_j} \mathcal{L}(w, \lambda) = e_j - w(x_j) 
+		= e_j - \alpha + \sum_{k=1}^r \lambda_k \theta_k(x_j).
+	\end{equation*}
+	Using \eqref{eq:inline_wi_lemma} with $h=\theta_k$, the equation for $\theta$ in \eqref{eq:theta_eq}, and the definition of $S$ in \eqref{eq:defn_of_S_alg}, we have
+	\begin{align*}
+		\sum_{k=1}^r \lambda_k \theta_k(x_j) &= \sum_{k=1}^r \lambda_k \left(\psi_j, \Delta \theta_k\right)_{L^2(\Omega)} \\
+		&= \sum_{k=1}^r \lambda_k \left(\psi_j, \psi_k\right)_{L^2(\Omega)} = \left(S \lambda\right)_j.
+	\end{align*}
+	Combining all of these components of $\nabla_\lambda \mathcal{L}$ into a single vector and using the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} yields
+	\begin{equation*}
+		\nabla_\lambda \mathcal{L}(w, \lambda) = e - \alpha \mathbf{1} + S \lambda = e - \alpha \mathbf{1} + S \left(-S^{-1}\left(e - \alpha \mathbf{1}\right)\right) = 0.
+	\end{equation*}
+	
+	Taking the directional derivative of $\mathcal{L}$ with respect to $w$ in direction $h$ and using \eqref{eq:inline_wi_lemma} yields
+	\begin{align*}
+		\nabla_w \mathcal{L}(w, \lambda)h &= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} - \sum_{j=1}^r \lambda_j h(x_j) \\
+		&= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} - \sum_{j=1}^r \lambda_j \left(\psi_j, \Delta h\right)_{L^2(\Omega)} \\
+		&= \left(\Delta w - \sum_{j=1}^r \lambda_j \psi_j,~ \Delta h\right)_{L^2(\Omega)}.
+	\end{align*}
+	Using the definition of $w$ in Algorithm \ref{alg:weighting_functions_incremental}, and the fact that the Laplacian of a constant function is zero, we have
+	\begin{align*}
+		\Delta w &= -\sum_{j=1}^r \lambda_j \Delta \theta_j \\
+		&= -\sum_{j=1}^r \lambda_j \psi_j
+	\end{align*}
+
+\end{proof}
+
+
 
 %Since the Laplacian measures local deviation from flatness [cite Jacobsen], from \eqref{eq:uy_optimization_problem} we see that the interpolant $x \mapsto u_y(x) = \widetilde{\varphi}_x(y)$ is the ``flattest possible'' function (in a least-squares sense) that has Neumann boundary conditions and interpolates the data $\varphi_{x_i}(y)$. 
 
