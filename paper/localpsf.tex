@@ -510,91 +510,46 @@ We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to 
 \begin{equation}
 \label{eq:wi_optimization_problem}
 \begin{aligned}
-\min_{w_i \in H^2(\Omega)} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
+\min_{w_i \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
 \text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
 \end{aligned}
 \end{equation}
-Here $\Delta$ is the Laplacian on $\Omega$ with pure Neumann boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense. Theorem \ref{thm:smoothest_interpolant} relies on some straightforward prerequisites that we present in Definition \ref{def:stiffness_mass}, Proposition \ref{prop:equivalent_writing_of_weighting_optimization}, and Corollary \ref{cor:linearity_of_solution_operator}. In Theorem \ref{thm:wi_sum_to_one} we note that the weighting functions sum to one pointwise.
+Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense. In Theorem \ref{thm:wi_sum_to_one} we note that the weighting functions sum to one pointwise. These theorems rely on straightforward prerequisites that we present in Lemma \ref{lem:T_is_linear} 
 
-In Section \ref{sec:computation_of_weighting_functions}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$. Constructing all $q$ of the functions $w_i$ requires solving the Poisson equation $2q$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All the existing weighting functions, $\{w_i\}_{i=1}^q$, will change if a new point, $x_{q+1}$, is added. However, we present an efficient incremental algorithm for updating these weighting functions when a new point is added, so that we only need to perform two new Poisson PDE solves, rather than $2(q+1)$ new PDE solves.
+In Algorithm \ref{alg:weighting_functions_incremental}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$. We prove \ref{alg:weighting_functions_incremental} in Theorem \ref{thm:wi_alg_is_correct}. Constructing all $r$ of the functions $w_i$ requires solving the Poisson equation $2r$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All the existing weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. The Poisson PDE solves can be performed incrementally, so that we only need to perform two new Poisson PDE solves when a new point is added, rather than $2(r+1)$ new PDE solves.
 
-It is important to note that functions in $H^2$ only have well-defined pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. 
+It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. 
 
-\begin{defn}
-	\label{def:stiffness_mass}
-	We define $\mathcal{K}:H^2(\Omega)\rightarrow L^2(\Omega)'$ and $\mathcal{M}:L^2(\Omega) \rightarrow L^2(\Omega)'$ to be the following linear operators:
-	\begin{align*}
-	\left(\mathcal{K}u\right)(v) :=& \int_\Omega v \Delta u ~dx \\
-	\left(\mathcal{M}u\right)(v) :=& \int_\Omega u v ~dx,
-	\end{align*}
-	and $\mathcal{P}:H^2(\Omega)\rightarrow \mathbb{R}^r$ to be the following pointwise observation operator:
-	\begin{equation*}
-	(\mathcal{P}u)_i = u(x_i)
-	\end{equation*}
-	for $i=1,\dots,r$.
-\end{defn}
-
-\begin{prop}
-	\label{prop:equivalent_writing_of_weighting_optimization}
-	Let $f \in \mathbb{R}^r$ be arbitrary. The optimization problem
+\begin{lem}
+	\label{lem:T_is_linear}
+	Let $f \in \mathbb{R}^r$. There exists a unique solution to the following optimization problem:
 	\begin{equation}
 	\label{eq:generic_optimization_initial}
 	\begin{aligned}
-	\min_{u \in H^2(\Omega)} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
-	\text{such that} &\quad u(x_i) = f_i, \quad i=1,\dots,r
+	\min_{u \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
+	\text{such that} &\quad u(x_i) = f_i, \quad i=1,\dots,r.
 	\end{aligned}
 	\end{equation}
-	may be rewritten as follows:
-	\begin{equation}
-		\label{eq:generic_optimization}
-		\begin{aligned}
-		\min_{u \in H^2(\Omega)} &\quad \frac{1}{2} \left(\mathcal{K}^T\mathcal{M}^{-1}\mathcal{K}u\right)(u) \\
-		\text{such that} &\quad 
-		\mathcal{P} u = f.
-		\end{aligned}
-	\end{equation}
-\end{prop}
-
-\begin{prop}
-	There exists a unique solution to optimization problem \eqref{eq:generic_optimization}. The solution to \eqref{eq:generic_optimization}, $u^*$, and the adjoint variable for enforcing the constraint, $\lambda^*$, solve the following Karun-Kush-Tucker (KKT) system:
-	\begin{equation}
-	\label{eq:weighting_kkt}
-		\begin{bmatrix}
-			\mathcal{K}^T\mathcal{M}^{-1}\mathcal{K} & \mathcal{P}^T \\
-			\mathcal{P} & 0
-		\end{bmatrix}
-		\begin{bmatrix}
-			u^* \\ \lambda^*
-		\end{bmatrix}
-		=
-		\begin{bmatrix}
-			0 \\ f
-		\end{bmatrix},
-	\end{equation}
-	where we use block-matrix notation to denote block-operators.
-\end{prop}
-
-\begin{cor}
-	\label{cor:linearity_of_solution_operator}
-	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization}	as a function of $f$. That is, 
+	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
 	\begin{equation*}
-		\mathcal{T}(f) := u^*,
+	\mathcal{T}(f) := u^*,
 	\end{equation*}
-	where $u^*$ is the minimizer of \eqref{eq:generic_optimization}. The operator $\mathcal{T}$ is a linear operator.
-\end{cor}
+	where $u^*$ is the minimizer of \eqref{eq:generic_optimization_initial}. The operator $\mathcal{T}$ is a linear operator.
+\end{lem}
+
 
 \begin{thm}
 	\label{thm:smoothest_interpolant}
-Here let $u$ be the function
+Let $y \in \mathbb{R}^d$, and let $u$ be the function
 \begin{equation}
 \label{eq:u_defn_in_thm}
 u(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \widetilde{A}\left(y+x,x\right)
 \end{equation}
-for an arbitrary but fixed value of $y$, where the weighting functions $w_i$ are the solutions to optimization problems \eqref{eq:wi_optimization_problem}. Then $u$ solves the optimization problem
+where the weighting functions $w_i$ are the solutions to optimization problems \eqref{eq:wi_optimization_problem}. Then $u$ solves the optimization problem
 \begin{equation}
 \label{eq:uy_optimization_problem}
 \begin{aligned}
-\min_{u} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
+\min_{u \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
 \text{such that} &\quad u(x_i) = \varphi_i(y), \quad i=1,\dots,q.
 \end{aligned}
 \end{equation}
@@ -606,7 +561,7 @@ for an arbitrary but fixed value of $y$, where the weighting functions $w_i$ are
 		&= \varphi_1(y) w_1 + \varphi_2(y) w_2 + \dots +\varphi_r(y) w_r \\
 		&= u.
 	\end{align*}
- 	In the first line we used linearity of the solution map, $\mathcal{T}$ (Corollary \ref{cor:linearity_of_solution_operator}), in the second line we used the fact that $w_i = \mathcal{T}(e_i)$, and in the third line we used the definition of $u$ in \eqref{eq:u_defn_in_thm}.
+ 	In the first line we used linearity of the solution map, $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), in the second line we used the fact that $w_i = \mathcal{T}(e_i)$, and in the third line we used the definition of $u$ in \eqref{eq:u_defn_in_thm}.
 \end{proof}
 
 \begin{thm}
@@ -625,6 +580,60 @@ for an arbitrary but fixed value of $y$, where the weighting functions $w_i$ are
 	\end{equation*}
 	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality ($\mathcal{T}(\mathbf{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \mathbf{1}$, and yields the minimum possible value of zero for the objective function.
 \end{proof}
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	%	\Input{Function $v \mapsto \mathcal{H}^Tv$}
+	
+	%	\mbox{}\\
+	
+	%	\Output{Spatially varying mean $\mu:\Omega \rightarrow \mathbb{R}^d$, \\ 
+	%		Spatially varying covariance $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}$}
+	%	\Begin{
+	{	
+		\For{$i=1,2, \dots, r$}{
+			Compute $\psi_i$ as the solution to the Poisson problem
+			\begin{equation*}
+			\Delta \psi_i = \delta_{x_i}, \quad \text{in }\Omega,
+			\end{equation*}
+			with Neumann boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
+			
+			Compute $\theta_i$ as the solution to the Poisson problem
+			\begin{equation*}
+			\Delta \theta_i = \psi_i, \quad \text{in }\Omega,
+			\end{equation*}
+			with Neumann boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
+			
+		}
+		
+		Form the $r \times r$ matrix $S$ with entries
+		$$S_{ij} = \left(\psi_i, \psi_j\right)_{L^2(\Omega)}.$$
+		
+		\For{$i=1,2,\dots,r$}{
+			Compute
+			$$\alpha = \frac{\mathbf{1}^T S^{-1} e_i}{\mathbf{1}^T S^{-1} \mathbf{1}},$$
+			where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one, and $e_i = (0,\dots,0,1,0,\dots,0)$ is the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero.
+			
+			Compute 
+			\begin{equation*}
+			\lambda = -S^{-1} \left(e_i - \alpha \mathbf{1} \right).
+			\end{equation*}
+			
+			Form the weighting function $w_i$ given by
+			$$w_i(x) = \alpha - \sum_{k=1}^r \lambda_k \theta_k(x).$$
+		}
+	}
+	\caption{Compute weighting functions $w_i$, $i=1,\dots,r$.}
+	\label{alg:weighting_functions_incremental}
+\end{algorithm2e}
+
+
+\begin{thm}
+\label{thm:wi_alg_is_correct}
+	The weighting functions $w_i$ computed by Algorithm \ref{alg:weighting_functions_incremental} solve optimization problem \ref{eq:wi_optimization_problem}.
+\end{thm}
 
 %Since the Laplacian measures local deviation from flatness [cite Jacobsen], from \eqref{eq:uy_optimization_problem} we see that the interpolant $x \mapsto u_y(x) = \widetilde{\varphi}_x(y)$ is the ``flattest possible'' function (in a least-squares sense) that has Neumann boundary conditions and interpolates the data $\varphi_{x_i}(y)$. 
 
@@ -803,54 +812,6 @@ and
 \end{equation*}
 The columns of $\Psi$ are the responses of $A^+$ to point sources (delta distributions) centered at the sample points $x_i$. The columns of $\Theta$ are the responses of $A^+M^{-1} A$ to these point sources. The matrices $\Psi$ and $\Theta$ may be constructed incrementally as new points are added. 
 
-\begin{algorithm2e}
-	\SetAlgoNoLine
-	\SetKwInOut{Input}{Input}
-	\SetKwInOut{Output}{Output}
-	%	\Input{Function $v \mapsto \mathcal{H}^Tv$}
-	
-	%	\mbox{}\\
-	
-	%	\Output{Spatially varying mean $\mu:\Omega \rightarrow \mathbb{R}^d$, \\ 
-	%		Spatially varying covariance $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}$}
-	%	\Begin{
-	{	
-		\For{$i=1,2, \dots, r$}{
-			Compute $\psi_i$ as the solution to the Poisson problem
-			\begin{equation*}
-				\Delta \psi_i = \delta_{x_i}, \quad \text{in }\Omega,
-			\end{equation*}
-			with Neumann boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
-			
-			Compute $\theta_i$ as the solution to the Poisson problem
-			\begin{equation*}
-			\Delta \theta_i = \psi_i, \quad \text{in }\Omega,
-			\end{equation*}
-			with Neumann boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
-			
-		}
-	
-		Form the $r \times r$ matrix $S$ with entries
-		$$S_{ij} = \left(\psi_i, \psi_j\right)_{L^2(\Omega)}.$$
-		
-		\For{$i=1,2,\dots,r$}{
-			Compute
-			$$\alpha = \frac{\mathbf{1}^T S^{-1} e_i}{\mathbf{1}^T S^{-1} \mathbf{1}},$$
-			where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one, and $e_i = (0,\dots,0,1,0,\dots,0)$ is the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero.
-			
-			Compute 
-			\begin{equation*}
-			\lambda = -S^{-1} \left(e_i - \alpha \mathbf{1} \right).
-			\end{equation*}
-			
-			Form the weighting function
-			$$w_i = -\sum_{k=1}^r \lambda_k \theta_k + \alpha C,$$
-			where we recall that $C$ is the constant function $C(x)=1$ on $\Omega$.
-		}
-	}
-	\caption{Compute weighting functions $w_i$, $i=1,\dots,r$.}
-	\label{alg:weighting_functions_incremental}
-\end{algorithm2e}
 
 
 \section{Interpolating impulse response samples old}
@@ -1523,6 +1484,70 @@ The coefficient vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ for $\e
 \end{equation*}
 
 \section{old stuff}
+
+\begin{defn}
+	\label{def:stiffness_mass}
+	We define $\mathcal{K}:H^2(\Omega)\rightarrow L^2(\Omega)'$ and $\mathcal{M}:L^2(\Omega) \rightarrow L^2(\Omega)'$ to be the following linear operators:
+	\begin{align*}
+	\left(\mathcal{K}u\right)(v) :=& \int_\Omega v \Delta u ~dx \\
+	\left(\mathcal{M}u\right)(v) :=& \int_\Omega u v ~dx,
+	\end{align*}
+	and $\mathcal{P}:H^2(\Omega)\rightarrow \mathbb{R}^r$ to be the following pointwise observation operator:
+	\begin{equation*}
+	(\mathcal{P}u)_i = u(x_i)
+	\end{equation*}
+	for $i=1,\dots,r$.
+\end{defn}
+
+\begin{prop}
+	\label{prop:solution_operator_is_linear}
+	Let $f \in \mathbb{R}^r$ be arbitrary. The optimization problem
+	\begin{equation}
+	\label{eq:generic_optimization_initial_old}
+	\begin{aligned}
+	\min_{u \in H^2(\Omega)} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
+	\text{such that} &\quad u(x_i) = f_i, \quad i=1,\dots,r
+	\end{aligned}
+	\end{equation}
+	may be rewritten as follows:
+	\begin{equation}
+	\label{eq:generic_optimization}
+	\begin{aligned}
+	\min_{u \in H^2(\Omega)} &\quad \frac{1}{2} \left(\mathcal{K}^T\mathcal{M}^{-1}\mathcal{K}u\right)(u) \\
+	\text{such that} &\quad 
+	\mathcal{P} u = f.
+	\end{aligned}
+	\end{equation}
+\end{prop}
+
+\begin{prop}
+	There exists a unique solution to optimization problem \eqref{eq:generic_optimization}. The solution to \eqref{eq:generic_optimization}, $u^*$, and the adjoint variable for enforcing the constraint, $\lambda^*$, solve the following Karun-Kush-Tucker (KKT) system:
+	\begin{equation}
+	\label{eq:weighting_kkt}
+	\begin{bmatrix}
+	\mathcal{K}^T\mathcal{M}^{-1}\mathcal{K} & \mathcal{P}^T \\
+	\mathcal{P} & 0
+	\end{bmatrix}
+	\begin{bmatrix}
+	u^* \\ \lambda^*
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	0 \\ f
+	\end{bmatrix},
+	\end{equation}
+	where we use block-matrix notation to denote block-operators.
+\end{prop}
+
+\begin{cor}
+	\label{cor:linearity_of_solution_operator}
+	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization}	as a function of $f$. That is, 
+	\begin{equation*}
+	\mathcal{T}(f) := u^*,
+	\end{equation*}
+	where $u^*$ is the minimizer of \eqref{eq:generic_optimization}. The operator $\mathcal{T}$ is a linear operator.
+\end{cor}
+
 
 \footnote{The reason for this dependence on spatial dimension is related to the fact that the fundamental solution of the biharmonic equation is continuous in $3$ or less dimensions, but singular in $4$ or more dimensions. In the unusual scenario where one is inverting for a parameter field in $4$ or more spatial dimensions, one could use a modified Poisson interpolation where $\Delta$ is replaced with $\Delta^\alpha$ in the objective function of \eqref{eq:wi_optimization_problem}, where $\alpha>1$ is chosen so that the fundamental solution of $\Delta^{2\alpha}$ is continuous.}
 
