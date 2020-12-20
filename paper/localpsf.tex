@@ -405,9 +405,10 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \label{sec:greedy_point_selection}
 
 Ideally, sample points $x_i$ and $x_j$ should be far enough apart from each other that the supports of $\left\langle\mathcal{A}, \delta_{x_i}\right\rangle^*$ and $\left\langle\mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap. Since it is too expensive compute the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ directly, we instead estimate that the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ is contained in the ellipsoid
-\begin{equation*}
+\begin{equation}
+\label{eq:support_ellipsoid}
 	E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
-\end{equation*}
+\end{equation}
 where $\tau$ is a small number of standard deviations; we use $\tau=3$. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean for the Gaussian distribution that has the same mean and covariance as $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$. The fraction of the mass of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
 %We call $E_x$ the \emph{unit ellipsoid} with mean $\mu(x)$ and covariance $\Sigma(x)/\tau^2$.
 
@@ -417,41 +418,53 @@ We select a batch of sample points, $S_b$, randomly from a finite set of candida
 We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the total number of sample points exceeds a desired threshold. We write $S = S_1 \cup \dots$ to denote the set of sample points from all batches. In our implementation, the set of candidate points $P$ is the set of all Lagrange nodes for the finite element basis functions $\phi_i$ used to discretize the problem, minus all of the Lagrange nodes that are in $\Omega_B$, minus all points in previously chosen batches. 
 
 
-%\begin{algorithm2e}
-%	\SetAlgoNoLine
-%	\SetKwInOut{Input}{Input}
-%	\SetKwProg{Fn}{Function}{}{}
-%
-%	Start with a finite set of candidate points $P \subset \Omega_I$
-%	
-%	$S_b \gets \{\}$
-%	
-%	\While{$P$ is not empty}{
-%		Pick a random point $p \in P$ and remove $p$ from $P$
-%		
-%		$p\text{\_is\_acceptable} \gets \text{True}$
-%		
-%		\For{$q \in S_b$}{
-%			
-%			\If{$E_p \cap E_q \neq \{\}$}{
-%				
-%				$p\text{\_is\_acceptable} \gets \text{False}$
-%				
-%				Terminate for loop
-%			}
-%		}
-%	
-%		\If{$p\text{\_is\_acceptable}$}{
-%			
-%			$S_b \gets S_b \cup \{p\}$
-%			
-%			$P \gets P \setminus \{q \in P : \mu(q) \in E_p\}$
-%		}
-%	}
-%
-%	\caption{Choosing one batch of sample points, $S_b$}
-%	\label{alg:point_choice}
-%\end{algorithm2e}
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwProg{Fn}{Function}{}{}
+
+	Start with a finite set of candidate points $P \subset \Omega_I$
+	
+	Initialize new empty batch of sample points, $S_b$
+	
+	\While{$P$ is not empty}{
+		Determine the point $p \in P$ that is farthest from all points in previous sample point batches
+		
+		Remove $p$ from $P$
+	
+		\If{$\text{point\_is\_acceptable}(p, S_b)$}{
+			
+			Add $p$ to $S_b$
+			
+			Remove all points $q$ with $\mu(q) \in E_p$ from $P$
+		}
+	}
+
+    \SetKwFunction{FMain}{point\_is\_acceptable}
+\SetKwProg{Fn}{Function}{:}{}
+\Fn{\FMain{$p$, $S_b$}}{
+	
+	$p\text{\_is\_acceptable} \gets \text{True}$
+	
+	$E_p$ is the ellipsoid associated with $p$ (see \eqref{eq:support_ellipsoid})
+	
+	\For{$q \in S_b$}{
+		
+		$E_q$ is the ellipsoid associated with $q$
+		
+		\If{$E_p \cap E_q \neq \{\}$}{
+			
+			$p\text{\_is\_acceptable} \gets \text{False}$
+			
+			Terminate for loop
+		}
+	}
+	\textbf{return} $p\text{\_is\_acceptable}$ 
+}
+
+	\caption{Choosing one batch of sample points, $S_b$}
+	\label{alg:point_choice}
+\end{algorithm2e}
 
 
 \subsection{Extracting impulse responses at sample points}
