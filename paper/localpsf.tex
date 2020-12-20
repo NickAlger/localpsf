@@ -647,16 +647,30 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 	We have
 	\begin{equation}
 	\label{eq:inline_wi_lemma}
-	\left(\psi_j, \Delta h\right)_{L^2(\Omega)} = h(x_j) - \avg(h)
+	h(x_j) = \left(\psi_j, \Delta h\right)_{L^2(\Omega)} + \avg(h)
 	\end{equation}
 	for all $h\in H^2_N(\Omega)$, where
 	\begin{equation*}
-		\avg(h) :=	 \frac{1}{|\Omega|} \int_\Omega h ~dx.
+		\avg(h) :=	 \frac{1}{|\Omega|} \int_\Omega h ~dx,
 	\end{equation*}
+	and $|\Omega| = \int_\Omega 1 ~dx$ is the Lebesgue measure of $\Omega$.
 \end{lem}
 
 \begin{proof}
-	This is a standard result that follows from integration by parts and the definition of $\psi$ in \eqref{eq:psi_eq}.
+	The standard weak form for $\psi_j$ in \eqref{eq:psi_eq} is given by the following saddle point system for $\psi_j \in H^1(\Omega)$ and $\rho \in \mathbb{R}$:
+	\begin{alignat}{5}
+		-\int_\Omega \nabla \psi_j \cdot \nabla h ~dx &~+~& \rho \int_\Omega h ~dx &~=~ h(x_j) &\quad \forall h \in H^1(\Omega) \label{eq:lem_delta_eval_feq} \\
+		\int_\Omega \psi_j ~dx & & &~=~ 0. & \nonumber
+	\end{alignat}
+	This follows from integration by parts, using the Neumann zero boundary conditions for $\psi_j$, and enforcing the average value zero constraint for $\psi_j$ with the Lagrange multiplier $\rho$. If $h$ is the constant function $h(x)=1$, the first equation becomes
+	\begin{equation*}
+		\rho \int_\Omega 1 ~ dx = 1,
+	\end{equation*}
+	which implies $\rho = \frac{1}{|\Omega|}$. Now suppose that $h\in H^2_N(\Omega)$. Of course, we still have $h\in H^1(\Omega)$ as well, so equation \eqref{eq:lem_delta_eval_feq} still holds. But now $h$ has additional regularity, which allows us to use integration by parts on the first term in \eqref{eq:lem_delta_eval_feq} to bring all of the derivatives onto $h$. Furthermore, $h$ has Neumann zero boundary conditions, so the boundary term that arises during integration by parts is zero. Performing this integration by parts, and substituting in the value for $\rho$, yields
+	\begin{equation*}
+		\int_\Omega \psi_j \Delta h ~dx + \frac{1}{|\Omega|} \int_\Omega h ~dx = h(x_j),
+	\end{equation*}
+	which is the desired result.
 \end{proof}
 
 \begin{thm}[Correctness of Algorithm \ref{alg:weighting_functions_incremental}]
@@ -665,13 +679,13 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 \end{thm}
 
 \begin{proof}
-	For notational convenience, in this proof we write $w$, $\lambda$, and $e$ instead of $w_i$, $\lambda_i$, and $e_i$, respectively. Here subscripts for $\lambda$, and $e$ instead denote components of those vectors. For example, here $\lambda_j$ denotes the $j^\text{th}$ component of the vector $\lambda$, which corresponds to the $j^\text{th}$ of the vector $\lambda_i$ in Algorithm \ref{alg:weighting_functions_incremental}.
+	For notational convenience, in this proof we write $w$, $\lambda$, and $e$ instead of $w_i$, $\lambda_i$, and $e_i$, respectively. Here subscripts for $\lambda$, and $e$ instead denote components of those vectors. For example, here $\lambda_j$ denotes the $j^\text{th}$ component of the vector $\lambda$, which corresponds to the $j^\text{th}$ component of the vector $\lambda_i$ in Algorithm \ref{alg:weighting_functions_incremental}.
 	
 	From standard optimization theory, the solution to optimization problem \ref{eq:wi_optimization_problem} is the stationary point of the Lagrangian,
 	\begin{equation*}
 		\mathcal{L}(w,\lambda) = \frac{1}{2}\|\Delta w\|^2 + \sum_{j=1}^r \lambda_j\left(w(x_j) - e_j\right).
 	\end{equation*}
-	We will prove the theorem by showing that $\nabla \mathcal{L}(w,\lambda)=0$.
+	The plan of this proof is to show that $\nabla \mathcal{L}(w,\lambda)=0$, which will verify that $w$ solves optimization problem \ref{eq:wi_optimization_problem}.
 	
 	Using the definition of $w_i$ in \eqref{eq:definition_of_wi_alg}, we may write the gradient of $\mathcal{L}$ with respect to $\lambda_j$ as
 	\begin{equation*}
