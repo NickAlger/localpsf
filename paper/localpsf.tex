@@ -597,9 +597,9 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 			Compute $\psi_i$ as the solution to the Poisson problem
 			\begin{equation}
 			\label{eq:psi_eq}
-			\Delta \psi_i = \delta_{x_i}, \quad \text{in }\Omega,
+			\Delta \psi_i = \delta_{x_i} - C/|\Omega|, \quad \text{in }\Omega,
 			\end{equation}
-			with Neumann zero boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
+			with Neumann zero boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$. Recall $\delta_{x_i}$ is a point source (delta distribution) centered at $x_i$, $C$ is the constant function $C(x)=1$, and $|\Omega|$ is the Lebesgue measure of $\Omega$. 
 			
 			Compute $\theta_i$ as the solution to the Poisson problem
 			\begin{equation}
@@ -657,20 +657,22 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 \end{lem}
 
 \begin{proof}
-	The standard weak form for $\psi_j$ in \eqref{eq:psi_eq} is given by the following saddle point system for $\psi_j \in H^1(\Omega)$ and $\rho \in \mathbb{R}$:
-	\begin{alignat}{5}
-		-\int_\Omega \nabla \psi_j \cdot \nabla h ~dx &~+~& \rho \int_\Omega h ~dx &~=~ h(x_j) &\quad \forall h \in H^1(\Omega) \label{eq:lem_delta_eval_feq} \\
-		\int_\Omega \psi_j ~dx & & &~=~ 0. & \nonumber
-	\end{alignat}
-	This follows from integration by parts, using the Neumann zero boundary conditions for $\psi_j$, and enforcing the average value zero constraint for $\psi_j$ with the Lagrange multiplier $\rho$. If $h$ is the constant function $h(x)=1$, the first equation becomes
-	\begin{equation*}
-		\rho \int_\Omega 1 ~ dx = 1,
-	\end{equation*}
-	which implies $\rho = \frac{1}{|\Omega|}$. Now suppose that $h\in H^2_N(\Omega)$. Of course, we still have $h\in H^1(\Omega)$ as well, so equation \eqref{eq:lem_delta_eval_feq} still holds. But now $h$ has additional regularity, which allows us to use integration by parts on the first term in \eqref{eq:lem_delta_eval_feq} to bring all of the derivatives onto $h$. Furthermore, $h$ has Neumann zero boundary conditions, so the boundary term that arises during integration by parts is zero. Performing this integration by parts, and substituting in the value for $\rho$, yields
-	\begin{equation*}
-		\int_\Omega \psi_j \Delta h ~dx + \frac{1}{|\Omega|} \int_\Omega h ~dx = h(x_j),
-	\end{equation*}
-	which is the desired result.
+	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\psi_j$ onto $h$, and using the Neumann zero boundary conditions for $\psi_j$ and $h$ to eliminate boundary integral terms.
+%	
+%	The standard weak form for $\psi_j$ in \eqref{eq:psi_eq} is given by the following saddle point system for $\psi_j \in H^1(\Omega)$ and $\rho \in \mathbb{R}$:
+%	\begin{alignat}{5}
+%		-\int_\Omega \nabla \psi_j \cdot \nabla h ~dx &~+~& \rho \int_\Omega h ~dx &~=~ h(x_j) &\quad \forall h \in H^1(\Omega) \label{eq:lem_delta_eval_feq} \\
+%		\int_\Omega \psi_j ~dx & & &~=~ 0. & \nonumber
+%	\end{alignat}
+%	This follows from integration by parts, using the Neumann zero boundary conditions for $\psi_j$, and enforcing the average value zero constraint for $\psi_j$ with the Lagrange multiplier $\rho$. If $h$ is the constant function $h(x)=1$, the first equation becomes
+%	\begin{equation*}
+%		\rho \int_\Omega 1 ~ dx = 1,
+%	\end{equation*}
+%	which implies $\rho = \frac{1}{|\Omega|}$. Now suppose that $h\in H^2_N(\Omega)$. Of course, we still have $h\in H^1(\Omega)$ as well, so equation \eqref{eq:lem_delta_eval_feq} still holds. But now $h$ has additional regularity, which allows us to use integration by parts on the first term in \eqref{eq:lem_delta_eval_feq} to bring all of the derivatives onto $h$. Furthermore, $h$ has Neumann zero boundary conditions, so the boundary term that arises during integration by parts is zero. Performing this integration by parts, and substituting in the value for $\rho$, yields
+%	\begin{equation*}
+%		\int_\Omega \psi_j \Delta h ~dx + \frac{1}{|\Omega|} \int_\Omega h ~dx = h(x_j),
+%	\end{equation*}
+%	which is the desired result.
 \end{proof}
 
 \begin{thm}[Correctness of Algorithm \ref{alg:weighting_functions_incremental}]
