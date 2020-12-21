@@ -412,10 +412,15 @@ Ideally, sample points $x_i$ and $x_j$ should be far enough apart from each othe
 where $\tau$ is a small number of standard deviations; we use $\tau=3$. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean for the Gaussian distribution that has the same mean and covariance as $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$. The fraction of the mass of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
 %We call $E_x$ the \emph{unit ellipsoid} with mean $\mu(x)$ and covariance $\Sigma(x)/\tau^2$.
 
-We select a batch of sample points, $S_b$, randomly from a finite set of candidate points $P \subset \Omega_I$. Starting from an empty set, we build $S_b$ by choosing candidate points $p$ randomly from $P$, one at a time. If $p$ is sufficiently far from all of the previously chosen points, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until it is no longer possible to pick a point from $P$ that is sufficiently far from the points in $S_b$. 
+We select a batch of sample points, $S_b$, randomly from a finite set of candidate points $P$. Starting from an empty set, we build $S_b$ by choosing candidate points $p$ from $P$, one at a time. The current candidate point, $p$, is the point in $P$ that is the farthest away from all points in previous sample point baches. That is, the minimizer of the following optimization problem:
+\begin{equation*}
+\min_{p \in P} \max_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|
+\end{equation*}
+After we choose the candidate $p$, we remove $p$ from $P$.
+If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until it is no longer possible to pick a point from $P$ that is sufficiently far from the points in $S_b$. 
 %This is detailed in Algorithm \ref{alg:point_choice}. 
 
-We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the total number of sample points exceeds a desired threshold. We write $S = S_1 \cup \dots$ to denote the set of sample points from all batches. In our implementation, the set of candidate points $P$ is the set of all Lagrange nodes for the finite element basis functions $\phi_i$ used to discretize the problem, minus all of the Lagrange nodes that are in $\Omega_B$, minus all points in previously chosen batches. 
+We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the total number of sample points exceeds a desired threshold. In our implementation, the set of candidate points $P$ is the set of all Lagrange nodes for the finite element basis functions $\phi_i$ used to discretize the problem, minus all points in previously chosen batches. 
 
 
 \begin{algorithm2e}
@@ -433,7 +438,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 		Remove $p$ from $P$
 	
 %		\If{$\text{point\_is\_acceptable}(p, S_b)$}{
-		\If{$E_p \cap E_q \neq \{\}$ for all $q \in S_b$}{
+		\If{$E_p \cap E_q \neq \{\}$ for all $q \in S_b$ and $E_p \cap \partial \Omega = \{\}$}{
 			
 			Add $p$ to $S_b$
 			
