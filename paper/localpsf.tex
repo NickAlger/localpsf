@@ -428,39 +428,40 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 	Initialize new empty batch of sample points, $S_b$
 	
 	\While{$P$ is not empty}{
-		Determine the point $p \in P$ that is farthest from all points in previous sample point batches
+		Determine the point $p \in P$ that is farthest from all points in the previous sample point batches $S_1,\dots,S_{b-1}$
 		
 		Remove $p$ from $P$
 	
-		\If{$\text{point\_is\_acceptable}(p, S_b)$}{
+%		\If{$\text{point\_is\_acceptable}(p, S_b)$}{
+		\If{$E_p \cap E_q \neq \{\}$ for all $q \in S_b$}{
 			
 			Add $p$ to $S_b$
 			
-			Remove all points $q$ with $\mu(q) \in E_p$ from $P$
+			Remove all points $x$ satisfying $\mu(x) \in E_p$ from $P$
 		}
 	}
 
     \SetKwFunction{FMain}{point\_is\_acceptable}
-\SetKwProg{Fn}{Function}{:}{}
-\Fn{\FMain{$p$, $S_b$}}{
-	
-	$p\text{\_is\_acceptable} \gets \text{True}$
-	
-	$E_p$ is the ellipsoid associated with $p$ (see \eqref{eq:support_ellipsoid})
-	
-	\For{$q \in S_b$}{
-		
-		$E_q$ is the ellipsoid associated with $q$
-		
-		\If{$E_p \cap E_q \neq \{\}$}{
-			
-			$p\text{\_is\_acceptable} \gets \text{False}$
-			
-			Terminate for loop
-		}
-	}
-	\textbf{return} $p\text{\_is\_acceptable}$ 
-}
+%\SetKwProg{Fn}{Function}{:}{}
+%\Fn{\FMain{$p$, $S_b$}}{
+%	
+%	$p\text{\_is\_acceptable} \gets \text{True}$
+%	
+%	$E_p$ is the ellipsoid associated with $p$ (see \eqref{eq:support_ellipsoid})
+%	
+%	\For{$q \in S_b$}{
+%		
+%		$E_q$ is the ellipsoid associated with $q$
+%		
+%		\If{$E_p \cap E_q \neq \{\}$}{
+%			
+%			$p\text{\_is\_acceptable} \gets \text{False}$
+%			
+%			Terminate for loop
+%		}
+%	}
+%	\textbf{return} $p\text{\_is\_acceptable}$ 
+%}
 
 	\caption{Choosing one batch of sample points, $S_b$}
 	\label{alg:point_choice}
