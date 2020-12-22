@@ -416,15 +416,15 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 
 %We call $E_x$ the \emph{unit ellipsoid} with mean $\mu(x)$ and covariance $\Sigma(x)/\tau^2$.
 
-Starting from a finite set of candidate points $P$, we select batches of sample points, $S_b$, using a greedy algorithm. To build a batch $S_b$, first we initialize $S_b$ as an empty set. Then we select a candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, the maximizer of the following optimization problem:
+Starting from a finite set of candidate points $P$, we select batches of sample points, $S_b$, using a greedy algorithm. To build a batch $S_b$, first we initialize $S_b$ as an empty set. Then we select a candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is the maximizer of the following optimization problem:
 \begin{equation*}
 \max_{p \in P} \min_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|.
 \end{equation*}
-Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}.
+Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
 
 %We select a batches of sample points, $S_b$, from a finite set of candidate points $P$ using a greedy algorithm. Starting from an empty set, we build $S_b$ from candidate points $p$ from $P$, one point at a time. The current candidate point, $p$, is the point in $P$  
 
-We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches. The set $P$ is re-initialized for each batch $S_b$.
+We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches.
 
 
 \begin{algorithm2e}
@@ -502,7 +502,7 @@ Since the points $x_i$ are chosen so that the support of $\langle\mathcal{A},\de
 		0, & \text{otherwise}.
 		\end{cases}
 \end{equation}
-for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover $\varphi_{x_i}$ for every point $x_i \in S_b$. 
+for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover $\varphi_{x_i}$ for every point $x_i \in S_b$. To minimize memory usage, the functions $\varphi_i$ are never isolated and stored individually. Instead, we store the functions $\eta^b$, and use formula \eqref{eq:varphi_eval} to perform function evaluations $z \mapsto \varphi_i(z)$ as needed.
 %For $x_i \in X$ and $y \in \mathbb{R}^d$, we may evaluate $\varphi_{x_i}(y)$ by finding the batch $X_b$ that $x_i$ is contained in, then using \eqref{eq:varphi_eval}. 
 
 %\begin{algorithm2e}
@@ -1232,6 +1232,7 @@ Some conclusions here.
 
 
 \section{Fast ellipsoid intersection test}
+\label{sec:fast_ellipsoid_intersection_test}
 The procedure for choosing sample points relies on quickly determining whether two ellipsoids intersect. Let $E_p$ and $E_q$ be the ellipsoids defined as
 \begin{align*}
 	E_p :=& \{x : (x - \mu_p)^T \Sigma_p^{-1} (x - \mu_p) \le \tau^2\} \\
