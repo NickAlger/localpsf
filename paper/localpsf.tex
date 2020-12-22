@@ -396,7 +396,7 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 		
 %		\Return{$\mu$, $\Sigma$}
 	}
-	\caption{Compute volume $\alpha_h$, mean $\mu_h$, and covariance $\Sigma_h$}
+	\caption{Compute volume $\alpha$, mean $\mu$, and covariance $\Sigma$}
 	\label{alg:varhpi_mean_cov}
 \end{algorithm2e}
 
@@ -405,7 +405,7 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \subsection{Greedy sample point selection}
 \label{sec:greedy_point_selection}
 
-Ideally, sample points $x_i$ and $x_j$ should be far enough apart from each other that the supports of $\left\langle\mathcal{A}, \delta_{x_i}\right\rangle^*$ and $\left\langle\mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap. 
+% sample points $x_i$ and $x_j$ should be far enough apart from each other that the supports of $\left\langle\mathcal{A}, \delta_{x_i}\right\rangle^*$ and $\left\langle\mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap. 
 
 %Since it is too expensive compute the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ directly, we instead estimate that the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ is contained in the ellipsoid
 %\begin{equation}
@@ -416,15 +416,15 @@ Ideally, sample points $x_i$ and $x_j$ should be far enough apart from each othe
 
 %We call $E_x$ the \emph{unit ellipsoid} with mean $\mu(x)$ and covariance $\Sigma(x)/\tau^2$.
 
-We select a batch of sample points, $S_b$, randomly from a finite set of candidate points $P$. Starting from an empty set, we build $S_b$ by choosing candidate points $p$ from $P$, one at a time. The current candidate point, $p$, is the point in $P$ that is the farthest away from all points in previous sample point baches. That is, the maximizer of the following optimization problem:
+Starting from a finite set of candidate points $P$, we select batches of sample points, $S_b$, using a greedy algorithm. To build a batch $S_b$, first we initialize $S_b$ as an empty set. Then we select a candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, the maximizer of the following optimization problem:
 \begin{equation*}
 \max_{p \in P} \min_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|.
 \end{equation*}
-After we choose the candidate $p$, we remove $p$ from $P$.
-If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$. 
-%This is detailed in Algorithm \ref{alg:point_choice}. 
+Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}.
 
-We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the total number of sample points exceeds a desired threshold. In our implementation, the set of candidate points $P$ is the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches. 
+%We select a batches of sample points, $S_b$, from a finite set of candidate points $P$ using a greedy algorithm. Starting from an empty set, we build $S_b$ from candidate points $p$ from $P$, one point at a time. The current candidate point, $p$, is the point in $P$  
+
+We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches. The set $P$ is re-initialized for each batch $S_b$.
 
 
 \begin{algorithm2e}
