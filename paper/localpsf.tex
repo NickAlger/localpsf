@@ -295,9 +295,7 @@ This section describes how we compute the convolution kernels, $\varphi_i$, and 
 \end{equation}
 
 
-We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). We use a greedy algorithm to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$ (Section \ref{sec:greedy_point_selection}).
-
-Ensuring that the points $x_i$ are well separated from each other requires estimating the supports of the functions $\langle\mathcal{A},\delta_{x}\rangle^*$ (Section \ref{eq:mean_and_covariance_estimation}). Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnegative, $\langle\mathcal{A},\delta_{x}\rangle^*$ is a scaled probability distribution. We compute the scaling factors for all $x$ simultaneously by applying $\mathcal{A}$ to a constant function. We then compute the mean and covariance of the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. The support of $\langle\mathcal{A},\delta_{x}\rangle^*$ is estimated to be contained in an ellipsoid of points that are within a small number of standard deviations of the mean for a Gaussian distribution with the same mean and covariance as the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$.
+We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). We use a greedy algorithm to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$ (Section \ref{sec:greedy_point_selection}). Ensuring that the points $x_i$ are well separated from each other requires estimating the supports of the functions $\langle\mathcal{A},\delta_{x}\rangle^*$ (Section \ref{eq:mean_and_covariance_estimation}). 
 
 %The function $\varphi_x(y)$ is undefined when $x + y \notin \Omega$, which can occur even if $x \in \Omega$ and $y \in \Omega$. Extending $\varphi_x$ by zero makes it defined for all $y \in \mathbb{R}^d$, but this extension is only reasonable if $x$ is far enough from $\partial \Omega$ that $\varphi_x(y)$ decays to zero, as a function of $y$, before $y$ reaches $\partial \Omega$. We therefore choose exclude sample points $x_i$ if the ellipsoid associated with that point overlaps the boundary.
 
@@ -306,22 +304,34 @@ Ensuring that the points $x_i$ are well separated from each other requires estim
 \subsection{Mean and covariance estimation}
 \label{eq:mean_and_covariance_estimation}
 
-Let 
-\begin{equation*}
-	\rho_x := \langle\mathcal{A}, \delta_x\rangle^* \big/ \alpha(x)
-\end{equation*}
-denote the normalized version of $\langle\mathcal{A}, \delta_x\rangle^*$, where $\alpha:\Omega \rightarrow \mathbb{R}$ is the volume function
-\begin{equation*}
-	\alpha(x) := \int_{\Omega} \langle\mathcal{A}, \delta_x\rangle^*(z) dz.
-\end{equation*}
-Note that $\rho_x$ is a probability distribution on $\Omega$.
+Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnegative, $\langle\mathcal{A},\delta_{x}\rangle^*$ is a scaled probability distribution. We compute the scaling factor, denoted $\alpha(x)$, for all $x$ simultaneously by applying $\mathcal{A}$ to a constant function. We then compute the mean, $\mu(x)$, and covariance, $\Sigma(x)$ of the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. The support of $\langle\mathcal{A},\delta_{x}\rangle^*$ is estimated to be contained in an ellipsoid of points that are within a small number of standard deviations of the mean for a Gaussian distribution with the same mean and covariance as the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$.
 
-In Proposition \ref{thm:vol_mean_cov}, we see that $\alpha(x)$ may be computed for all $x$ simultaneously by applying $\mathcal{A}^T$ to a constant function. We also see that the spatially varying mean, $\mu(x)$, and covariance, $\Sigma(x)$, of $\rho_x$, defined as
-\begin{align*}
-	\mu(x) :=& \int_\Omega z \rho_x(z) dz \\
-	\Sigma(x) :=& \int_\Omega (z - \mu(x))(z - \mu(x))^T \rho_x(z) dz
-\end{align*}
-may be computed for all $x$ simultaneously by applying $\mathcal{A}^T$ to $d$ linear functions, and $d(d+1)/2$ quadratic functions, respectively. In Algorithm \ref{alg:varhpi_mean_cov} we describe an algorithm for computing the volume function, mean, and covariance based on the results of Proposition \ref{thm:vol_mean_cov}.
+\begin{defn}
+	We define the spatially varying volume, $\alpha$, the scaled impulse response, $\rho_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
+	\begin{align*}
+		\alpha:\Omega \rightarrow \mathbb{R}, &\qquad \alpha(x) := \int_{\Omega} \langle\mathcal{A}, \delta_x\rangle^*(z) dz, \\
+		\rho_x:\Omega \rightarrow \mathbb{R}, &\qquad \rho_x := \langle\mathcal{A}, \delta_x\rangle^* \big/ \alpha(x), \\
+		\mu:\Omega \rightarrow \mathbb{R}^d, &\qquad \mu(x) := \int_\Omega z \rho_x(z) dz, \\
+		\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \rho_x(z) dz.
+	\end{align*}
+\end{defn}
+
+%Let 
+%\begin{equation*}
+%	\rho_x := \langle\mathcal{A}, \delta_x\rangle^* \big/ \alpha(x)
+%\end{equation*}
+%denote the normalized version of $\langle\mathcal{A}, \delta_x\rangle^*$, where $\alpha:\Omega \rightarrow \mathbb{R}$ is the volume function
+%\begin{equation*}
+%	\alpha(x) := \int_{\Omega} \langle\mathcal{A}, \delta_x\rangle^*(z) dz.
+%\end{equation*}
+%Note that $\rho_x$ is a probability distribution on $\Omega$.
+%
+%In Proposition \ref{thm:vol_mean_cov}, we see that $\alpha(x)$ may be computed for all $x$ simultaneously by applying $\mathcal{A}^T$ to a constant function. We also see that the spatially varying mean, $\mu(x)$, and covariance, $\Sigma(x)$, of $\rho_x$, defined as
+%\begin{align*}
+%	\mu(x) :=& \int_\Omega z \rho_x(z) dz \\
+%	\Sigma(x) :=& \int_\Omega (z - \mu(x))(z - \mu(x))^T \rho_x(z) dz
+%\end{align*}
+%may be computed for all $x$ simultaneously by applying $\mathcal{A}^T$ to $d$ linear functions, and $d(d+1)/2$ quadratic functions, respectively. In Algorithm \ref{alg:varhpi_mean_cov} we describe an algorithm for computing the volume function, mean, and covariance based on the results of Proposition \ref{thm:vol_mean_cov}.
 
 
 \begin{prop}
