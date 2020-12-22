@@ -526,7 +526,7 @@ for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_
 
 
 
-\section{Poisson interpolation weighting functions}
+\subsection{Poisson interpolation weighting functions}
 \label{sec:weighting_functions}
 
 We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to the following optimization problem:
@@ -537,28 +537,11 @@ We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to 
 \text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
 \end{aligned}
 \end{equation}
-Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense. In Proposition \ref{thm:wi_sum_to_one} we note that the weighting functions sum to one pointwise. These results rely on straightforward prerequisites that we present in Lemma \ref{lem:T_is_linear} 
+Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}). 
 
-In Algorithm \ref{alg:weighting_functions_incremental}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$. We prove correctness of Algorithm \ref{alg:weighting_functions_incremental} in Theorem \ref{thm:wi_alg_is_correct}. Theorem \ref{thm:wi_alg_is_correct} relies on a prerequisite result which we present in Lemma \ref{lem:psi_delta_eval}. Constructing all $r$ of the functions $w_i$ requires solving the Poisson equation $2r$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All the existing weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. The Poisson PDE solves can be performed incrementally, so that we only need to perform two new Poisson PDE solves when a new point is added, rather than $2(r+1)$ new PDE solves.
+In Algorithm \ref{alg:weighting_functions_incremental}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$.  Constructing all $r$ of the functions $w_i$ requires solving the Poisson equation $2r$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All of the weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. However, the dominant computational cost in constructing the weighting functions is the solution of the Poisson PDEs, and these Poisson PDE solves can be performed incrementally---we only need to perform two new Poisson PDE solves when a new point is added, rather than $2(r+1)$ new PDE solves.
 
-It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. 
-
-\begin{lem}[Preparation for Theorem \ref{thm:smoothest_interpolant}]
-	\label{lem:T_is_linear}
-	Let $f \in \mathbb{R}^r$. There exists a unique solution to the following optimization problem:
-	\begin{equation}
-	\label{eq:generic_optimization_initial}
-	\begin{aligned}
-	\min_{u \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
-	\text{such that} &\quad u(x_i) = f_i, \quad i=1,\dots,r.
-	\end{aligned}
-	\end{equation}
-	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
-	\begin{equation*}
-	\mathcal{T}(f) := u^*,
-	\end{equation*}
-	where $u^*$ is the minimizer of \eqref{eq:generic_optimization_initial}. The operator $\mathcal{T}$ is a linear operator.
-\end{lem}
+It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. Proofs for results in this section are given in Appendix \ref{app:proofs}.
 
 
 \begin{thm}[Optimal interpolation]
@@ -577,17 +560,8 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 \end{aligned}
 \end{equation}
 \end{thm}
-\begin{proof}
-	Let $f = (\varphi_1(y), \varphi_2(y), \dots, \varphi_r(y))$ and let $e_i = (0,\dots,0,1,0,\dots,0)$ be the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero. The solution to optimization problem \eqref{eq:uy_optimization_problem} is given by
-	\begin{align*}
-		\mathcal{T}(f) &= \varphi_1(y) \mathcal{T}(e_1) + \varphi_2(y) \mathcal{T}(e_2) + \dots +\varphi_r(y) \mathcal{T}(e_r) \\
-		&= \varphi_1(y) w_1 + \varphi_2(y) w_2 + \dots +\varphi_r(y) w_r \\
-		&= u.
-	\end{align*}
- 	In the first line we used linearity of the solution map, $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), in the second line we used the fact that $w_i = \mathcal{T}(e_i)$, and in the third line we used the definition of $u$ in \eqref{eq:u_defn_in_thm}.
-\end{proof}
 
-\begin{prop}
+\begin{prop}[Weighting functions sum to one]
 	\label{thm:wi_sum_to_one}
 	We have
 	\begin{equation*}
@@ -596,13 +570,7 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 	for all $x \in \Omega$.
 \end{prop}
 
-\begin{proof}
-	By linearity of $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), we have
-	\begin{equation*}
-		\sum_{i=1}^r w_i(x) = \sum_{i=1}^r \mathcal{T}(e_i)(x) = \mathcal{T}\left(\sum_{i=1}^r e_i\right)(x) = \mathcal{T}(\mathbf{1})(x) = 1,
-	\end{equation*}
-	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality ($\mathcal{T}(\mathbf{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \mathbf{1}$, and yields the minimum possible value of zero for the objective function.
-\end{proof}
+
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -665,22 +633,7 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 \end{algorithm2e}
 
 
-\begin{lem}[Preparation for Theorem \ref{thm:wi_alg_is_correct}]
-	\label{lem:psi_delta_eval}
-	We have
-	\begin{equation}
-	\label{eq:inline_wi_lemma}
-	h(x_j) = \left(\psi_j, \Delta h\right)_{L^2(\Omega)} + \avg(h)
-	\end{equation}
-	for all $h\in H^2_N(\Omega)$, where
-	\begin{equation*}
-		\avg(h) :=	 \frac{1}{|\Omega|} \int_\Omega h ~dx,
-	\end{equation*}
-	and $|\Omega| = \int_\Omega 1 ~dx$ is the Lebesgue measure of $\Omega$.
-\end{lem}
 
-\begin{proof}
-	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\psi_j$ onto $h$, and using the Neumann zero boundary conditions for $\psi_j$ and $h$ to eliminate boundary integral terms.
 %	
 %	The standard weak form for $\psi_j$ in \eqref{eq:psi_eq} is given by the following saddle point system for $\psi_j \in H^1(\Omega)$ and $\rho \in \mathbb{R}$:
 %	\begin{alignat}{5}
@@ -696,57 +649,13 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 %		\int_\Omega \psi_j \Delta h ~dx + \frac{1}{|\Omega|} \int_\Omega h ~dx = h(x_j),
 %	\end{equation*}
 %	which is the desired result.
-\end{proof}
+
 
 \begin{thm}[Correctness of Algorithm \ref{alg:weighting_functions_incremental}]
 \label{thm:wi_alg_is_correct}
 	The weighting functions $w_i$ computed by Algorithm \ref{alg:weighting_functions_incremental} solve optimization problem \ref{eq:wi_optimization_problem}.
 \end{thm}
 
-\begin{proof}
-	For notational convenience, in this proof we write $w$, $\lambda$, and $e$ instead of $w_i$, $\lambda_i$, and $e_i$, respectively. Here subscripts for $\lambda$, and $e$ instead denote components of those vectors. For example, here $\lambda_j$ denotes the $j^\text{th}$ component of the vector $\lambda$, which corresponds to the $j^\text{th}$ component of the vector $\lambda_i$ in Algorithm \ref{alg:weighting_functions_incremental}.
-	
-	From standard optimization theory, the solution to optimization problem \ref{eq:wi_optimization_problem} is the stationary point of the Lagrangian,
-	\begin{equation*}
-		\mathcal{L}(w,\lambda) = \frac{1}{2}\|\Delta w\|^2 + \sum_{j=1}^r \lambda_j\left(w(x_j) - e_j\right).
-	\end{equation*}
-	The plan of this proof is to show that $\nabla \mathcal{L}(w,\lambda)=0$, which will verify that $w$ solves optimization problem \ref{eq:wi_optimization_problem}.
-	
-	Using the definition of $w_i$ in \eqref{eq:definition_of_wi_alg}, we may write the gradient of $\mathcal{L}$ with respect to $\lambda_j$ as
-	\begin{equation*}
-		\nabla_{\lambda_j} \mathcal{L}(w, \lambda) = w(x_j) - e_j
-		= \alpha - \sum_{k=1}^r \lambda_k \theta_k(x_j) - e_j.
-	\end{equation*}
-	Using Lemma \ref{lem:psi_delta_eval} with $h=\theta_k$, the equation for $\theta_k$ in \eqref{eq:theta_eq}, and the definition of $S$ in \eqref{eq:defn_of_S_alg}, we have
-	\begin{align*}
-		\sum_{k=1}^r \lambda_k \theta_k(x_j) &= \sum_{k=1}^r \lambda_k \left(\psi_j, \Delta \theta_k\right)_{L^2(\Omega)}\\
-		&= \sum_{k=1}^r \lambda_k \left(\psi_j, \psi_k\right)_{L^2(\Omega)} = \left(S \lambda\right)_j.
-	\end{align*}
-	Combining all of these components of $\nabla_\lambda \mathcal{L}$ into a single vector and using the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} yields
-	\begin{align*}
-		\nabla_\lambda \mathcal{L}(w, \lambda) &= \alpha \mathbf{1} - e - S \lambda \\
-		&= \alpha \mathbf{1} - e - S \left(-S^{-1}\left(e - \alpha \mathbf{1}\right)\right) = 0.
-	\end{align*}
-	
-	Taking the directional derivative of $\mathcal{L}$ with respect to $w$ in direction $h$ and using Lemma \ref{lem:psi_delta_eval} yields
-	\begin{align}
-		\nabla_w \mathcal{L}(w, \lambda)h &= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} + \sum_{j=1}^r \lambda_j h(x_j) \nonumber \\
-		&= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} + \sum_{j=1}^r \lambda_j \left(\psi_j, \Delta h\right)_{L^2(\Omega)} + \lambda_j \avg(h) \nonumber \\
-		&= \left(\Delta w + \sum_{j=1}^r \lambda_j \psi_j,~ \Delta h\right)_{L^2(\Omega)} + \avg(h) \mathbf{1}^T \lambda. \label{eq:L_w_38}
-	\end{align}
-	Using the definition of $w$ in Algorithm \ref{alg:weighting_functions_incremental}, and the fact that the Laplacian of a constant function is zero, we have
-	\begin{equation*}
-		\Delta w = -\sum_{j=1}^r \lambda_j \Delta \theta_j 
-		= -\sum_{j=1}^r \lambda_j \psi_j,
-	\end{equation*}
-	which implies that the first term in \eqref{eq:L_w_38} is zero. By the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} and $\alpha$ in \eqref{eq:definition_of_alpha_alg}, we have
-	\begin{align*}
-		\mathbf{1}^T \lambda &= -\mathbf{1}^T S^{-1} \left(e - \alpha \mathbf{1}\right) \\
-		&= -\mathbf{1}^T S^{-1} e + \alpha \mathbf{1}^T S^{-1} \mathbf{1} \\
-		&= -\mathbf{1}^T S^{-1} e + \frac{\mathbf{1}^T S^{-1} e}{\mathbf{1}^T S^{-1} \mathbf{1}} \mathbf{1}^T S^{-1} \mathbf{1} = 0,
-	\end{align*}
-	which implies that the second term in \eqref{eq:L_w_38} is zero. Thus $\nabla_w \mathcal{L}(w, \lambda) = 0$, so Algorithm \ref{alg:weighting_functions_incremental} produces the solution to optimization problem \ref{eq:wi_optimization_problem}.
-\end{proof}
 
 
 
@@ -1294,22 +1203,128 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 \section{Additional theory}
 \label{app:proofs}
 
-\begin{proof}[Proof of Proposition \ref{prop:boundary_source}]
-	Let $w \in L^2(\Omega)$ be arbitrary. We have
-	\begin{align*}
-		\langle\mathcal{A}^T, \delta_{\partial \Omega}\rangle(w) =& \int_\Omega w(y) \int_{\partial \Omega} A(y,x) dy dx \\
-		=& \int_\Omega w(x) \int_{\partial \Omega} \varphi_x(y-x) dy dx = \left(w, z\right)_{L^2(\Omega)},
-	\end{align*}
-	where
+These results rely on straightforward prerequisites that we present in Lemma \ref{lem:T_is_linear}. We prove correctness of Algorithm \ref{alg:weighting_functions_incremental} in Theorem \ref{thm:wi_alg_is_correct}. Theorem \ref{thm:wi_alg_is_correct} relies on a prerequisite result which we present in Lemma \ref{lem:psi_delta_eval}.
+
+\begin{lem}[Preparation for Theorem \ref{thm:smoothest_interpolant}]
+	\label{lem:T_is_linear}
+	Let $f \in \mathbb{R}^r$. There exists a unique solution to the following optimization problem:
+	\begin{equation}
+	\label{eq:generic_optimization_initial}
+	\begin{aligned}
+	\min_{u \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
+	\text{such that} &\quad u(x_i) = f_i, \quad i=1,\dots,r.
+	\end{aligned}
+	\end{equation}
+	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
 	\begin{equation*}
-		z(x) := \int_{\partial \Omega} \varphi_x(y-x) dy,	
+	\mathcal{T}(f) := u^*,
 	\end{equation*}
-	which implies
-	\begin{equation*}
-		\langle\mathcal{A}^T, \delta_{\partial \Omega}\rangle^*(x) = z = \int_{\partial \Omega} \varphi_x(y-x) dy.
-	\end{equation*}
-	Since $\varphi_x$ is a non-negative function, the result follows from the fact that the integral of a non-negative function over a set of positive measure is zero if and only if the function is zero almost everywhere on that set.
+	where $u^*$ is the minimizer of \eqref{eq:generic_optimization_initial}. The operator $\mathcal{T}$ is a linear operator.
+\end{lem}
+\begin{proof}
+	asdf
 \end{proof}
+
+
+\begin{proof}[Proof of Theorem \ref{thm:smoothest_interpolant}]
+	Let $f = (\varphi_1(y), \varphi_2(y), \dots, \varphi_r(y))$ and let $e_i = (0,\dots,0,1,0,\dots,0)$ be the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero. The solution to optimization problem \eqref{eq:uy_optimization_problem} is given by
+	\begin{align*}
+	\mathcal{T}(f) &= \varphi_1(y) \mathcal{T}(e_1) + \varphi_2(y) \mathcal{T}(e_2) + \dots +\varphi_r(y) \mathcal{T}(e_r) \\
+	&= \varphi_1(y) w_1 + \varphi_2(y) w_2 + \dots +\varphi_r(y) w_r \\
+	&= u.
+	\end{align*}
+	In the first line we used linearity of the solution map, $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), in the second line we used the fact that $w_i = \mathcal{T}(e_i)$, and in the third line we used the definition of $u$ in \eqref{eq:u_defn_in_thm}.
+\end{proof}
+
+\begin{proof}[Proof of Proposition \ref{thm:wi_sum_to_one}]
+	By linearity of $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), we have
+	\begin{equation*}
+	\sum_{i=1}^r w_i(x) = \sum_{i=1}^r \mathcal{T}(e_i)(x) = \mathcal{T}\left(\sum_{i=1}^r e_i\right)(x) = \mathcal{T}(\mathbf{1})(x) = 1,
+	\end{equation*}
+	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality ($\mathcal{T}(\mathbf{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \mathbf{1}$, and yields the minimum possible value of zero for the objective function.
+\end{proof}
+
+\begin{lem}[Preparation for Theorem \ref{thm:wi_alg_is_correct}]
+	\label{lem:psi_delta_eval}
+	We have
+	\begin{equation}
+	\label{eq:inline_wi_lemma}
+	h(x_j) = \left(\psi_j, \Delta h\right)_{L^2(\Omega)} + \avg(h)
+	\end{equation}
+	for all $h\in H^2_N(\Omega)$, where
+	\begin{equation*}
+	\avg(h) :=	 \frac{1}{|\Omega|} \int_\Omega h ~dx,
+	\end{equation*}
+	and $|\Omega| = \int_\Omega 1 ~dx$ is the Lebesgue measure of $\Omega$.
+\end{lem}
+
+\begin{proof}
+	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\psi_j$ onto $h$, and using the Neumann zero boundary conditions for $\psi_j$ and $h$ to eliminate boundary integral terms.
+\end{proof}
+
+\begin{proof}[Proof of Theorem \ref{alg:weighting_functions_incremental}]
+	For notational convenience, in this proof we write $w$, $\lambda$, and $e$ instead of $w_i$, $\lambda_i$, and $e_i$, respectively. Here subscripts for $\lambda$, and $e$ instead denote components of those vectors. For example, here $\lambda_j$ denotes the $j^\text{th}$ component of the vector $\lambda$, which corresponds to the $j^\text{th}$ component of the vector $\lambda_i$ in Algorithm \ref{alg:weighting_functions_incremental}.
+	
+	From standard optimization theory, the solution to optimization problem \ref{eq:wi_optimization_problem} is the stationary point of the Lagrangian,
+	\begin{equation*}
+	\mathcal{L}(w,\lambda) = \frac{1}{2}\|\Delta w\|^2 + \sum_{j=1}^r \lambda_j\left(w(x_j) - e_j\right).
+	\end{equation*}
+	The plan of this proof is to show that $\nabla \mathcal{L}(w,\lambda)=0$, which will verify that $w$ solves optimization problem \ref{eq:wi_optimization_problem}.
+	
+	Using the definition of $w_i$ in \eqref{eq:definition_of_wi_alg}, we may write the gradient of $\mathcal{L}$ with respect to $\lambda_j$ as
+	\begin{equation*}
+	\nabla_{\lambda_j} \mathcal{L}(w, \lambda) = w(x_j) - e_j
+	= \alpha - \sum_{k=1}^r \lambda_k \theta_k(x_j) - e_j.
+	\end{equation*}
+	Using Lemma \ref{lem:psi_delta_eval} with $h=\theta_k$, the equation for $\theta_k$ in \eqref{eq:theta_eq}, and the definition of $S$ in \eqref{eq:defn_of_S_alg}, we have
+	\begin{align*}
+	\sum_{k=1}^r \lambda_k \theta_k(x_j) &= \sum_{k=1}^r \lambda_k \left(\psi_j, \Delta \theta_k\right)_{L^2(\Omega)}\\
+	&= \sum_{k=1}^r \lambda_k \left(\psi_j, \psi_k\right)_{L^2(\Omega)} = \left(S \lambda\right)_j.
+	\end{align*}
+	Combining all of these components of $\nabla_\lambda \mathcal{L}$ into a single vector and using the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} yields
+	\begin{align*}
+	\nabla_\lambda \mathcal{L}(w, \lambda) &= \alpha \mathbf{1} - e - S \lambda \\
+	&= \alpha \mathbf{1} - e - S \left(-S^{-1}\left(e - \alpha \mathbf{1}\right)\right) = 0.
+	\end{align*}
+	
+	Taking the directional derivative of $\mathcal{L}$ with respect to $w$ in direction $h$ and using Lemma \ref{lem:psi_delta_eval} yields
+	\begin{align}
+	\nabla_w \mathcal{L}(w, \lambda)h &= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} + \sum_{j=1}^r \lambda_j h(x_j) \nonumber \\
+	&= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} + \sum_{j=1}^r \lambda_j \left(\psi_j, \Delta h\right)_{L^2(\Omega)} + \lambda_j \avg(h) \nonumber \\
+	&= \left(\Delta w + \sum_{j=1}^r \lambda_j \psi_j,~ \Delta h\right)_{L^2(\Omega)} + \avg(h) \mathbf{1}^T \lambda. \label{eq:L_w_38}
+	\end{align}
+	Using the definition of $w$ in Algorithm \ref{alg:weighting_functions_incremental}, and the fact that the Laplacian of a constant function is zero, we have
+	\begin{equation*}
+	\Delta w = -\sum_{j=1}^r \lambda_j \Delta \theta_j 
+	= -\sum_{j=1}^r \lambda_j \psi_j,
+	\end{equation*}
+	which implies that the first term in \eqref{eq:L_w_38} is zero. By the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} and $\alpha$ in \eqref{eq:definition_of_alpha_alg}, we have
+	\begin{align*}
+	\mathbf{1}^T \lambda &= -\mathbf{1}^T S^{-1} \left(e - \alpha \mathbf{1}\right) \\
+	&= -\mathbf{1}^T S^{-1} e + \alpha \mathbf{1}^T S^{-1} \mathbf{1} \\
+	&= -\mathbf{1}^T S^{-1} e + \frac{\mathbf{1}^T S^{-1} e}{\mathbf{1}^T S^{-1} \mathbf{1}} \mathbf{1}^T S^{-1} \mathbf{1} = 0,
+	\end{align*}
+	which implies that the second term in \eqref{eq:L_w_38} is zero. Thus $\nabla_w \mathcal{L}(w, \lambda) = 0$, so Algorithm \ref{alg:weighting_functions_incremental} produces the solution to optimization problem \ref{eq:wi_optimization_problem}.
+\end{proof}
+
+
+
+%\begin{proof}[Proof of Proposition \ref{prop:boundary_source}]
+%	Let $w \in L^2(\Omega)$ be arbitrary. We have
+%	\begin{align*}
+%		\langle\mathcal{A}^T, \delta_{\partial \Omega}\rangle(w) =& \int_\Omega w(y) \int_{\partial \Omega} A(y,x) dy dx \\
+%		=& \int_\Omega w(x) \int_{\partial \Omega} \varphi_x(y-x) dy dx = \left(w, z\right)_{L^2(\Omega)},
+%	\end{align*}
+%	where
+%	\begin{equation*}
+%		z(x) := \int_{\partial \Omega} \varphi_x(y-x) dy,	
+%	\end{equation*}
+%	which implies
+%	\begin{equation*}
+%		\langle\mathcal{A}^T, \delta_{\partial \Omega}\rangle^*(x) = z = \int_{\partial \Omega} \varphi_x(y-x) dy.
+%	\end{equation*}
+%	Since $\varphi_x$ is a non-negative function, the result follows from the fact that the integral of a non-negative function over a set of positive measure is zero if and only if the function is zero almost everywhere on that set.
+%\end{proof}
 
 
 \begin{proof}[Proof of Theorem \ref{thm:vol_mean_cov}]
