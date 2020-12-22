@@ -190,7 +190,7 @@ The most popular existing Hessian approximation methods are based on forming a l
 %In our numerical results, we show that our operator approximation method can efficiently approximate the data misfit term in the Hessian in certain PDE constrained inverse problems. 
 The method in this paper offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because high-rank approximations of an operator can be formed using a small number of matrix-vector products.
 
-\subsection{Connection to existing work}
+\subsection{Existing work}
 
 In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\varphi_i$ and $w_i$ may be arbitrary functions. Product-convolution approximations have been used in a wide variety of fields going back several decades [CITE BIG LIST].
 For background on product-convolution approximations, we recommend reading the following papers: [CITES, INCLUDE ESCANDE SCATTERED]. 
@@ -287,35 +287,19 @@ Geometry-aware weighting functions vs radial basis functions. Kriging.
 %%\end{itemize}
 
 
-\subsection{Background: distributions}
-
-Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\mathcal{A}$ is extended to distributions $\mu:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
-\begin{equation*}
-	\langle\mathcal{A},\mu\rangle(w) := \int_\Omega w(y) \mu\left(A(y, \cdot)\right) dy, 
-\end{equation*}
-where $A(y,\cdot)$ is the function $x \mapsto A(y,x)$. This is derived formally as follows:
-\begin{align*}
-	\langle\mathcal{A},\mu\rangle(w) &= \int_\Omega \int_\Omega w(y) A(y,x) \textrm{``} \mu(x) \textrm{''} dx dy \\
-	&= \int_\Omega w(y) \int_\Omega A(y,x) \textrm{``} \mu(x) \textrm{''} dx \\
-	&= \int_\Omega w(y) \mu\left(A(y,\cdot)\right) dx.
-\end{align*}
-For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, the action of $\mathcal{A}$ on $\delta_x$ is given by
-\begin{equation*}
-	\langle\mathcal{A},\delta_x\rangle(w)	= \int_\Omega w(y) A(y,x) dy,
-\end{equation*}
-and so the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$ is given by $\langle\mathcal{A},\delta_x\rangle^* = A(~\cdot~,x)$. That is, $\langle\mathcal{A},\delta_x\rangle^*$ is the function $y \mapsto A(y,x)$.
+\section{Constructing the approximation}
+\label{sec:method}
+This section describes how we compute the convolution kernels, $\varphi_i$, and weighting functions, $w_i$, for the product-convolution approximation, $\widetilde{\mathcal{A}} \approx \mathcal{A}$, given by
+\begin{equation}
+\left(\widetilde{\mathcal{A}}u\right)(v) := \left( v,~ \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)}.
+\end{equation}
 
 
-\subsection{Background: hierarchical matrices}
+We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). We use a greedy algorithm to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$ (Section \ref{sec:greedy_point_selection}).
 
-\section{Choosing sample points}
-\label{sec:choosing_sample_points}
+Ensuring that the points $x_i$ are well separated from each other requires estimating the supports of the functions $\langle\mathcal{A},\delta_{x}\rangle^*$ (Section \ref{eq:mean_and_covariance_estimation}). Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnegative, $\langle\mathcal{A},\delta_{x}\rangle^*$ is a scaled probability distribution. We compute the scaling factors for all $x$ simultaneously by applying $\mathcal{A}$ to a constant function. We then compute the mean and covariance of the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. The support of $\langle\mathcal{A},\delta_{x}\rangle^*$ is estimated to be contained in an ellipsoid of points that are within a small number of standard deviations of the mean for a Gaussian distribution with the same mean and covariance as the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$.
 
-We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points. In this section we describe how we choose the points $x_i$. The challenge is to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$.
-
-Ensuring that the points $x_i$ are well separated from each other requires estimating the supports of the functions $\langle\mathcal{A},\delta_{x}\rangle^*$. Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnegative, $\langle\mathcal{A},\delta_{x}\rangle^*$ is a scaled probability distribution. We compute the scaling factors for all $x$ simultaneously by applying $\mathcal{A}$ to a constant function. We then compute the mean and covariance of the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. The support of $\langle\mathcal{A},\delta_{x}\rangle^*$ is estimated to be contained in an ellipsoid of points that are within a small number of standard deviations of the mean for a Gaussian distribution with the same mean and covariance as the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$.
-
-The function $\varphi_x(y)$ is undefined when $x + y \notin \Omega$, which can occur even if $x \in \Omega$ and $y \in \Omega$. Extending $\varphi_x$ by zero makes it defined for all $y \in \mathbb{R}^d$, but this extension is only reasonable if $x$ is far enough from $\partial \Omega$ that $\varphi_x(y)$ decays to zero, as a function of $y$, before $y$ reaches $\partial \Omega$. We therefore choose exclude sample points $x_i$ if the ellipsoid associated with that point overlaps the boundary.
+%The function $\varphi_x(y)$ is undefined when $x + y \notin \Omega$, which can occur even if $x \in \Omega$ and $y \in \Omega$. Extending $\varphi_x$ by zero makes it defined for all $y \in \mathbb{R}^d$, but this extension is only reasonable if $x$ is far enough from $\partial \Omega$ that $\varphi_x(y)$ decays to zero, as a function of $y$, before $y$ reaches $\partial \Omega$. We therefore choose exclude sample points $x_i$ if the ellipsoid associated with that point overlaps the boundary.
 
 
 
@@ -401,7 +385,7 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 
 
 
-\subsection{Greedy point selection algorithm}
+\subsection{Greedy sample point selection}
 \label{sec:greedy_point_selection}
 
 Ideally, sample points $x_i$ and $x_j$ should be far enough apart from each other that the supports of $\left\langle\mathcal{A}, \delta_{x_i}\right\rangle^*$ and $\left\langle\mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap. Since it is too expensive compute the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ directly, we instead estimate that the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ is contained in the ellipsoid
@@ -412,15 +396,15 @@ Ideally, sample points $x_i$ and $x_j$ should be far enough apart from each othe
 where $\tau$ is a small number of standard deviations; we use $\tau=3$. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean for the Gaussian distribution that has the same mean and covariance as $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$. The fraction of the mass of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
 %We call $E_x$ the \emph{unit ellipsoid} with mean $\mu(x)$ and covariance $\Sigma(x)/\tau^2$.
 
-We select a batch of sample points, $S_b$, randomly from a finite set of candidate points $P$. Starting from an empty set, we build $S_b$ by choosing candidate points $p$ from $P$, one at a time. The current candidate point, $p$, is the point in $P$ that is the farthest away from all points in previous sample point baches. That is, the minimizer of the following optimization problem:
+We select a batch of sample points, $S_b$, randomly from a finite set of candidate points $P$. Starting from an empty set, we build $S_b$ by choosing candidate points $p$ from $P$, one at a time. The current candidate point, $p$, is the point in $P$ that is the farthest away from all points in previous sample point baches. That is, the maximizer of the following optimization problem:
 \begin{equation*}
-\min_{p \in P} \max_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|
+\max_{p \in P} \min_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|
 \end{equation*}
 After we choose the candidate $p$, we remove $p$ from $P$.
-If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until it is no longer possible to pick a point from $P$ that is sufficiently far from the points in $S_b$. 
+If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$. 
 %This is detailed in Algorithm \ref{alg:point_choice}. 
 
-We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the total number of sample points exceeds a desired threshold. In our implementation, the set of candidate points $P$ is the set of all Lagrange nodes for the finite element basis functions $\phi_i$ used to discretize the problem, minus all points in previously chosen batches. 
+We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the total number of sample points exceeds a desired threshold. In our implementation, the set of candidate points $P$ is the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches. 
 
 
 \begin{algorithm2e}
@@ -428,7 +412,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 	\SetKwInOut{Input}{Input}
 	\SetKwProg{Fn}{Function}{}{}
 
-	Start with a finite set of candidate points $P \subset \Omega_I$
+	Start with a finite set of candidate points $P \subset \Omega$
 	
 	Initialize new empty batch of sample points, $S_b$
 	
@@ -473,7 +457,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 \end{algorithm2e}
 
 
-\subsection{Extracting impulse responses at sample points}
+\subsection{Batched computation of impulse responses}
 \label{sec:get_impulse_response}
 
 The \emph{Dirac comb}, $\xi_b$, associated with a batch of sample points $S_b$ is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
@@ -1226,7 +1210,6 @@ Some conclusions here.
 
 \appendix
 
-\section{Discretized algorithms}
 
 \section{Fast ellipsoid intersection test}
 The procedure for choosing sample points relies on quickly determining whether two ellipsoids intersect. Let $E_p$ and $E_q$ be the ellipsoids defined as
@@ -1287,7 +1270,7 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 	\label{alg:ellipsoid_intersection_test}
 \end{algorithm2e}
 
-\section{Additional proofs}
+\section{Additional theory}
 \label{app:proofs}
 
 \begin{proof}[Proof of Proposition \ref{prop:boundary_source}]
@@ -1437,6 +1420,25 @@ The coefficient vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ for $\e
 \end{equation*}
 
 \section{old stuff}
+
+\subsection{Background: distributions}
+
+Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\mathcal{A}$ is extended to distributions $\mu:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
+\begin{equation*}
+\langle\mathcal{A},\mu\rangle(w) := \int_\Omega w(y) \mu\left(A(y, \cdot)\right) dy, 
+\end{equation*}
+where $A(y,\cdot)$ is the function $x \mapsto A(y,x)$. This is derived formally as follows:
+\begin{align*}
+\langle\mathcal{A},\mu\rangle(w) &= \int_\Omega \int_\Omega w(y) A(y,x) \textrm{``} \mu(x) \textrm{''} dx dy \\
+&= \int_\Omega w(y) \int_\Omega A(y,x) \textrm{``} \mu(x) \textrm{''} dx \\
+&= \int_\Omega w(y) \mu\left(A(y,\cdot)\right) dx.
+\end{align*}
+For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, the action of $\mathcal{A}$ on $\delta_x$ is given by
+\begin{equation*}
+\langle\mathcal{A},\delta_x\rangle(w)	= \int_\Omega w(y) A(y,x) dy,
+\end{equation*}
+and so the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$ is given by $\langle\mathcal{A},\delta_x\rangle^* = A(~\cdot~,x)$. That is, $\langle\mathcal{A},\delta_x\rangle^*$ is the function $y \mapsto A(y,x)$.
+
 
 \begin{defn}
 	\label{def:stiffness_mass}
