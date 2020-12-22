@@ -301,10 +301,15 @@ We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Di
 
 
 
-\subsection{Mean and covariance estimation}
+\subsection{Estimating impulse response supports}
 \label{eq:mean_and_covariance_estimation}
 
-Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnegative, $\langle\mathcal{A},\delta_{x}\rangle^*$ is a scaled probability distribution. We compute the scaling factor, denoted $\alpha(x)$, for all $x$ simultaneously by applying $\mathcal{A}$ to a constant function. We then compute the mean, $\mu(x)$, and covariance, $\Sigma(x)$ of the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. The support of $\langle\mathcal{A},\delta_{x}\rangle^*$ is estimated to be contained in an ellipsoid of points that are within a small number of standard deviations of the mean for a Gaussian distribution with the same mean and covariance as the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$.
+Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnegative, $\langle\mathcal{A},\delta_{x}\rangle^*$ is a scaled probability distribution. We compute the scaling factor, denoted $\alpha(x)$, for all $x$ simultaneously by applying $\mathcal{A}$ to a constant function. We then compute the spatially varying mean, $\mu(x)$, and covariance, $\Sigma(x)$ of the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. We make the approximation that the support of $\langle\mathcal{A},\delta_{x}\rangle^*$ is contained within the ellipsoid
+\begin{equation}
+\label{eq:support_ellipsoid}
+E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
+\end{equation}
+where $\tau$ is a small number of standard deviations; we use $\tau=3$. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean for the Gaussian distribution that has the same mean and covariance as the normalized version of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$. The fraction of the mass of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
 
 \begin{defn}
 	We define the spatially varying volume, $\alpha$, the scaled impulse response, $\rho_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
@@ -315,6 +320,8 @@ Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnega
 		\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \rho_x(z) dz.
 	\end{align*}
 \end{defn}
+
+%The support of $\langle\mathcal{A},\delta_{x}\rangle^*$ is estimated to be contained within a small number of standard deviations of the mean for a Gaussian distribution with the same mean and covariance as the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$.
 
 %Let 
 %\begin{equation*}
@@ -334,7 +341,7 @@ Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnega
 %may be computed for all $x$ simultaneously by applying $\mathcal{A}^T$ to $d$ linear functions, and $d(d+1)/2$ quadratic functions, respectively. In Algorithm \ref{alg:varhpi_mean_cov} we describe an algorithm for computing the volume function, mean, and covariance based on the results of Proposition \ref{thm:vol_mean_cov}.
 
 
-\begin{prop}
+\begin{theorem}
 	\label{thm:vol_mean_cov}
 	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$, and let $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions, respectively:
 	\begin{equation*}
@@ -349,7 +356,7 @@ Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnega
 		\Sigma^{ij} =& \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot\mu^j, \label{eq:vol_mean_var_thm3}
 	\end{align}
 	We write $f/g$ to denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ to denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
-\end{prop}
+\end{theorem}
 
 The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}.
 
@@ -398,17 +405,20 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \subsection{Greedy sample point selection}
 \label{sec:greedy_point_selection}
 
-Ideally, sample points $x_i$ and $x_j$ should be far enough apart from each other that the supports of $\left\langle\mathcal{A}, \delta_{x_i}\right\rangle^*$ and $\left\langle\mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap. Since it is too expensive compute the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ directly, we instead estimate that the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ is contained in the ellipsoid
-\begin{equation}
-\label{eq:support_ellipsoid}
-	E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
-\end{equation}
-where $\tau$ is a small number of standard deviations; we use $\tau=3$. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean for the Gaussian distribution that has the same mean and covariance as $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$. The fraction of the mass of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
+Ideally, sample points $x_i$ and $x_j$ should be far enough apart from each other that the supports of $\left\langle\mathcal{A}, \delta_{x_i}\right\rangle^*$ and $\left\langle\mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap. 
+
+%Since it is too expensive compute the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ directly, we instead estimate that the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ is contained in the ellipsoid
+%\begin{equation}
+%\label{eq:support_ellipsoid}
+%	E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
+%\end{equation}
+%where $\tau$ is a small number of standard deviations; we use $\tau=3$. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean for the Gaussian distribution that has the same mean and covariance as $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$. The fraction of the mass of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
+
 %We call $E_x$ the \emph{unit ellipsoid} with mean $\mu(x)$ and covariance $\Sigma(x)/\tau^2$.
 
 We select a batch of sample points, $S_b$, randomly from a finite set of candidate points $P$. Starting from an empty set, we build $S_b$ by choosing candidate points $p$ from $P$, one at a time. The current candidate point, $p$, is the point in $P$ that is the farthest away from all points in previous sample point baches. That is, the maximizer of the following optimization problem:
 \begin{equation*}
-\max_{p \in P} \min_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|
+\max_{p \in P} \min_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|.
 \end{equation*}
 After we choose the candidate $p$, we remove $p$ from $P$.
 If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$. 
