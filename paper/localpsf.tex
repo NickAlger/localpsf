@@ -227,17 +227,17 @@ Matrix-vector products with product-convolution approximations can be performed 
 Conventional H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. There are matrix-free methods for H-matrix approximation [CITE LEXING PAPER, CITE MARTINSSON, CITE OTHERS], and these methods have been used to form H-matrix compressions of Hessians in PDE constrained inverse problems [CITE ILONA, CITE NOEMI/TUCKER HODLR]. While these matrix-free H-matrix construction methods are asymptotically scalable in theory, the required number of matrix vector products can be large in practice. 
 
 
-A product-convolution type approximation of the Hessian in a seismic imaging problem was used in [CITE GEORG]. 
+Product-convolution type approximations of Hessians have been used in a seismic inverse problem in [CITE GEORG], and in an advection-diffusion inverse problem in [CITE MY PAPER]. In [DEMANET SEISMIC], matrix probing [DEMANET MATRIX] is used to approximate the Hessian in a seismic inverse problem as the sum of simple pseudodifferential operators. Although it is not explicitly mentioned, the approximation in [DEMANET SEISMIC] could be interpreted as a convolution-product interpolation, which is like a product-convolution approximation, except the order of pointwise multiplications and convolutions is reversed in \eqref{eq:product_convolution}.
 
 %H-matrices for Hessians: Ilonas paper with KAUST people
 
-Demanet matrix probing can be interpreted as convolution-product.
+%Demanet matrix probing can be interpreted as convolution-product.
 
 %Resolution analysis: uses matvecs with random functions to estimate spatial covariance. Was inspiration for us.
 
 %Getting many impulse responses at once (batching). 
 
-Geometry-aware weighting functions vs radial basis functions. Kriging.
+%Geometry-aware weighting functions vs radial basis functions. Kriging.
 
 
 
@@ -289,13 +289,42 @@ Geometry-aware weighting functions vs radial basis functions. Kriging.
 
 \section{Constructing the approximation}
 \label{sec:method}
-This section describes how we compute the convolution kernels, $\varphi_i$, and weighting functions, $w_i$, for the product-convolution approximation, $\widetilde{\mathcal{A}} \approx \mathcal{A}$, given by
-\begin{equation}
-\left(\widetilde{\mathcal{A}}u\right)(v) := \left( v,~ \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)}.
-\end{equation}
+This section describes how we compute the convolution kernels, $\varphi_i$, and weighting functions, $w_i$, for the product-convolution approximation, $\widetilde{\mathcal{A}} \approx \mathcal{A}$, given in \eqref{eq:product_convolution}.
+\begin{itemize}
+\item We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). 
+\item We use a greedy algorithm to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$ (Section \ref{sec:greedy_point_selection}). 
+\item Ensuring that the points $x_i$ are well separated from each other requires a-priori estimates of the supports of the functions $\langle\mathcal{A},\delta_{x}\rangle^*$ (Section \ref{eq:mean_and_covariance_estimation}). 
+\item The weighting functions are defined as the smoothest functions (in a least-squares sense) that interpolate the points $x_i$; constructing the weighting functions requires solving two Poisson PDEs per point $x_i$ (Section \ref{sec:weighting_functions}).
+\end{itemize}
+The complete algorithm for constructing $\widetilde{\mathcal{A}}$ is shown in Algorithm \ref{alg:construct_Atilde}.
 
-
-We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). We use a greedy algorithm to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$ (Section \ref{sec:greedy_point_selection}). Ensuring that the points $x_i$ are well separated from each other requires estimating the supports of the functions $\langle\mathcal{A},\delta_{x}\rangle^*$ (Section \ref{eq:mean_and_covariance_estimation}). 
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	%	\Input{Function $v \mapsto \mathcal{H}^Tv$}
+	
+	%	\mbox{}\\
+	
+	%	\Output{Spatially varying mean $\mu:\Omega \rightarrow \mathbb{R}^d$, \\ 
+	%		Spatially varying covariance $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}$}
+	%	\Begin{
+	{	
+		Compute spatially varying mean, $\mu$, and covariance, $\Sigma$, using Algorithm \ref{alg:varhpi_mean_cov}.
+		
+		\For{$b=1,2,\dots,\text{max\_batches}$}{
+			Choose a batch of sample points, $S_b$, using Algorithm \ref{alg:point_choice}
+			
+			Compute $\eta^b$ by applying $\mathcal{A}$ to the dirac comb associated with $S_b$ (Section \ref{sec:get_impulse_response})
+			
+			Compute weighting functions $w_i$ using Algorithm \ref{alg:weighting_functions_incremental}. In lines 2 and 3 of Algorithm \ref{alg:weighting_functions_incremental}, only solve for $\psi_i$ and $\theta_i$ associated with new points $x_i$ in $S_b$. The functions $\psi_i$ and $\theta_i$ associated with points in previous batches have already been computed in previous iterations of this for loop.
+		}
+		
+		%		\Return{$\mu$, $\Sigma$}
+	}
+	\caption{Construct product-convolution approximation $\widetilde{\mathcal{A}}$}
+	\label{alg:construct_Atilde}
+\end{algorithm2e}
 
 %The function $\varphi_x(y)$ is undefined when $x + y \notin \Omega$, which can occur even if $x \in \Omega$ and $y \in \Omega$. Extending $\varphi_x$ by zero makes it defined for all $y \in \mathbb{R}^d$, but this extension is only reasonable if $x$ is far enough from $\partial \Omega$ that $\varphi_x(y)$ decays to zero, as a function of $y$, before $y$ reaches $\partial \Omega$. We therefore choose exclude sample points $x_i$ if the ellipsoid associated with that point overlaps the boundary.
 
