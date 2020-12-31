@@ -107,7 +107,7 @@ Approximations of the form \eqref{eq:product_convolution} are known as \emph{pro
 
 \subsection{Overview of the method}
 
-Our operator approximation method is defined by how we compute the convolution kernels, $\varphi_i$, (Section \ref{sec:get_impulse_response}) how we choose the points, $x_i$, (Section \ref{sec:choosing_sample_points}) what weighting functions, $w_i$, that we use (Section \ref{sec:weighting_functions}), and how we use the resulting product-convolution approximation to perform linear algebra operations such as solving linear systems (Section \ref{sec:H_matrix}). In this section we summarize the answers to these questions.
+Our operator approximation method is defined by how we compute the convolution kernels, $\varphi_i$, how we choose the points, $x_i$, what weighting functions, $w_i$, that we use, and how we use the resulting product-convolution approximation to perform linear algebra operations such as solving linear systems. In this section we summarize the answers to these questions; we will provide detailed answers to these questions in Section \ref{sec:method} and Section \ref{sec:using_approximation}.
 
 We compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a sum of point sources, $\delta_{x_i},$ at many points $x_i$ (a ``Dirac comb''). That is, we compute
 \begin{equation*}
@@ -706,7 +706,165 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 
 % One may also show that the weighting functions $w_i$ sum to one pointwise.
 
+\section{Using the approximation}
+\label{sec:using_approximation}
 
+\subsection{Evaluating kernel entries of the approximation}
+
+We now describe how to efficiently evaluate $\widetilde{A}(y,x)$ at an arbitrary point $(x,y) \in \Omega \times \Omega$. From \eqref{eq:H_kernel_entries}, we have
+\begin{equation}
+\label{eq:eval_y_x}
+\widetilde{A}(y,x) = \sum_{i=1}^r w_i(x) \varphi_{x_i}(y-x),
+\end{equation}
+and from \eqref{eq:varphi_eval}, we have
+\begin{equation}
+\label{eq:kernel_entry_formua}
+\varphi_{x_i}(y-x) = \begin{cases}
+\eta^{b(i)}(y - x + x_i), & y - x + x_i \in E_{x_i} \\
+0, & \text{otherwise},
+\end{cases}
+\end{equation}
+where $b(i)$ denotes the batch index such that $x_i \in S^{b(i)}$. To compute $z=\widetilde{A}(y,x)$, we start with $z=0$, then loop through all batches $b$, and all sample points in each batch. For each sample point, we add one term in the sum in \eqref{eq:eval_y_x} to $z$, using \eqref{eq:kernel_entry_formua} as needed to evaluate $\varphi_{x_i}$. This is shown in Algorithm \ref{alg:eval_y_x}.
+%
+%\begin{align*}
+%	\widetilde{A}(y',x') &= \sum_{i=1}^q w_i(x') \varphi_{x_i}(y'-x') \\
+%	&= \sum_{i=1}^q w_i(x') \begin{cases}
+%		\eta^{b(i)}(\zeta_i), & \zeta_i \in E_{x_i} \\
+%		0, & \text{otherwise}
+%	\end{cases} \\
+%	&= \sum_{i=1}^q w_i(x')\Psi_{ik},
+%\end{align*}
+%where $\omega_{ik}:= w_i(x_k') = \left(\mathcal{U}_X^+ \mathcal{U}\right)_{ik}$, and 
+%\begin{equation*}
+%	\Psi_{ik} := \begin{cases}
+%		\eta^{b(i)}(\zeta_{ik}), & \zeta_{ik} \in E_{x_i}\\
+%		0, & \text{otherwise}.
+%	\end{cases}
+%\end{equation*}
+%To compute $\omega$, first we construct $\nu \in \mathbb{R}^{r \times N}$,	$\nu_{jk} := u_j(x_k)$,
+%then we set
+%\begin{equation*}
+%	\omega := \mathcal{U}_X^+ \nu.
+%\end{equation*}
+%To compute $\Psi$, we must evaluate $\eta^{b(i)}(\zeta_{ik})$ for many points $\zeta_{ik}$.
+%If the mesh used to discretize the problem is non-uniform, generally $\zeta_{ik}$ will not be a degree of freedom location, even if the points $x_k'$, $y_k'$, and $x_i$ are degree of freedom locations. Thus, evaluating $\eta^{b(i)}(\zeta_{ik})$ requires interpolation. Since it is typically more efficient to perform interpolation at many points all at once, rather than interpolating points one at a time, we precompute the set of indices
+%\begin{equation*}
+%	\chi^b := \{(i,k): \zeta_{ik} \in E_{x_i},~x_i \in X_b,~ k=1,\dots,N\}
+%\end{equation*}
+%for which the interpolation $\eta^{b(i)}(\zeta_{ik})$ must be performed. Then we compute the batch of interpolations $\eta^b\left(\zeta_{\chi^b}\right)$, and set 
+%\begin{equation*}
+%	\Psi_{\chi^b} = \eta^b\left(\zeta_{\chi^b}\right).
+%\end{equation*}
+%Here $\Psi_{\chi^b}$ is the subset of entries of $\Psi$ corresponding to indices $(i,k) \in \chi^b$, and $\eta^b\left(\zeta_{\chi^b}\right)$ is the interpolation of $\eta^b$ at all of the points $\zeta_{ik}$ corresponding to indices $(i,k) \in \chi^b$. This process is repeated for each batch $b$. All other entries of $\Psi$ are set to zero. The resulting procedure for evaluating $\widetilde{H}(y_k',x_k')$ is summarized in Algorithm \ref{alg:H_entries}.
+
+%, for each batch $X_b$ we predetermine the subset of points 
+%\begin{equation*}
+%	p_{ik} := y_k - x_k + x_i
+%	\end{equation*}
+%satisfying $p_{bik} \in E_{x_i}$ for all $x_i \in X_b$ then evaluate $\eta_b(p_{bik})$ for this subsets of points all at once. Let
+%\begin{equation*}
+%	\chi_b:=\{p_{bik}:p_{bik} \in E_{x_i}\}.
+%\end{equation*}
+%and define $\Psi \in \mathbb{R}^{q \times N}$, 
+%
+%so that
+%\begin{equation*}
+%	\widetilde{H}(y_k,x_k) = \sum_{i=1}^q w_i(x_k) \Psi_{ik}.	
+%\end{equation*}
+%We have 
+%\begin{equation*}
+%	\Psi_{ik}(\chi_b) = \sum_{b=1}^B \eta_b(p_{bik})
+%\end{equation*}
+%where $\eta_b(\chi)$ is the 
+%
+%In Algorithm asdf, we describe how to evaluate $\widetilde{H}$ at many points using this procedure.
+%
+\begin{algorithm2e}
+	\SetAlgoNoLine
+
+	$z \gets 0$
+	
+	\For{$b=1,2,\dots,\text{}max\_batches$}{
+		\For{$x_i \in S_b$}{
+			\If{$y - x + x_i \in E_{x_i}$}{
+				$z \gets z + w_i(x)\eta^b(y-x+x_i)$
+			}
+		}
+	}	
+	\caption{Compute approximate kernel entry $z = \widetilde{A}(y,x)$}
+	\label{alg:eval_y_x}
+\end{algorithm2e}
+
+%\begin{algorithm2e}
+%	\SetAlgoNoLine
+%	\SetKwInOut{Input}{Input}
+%	\SetKwInOut{Output}{Output}
+%	\SetKwProg{Fn}{Function}{}{}
+%	\Input{Pairs of points $\{(x_k',y_k')\}_{k=1}^n \subset \Omega \times \Omega$}	
+%	\Output{Approximate kernel entries $\mathbf{z} \in \mathbb{R}^n$, $\mathbf{z}_k = \widetilde{H}(y_k',x_k')$}
+%	
+%	Compute $\boldsymbol{\omega} \in \mathbb{R}^{r \times n}$, $\boldsymbol{\omega}_{i,k} = w_i(x_k')$
+%	
+%	\mbox{}\\
+%	
+%	\Fn{$\computekernelentries{\{x'_k\}_{k=1}^n}{\{y'_k\}_{k=1}^n}$}
+%	{
+%		$\boldsymbol{\omega} \gets \computeweightingentries{\{x'_k\}_{k=1}^n}$
+%		
+%		Construct $\boldsymbol{\zeta} \in \mathbb{R}^{d \times q \times n}$, ~$\boldsymbol{\zeta}[:,i,k] = y_k' - x_k' + \mathbf{X}\left[:,\mathtt{S}[i]\right]$
+%
+%		\BlankLine
+%		
+%		\BlankLine
+%		
+%		$\boldsymbol{\Psi}\gets \mathbf{0}_{q \times n}$
+%		
+%		\For{$b=1,\dots,N_B$}{
+%			$\mathtt{\chi}_b \gets \{\}$
+%			
+%			\For{$j \in \mathtt{S}_b$}{
+%				$i \gets$ index such that $\mathtt{S}[i] = j$
+%				
+%				$E_j \gets$ unit ellipsoid with mean $\boldsymbol{\mu}[:,j]$ and covariance $\boldsymbol{\Sigma}[:,:,j]/\tau^2$
+%				
+%				$\mathtt{\chi}_b \gets \mathtt{\chi}_b \cup \{(i,k) : k \in \{1,\dots,N\}, \boldsymbol{\zeta}[:,i,k] \in E_j\}$
+%				
+%			}
+%
+%			
+%			$\boldsymbol{\Psi}[\chi_b] \gets \interpolate\left(\boldsymbol{\eta}^b, \{\boldsymbol{\zeta}[:,i,k] : (i,k) \in \mathtt{\chi}^b\}\right)$
+%		
+%		}
+%	
+%		\BlankLine
+%		
+%		\BlankLine
+%		
+%		Construct $\mathbf{z} \in \mathbb{R}^n$, ~$\mathbf{z}_k = \sum_{i=1}^q \boldsymbol{\omega}_{ik} \boldsymbol{\Psi}_{ik}$
+%	
+%		\Return{$\mathbf{z}$}
+%	}
+%	\caption{Compute many approximate kernel entries $z_k = \widetilde{A}(y_k',x_k')$}
+%	\label{alg:H_entries}
+%\end{algorithm2e}
+
+\subsection{Conversion to hierarchical matrix format}
+
+In order to use the product-convolution approximation $\widetilde{\mathcal{A}}$, we convert $\widetilde{\mathcal{A}}$ to hierarchical matrix (H-matrix) format. Many classes of hierarchical matrices exist---H, uniform H1, H2, HODLR, HSS, HBS, and more. We use H1 matrices in our numerical results, but any of the other H-matrix formats could be used instead. The basic ideas behind H-matrices are as follows:
+\begin{itemize} 
+	\item Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank.
+	\item Recursive algorithms can take advantage of this low rank block structure to perform matrix arithmetic fast. Conventional algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix addition require either $O(n^2)$ or $O(n^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(n \log^a n)$ time and memory for hierarchical matrices (here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix).
+\end{itemize}
+For more details on H-matrices, we recommend [CITES]. 
+
+We use the standard geometrical clustering/adaptive cross H1 matrix construction method implemented within the HLibPro software package [CITE] to convert $\widetilde{\mathcal{A}}$ into H1 matrix format. We now summarize this method.
+
+\paragraph{Cluster trees} First, the degrees of freedom associated with the columns of the matrix are hierarchically clustered into a \emph{cluster tree} using recursive hyperplane splitting. Since we use finite elements to discretize the problem, we associate the $i^\text{th}$ column of $\widetilde{\mathcal{A}}$ with the nodal point in $\mathbb{R}^d$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^d$. We split this point cloud into two roughly equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats recursively until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns, which we call a cluster tree. A depth-first search ordering of the cluster tree is then generated. When the columns of the matrix are permuted into this ordering, the columns associated with each cluster in the cluster tree are contiguous.
+
+In the same way, the degrees of freedom associated with the rows of the matrix are hierarchically clustered into another cluster tree, and an ordering for the rows is generated. In our examples, the degrees of freedom for the columns coincide with the degrees of freedom for the rows, so the cluster trees for the rows and columns are the same, but this is not required in general.
+
+\paragraph{Block cluster tree} Second, we partition the matrix (after reordering the rows and columns via the depth-first ordering described above) into a recursive hierarchy of mostly low rank blocks called the \emph{block cluster tree}.
+The idea is that the interaction between far-away groups of degrees of freedom may be characterized by a small number of bulk properties of those groups.  
 
 
 \section{Interpolating impulse response samples old}
@@ -814,155 +972,6 @@ which implies
 \end{equation*}
 Here $f \ast g$ denotes the convolution of the functions $f$ and $g$. Thus, $\widetilde{\mathcal{A}}$ is a weighted sum of convolution operators with smooth spatially varying weighting functions.
 
-\subsection{Efficient computation of approximation kernel entries}
-
-We now describe how to efficiently evaluate $\widetilde{A}(x',y')$ at arbitrary points $(x',y')$. Let $b(i)$ denote the batch index such that $x_i \in S^{b(i)}$, and define
-\begin{equation*}
-	\zeta_i := y' - x' + x_i,
-\end{equation*}
-for $x_i \in S$. From \eqref{eq:H_kernel_entries}, we have
-\begin{equation*}
-	\widetilde{A}(y',x') = \sum_{i=1}^q w_i(x') \varphi_{x_i}(y'-x'),
-\end{equation*}
-and from \eqref{eq:varphi_eval}, we have
-\begin{equation}
-\label{eq:kernel_entry_formua}
-	\varphi_{x_i}(y'-x') = \begin{cases}
-		\eta^{b(i)}(\zeta_i), & \zeta_i \in E_{x_i} \\
-		0, & \text{otherwise}.
-	\end{cases}
-\end{equation}
-%
-%\begin{align*}
-%	\widetilde{A}(y',x') &= \sum_{i=1}^q w_i(x') \varphi_{x_i}(y'-x') \\
-%	&= \sum_{i=1}^q w_i(x') \begin{cases}
-%		\eta^{b(i)}(\zeta_i), & \zeta_i \in E_{x_i} \\
-%		0, & \text{otherwise}
-%	\end{cases} \\
-%	&= \sum_{i=1}^q w_i(x')\Psi_{ik},
-%\end{align*}
-%where $\omega_{ik}:= w_i(x_k') = \left(\mathcal{U}_X^+ \mathcal{U}\right)_{ik}$, and 
-%\begin{equation*}
-%	\Psi_{ik} := \begin{cases}
-%		\eta^{b(i)}(\zeta_{ik}), & \zeta_{ik} \in E_{x_i}\\
-%		0, & \text{otherwise}.
-%	\end{cases}
-%\end{equation*}
-%To compute $\omega$, first we construct $\nu \in \mathbb{R}^{r \times N}$,	$\nu_{jk} := u_j(x_k)$,
-%then we set
-%\begin{equation*}
-%	\omega := \mathcal{U}_X^+ \nu.
-%\end{equation*}
-%To compute $\Psi$, we must evaluate $\eta^{b(i)}(\zeta_{ik})$ for many points $\zeta_{ik}$.
-%If the mesh used to discretize the problem is non-uniform, generally $\zeta_{ik}$ will not be a degree of freedom location, even if the points $x_k'$, $y_k'$, and $x_i$ are degree of freedom locations. Thus, evaluating $\eta^{b(i)}(\zeta_{ik})$ requires interpolation. Since it is typically more efficient to perform interpolation at many points all at once, rather than interpolating points one at a time, we precompute the set of indices
-%\begin{equation*}
-%	\chi^b := \{(i,k): \zeta_{ik} \in E_{x_i},~x_i \in X_b,~ k=1,\dots,N\}
-%\end{equation*}
-%for which the interpolation $\eta^{b(i)}(\zeta_{ik})$ must be performed. Then we compute the batch of interpolations $\eta^b\left(\zeta_{\chi^b}\right)$, and set 
-%\begin{equation*}
-%	\Psi_{\chi^b} = \eta^b\left(\zeta_{\chi^b}\right).
-%\end{equation*}
-%Here $\Psi_{\chi^b}$ is the subset of entries of $\Psi$ corresponding to indices $(i,k) \in \chi^b$, and $\eta^b\left(\zeta_{\chi^b}\right)$ is the interpolation of $\eta^b$ at all of the points $\zeta_{ik}$ corresponding to indices $(i,k) \in \chi^b$. This process is repeated for each batch $b$. All other entries of $\Psi$ are set to zero. The resulting procedure for evaluating $\widetilde{H}(y_k',x_k')$ is summarized in Algorithm \ref{alg:H_entries}.
-
-%, for each batch $X_b$ we predetermine the subset of points 
-%\begin{equation*}
-%	p_{ik} := y_k - x_k + x_i
-%	\end{equation*}
-%satisfying $p_{bik} \in E_{x_i}$ for all $x_i \in X_b$ then evaluate $\eta_b(p_{bik})$ for this subsets of points all at once. Let
-%\begin{equation*}
-%	\chi_b:=\{p_{bik}:p_{bik} \in E_{x_i}\}.
-%\end{equation*}
-%and define $\Psi \in \mathbb{R}^{q \times N}$, 
-%
-%so that
-%\begin{equation*}
-%	\widetilde{H}(y_k,x_k) = \sum_{i=1}^q w_i(x_k) \Psi_{ik}.	
-%\end{equation*}
-%We have 
-%\begin{equation*}
-%	\Psi_{ik}(\chi_b) = \sum_{b=1}^B \eta_b(p_{bik})
-%\end{equation*}
-%where $\eta_b(\chi)$ is the 
-%
-%In Algorithm asdf, we describe how to evaluate $\widetilde{H}$ at many points using this procedure.
-%
-%\begin{algorithm2e}
-%	\SetAlgoNoLine
-%	\SetKwInOut{Input}{Input}
-%	\SetKwInOut{Output}{Output}
-%	\SetKwProg{Fn}{Function}{}{}
-%	\Input{Points $\{x_k'\}_{k=1}^n \subset \Omega$}	
-%	\Output{Weighting function values $\boldsymbol{\omega} \in \mathbb{R}^{q \times n}$, $\boldsymbol{\omega}_{i,k} = w_i(x_k')$}
-%	
-%	\mbox{}\\
-%	
-%	\Fn{$\computeweightingentries{\{x'_k\}_{k=1}^n}$}{
-%		$\boldsymbol{\nu} \gets \mathbf{0}_{q\times n}$
-%		
-%		\For{$i=1,\dots,q$}{
-%			$\boldsymbol{\nu}[i,:] \gets \interpolate(\mathbf{u}_i, \{x_1',x_2',\dots,x_k'\})$
-%		}
-%		
-%		$\boldsymbol{\omega} \gets \mathbf{U}[:,\mathtt{S}]^+ \boldsymbol{\nu}$
-%		
-%		\Return{$\boldsymbol{\omega}$}
-%	}
-%	
-%	\caption{Compute many weighting function values $\omega_{ik} = w_i(x_k')$}
-%	\label{alg:weighting_entries}
-%\end{algorithm2e}
-%
-%
-%\begin{algorithm2e}
-%	\SetAlgoNoLine
-%	\SetKwInOut{Input}{Input}
-%	\SetKwInOut{Output}{Output}
-%	\SetKwProg{Fn}{Function}{}{}
-%	\Input{Pairs of points $\{(x_k',y_k')\}_{k=1}^n \subset \Omega \times \Omega$}	
-%	\Output{Approximate kernel entries $\mathbf{z} \in \mathbb{R}^n$, $\mathbf{z}_k = \widetilde{H}(y_k',x_k')$}
-%	
-%	\mbox{}\\
-%	
-%	\Fn{$\computekernelentries{\{x'_k\}_{k=1}^n}{\{y'_k\}_{k=1}^n}$}
-%	{
-%		$\boldsymbol{\omega} \gets \computeweightingentries{\{x'_k\}_{k=1}^n}$
-%		
-%		Construct $\boldsymbol{\zeta} \in \mathbb{R}^{d \times q \times n}$, ~$\boldsymbol{\zeta}[:,i,k] = y_k' - x_k' + \mathbf{X}\left[:,\mathtt{S}[i]\right]$
-%
-%		\BlankLine
-%		
-%		\BlankLine
-%		
-%		$\boldsymbol{\Psi}\gets \mathbf{0}_{q \times n}$
-%		
-%		\For{$b=1,\dots,N_B$}{
-%			$\mathtt{\chi}_b \gets \{\}$
-%			
-%			\For{$j \in \mathtt{S}_b$}{
-%				$i \gets$ index such that $\mathtt{S}[i] = j$
-%				
-%				$E_j \gets$ unit ellipsoid with mean $\boldsymbol{\mu}[:,j]$ and covariance $\boldsymbol{\Sigma}[:,:,j]/\tau^2$
-%				
-%				$\mathtt{\chi}_b \gets \mathtt{\chi}_b \cup \{(i,k) : k \in \{1,\dots,N\}, \boldsymbol{\zeta}[:,i,k] \in E_j\}$
-%				
-%			}
-%
-%			
-%			$\boldsymbol{\Psi}[\chi_b] \gets \interpolate\left(\boldsymbol{\eta}^b, \{\boldsymbol{\zeta}[:,i,k] : (i,k) \in \mathtt{\chi}^b\}\right)$
-%		
-%		}
-%	
-%		\BlankLine
-%		
-%		\BlankLine
-%		
-%		Construct $\mathbf{z} \in \mathbb{R}^n$, ~$\mathbf{z}_k = \sum_{i=1}^q \boldsymbol{\omega}_{ik} \boldsymbol{\Psi}_{ik}$
-%	
-%		\Return{$\mathbf{z}$}
-%	}
-%	\caption{Compute many approximate kernel entries $\widetilde{H}(y_k',x_k')$}
-%	\label{alg:H_entries}
-%\end{algorithm2e}
 
 
 \section{Adaptive algorithm}
