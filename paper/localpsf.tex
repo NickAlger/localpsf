@@ -490,64 +490,12 @@ where $b(i)$ denotes the batch index such that $x_i \in S^{b(i)}$. To compute $z
 In order to use the product-convolution approximation $\widetilde{\mathcal{A}}$, we convert $\widetilde{\mathcal{A}}$ to hierarchical matrix (H-matrix) format. Many classes of hierarchical matrices exist---H1, uniform H1, H2, HODLR, HSS, HBS, and more [CITES]. We use H1 matrices in our numerical results, but any of the other H-matrix formats could be used instead. The basic ideas behind H-matrices are as follows:
 \begin{itemize} 
 	\item Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank.
-	\item Recursive algorithms can take advantage of this low rank block structure to perform matrix arithmetic fast. Conventional algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix addition require either $O(n^2)$ or $O(n^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(n \log^a n)$ time and memory for hierarchical matrices (here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix).
+	\item Recursive algorithms can take advantage of this low rank block structure to perform matrix arithmetic fast. Conventional algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix addition require either $O(n^2)$ or $O(n^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log^a N)$ time and memory for hierarchical matrices (here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix).
 \end{itemize}
 For more details on H-matrices, we recommend [CITES]. 
 
-We convert $\widetilde{\mathcal{A}}$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package [CITE]. Briefly, the H-matrix construction process that we use proceeds as follows. First, we construct a hierarchical partitionings of the degrees of freedom for the rows and columns of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(n \log n)$ specially-chosen matrix entries of $\widetilde{\mathcal{A}}$, which we do using the method described in Section \ref{sec:eval_matrix_entries}. In the remainder of this section we describe each of these steps in more detail.
+We convert $\widetilde{\mathcal{A}}$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package [CITE]. Briefly, this method uses geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix to construct a recursive block partitioning of $\widetilde{\mathcal{A}}$, such that all blocks at the finest level of the partitioning are either low rank, or are small. Then, the method forms low rank approximations of the blocks that are expected to be low rank by sampling specially chosen rows and columns of those blocks. The small high rank blocks are formed directly by evaluating their entries. The primary cost of constructing the approximation is the evaluation of $O(N \log N)$ matrix entries of $\widetilde{\mathcal{A}}$, which we perform using Algorithm \ref{alg:eval_y_x}. We describe this H-matrix construction method in detail in Appendix \ref{app:h_matrix}.
 
-\subsubsection{Cluster trees}
-\label{sec:cluster_trees}
-
-The degrees of freedom associated with the columns of the matrix are hierarchically clustered into a \emph{cluster tree} using recursive hyperplane splitting. Since we use finite elements to discretize the problem, we associate the $i^\text{th}$ column of $\widetilde{\mathcal{A}}$ with the nodal point in $\mathbb{R}^d$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^d$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which we call a cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
-
-A depth-first search ordering of the cluster tree leaves is then generated. When the columns of the matrix are permuted into this depth-first ordering, the columns associated with each cluster in the cluster tree are contiguous.
-
-In the same way, the degrees of freedom associated with the rows of the matrix are hierarchically clustered into another cluster tree, and an ordering for the rows is generated. In our examples, the degrees of freedom for the columns coincide with the degrees of freedom for the rows, so the cluster trees for the rows and columns are the same, but this is not required in general.
-
-\subsubsection{Block cluster tree} 
-\label{sec:block_cluster_tree}
-
-We partition the matrix into a recursive hierarchy of mostly low rank blocks called the \emph{block cluster tree}. The idea is that a block of the matrix is likely to be low rank if the point cloud associated with the rows of the block is far away from the point cloud associated with the columns of the block. This is reasonable to expect here because of the locality property of $\mathcal{A}$. Indeed, locality implies that many blocks of the matrix corresponding to far away point cloud clusters will be rank zero.
-
-After reordering the rows and columns of $\widetilde{\mathcal{A}}$ via the depth-first ordering described above, we partition the reordered version of $\widetilde{\mathcal{A}}$ into a tree of $2 \times 2$ block matrices recursively. We use a geometric admissibility condition (discussed below) to decide which blocks to subdivide, and use the cluster trees for the rows and columns to determine how to subdivide those blocks. For the first stage of subdivision, let $r_1$ and $r_2$ be the children row clusters for the root of the row cluster tree, let $c_1$ and $c_2$ be the children column clusters for the root of the column cluster tree. The matrix $\widetilde{\mathcal{A}}$ is partitioned into blocks as follows:
-\begin{equation*}
-	\begin{bmatrix}
-		\widetilde{\mathcal{A}}_{11} & \widetilde{\mathcal{A}}_{12} \\
-		\widetilde{\mathcal{A}}_{21} & \widetilde{\mathcal{A}}_{22},
-	\end{bmatrix}
-\end{equation*}
-where $\widetilde{\mathcal{A}}_{11}$ denotes the block of $\widetilde{\mathcal{A}}$ with rows $r_1$ and columns $c_1$, $\widetilde{\mathcal{A}}_{12}$ denotes the block of $\widetilde{\mathcal{A}}$ with rows $r_1$ and columns $c_2$, and so on for $\widetilde{\mathcal{A}}_{21}$ and $\widetilde{\mathcal{A}}_{22}$.
-
-We now loop through the four blocks, $\widetilde{\mathcal{A}}_{11}$, $\widetilde{\mathcal{A}}_{12}$, $\widetilde{\mathcal{A}}_{21}$, and $\widetilde{\mathcal{A}}_{22}$, and decide which blocks should be subdivided further. For the purpose of explanation, consider $\widetilde{\mathcal{A}}_{12}$. If
-\begin{equation}
-	\label{eq:weak_admissibility_cond}
-	\dist\left(r_1, c_2\right) \ge \eta \min\left(\diam\left(r_1\right), \diam\left(c_2\right)\right),
-\end{equation}
-then we mark $\widetilde{\mathcal{A}}_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, c_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $c_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(c_2\right)$ is the analogous diameter associated with the column cluster $c_2$. The quantity $\eta$ is a scalar constant; we use $\eta=2.0$. Basically, if the point clouds associated with $r_1$ and $c_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\widetilde{\mathcal{A}}_{11}$ and $\widetilde{\mathcal{A}}_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
-
-Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\mathcal{\widetilde{A}}$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree (quad-tree in $2$D, or oct-tree in $3$D), which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
-
-
-\subsubsection{Adaptive cross low rank approximation of blocks}
-\label{sec:adaptive_cross}
-
-Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method [CITE]. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\widetilde{\mathcal{A}}$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
-\begin{itemize}
-\item Let $C \in \mathbb{R}^{m \times r}$ be a matrix consisting of a subset of $r$ columns of $X$, such that the span of the columns in $C$ approximates the column space of $X$. 
-\item Let $R\in\mathbb{R}^{r \times m}$ be a subset of the rows of $X$, such that the span of the rows in $R$ approximates the row space of $X$.
-\item Let $U \in \mathbb{R}^{r \times r}$ be the block of $X$ consisting of the intersection of the rows from $R$ with the columns from $C$.
-\end{itemize}
-Then it is well-established that
-\begin{equation}
-\label{eq:CUR}
-	X \approx C U^+ R,
-\end{equation}
-where $U^+$ is the pseudoinverse of $U$ [CITE]. The quality of approximation \eqref{eq:CUR} depends on how well the columns of $C$ approximate the column space of $X$, and how well the rows of $R$ approximate the row space of $X$. 
-
-In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible. This may be done via either the maxvol procedure [CITE GOOD SUBMATRIX], or via QR factorization. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $kr$ columns of $X$ and $kr$ rows of $X$, where $k$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. For more details on adaptive cross low rank approximation, see [CITE]. The key point is that the adaptive cross method allows us to form a rank-$r$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(mr)$ entries of that block.
-
-We use the adaptive cross method to form low rank approximations for each admissible block of $\widetilde{\mathcal{A}}$. We directly compute all entries of the small dense blocks of $\widetilde{\mathcal{A}}$ that are not admissible. This process requires us to compute $O(r^2 N \log N)$ entries of $\widetilde{\mathcal{A}}$, which is relatively cheap compared to the matrix-vector products with $\mathcal{A}$ that are required to form the product-convolution approximation $\widetilde{\mathcal{A}}$.
 
 
 \section{Numerical results}
@@ -561,6 +509,65 @@ Some numerical results here.
 Some conclusions here. 
 
 \appendix
+
+\section{Hierarchical matrix construction}
+\label{app:h_matrix}
+
+The H-matrix construction process that we use proceeds as follows. First, we construct a hierarchical partitionings of the degrees of freedom for the rows and columns of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(n \log n)$ specially-chosen matrix entries of $\widetilde{\mathcal{A}}$, which we do using the method described in Section \ref{sec:eval_matrix_entries}. 
+
+\subsection{Cluster trees}
+\label{sec:cluster_trees}
+
+The degrees of freedom associated with the columns of the matrix are hierarchically clustered into a \emph{cluster tree} using recursive hyperplane splitting. Since we use finite elements to discretize the problem, we associate the $i^\text{th}$ column of $\widetilde{\mathcal{A}}$ with the nodal point in $\mathbb{R}^d$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^d$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which we call a cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
+
+A depth-first search ordering of the cluster tree leaves is then generated. When the columns of the matrix are permuted into this depth-first ordering, the columns associated with each cluster in the cluster tree are contiguous.
+
+In the same way, the degrees of freedom associated with the rows of the matrix are hierarchically clustered into another cluster tree, and an ordering for the rows is generated. In our examples, the degrees of freedom for the columns coincide with the degrees of freedom for the rows, so the cluster trees for the rows and columns are the same, but this is not required in general.
+
+\subsection{Block cluster tree} 
+\label{sec:block_cluster_tree}
+
+We partition the matrix into a recursive hierarchy of mostly low rank blocks called the \emph{block cluster tree}. The idea is that a block of the matrix is likely to be low rank if the point cloud associated with the rows of the block is far away from the point cloud associated with the columns of the block. This is reasonable to expect here because of the locality property of $\mathcal{A}$. Indeed, locality implies that many blocks of the matrix corresponding to far away point cloud clusters will be rank zero.
+
+After reordering the rows and columns of $\widetilde{\mathcal{A}}$ via the depth-first ordering described above, we partition the reordered version of $\widetilde{\mathcal{A}}$ into a tree of $2 \times 2$ block matrices recursively. We use a geometric admissibility condition (discussed below) to decide which blocks to subdivide, and use the cluster trees for the rows and columns to determine how to subdivide those blocks. For the first stage of subdivision, let $r_1$ and $r_2$ be the children row clusters for the root of the row cluster tree, let $c_1$ and $c_2$ be the children column clusters for the root of the column cluster tree. The matrix $\widetilde{\mathcal{A}}$ is partitioned into blocks as follows:
+\begin{equation*}
+\begin{bmatrix}
+\widetilde{\mathcal{A}}_{11} & \widetilde{\mathcal{A}}_{12} \\
+\widetilde{\mathcal{A}}_{21} & \widetilde{\mathcal{A}}_{22},
+\end{bmatrix}
+\end{equation*}
+where $\widetilde{\mathcal{A}}_{11}$ denotes the block of $\widetilde{\mathcal{A}}$ with rows $r_1$ and columns $c_1$, $\widetilde{\mathcal{A}}_{12}$ denotes the block of $\widetilde{\mathcal{A}}$ with rows $r_1$ and columns $c_2$, and so on for $\widetilde{\mathcal{A}}_{21}$ and $\widetilde{\mathcal{A}}_{22}$.
+
+We now loop through the four blocks, $\widetilde{\mathcal{A}}_{11}$, $\widetilde{\mathcal{A}}_{12}$, $\widetilde{\mathcal{A}}_{21}$, and $\widetilde{\mathcal{A}}_{22}$, and decide which blocks should be subdivided further. For the purpose of explanation, consider $\widetilde{\mathcal{A}}_{12}$. If
+\begin{equation}
+\label{eq:weak_admissibility_cond}
+\dist\left(r_1, c_2\right) \ge \eta \min\left(\diam\left(r_1\right), \diam\left(c_2\right)\right),
+\end{equation}
+then we mark $\widetilde{\mathcal{A}}_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, c_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $c_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(c_2\right)$ is the analogous diameter associated with the column cluster $c_2$. The quantity $\eta$ is a scalar constant; we use $\eta=2.0$. Basically, if the point clouds associated with $r_1$ and $c_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\widetilde{\mathcal{A}}_{11}$ and $\widetilde{\mathcal{A}}_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
+
+Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\mathcal{\widetilde{A}}$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree (quad-tree in $2$D, or oct-tree in $3$D), which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
+
+
+\subsection{Adaptive cross low rank approximation of blocks}
+\label{sec:adaptive_cross}
+
+Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method [CITE]. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\widetilde{\mathcal{A}}$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
+\begin{itemize}
+	\item Let $C \in \mathbb{R}^{m \times r}$ be a matrix consisting of a subset of $r$ columns of $X$, such that the span of the columns in $C$ approximates the column space of $X$. 
+	\item Let $R\in\mathbb{R}^{r \times m}$ be a subset of the rows of $X$, such that the span of the rows in $R$ approximates the row space of $X$.
+	\item Let $U \in \mathbb{R}^{r \times r}$ be the block of $X$ consisting of the intersection of the rows from $R$ with the columns from $C$.
+\end{itemize}
+Then it is well-established that
+\begin{equation}
+\label{eq:CUR}
+X \approx C U^+ R,
+\end{equation}
+where $U^+$ is the pseudoinverse of $U$ [CITE]. The quality of approximation \eqref{eq:CUR} depends on how well the columns of $C$ approximate the column space of $X$, and how well the rows of $R$ approximate the row space of $X$. 
+
+In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible. This may be done via either the maxvol procedure [CITE GOOD SUBMATRIX], or via QR factorization. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $kr$ columns of $X$ and $kr$ rows of $X$, where $k$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. For more details on adaptive cross low rank approximation, see [CITE]. The key point is that the adaptive cross method allows us to form a rank-$r$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(mr)$ entries of that block.
+
+We use the adaptive cross method to form low rank approximations for each admissible block of $\widetilde{\mathcal{A}}$. We directly compute all entries of the small dense blocks of $\widetilde{\mathcal{A}}$ that are not admissible. This process requires us to compute $O(r^2 N \log N)$ entries of $\widetilde{\mathcal{A}}$, which is relatively cheap compared to the matrix-vector products with $\mathcal{A}$ that are required to form the product-convolution approximation $\widetilde{\mathcal{A}}$.
+
 
 
 \section{Fast ellipsoid intersection test}
