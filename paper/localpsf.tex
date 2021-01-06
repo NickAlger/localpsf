@@ -64,7 +64,7 @@ Let $\Omega \subset \mathbb{R}^d$ be a bounded domain in dimension $d=1$, $2$, o
 \end{equation}
 with integral kernel $A:\Omega \times \Omega \rightarrow \mathbb{R}$. We focus on operators of this form which have the following properties:
 \begin{description}
-\item[Matrix-free:] One cannot easily access kernel entries $A(y,x)$. Access to $\mathcal{A}$ is available only through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors. That is, evaluation of the functions
+\item[Matrix-free:] One cannot easily access kernel entries $A(y,x)$. Access to $\mathcal{A}$ is available only through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary functions. That is, evaluation of the maps
 \begin{equation*}
 	u \mapsto\mathcal{A}u \quad \text{and} \quad v \mapsto\mathcal{A}^Tv.
 \end{equation*} 
@@ -79,6 +79,9 @@ with integral kernel $A:\Omega \times \Omega \rightarrow \mathbb{R}$. We focus o
 	A(y+h, x+h) \approx A(y,x).
 \end{equation}
 \end{description}
+
+After discretization (see Appendix \ref{app:discretized_operations}), the operator $\mathcal{A}$ becomes a dense matrix, $\mathbf{A}$, that is typically too large to be built and stored. The first property is called ``matrix-free'' because at the discrete level it means that we can perform matrix-vector products of $\mathbf{A}$ and $\mathbf{A}^T$ with arbitrary vectors, but cannot easily access matrix entries $\mathbf{A}_{ij}$. In the matrix-free regime, to compute $\mathbf{A}_{ij}$ one could compute $\mathbf{v} = \mathbf{A}\mathbf{e}_j$, then extract the $i^\text{th}$ entry, $\mathbf{A}_{ij} = \mathbf{v}_i$. However, this process is wasteful because one computes the entire vector $\mathbf{v}$, then discards all but one component. Here $\mathbf{e}_j=(0,\dots,0,1,0,\dots,0)$ is the unit vector which has $j^\text{th}$ component equal to one and all other components equal to zero. In PDE constrained optimization and inverse problems, Hessians are typically available matrix free; we do not have direct access to these operators, but we can apply them to vectors via a process that involve solving two PDEs \cite{HESSIANADJOINT}. More generally, an operator is matrix-free if the process of applying the operator to a function involves solving a large linear system, using a timestepping procedure, or performing an iterative process.
+
 Local translation invariance is illustrated in Figure FIG. If $\mathcal{A}$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then it is straightforward to show that $\mathcal{A}$ would be a convolution operator, and the convolution kernel, $\varphi_x$, would be given by
 \begin{equation}
 \label{eq:convolution_kernel}
@@ -102,10 +105,13 @@ Approximations of the form \eqref{eq:product_convolution} are known as \emph{pro
 Our operator approximation method is defined by how we compute the convolution kernels, $\varphi_i$, how we choose the points, $x_i$, what weighting functions, $w_i$, that we use, and how we use the resulting product-convolution approximation to perform linear algebra operations such as solving linear systems. In this section we summarize the answers to these questions; we will provide detailed answers to these questions in Section \ref{sec:method} and Section \ref{sec:using_approximation}.
 
 We compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a sum of point sources, $\delta_{x_i},$ at many points $x_i$ (a ``Dirac comb''). That is, we compute
-\begin{equation*}
+\begin{equation}
+\label{eq:eta_intro}
 	\eta := \sum_{i=1}^m A(~\cdot~, x_i) = \left\langle \mathcal{A}, \sum_{i=1}^m \delta_{x_i} \right\rangle^*.
-\end{equation*}
-Here $\sum_{i=1}^m \delta_{x_i}$ is the Dirac comb distribution, and $\left\langle \mathcal{A}, \sum_{i=1}^m \delta_{x_i} \right\rangle^*$ denotes the Riesz representation of the application of $\mathcal{A}$ to the Dirac comb. In computations, this amounts to computing $\boldsymbol{\eta} = \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \left(\sum_{i=1}^m \boldsymbol{\delta}_{x_i}\right)$, where $\boldsymbol{\eta}$, $\mathbf{A}$, and $\boldsymbol{\delta}_{x_i}$ are discretized versions of $\eta$, $A$, and $\delta_{x_i}$, respectively, and $\mathbf{M}$ is a mass matrix. The batch of points $x_i$ are chosen so that the support of $\left\langle \mathcal{A}, \delta_{x_i}\right\rangle^*$ and the support of $\left\langle \mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap (or do not overlap much) if $i \neq j$. Since the impulse responses do not overlap, we may post-process $\eta$ to recover $\varphi_i$ for all of the points $x_i$ in the batch---by applying $\mathcal{A}$ to one distribution, we recover many $\varphi_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\varphi_i$'s, until the approximation is sufficiently accurate or a maximum number of sample points is reached. 
+\end{equation}
+Here $\sum_{i=1}^m \delta_{x_i}$ is the Dirac comb distribution, $\left\langle \mathcal{A}, \sum_{i=1}^m \delta_{x_i} \right\rangle$ denotes the application of $\mathcal{A}$ to the Dirac comb, and $\left\langle \mathcal{A}, \sum_{i=1}^m \delta_{x_i} \right\rangle^*$ denotes the Riesz representation of the application of $\mathcal{A}$ to the Dirac comb. Although the domain of $\mathcal{A}$ is defined as $L^2(\Omega)$, which does not contain the Dirac comb distribution, the action of $\mathcal{A}$ may be extended to distributions in a natural way, as described in Appendix \ref{app:distributions}. We write $\langle \mathcal{A}, \xi \rangle$ to denote the application of $\mathcal{A}$ to the distribution $\xi$. Because $\mathcal{A}$ maps $L^2(\Omega) \rightarrow L^2(\Omega)'$, applying $\mathcal{A}$ to a function or distribution results in a linear functional. We take the Riesz representative of the linear functional $\left\langle \mathcal{A}, \sum_{i=1}^m \delta_{x_i} \right\rangle \in L^2(\Omega)'$ to convert it into a function $\left\langle \mathcal{A}, \sum_{i=1}^m \delta_{x_i} \right\rangle^* \in L^2(\Omega)$.  In computations, the process of applying $\mathcal{A}$ to the Dirac comb, then forming the Riesz representative, amounts to computing $\boldsymbol{\eta} = \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \left(\sum_{i=1}^m \boldsymbol{\delta}_{x_i}\right)$, where $\boldsymbol{\eta}$, $\mathbf{A}$, and $\boldsymbol{\delta}_{x_i}$ are discretized versions of $\eta$, $A$, and $\delta_{x_i}$, respectively, and $\mathbf{M}$ is a mass matrix. 
+
+The batch of points $x_i$ are chosen so that the support of $\left\langle \mathcal{A}, \delta_{x_i}\right\rangle^*$ and the support of $\left\langle \mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap (or do not overlap much) if $i \neq j$. Since the impulse responses do not overlap, we may post-process $\eta$ to recover $\varphi_i$ for all of the points $x_i$ in the batch---by applying $\mathcal{A}$ to one distribution, we recover many $\varphi_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\varphi_i$'s, until a desired number of batches is reached. 
 
 In order to choose the points $x_i$, we need to estimate the support of $\left\langle \mathcal{A}, \delta_{x_i}\right\rangle^*$ \emph{before} we compute it. The supports of the functions $\left\langle \mathcal{A}, \delta_{x}\right\rangle^*$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\mathcal{A}^T$ to a small number of specially chosen functions (three functions if $d=1$, six if $d=2$, ten if $d=3$), then post processing the results (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
 
@@ -144,9 +150,9 @@ Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function o
 \min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + R(m),
 \end{equation}
 where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $R(m)$ is a regularization term. Approximation of the Hessian of the objective function, $\mathcal{H}$, allows for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
-We only have access to $\mathcal{H}$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary linear PDEs.
+%We only have access to $\mathcal{H}$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary linear PDEs.
 
-The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---as more informative data is used in the inversion, the numerical rank of the data misfit term in the Hessian grows, so more matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because high-rank approximations of an operator can be formed using a small number of matrix-vector products.
+The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because high-rank approximations of an operator can be formed using a small number of matrix-vector products.
 
 \subsection{Existing work}
 
@@ -205,7 +211,10 @@ Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnega
 \label{eq:support_ellipsoid}
 E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
 \end{equation}
-where $\tau$ is a small number of standard deviations; we use $\tau=3$. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean for the Gaussian distribution that has the same mean and covariance as the normalized version of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$. The fraction of the mass of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
+where $\tau$ is a small number of standard deviations; we use $\tau=3$. 
+%The ellipsoid $E_{x}$ is the set of points within $\tau$ standard deviations of the mean of the Gaussian approximation of the normalized version of $\langle \mathcal{A}, \delta_{x}\rangle^{*}$ which has the same mean and covariance. 
+The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean of the Gaussian distribution which has the same mean and covariance as the normalized version of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$. 
+The fraction of the mass of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
 
 \begin{defn}
 	We define the spatially varying volume, $\alpha$, the scaled impulse response, $\rho_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
@@ -316,7 +325,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 
 The \emph{Dirac comb}, $\xi_b$, associated with a batch of sample points $S_b$ is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
 \begin{equation*}
-	\xi^b := \sum_{x \in S_b} \delta_{x_i}.
+	\xi^b := \sum_{x_i \in S_b} \delta_{x_i}.
 \end{equation*}
 For each batch $S_b$, we compute as the action of $\mathcal{A}$ on the associated Dirac comb:
 \begin{equation}
@@ -347,7 +356,7 @@ We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to 
 \label{eq:wi_optimization_problem}
 \begin{aligned}
 \min_{w_i \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
-\text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
+\text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,r.
 \end{aligned}
 \end{equation}
 Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}). 
@@ -452,7 +461,7 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 \subsection{Evaluating kernel entries of the approximation}
 \label{sec:eval_matrix_entries}
 
-We now describe how to efficiently evaluate $\widetilde{A}(y,x)$ at an arbitrary point $(x,y) \in \Omega \times \Omega$. From \eqref{eq:H_kernel_entries}, we have
+We now describe how to efficiently evaluate $\widetilde{A}(y,x)$ at an arbitrary point $(x,y) \in \Omega \times \Omega$. From \eqref{eq:kernel_entries}, we have
 \begin{equation}
 \label{eq:eval_y_x}
 \widetilde{A}(y,x) = \sum_{i=1}^r w_i(x) \varphi_{x_i}(y-x),
@@ -490,7 +499,7 @@ where $b(i)$ denotes the batch index such that $x_i \in S^{b(i)}$. To compute $z
 In order to use the product-convolution approximation $\widetilde{\mathcal{A}}$, we convert $\widetilde{\mathcal{A}}$ to hierarchical matrix (H-matrix) format. Many classes of hierarchical matrices exist---H1, uniform H1, H2, HODLR, HSS, HBS, and more \cite{HMATRIX}. We use H1 matrices in our numerical results, but any of the other H-matrix formats could be used instead. The basic ideas behind H-matrices are as follows:
 \begin{itemize} 
 	\item Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank.
-	\item Recursive algorithms can take advantage of this low rank block structure to perform matrix arithmetic fast. Conventional algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix addition require either $O(n^2)$ or $O(n^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log^a N)$ time and memory for hierarchical matrices (here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix).
+	\item Recursive algorithms can take advantage of this low rank block structure to perform matrix arithmetic fast. Conventional algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix addition require either $O(N^2)$ or $O(N^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log^a N)$ time and memory for hierarchical matrices. Here $N$ is the number of degrees of freedom for the discretized version of the problem, and $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix.
 \end{itemize}
 For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
@@ -513,7 +522,7 @@ Some conclusions here.
 \section{Hierarchical matrix construction}
 \label{app:h_matrix}
 
-The H-matrix construction process that we use proceeds as follows. First, we construct a hierarchical partitionings of the degrees of freedom for the rows and columns of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(n \log n)$ specially-chosen matrix entries of $\widetilde{\mathcal{A}}$, which we do using the method described in Section \ref{sec:eval_matrix_entries}. 
+The H-matrix construction process that we use proceeds as follows. First, we construct a hierarchical partitionings of the degrees of freedom for the rows and columns of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(N \log N)$ specially-chosen matrix entries of $\widetilde{\mathcal{A}}$, which we do using the method described in Section \ref{sec:eval_matrix_entries}. 
 
 \subsection{Cluster trees}
 \label{sec:cluster_trees}
@@ -866,9 +875,8 @@ The coefficient vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ for $\e
 \boldsymbol{\eta}^b = \mathbf{M}^{-1} \mathbf{A}^T \mathbf{M}^{-1}\boldsymbol{\xi}^b.
 \end{equation*}
 
-\section{DISORGANIZED OLD STUFF}
-
-\subsection{Background: distributions}
+\section{Background: distributions}
+\label{app:distributions}
 
 Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\mathcal{A}$ is extended to distributions $\mu:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
 \begin{equation*}
@@ -885,6 +893,10 @@ For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)
 \langle\mathcal{A},\delta_x\rangle(w)	= \int_\Omega w(y) A(y,x) dy,
 \end{equation*}
 and so the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$ is given by $\langle\mathcal{A},\delta_x\rangle^* = A(~\cdot~,x)$. That is, $\langle\mathcal{A},\delta_x\rangle^*$ is the function $y \mapsto A(y,x)$.
+
+\section{DISORGANIZED OLD STUFF}
+
+
 
 
 \begin{defn}
