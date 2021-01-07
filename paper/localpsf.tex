@@ -103,7 +103,7 @@ Approximations of the form \eqref{eq:product_convolution} are known as \emph{pro
 
 \subsection{Overview of the method}
 
-Our operator approximation method is defined by how we compute the convolution kernels, $\varphi_i$, how we choose the points, $x_i$, what weighting functions, $w_i$, that we use, and how we use the resulting product-convolution approximation to perform linear algebra operations such as solving linear systems. In this section we summarize the answers to these questions; we will provide detailed answers to these questions in Section \ref{sec:method} and Section \ref{sec:using_approximation}.
+Our operator approximation method is defined by how we compute the convolution kernels, $\varphi_i$, how we choose the points, $x_i$, what weighting functions, $w_i$, that we use, and how we use the resulting product-convolution approximation to perform linear algebra operations such as solving linear systems. In this section we summarize the answers to these questions; we will provide detailed answers to these questions in Section \ref{sec:method}.
 
 We compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a sum of point sources, 
 \begin{equation*}
@@ -179,14 +179,14 @@ Product-convolution type approximations of Hessians have been used in a seismic 
 
 \section{Constructing the approximation}
 \label{sec:method}
-This section describes how we compute the convolution kernels, $\varphi_i$, and weighting functions, $w_i$, for the product-convolution approximation, $\widetilde{\mathcal{A}} \approx \mathcal{A}$, given in \eqref{eq:product_convolution}.
+This section describes how we compute the convolution kernels, $\varphi_i$, and weighting functions, $w_i$, for the product-convolution approximation, $\widetilde{\mathcal{A}} \approx \mathcal{A}$, given in \eqref{eq:product_convolution}. We also describe how we evaluate kernel entries of the approximation, $\widetilde{A}(y,x)$, and how we convert $\widetilde{\mathcal{A}}$ to H-matrix format.
 \begin{itemize}
-\item We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). To reduce memory usage, all kernels $\varphi_i$ associated with a given batch, $b$, are stored in a single function, $\eta^b$, rather than as individual functions.
+\item We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). To reduce memory usage, all kernels $\varphi_i$ associated with a given batch, $b$, are stored in a single function, $\eta^b$, rather than as distinct functions.
 \item We use a greedy algorithm to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$ (Section \ref{sec:greedy_point_selection}). 
 \item We ensure that the points $x_i$ are well separated from each other by forming a-priori estimates of the supports of the functions $\langle\mathcal{A},\delta_{x}\rangle^*$ (Section \ref{eq:mean_and_covariance_estimation}). 
 \item For the weighting functions, we use the smoothest functions (in a least-squares sense) that interpolate the points $x_i$; constructing the weighting functions requires solving two Poisson PDEs per point $x_i$ (Section \ref{sec:weighting_functions}).
 \end{itemize}
-The complete algorithm for constructing $\widetilde{\mathcal{A}}$ is shown in Algorithm \ref{alg:construct_Atilde}.
+The complete algorithm for constructing $\widetilde{\mathcal{A}}$ is shown in Algorithm \ref{alg:construct_Atilde}. The method for evaluating kernel entries of $\widetilde{A}$ is shown in Section \ref{sec:eval_matrix_entries}. The method for converting $\widetilde{\mathcal{A}}$ to H-matrix format is shown in Section \ref{sec:H_matrix_conversion}.
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -460,10 +460,6 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 \end{thm}
 
 
-
-\section{Using the approximation}
-\label{sec:using_approximation}
-
 \subsection{Evaluating kernel entries of the approximation}
 \label{sec:eval_matrix_entries}
 
@@ -501,6 +497,7 @@ where $b(i)$ denotes the batch index such that $x_i \in S^{b(i)}$. To compute $z
 
 
 \subsection{Conversion to hierarchical matrix format}
+\label{sec:H_matrix_conversion}
 
 In order to use the product-convolution approximation $\widetilde{\mathcal{A}}$, we convert $\widetilde{\mathcal{A}}$ to hierarchical matrix (H-matrix) format. Many classes of hierarchical matrices exist---H1, uniform H1, H2, HODLR, HSS, HBS, and more \cite{HMATRIX}. We use H1 matrices in our numerical results, but any of the other H-matrix formats could be used instead. The basic ideas behind H-matrices are as follows:
 \begin{itemize} 
