@@ -94,9 +94,9 @@ Let $\delta_x$ denote the point source (delta distribution) centered at $x$. The
 \end{equation}
 where $\left\langle \mathcal{A}, \delta_x \right\rangle \in L^2(\Omega)'$ denotes the result of applying the operator $\mathcal{A}$ to the distribution $\delta_x$, and $\left\langle \mathcal{A}, \delta_x \right\rangle^* \in L^2(\Omega)$ denotes the Riesz representation of $\langle\mathcal{A}, \delta_x\rangle$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\psi \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\psi^* \in L^2(\Omega)$ such that $\psi(v) = \left(\psi^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} The local support property says, therefore, that a point source at $x$ has zero impact (or minimal impact) on points $y$ that are far away from $x$.
 
-Note that while the domain of $\mathcal{A}$ is defined as $L^2(\Omega)$, which does not contain the delta distribution, the application of $\mathcal{A}$ is extended to distributions in a natural way, as described in Appendix \ref{app:distributions}. 
+Note that while the domain of $\mathcal{A}$ is defined as $L^2(\Omega)$, which does not contain the delta distribution, the action of $\mathcal{A}$ may be extended to distributions in a natural way, as described in Appendix \ref{app:distributions}. The action of $\mathcal{A}$ on a distribution $\mu$ is written as $\langle \mathcal{A}, \mu \rangle$. We use this angle bracket notation to distinguish the action of $\mathcal{A}$ on distributions from the action of $\mathcal{A}$ on functions.
 %We take the Riesz representative of the linear functional $\left\langle \mathcal{A}, \delta_x \right\rangle \in L^2(\Omega)'$ to convert it into a function $\left\langle \mathcal{A}, \delta_x \right\rangle^* \in L^2(\Omega)$. 
-After discretization, the process of applying $\mathcal{A}$ to a delta distribution, then forming the Riesz representative, amounts to computing $\boldsymbol{\phi}_x = \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_{x_i}$, where $\boldsymbol{\phi}_x$, $\mathbf{A}$, and $\boldsymbol{\delta}_x$ are discretized versions of $\phi_x$, $A$, and $\delta_x$, respectively, and $\mathbf{M}$ is a mass matrix (e.g., in a finite element context). 
+After discretization, the process of applying $\mathcal{A}$ to a distribution, $\mu$, then forming the Riesz representative of the resulting linear functional, amounts to computing $\mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\mu}$, where $\mathbf{A}$, and $\boldsymbol{\mu}$ are discretized versions of $A$ and $\delta_x$, respectively, and $\mathbf{M}$ is a mass matrix (e.g., in a finite element context). 
 
 Local translation invariance is illustrated in Figure FIG. If $\mathcal{A}$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then it is straightforward to show that $\mathcal{A}$ would be a convolution operator, and the convolution kernel, $\varphi_x$, would be given by
 \begin{equation}
@@ -115,7 +115,7 @@ Approximations of the form \eqref{eq:product_convolution} are known as \emph{pro
 \subsection{Overview of the method}
 \label{sec:overview_intro}
 
-We compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a Dirac comb, then post-processing the result. That is, we compute
+We compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a Dirac comb, then post-processing the result. First, we compute
 \begin{equation}
 \label{eq:eta_intro}
 \eta := \left\langle \mathcal{A}, \xi \right\rangle^*
@@ -124,13 +124,11 @@ where
 \begin{equation*}
 	\xi := \sum_{i=1}^l \delta_{x_i}
 \end{equation*}
-is the Dirac comb associated with point sources centered at a collection of scattered points $x_i$. The batch of points $x_i$ are chosen so that the support of $\phi_{x_i}$ and the support of $\phi_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. 
-
-By linearity, and the expression for $\phi_x$ in \eqref{eq:impulse_response_delta_action}, we have
+is the Dirac comb associated with point sources centered at a collection of scattered points $x_i$. The batch of points $x_i$ are chosen so that the support of $\phi_{x_i}$ and the support of $\phi_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. By linearity, and the expression for $\phi_x$ in \eqref{eq:impulse_response_delta_action}, we have
 \begin{equation*}
 \eta = \sum_{i=1}^l \phi_{x_i}.
 \end{equation*}
-Since the support of $\phi_{x_i}$ and the support of $\phi_{x_j}$ do not overlap, we may post-process $\eta$ to recover $\phi_i$, and therefore $\varphi_i$, for all of the points $x_i$ in the batch---by applying $\mathcal{A}$ to one distribution, we recover many $\varphi_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\varphi_i$'s, until a desired number of batches is reached. 
+We may therefore post-process $\eta$ to recover $\phi_{x_i}$ for all of the points $x_i$ in the batch. Since $\varphi_i$ is a translated versions of $\phi_{x_i}$, we also recover $\varphi_i$ for all points $x_i$ in the batch---by applying $\mathcal{A}$ to one distribution, we compute many $\varphi_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\varphi_i$'s, until a desired number of batches is reached. 
 
 In order to choose the points $x_i$, we need to estimate the support of $\phi_{x_i}$ \emph{before} we compute it. The supports of the functions $\phi_x$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\mathcal{A}^T$ to a small number of specially chosen functions (three functions if $d=1$, six if $d=2$, ten if $d=3$), then post processing the results (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
 
