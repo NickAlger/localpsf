@@ -205,17 +205,7 @@ This section describes how we compute the convolution kernels, $\varphi_i$, and 
 \item We ensure that the points $x_i$ are well separated from each other by forming a-priori estimates of the supports of the functions $\psi_x$ (Section \ref{eq:mean_and_covariance_estimation}). 
 \item For the weighting functions, we use the smoothest functions (in a least-squares sense) that interpolate the points $x_i$; constructing the weighting functions requires solving two Poisson PDEs per point $x_i$ (Section \ref{sec:weighting_functions}).
 \end{itemize}
-The complete algorithm for constructing $\widetilde{\mathcal{A}}$ is shown in Algorithm \ref{alg:construct_Atilde}. The method for evaluating kernel entries of $\widetilde{A}$ is shown in Section \ref{sec:eval_matrix_entries}. The method for converting $\widetilde{\mathcal{A}}$ to H-matrix format is shown in Section \ref{sec:H_matrix_conversion}. In the rest of the section we will need the following definitions.
-
-\begin{defn}
-	We define the spatially varying volume, $\alpha$, the scaled impulse response, $\rho_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
-	\begin{align*}
-	\alpha:\Omega \rightarrow \mathbb{R}, &\qquad \alpha(x) := \int_{\Omega} \phi_x(z) dz, \\
-	\rho_x:\Omega \rightarrow \mathbb{R}, &\qquad \rho_x := \phi_x \big/ \alpha(x), \\
-	\mu:\Omega \rightarrow \mathbb{R}^d, &\qquad \mu(x) := \int_\Omega z \rho_x(z) dz, \\
-	\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \rho_x(z) dz.
-	\end{align*}
-\end{defn}
+The complete algorithm for constructing $\widetilde{\mathcal{A}}$ is shown in Algorithm \ref{alg:construct_Atilde}. The method for evaluating kernel entries of $\widetilde{A}$ is shown in Section \ref{sec:eval_matrix_entries}. The method for converting $\widetilde{\mathcal{A}}$ to H-matrix format is shown in Section \ref{sec:H_matrix_conversion}. 
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -241,16 +231,28 @@ The complete algorithm for constructing $\widetilde{\mathcal{A}}$ is shown in Al
 \subsection{Estimating impulse response supports}
 \label{eq:mean_and_covariance_estimation}
 
-Since $\phi_x$ is nonnegative, it is a scaled probability distribution. We compute the scaling factor, denoted $\alpha(x)$, for all $x$ simultaneously by applying $\mathcal{A}$ to a constant function. We then compute the spatially varying mean, $\mu(x)$, and covariance, $\Sigma(x)$ of the normalized version of $\phi_x$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. We make the approximation that the support of $\phi_x$ is contained within the ellipsoid
+Since $\phi_x$ is nonnegative, it is a scaled probability distribution. We compute the scaling factor, denoted $\alpha(x)$, for all $x$ simultaneously by applying $\mathcal{A}^T$ to a constant function. We compute the spatially varying mean, $\mu(x)$, and covariance, $\Sigma(x)$ of the normalized version of $\phi_x$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. Definitions of $\alpha$, $\mu$, and $\Sigma$ are given in Definition \ref{defn:alpha_rho_mu_sigma}. The procedure for computing these quantities is shown in Algorithm \ref{alg:varhpi_mean_cov}, and the theoretical basis for this procedure is shown in Theorem \ref{thm:vol_mean_cov}. 
+
+We make the approximation that the support of $\phi_x$ is contained within the ellipsoid
 \begin{equation}
 \label{eq:support_ellipsoid}
 E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
 \end{equation}
-where $\tau$ is a small number of standard deviations. The bigger $\tau$ is, the smaller the overlap between impulse responses within a batch will be; the smaller $\tau$ is, the more impulse responses we can fit within each batch. In practice we found that $\tau=3$ provides a good balance between these competing goals. 
+where $\tau$ is a small number of standard deviations. 
 %The ellipsoid $E_{x}$ is the set of points within $\tau$ standard deviations of the mean of the Gaussian approximation of the normalized version of $\langle \mathcal{A}, \delta_{x}\rangle^{*}$ which has the same mean and covariance. 
-The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\mu(x)$ and covariance $\Sigma(x)$. Note that this Gaussian distribution has the same mean and covariance as  which has the same mean and covariance as the normalized version of $\phi_x$ (see Figure FIG). 
+The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\mu(x)$ and covariance $\Sigma(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\phi_x$ (see Figure FIG). The bigger $\tau$ is, the smaller the overlap between impulse responses within a batch will be, while the smaller $\tau$ is, the more impulse responses we can fit within each batch. In practice we found that $\tau=3$ provides a good balance between these competing goals. 
 The fraction of the mass of $\phi_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
 
+\begin{defn}
+	\label{defn:alpha_rho_mu_sigma}
+	We define the spatially varying volume, $\alpha$, the scaled impulse response, $\rho_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
+	\begin{align*}
+	\alpha:\Omega \rightarrow \mathbb{R}, &\qquad \alpha(x) := \int_{\Omega} \phi_x(z) dz, \\
+	\rho_x:\Omega \rightarrow \mathbb{R}, &\qquad \rho_x := \phi_x \big/ \alpha(x), \\
+	\mu:\Omega \rightarrow \mathbb{R}^d, &\qquad \mu(x) := \int_\Omega z \rho_x(z) dz, \\
+	\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \rho_x(z) dz.
+	\end{align*}
+\end{defn}
 
 \begin{theorem}
 	\label{thm:vol_mean_cov}
