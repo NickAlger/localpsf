@@ -401,7 +401,7 @@ Since the points $x_i$ are chosen so that the support of $\phi_i$ and the suppor
 		0, & \text{otherwise}.
 		\end{cases}
 \end{equation}
-for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover $\varphi_{x_i}$ for every point $x_i \in S_b$. To minimize memory usage, the functions $\varphi_i$ are never isolated and stored individually. Instead, we store the functions $\eta^b$, and use formula \eqref{eq:varphi_eval} to perform function evaluations $z \mapsto \varphi_i(z)$ as needed.
+for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover $\varphi_{x_i}$ for every point $x_i \in S_b$. To minimize memory usage, the functions $\varphi_i$ are not stored individually. Instead, we store the functions $\eta^b$, and use formula \eqref{eq:varphi_eval} to perform function evaluations $z \mapsto \varphi_i(z)$ as needed.
 
 
 \subsection{Poisson interpolation weighting functions}
