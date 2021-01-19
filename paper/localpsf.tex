@@ -251,7 +251,7 @@ In Algorithm \ref{alg:varhpi_mean_cov} we show how to compute $\alpha(x)$, $\mu(
 
 \begin{defn}[Moments of $\phi_x$]
 	\label{defn:alpha_rho_mu_sigma}
-	We define the spatially scaling factor, $\alpha$, the scaled impulse response, $\widehat{\phi}_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
+	We define the spatially varying scaling factor, $\alpha$, the scaled impulse response, $\widehat{\phi}_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
 	\begin{align*}
 	\alpha:\Omega \rightarrow \mathbb{R}, &\qquad \alpha(x) := \int_{\Omega} \phi_x(z) dz, \\
 	\widehat{\phi}_x:\Omega \rightarrow \mathbb{R}, &\qquad \widehat{\phi}_x := \phi_x \big/ \alpha(x), \\
@@ -654,7 +654,7 @@ where $\Phi \in \mathbb{R}^{d \times d}$ is the matrix of generalized eigenvecto
 \label{eq:Ks_generalized}
 K(s) = 1 - \frac{1}{\tau^2} \sum_{i=1}^d \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2,
 \end{equation}
-where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenvalue decomposition of $\Sigma_p$ and $\Sigma_q$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's algorithm (any fast 1 dimensional convex optimization routine may be used). The resulting algorithm for checking whether $E_p$ and $E_q$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
+where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenvalue decomposition of $\Sigma_p$ and $\Sigma_q$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's algorithm \cite{BRENT} (any fast 1 dimensional convex optimization routine may be used). The resulting algorithm for checking whether $E_p$ and $E_q$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
