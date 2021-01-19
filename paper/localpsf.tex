@@ -235,50 +235,64 @@ The complete algorithm for constructing $\widetilde{\mathcal{A}}$ is shown in Al
 \subsection{Estimating impulse response supports}
 \label{eq:mean_and_covariance_estimation}
 
-Since $\phi_x$ is nonnegative, it is a scaled probability distribution. Let $\alpha(x)$ denote the scaling factor, and let $\mu(x)$ and $\Sigma(x)$ denote the mean and covariance of the normalized version of $\phi_x$ (see Definition \ref{defn:alpha_rho_mu_sigma}). We make the approximation that the support of $\phi_x$ is contained within the ellipsoid
+Since $\phi_x$ is nonnegative, it is a scaled probability distribution. Let $\widehat{\phi}_x$ denote the normalized version of $\phi_x$, and let $\mu(x)$ and $\Sigma(x)$ denote the mean and covariance of $\widehat{\phi}_x$, respectively (see Definition \ref{defn:alpha_rho_mu_sigma}). We make the approximation that the support of $\phi_x$ is contained within the ellipsoid
 \begin{equation}
 \label{eq:support_ellipsoid}
 E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
 \end{equation}
 where $\tau$ is a fixed constant. 
 %The ellipsoid $E_{x}$ is the set of points within $\tau$ standard deviations of the mean of the Gaussian approximation of the normalized version of $\langle \mathcal{A}, \delta_{x}\rangle^{*}$ which has the same mean and covariance. 
-The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\mu(x)$ and covariance $\Sigma(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\phi_x$ (see Figure FIG). The bigger $\tau$ is, the smaller the overlap between impulse responses within a batch will be, while the smaller $\tau$ is, the more impulse responses we can fit within each batch. In practice we find that $\tau=3$ provides a good balance between these competing goals. 
+The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\mu(x)$ and covariance $\Sigma(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\phi}_x$ (see Figure FIG). The bigger $\tau$ is, the smaller the overlap between impulse responses within a batch will be, while the smaller $\tau$ is, the more impulse responses we can fit within each batch. In practice we find that $\tau=3$ provides a good balance between these competing goals. 
 The fraction of the ``mass'' of $\phi_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
 
-In Algorithm \ref{alg:varhpi_mean_cov} we show how to compute $\alpha(x)$, $\mu(x)$, and $\Sigma(x)$ for all points $x$ simultaneously, by applying $\mathcal{A}^T$ to a constant function and a small number of linear and quadratic functions. The theoretical basis for Algorithm \ref{alg:varhpi_mean_cov} is shown in Theorem \ref{thm:vol_mean_cov}.
+In Algorithm \ref{alg:varhpi_mean_cov} we show how to compute $\alpha(x)$, $\mu(x)$, and $\Sigma(x)$ for all points $x$ simultaneously, by applying $\mathcal{A}^T$ to a constant function and a small number of linear and quadratic functions. Definitions required for Algorithm \ref{alg:varhpi_mean_cov} are given in Definition \ref{defn:alpha_rho_mu_sigma}, Definition \ref{defn:C_L_Q}, and Definition \ref{defn:pointwise}. The theoretical basis for Algorithm \ref{alg:varhpi_mean_cov} is shown in Theorem \ref{thm:vol_mean_cov}.
 
 %We compute the scaling factor, denoted $\alpha(x)$, for all $x$ simultaneously by applying $\mathcal{A}^T$ to a constant function. We compute the spatially varying mean, $\mu(x)$, and covariance, $\Sigma(x)$ of the normalized version of $\phi_x$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. Definitions of $\alpha$, $\mu$, and $\Sigma$ are given in Definition \ref{defn:alpha_rho_mu_sigma}. The procedure for computing these quantities is shown in Algorithm \ref{alg:varhpi_mean_cov}, and the theoretical basis for this procedure is shown in Theorem \ref{thm:vol_mean_cov}. 
 
-\begin{defn}
+\begin{defn}[Moments of $\phi_x$]
 	\label{defn:alpha_rho_mu_sigma}
-	We define the spatially scaling factor, $\alpha$, the scaled impulse response, $\rho_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
+	We define the spatially scaling factor, $\alpha$, the scaled impulse response, $\widehat{\phi}_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
 	\begin{align*}
 	\alpha:\Omega \rightarrow \mathbb{R}, &\qquad \alpha(x) := \int_{\Omega} \phi_x(z) dz, \\
-	\rho_x:\Omega \rightarrow \mathbb{R}, &\qquad \rho_x := \phi_x \big/ \alpha(x), \\
-	\mu:\Omega \rightarrow \mathbb{R}^d, &\qquad \mu(x) := \int_\Omega z \rho_x(z) dz, \\
-	\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \rho_x(z) dz.
+	\widehat{\phi}_x:\Omega \rightarrow \mathbb{R}, &\qquad \widehat{\phi}_x := \phi_x \big/ \alpha(x), \\
+	\mu:\Omega \rightarrow \mathbb{R}^d, &\qquad \mu(x) := \int_\Omega z \widehat{\phi}_x(z) dz, \\
+	\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \widehat{\phi}_x(z) dz.
 	\end{align*}
 \end{defn}
 
-\begin{theorem}
-	\label{thm:vol_mean_cov}
-	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$, and let $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions, respectively:
+\begin{defn}[Constant, linear, and quadratic functions]	
+	\label{defn:C_L_Q}
+	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$. We define $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions, respectively:
 	\begin{equation*}
-		C(x) := 1, \qquad
-		L^i(x) := x^i, \qquad
-		Q^{ij}(x) = x^i x^j.
+	C(x) := 1, \qquad
+	L^i(x) := x^i, \qquad
+	Q^{ij}(x) = x^i x^j.
 	\end{equation*}
-	We have
-	\begin{align}
-		\alpha =& \left(\mathcal{A}^TC\right)^*, \label{eq:vol_mean_var_thm1}\\
-		\mu^i =& \left(\mathcal{A}^T L^i\right)^* / \alpha, \label{eq:vol_mean_var_thm2}\\
-		\Sigma^{ij} =& \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot\mu^j, \label{eq:vol_mean_var_thm3}
-	\end{align}
+\end{defn}
+
+\begin{defn}[Pointwise operations]
+	\label{defn:pointwise}
 	We write $f/g$ to denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ to denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
-\end{theorem}
+\end{defn}
 
-The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}.
-
+%\begin{theorem}
+%	\label{thm:vol_mean_cov}
+%	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$, and let $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions, respectively:
+%	\begin{equation*}
+%		C(x) := 1, \qquad
+%		L^i(x) := x^i, \qquad
+%		Q^{ij}(x) = x^i x^j.
+%	\end{equation*}
+%	We have
+%	\begin{align}
+%		\alpha =& \left(\mathcal{A}^TC\right)^*, \label{eq:vol_mean_var_thm1}\\
+%		\mu^i =& \left(\mathcal{A}^T L^i\right)^* / \alpha, \label{eq:vol_mean_var_thm2}\\
+%		\Sigma^{ij} =& \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot\mu^j, \label{eq:vol_mean_var_thm3}
+%	\end{align}
+%	We write $f/g$ to denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ to denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
+%\end{theorem}
+%
+%The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}.
 
 
 \begin{algorithm2e}
@@ -310,6 +324,15 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 	\caption{Compute volume $\alpha$, mean $\mu$, and covariance $\Sigma$}
 	\label{alg:varhpi_mean_cov}
 \end{algorithm2e}
+
+
+\begin{theorem}[Correctness of Algorithm \ref{alg:varhpi_mean_cov}]
+	\label{thm:vol_mean_cov}
+	Algorithm \ref{alg:varhpi_mean_cov} correctly computes $\alpha$, $\mu$, and $\Sigma$.
+\end{theorem}
+
+The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}.
+
 
 
 
@@ -786,7 +809,7 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 		=& \int_\Omega \int_\Omega w(x) A(z,x) C(z) dz dx \\
 		=& \left(\mathcal{A}^T C\right)(w),
 	\end{align*}
-	which implies \eqref{eq:vol_mean_var_thm1}. 
+	which implies $\alpha = \left(\mathcal{A}^TC\right)^*$.
 	
 	Using similar techniques, we have
 	\begin{align*}
@@ -794,19 +817,19 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 		=& \int_\Omega \int_\Omega w(x) L^i(z) A(z,x) dz dx \\
 		=& \left(\mathcal{A}^T L^i\right)(w),
 	\end{align*}
-	which implies \eqref{eq:vol_mean_var_thm2}. 
+	which implies $\mu^i = \left(\mathcal{A}^T L^i\right)^* / \alpha$. 
 	
-	To prove \eqref{eq:vol_mean_var_thm3} we use the identity
+	Using the identity
 	\begin{equation*}
-		\Sigma(x) = \int_\Omega zz^T \rho_x(z) dz - \mu(x) \mu(x)^T.
+		\Sigma(x) = \int_\Omega zz^T \widehat{\phi}_x(z) dz - \mu(x) \mu(x)^T,
 	\end{equation*}
-	We have
+	we have
 	\begin{align*}
 		\left(w, \alpha \cdot \left(\Sigma^{ij}+\mu^i \cdot \mu^j\right)\right)_{L^2(\Omega)} =& \int_\Omega w(x) \alpha(x) \int_\Omega z^i z^j \langle\mathcal{A},\delta_x\rangle^*(z) / \alpha(x) dz dx \\
 		=& \int_\Omega \int_\Omega w(x) Q^{ij}(z) A(z,x) dz dx \\
 		=& \left(\mathcal{A}Q^{ij}\right)(w),
 	\end{align*}
-	which implies \eqref{eq:vol_mean_var_thm3}.
+	which implies $\Sigma^{ij} = \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot\mu^j$.
 	
 \end{proof}
 
