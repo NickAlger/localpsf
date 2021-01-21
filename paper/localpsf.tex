@@ -216,6 +216,10 @@ The complete algorithm for constructing $\widetilde{\mathcal{A}}$ is shown in Al
 	\SetKwInOut{Input}{Input}
 	\SetKwInOut{Output}{Output}
 	{	
+		\Input{Operator $\mathcal{A}$, parameter $\text{max\_batches}$}
+		\Output{Dirac comb responses $\{\eta^b\}_{b=1}^{\text{max\_batches}}$, \\
+			weighting functions $\{w_i\}_{i=1}^r$}
+		
 		Compute spatially varying mean, $\mu$, and covariance, $\Sigma$, using Algorithm \ref{alg:varhpi_mean_cov}.
 		
 		\For{$b=1,2,\dots,\text{max\_batches}$}{
@@ -300,15 +304,22 @@ In Algorithm \ref{alg:varhpi_mean_cov} we show how to compute $\alpha(x)$, $\mu(
 	\SetKwInOut{Input}{Input}
 	\SetKwInOut{Output}{Output}
 	{	
+		\Input{Operator $\mathcal{A}$}
+		\Output{$\alpha$, $\mu$, and $\Sigma$}
+		
+		\tcp{Compute scaling factor $\alpha$}
+		
 		Form constant function $C(x)=1$
 
 		$\alpha = \left(\mathcal{A}^T C\right)^*$
 		
+		\tcp{Compute mean $\mu$}
 		\For{$i=1,2,\dots,d$}{
 			Form linear function $L^i(x) = x^i$
 			
 			$\mu^i = \left(\mathcal{A}^T L^i\right)^* / \alpha$
 		}
+		\tcp{Compute covariance $\Sigma$}
 		\For{$i=1,2,\dots,d$}{
 			\For{$j=1,\dots,i$}{
 				Form quadratic function $Q^{ij} = x^i x^j$
@@ -321,7 +332,7 @@ In Algorithm \ref{alg:varhpi_mean_cov} we show how to compute $\alpha(x)$, $\mu(
 		}
 		
 	}
-	\caption{Compute volume $\alpha$, mean $\mu$, and covariance $\Sigma$}
+	\caption{Compute scaling factor $\alpha$, mean $\mu$, and covariance $\Sigma$}
 	\label{alg:varhpi_mean_cov}
 \end{algorithm2e}
 
@@ -351,22 +362,26 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 \begin{algorithm2e}
 	\SetAlgoNoLine
 	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
 	\SetKwProg{Fn}{Function}{}{}
-
-	Start with a finite set of candidate points $P \subset \Omega$
 	
-	Initialize new empty batch of sample points, $S_b$
+	\Input{Finite set of candidate points $P\subset \Omega$, \\mean $\mu(x)$ and covariance $\Sigma(x)$, \\domain boundary information $\partial \Omega$, \\previous sample point batches $S_1, \dots, S_{b-1}$}
+	\Output{Batch of new sample points $S_b$}
+	
+	Initialize empty new batch of sample points, $S_b = \{\}$
 	
 	\While{$P$ is not empty}{
 		Determine the point $p \in P$ that is farthest from all points in the previous sample point batches $S_1,\dots,S_{b-1}$
 		
 		Remove $p$ from $P$
+
 	
 		\If{$E_p \cap E_q \neq \{\}$ for all $q \in S_b$ and $E_p \cap \partial \Omega = \{\}$}{
+			\tcp{$E_p$ and $E_q$ are the ellipsoids defined in \eqref{eq:support_ellipsoid}}
 			
 			Add $p$ to $S_b$
 			
-			Remove all points $x$ satisfying $\mu(x) \in E_p$ from $P$
+			Remove all points $p'$ satisfying $\mu(p') \in E_p$ from $P$
 		}
 	}
 
@@ -455,20 +470,38 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 	\SetKwInOut{Input}{Input}
 	\SetKwInOut{Output}{Output}
 	{	
+		\Input{Sample points $\{x_i\}_{i=1}^r$, domain geometry $\Omega$}
+		\Output{Weighting functions $\{w_i\}_{i=1}^r$}
+		
+		Initialize constant function $C(x) = 1$
+		
+		Compute Lebesgue measure of the domain, $|\Omega|$
+		
+		\tcp{Compute harmonic functions $\{\psi_i\}_{i=1}^r$ and $\{\theta_i\}_{i=1}^r$}
+		
 		\For{$i=1,2, \dots, r$}{
-			Compute $\psi_i$ as the solution to the Poisson problem
+			Initialize $\delta_{x_i}$ as the point source (delta distribution) centered at $x_i$.
+			
+			Compute $\psi_i$ by solving the Neumann Poisson problem
 			\begin{equation}
 			\label{eq:psi_eq}
-			\Delta \psi_i = \delta_{x_i} - C/|\Omega|, \quad \text{in }\Omega,
+			\begin{cases}
+			\Delta \psi_i = \delta_{x_i} - C/|\Omega|, & \text{in }\Omega, \\
+			\nu \cdot \nabla \psi_i = 0 & \text{on } \partial \Omega,
+			\end{cases}
 			\end{equation}
-			with Neumann zero boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$. Recall $\delta_{x_i}$ is a point source (delta distribution) centered at $x_i$, $C$ is the constant function $C(x)=1$, and $|\Omega|$ is the Lebesgue measure of $\Omega$. 
+			with condition $\int_\Omega \psi_i(x) dx = 0$, where $\nu$ is the normal vector to $\partial \Omega$.
+
 			
-			Compute $\theta_i$ as the solution to the Poisson problem
+			Compute $\theta_i$ by solving the Neumann Poisson problem
 			\begin{equation}
 			\label{eq:theta_eq}
-			\Delta \theta_i = \psi_i, \quad \text{in }\Omega,
+						\begin{cases}
+			\Delta \theta_i = \psi_i, & \text{in }\Omega, \\
+			\nu \cdot \nabla \theta_i = 0 & \text{on } \partial \Omega,
+			\end{cases}
 			\end{equation}
-			with Neumann zero boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
+			with condition $\int_\Omega \theta_i(x) dx = 0$, where $\nu$ is the normal vector to $\partial \Omega$.
 			
 		}
 		
@@ -478,13 +511,15 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 		S_{ij} = \left(\psi_i, \psi_j\right)_{L^2(\Omega)}.
 		\end{equation}
 		
+		\tcp{Compute weighting functions $\{w_i\}_{i=1}^r$}
+		
 		\For{$i=1,2,\dots,r$}{
 			Compute
 			\begin{equation}
 			\label{eq:definition_of_alpha_alg}
 			\alpha = \frac{\mathbf{1}^T S^{-1} e_i}{\mathbf{1}^T S^{-1} \mathbf{1}},
 			\end{equation}
-			where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one, and $e_i = (0,\dots,0,1,0,\dots,0)$ is the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero.
+			where $\mathbf{1} = (1,1,\dots,1) \in \mathbb{R}^r$, and $e_i = (0,\dots,0,1,0,\dots,0)\in \mathbb{R}^r$ is unit vector with $i^\text{th}$ component equal to one.
 			
 			Compute 
 			\begin{equation}
@@ -531,6 +566,11 @@ where $b(i)$ denotes the batch index such that $x_i \in S^{b(i)}$. To compute $z
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	
+	\Input{points $x \in \Omega$, $y \in \Omega$, \\sample point batches $S_1, \dots, S_\text{max\_batches}$, \\Dirac comb responses $\{\eta^b\}_{b=1}^{\text{max\_batches}}$, \\weighting functions $\{w_i\}_{i=1}^r$}
+	\Output{Kernel entry $z = \widetilde{A}(y,x)$}
 
 	$z \gets 0$
 	
@@ -665,28 +705,24 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 		Ellipsoid $E_q$ with mean $\mu_q$ and covariance $\Sigma_q/\tau^2$ 
 	}
 	
-	\Output{Boolean which is true if $E_p \cap E_q \neq \{\}$ and false otherwise}
+	\Output{Boolean $\text{ellipsoids\_intersect}$ which is true if $E_p \cap E_q \neq \{\}$ and false otherwise}
 	
-	\mbox{}\\
 	
-	\Fn{$\ellipsoidsintersect{E_p}{E_q}$}
-	{
-		Solve generalized eigenvalue problem $\Sigma_p \Phi = \Sigma_q \Phi \Lambda$
+	Solve generalized eigenvalue problem $\Sigma_p \Phi = \Sigma_q \Phi \Lambda$
 		
-		$v \gets \Phi^T\left(\mu_p - \mu_q\right)$
+	$v \gets \Phi^T\left(\mu_p - \mu_q\right)$
 		
-		$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^d \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
+	$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^d \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
 		
-		\If{$K^* < 0$}{
+	\If{$K^* < 0$}{
 			
-			\Return{False}
+		$\text{ellipsoids\_intersect} \gets \text{False}$
 			
-		}
-		\Else{
+	}
+	\Else{
 			
-			\Return{True}
+		$\text{ellipsoids\_intersect} \gets \text{True}$
 			
-		}
 	}
 	\caption{Determining whether two ellipsoids intersect}
 	\label{alg:ellipsoid_intersection_test}
