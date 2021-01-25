@@ -350,11 +350,11 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \subsection{Greedy sample point selection}
 \label{sec:greedy_point_selection}
 
-Starting from a finite set of candidate points $P$, we select batches of sample points, $S_b$, using a greedy algorithm. To build a batch $S_b$, first we initialize $S_b$ as an empty set. Then we select a candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
+Now that we have estimates of the supports of the functions $\phi_x$, we use these estimates, combined with a greedy algorithm to choose sets of sample points, $S_b$. These sample points will be used in Section \ref{sec:get_impulse_response} to form Dirac combs, which are then used to compute impulse responses of $\mathcal{A}$. Starting from a finite set of candidate points $P$, we select batches of sample points, $S_b$, using a greedy algorithm. To build a batch $S_b$, first we initialize $S_b$ as an empty set. Then we select a candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
 \begin{equation*}
 \max_{p \in P} \min_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|.
 \end{equation*}
-Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
+Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. Recall that $E_p$ and $E_q$ are ellipsoids defined in \eqref{eq:support_ellipsoid}. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
 
 We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches.
 
@@ -394,7 +394,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 \subsection{Batched computation of impulse responses}
 \label{sec:get_impulse_response}
 
-The \emph{Dirac comb}, $\xi_b$, associated with a batch of sample points $S_b$ is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
+We compute impulse responses of $\mathcal{A}$ in batches by applying $\mathcal{A}$ to a small number Dirac combs. The batches of impulse responses, $\eta^b$, will ultimately be interpolated with weighting functions described in Section \ref{sec:weighting_functions} to form the desired approximation $\widetilde{\mathcal{A}}\approx \mathcal{A}$.  The Dirac comb, $\xi_b$, associated with a batch of sample points $S_b$ is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
 \begin{equation*}
 	\xi^b := \sum_{x_i \in S_b} \delta_{x_i}.
 \end{equation*}
@@ -408,7 +408,7 @@ By linearity, $\eta^b$ may be written as
 \label{eq:phi_b}
 	\eta^b = \left\langle\mathcal{A},\sum_{x_i \in S_b} \delta_{x_i}\right\rangle^* = \sum_{x_i \in S_b} \langle\mathcal{A}, \delta_{x_i}\rangle^* = \sum_{x_i \in S_b} \phi_x.
 \end{equation}
-Since the points $x_i$ are chosen so that the support of $\phi_i$ and the support of $\phi_j$ do not overlap (or do not overlap much), we have
+Since the points $x_i$ are chosen so that the support of $\phi_i$ and the support of $\phi_j$ do not overlap (or do not overlap much) when $i \neq j$, from \eqref{eq:convolution_kernel} and \eqref{eq:phi_b} we have
 \begin{equation}
 \label{eq:varphi_eval}
 	\varphi_{x_i}(z) = \phi_i(z+x_i) = \begin{cases}
@@ -442,7 +442,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 Let $y \in \mathbb{R}^d$, and let $\gamma_y$ be the function
 \begin{equation}
 \label{eq:u_defn_in_thm}
-\gamma_y(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \widetilde{A}\left(y+x,x\right)
+\gamma_y(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \widetilde{A}\left(y+x,x\right),
 \end{equation}
 where the weighting functions $w_i$ are the solutions to optimization problem \eqref{eq:wi_optimization_problem}. Then $\gamma_y$ solves the optimization problem
 \begin{equation}
