@@ -986,29 +986,32 @@ Here we list common function space operations on $V_h$ and $V_h'$, and show the 
 
 	\item[Distributions:] Let $\mu:C\left(\overline{\Omega}\right)\rightarrow \mathbb{R}$ be a distribution. If $\mu(f_i)$ is well-defined for all finite element basis vectors $f_i$, then the restriction of $\mu$ to domain $V_h$ is a linear functional $\mu_h\in V_h'$. The functional $\mu_h$ has a coefficient dual vector $\boldsymbol{\mu} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ with entries 
 	\begin{equation*}
-	\boldsymbol{\mu}_i=\mu(f_i) \quad i=1,\dots,N.
+	\boldsymbol{\mu}_i=\mu(f_i), \quad i=1,\dots,N.
 	\end{equation*} 
-	For example, let $\delta_p$ be the Dirac distribution centered at a point $p\in\Omega$. If the finite element basis functions, $f_i$, are continuous at $p$, then restricting the domain of $\delta_p$ to the space $V_h$ yields a linear functional in $V_h'$. The corresponding coefficient dual vector, $\boldsymbol{\delta}_p$, has entries $\left(\boldsymbol{\delta}_p\right)_i = f_i(p)$ for $i=1,\dots,N$.
+	For example, let $\delta_p$ be the Dirac distribution centered at a point $p\in\Omega$. If the finite element basis functions, $f_i$, are continuous at $p$, then restricting the domain of $\delta_p$ to the space $V_h$ yields a linear functional in $V_h'$. The corresponding coefficient dual vector, $\boldsymbol{\delta}_p$, has entries 
+	\begin{equation*}
+	\left(\boldsymbol{\delta}_p\right)_i = f_i(p), \quad i=1,\dots,N.
+	\end{equation*}
 	
 	\item[Action of an operator on a distribution:] Since $V_h$ is finite-dimensional, the restriction $\mu_h \in V_h$ of a distribution $\mu$ to the space $V_h$ has a a Riesz representation $\mu_h^* \in V_h$. Let $B_h$ be the integral kernel associated with an operator $\mathcal{B}_h:V_h \rightarrow V_h'$. For $v_h \in V_h$, we have
 	\begin{align*}
 		\langle \mathcal{B}_h, \mu_h \rangle(v) &= \int_\Omega v_h(y) \mu_h\left(B_h(y, \cdot)\right) dy \\
 		&= \int_\Omega v_h(y) \left(\int_\Omega B_h(y,x) \mu_h^*(x) dx\right) dy \\
-		&= \int_\Omega \int_\Omega v_h(y) B_h(y,x) \mu_h^*(x) dx dy = \left(\mathcal{B}_h \mu_h^*\right)(wv).
+		&= \int_\Omega \int_\Omega v_h(y) B_h(y,x) \mu_h^*(x) dx dy = \left(\mathcal{B}_h \mu_h^*\right)(v).
 	\end{align*}
 	Going from the first to the second line we used the definition of the Riesz representation. The action of $\mathcal{B}_h$ on $\mu_h$ in the sense of distributions is therefore equal to the action of $\mathcal{B}_h$ on $\mu^*_h$ in the conventional sense. We have
 	\begin{equation*}
-		\psi_h = \langle \mathcal{B}_h, \mu_h \rangle \quad \Leftrightarrow \quad \psi_h = \mathcal{B}_h \mu_h^* \quad \Leftrightarrow \quad \boldsymbol{\psi} = \mathbf{B} \mathbf{M}^{-1} \boldsymbol{\mu}.
+		\sigma_h = \langle \mathcal{B}_h, \mu_h \rangle \quad \Leftrightarrow \quad \sigma_h = \mathcal{B}_h \mu_h^* \quad \Leftrightarrow \quad \boldsymbol{\sigma} = \mathbf{B} \mathbf{M}^{-1} \boldsymbol{\mu}.
 	\end{equation*}
 \end{description}
 
-\subsection{Discretized mean and covariance estimation} In computations, $\alpha$, $\mu^{i}$, and $\Sigma^{ij}$ are replaced with finite element approximations $\alpha_h, \mu_h^i, \Sigma_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\alpha}, \boldsymbol{\mu}^{ij}, \boldsymbol{\Sigma}^{ij}\in\mathbb{R}^N_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with their $L^2$ projections onto $V_h$, which are denoted by $C_h$, $L_h^i$, and $Q_h^{ij}$, respectively. The corresponding coefficient vectors are $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
+\subsection{Discretized mean and covariance estimation} In computations, $\alpha$, $\mu^{i}$, and $\Sigma^{ij}$ are replaced with finite element approximations $\alpha_h, \mu_h^i, \Sigma_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\alpha}, \boldsymbol{\mu}^{ij}, \boldsymbol{\Sigma}^{ij}\in\mathbb{R}^N_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with either finite element projections onto $V_h$ (if the finite element basis does not satisfy the Kronecker property), or finite element interpolations onto $V_h$ (if the finite element basis satisfies the Kronecker property). In our numerical examples we use finite element basis functions that satisfy the Kronecker property, and we use finite element interpolations. The coefficient vectors corresponding to either the interpolations or projections are denoted $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
 \begin{align*}
 \boldsymbol{\alpha} &= \mathbf{M}^{-1}\mathbf{A}^T\mathbf{C} \\
 \boldsymbol{\mu}^i &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right) / \boldsymbol{\alpha}\\
 \boldsymbol{\Sigma}^{ij} &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{Q}^{ij}\right) / \boldsymbol{\alpha} - \boldsymbol{\mu}^i\cdot \boldsymbol{\mu}^j,
 \end{align*}
-respectively. Here $\mathbf{f} \cdot \mathbf{g}$ and $\mathbf{f} / \mathbf{g}$ denote the element-wise multiplication and division of vectors, respectively.
+respectively. Here $\mathbf{f} \cdot \mathbf{g}$ and $\mathbf{f} / \mathbf{g}$ denote the component-wise multiplication and division of vectors, respectively.
 
 
 \subsection{Discretized sampling of impulse responses}
