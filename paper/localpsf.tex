@@ -869,75 +869,132 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 	
 \end{proof}
 
+\section{Background: distributions}
+\label{app:distributions}
+
+Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\mathcal{A}$ is extended to distributions $\mu:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
+\begin{equation*}
+\langle\mathcal{A},\mu\rangle(w) := \int_\Omega w(y) \mu\left(A(y, \cdot)\right) dy, 
+\end{equation*}
+where $A(y,\cdot)$ is the function $x \mapsto A(y,x)$. This is derived formally as follows:
+\begin{align*}
+\langle\mathcal{A},\mu\rangle(w) &= \int_\Omega \int_\Omega w(y) A(y,x) \textrm{``} \mu(x) \textrm{''} dx dy \\
+&= \int_\Omega w(y) \int_\Omega A(y,x) \textrm{``} \mu(x) \textrm{''} dx \\
+&= \int_\Omega w(y) \mu\left(A(y,\cdot)\right) dx.
+\end{align*}
+For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, and the action of $\mathcal{A}$ on $\delta_x$ is given by
+\begin{equation}
+\label{eq:appendix_impulse_response}
+\langle\mathcal{A},\delta_x\rangle(w)	= \int_\Omega w(y) A(y,x) dy.
+\end{equation}
+Recall that the impulse response of $\mathcal{A}$ to $\delta_x$, denoted $\phi_x$, is the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$. From \eqref{eq:appendix_impulse_response} and the definition of the Riesz representation, we have $\phi_x = \langle\mathcal{A},\delta_x\rangle^* = A(~\cdot~,x)$. That is, $\phi_x$ is the function $y \mapsto A(y,x)$.
+
+
 \section{Discretization}
 \label{sec:discretization}
 
-Let $\phi_i$, $i=1,\dots,N$ be a set of finite element basis functions, and let
+Let $f_i$, $i=1,\dots,N$ be a set of finite element basis functions, and let
 \begin{equation*}
-V_h = \Span\left(\phi_1, \phi_2, \dots, \phi_N\right).
+V_h = \Span\left(f_1, f_2, \dots, f_N\right).
 \end{equation*}
-be the corresponding  finite element space approximating $L^2(\Omega)$. Here $V_h$ inherits the $L^2$ inner product, and $h$ denotes the mesh size parameter. Functions $u\in L^2(\Omega)$ are approximated by functions $u_h \in V_h$. In turn, functions $u_h\in V_h$ are represented in computations by length $N$ arrays $\mathbf{u}$, such that the array entries of $\mathbf{u}$ are the coordinates of $u_h$ in the finite element basis. That is,
+be the corresponding  finite element space with the $L^2$ inner product. Here $h$ denotes the mesh size parameter. Functions $u\in L^2(\Omega)$ are approximated by functions $u_h \in V_h$. In turn, functions $u_h\in V_h$ are represented in computations by length $N$ arrays $\mathbf{u}$, such that the array entries of $\mathbf{u}$ are the coordinates of $u_h$ in the finite element basis. That is,
+\begin{equation}
+\label{eq:finite_bijection}
+u_h(x) = \sum_{i=1}^N \mathbf{u}_i f_i(x).
+\end{equation}
+
+Let $\mathbf{M} \in \mathbb{R}^{N \times N}$ denote the finite element \emph{mass matrix}, which has entries
 \begin{equation*}
-u(x) \approx u_h(x) = \sum_{i=1}^N \mathbf{u}_i \phi_i(x).
+\mathbf{M}_{ij} = \left(f_i, f_j\right)_{L^2(\Omega)} = \int_{\Omega} f_i(x) f_j(x) dx,
 \end{equation*}
-We say that the coefficient arrays $\mathbf{u}$ reside $\mathbb{R}^N_\mathbf{M}$, which is the space $\mathbb{R}^N$ with the matrix-weighted inner product $\left(\mathbf{u},\mathbf{v}\right)_\mathbf{M} := \left(\mathbf{M} \mathbf{u}\right)^T \mathbf{v}$, where
-$\mathbf{M} \in \mathbb{R}^{N \times N}$ is the \emph{mass matrix} which has entries
+and let $\mathbb{R}^N_\mathbf{M}$ denote the space $\mathbb{R}^N$ with the matrix-weighted inner product
 \begin{equation*}
-\mathbf{M}_{ij} = \left(\phi_i, \phi_j\right)_{L^2(\Omega)} = \int_{\Omega} \phi_i(x) \phi_j(x) dx.
+\left(\mathbf{u},\mathbf{v}\right)_\mathbf{M} := \left(\mathbf{M} \mathbf{u}\right)^T \mathbf{v}.
 \end{equation*}
-Direct calculation shows that $V_h$ is isometrically isomorphic $\mathbb{R}^N_\mathbf{M}$, in the sense that functions $u_h \in V_h$ are in bijective correspondence to coefficient vectors $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u},\mathbf{v}\right)_\mathbf{M}$. Likewise, the dual space of continuous linear functionals $\psi_h:V_h \rightarrow \mathbb{R}$, denoted $V_h'$, is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. All operations on functions in $V_h$ and linear functionals in $V_h'$ may therefore be performed on coefficient vectors in $\mathbb{R}^N_\mathbf{M}$ and coefficient dual vectors in $\mathbb{R}^N_{\mathbf{M}^{-1}}$. We summarize coefficient vector versions of the function space operation that are used in this paper in Appendix \ref{app:discretized_operations}.
+Direct calculation shows that $V_h$ is isometrically isomorphic $\mathbb{R}^N_\mathbf{M}$, in the sense that \eqref{eq:finite_bijection} establishes a bijective correspondence between functions $u_h \in V_h$ and coefficient vectors $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and that this bijection preserves the inner product; i.e., $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u},\mathbf{v}\right)_\mathbf{M}$. Likewise, the dual space, $V_h'$, is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. 
+These isomorphisms allow us to identify functions $u_h \in V_h$ with their corresponding coefficient arrays $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and linear functionals $\sigma_h \in V_h'$ with their corresponding coefficient arrays $\boldsymbol{\sigma} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$.
+
 
 \subsection{Discretized operations}
 \label{app:discretized_operations}
 
-As described in Section \ref{sec:discretization}, a function $u_h$ in a finite element space $V_h$ may be written in terms of its vector of coefficients, $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, with respect the finite element basis $\{\phi_i\}_{i=1}^N$. Recall that $\mathbf{M}$ is the mass matrix. We have
-\begin{equation*}
-	u(x) \approx u_h(x) = \sum_{i=1}^N \mathbf{u}_i \phi_i(x).
-\end{equation*}
-The finite element function space $V_h$ is isometrically isomorphic to the coefficient space $\mathbb{R}^N_\mathbf{M}$, and the dual space $V_h'$ is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. In computations, we perform operations with coefficient vectors in $\mathbb{R}^N_\mathbf{M}$ and coefficient dual vectors in $\mathbb{R}^N_{\mathbf{M}^{-1}}$, rather than functions in $V_h$ and functionals in $V_h'$. Here we describe how to perform common function space operations in terms of coefficient vectors and coefficient dual vectors.
+Here we list common function space operations on $V_h$ and $V_h'$, and show the corresponding matrix and vector operations on $\mathbb{R}^N_{\mathbf{M}}$ and $\mathbb{R}^N_{\mathbf{M}^{-1}}$.
+
+%We summarize coefficient vector versions of the function space operation that are used in this paper in Appendix \ref{app:discretized_operations}.
+%
+%As described in Section \ref{sec:discretization}, a function $u_h$ in a finite element space $V_h$ may be written in terms of its vector of coefficients, $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, with respect the finite element basis $\{\phi_i\}_{i=1}^N$. Recall that $\mathbf{M}$ is the mass matrix. We have
+%\begin{equation*}
+%	u(x) \approx u_h(x) = \sum_{i=1}^N \mathbf{u}_i \phi_i(x).
+%\end{equation*}
+%The finite element function space $V_h$ is isometrically isomorphic to the coefficient space $\mathbb{R}^N_\mathbf{M}$, and the dual space $V_h'$ is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. In computations, we perform operations with coefficient vectors in $\mathbb{R}^N_\mathbf{M}$ and coefficient dual vectors in $\mathbb{R}^N_{\mathbf{M}^{-1}}$, rather than functions in $V_h$ and functionals in $V_h'$. Here we describe how to perform common function space operations in terms of coefficient vectors and coefficient dual vectors.
 
 \begin{description}
-	\item[Coefficients of a functional:] A linear functional $\psi_h \in V_h'$ has coefficient dual vector $\boldsymbol{\psi} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$, which has entries
+	\item[Coefficients of a functional:] The coefficient dual vector, $\boldsymbol{\sigma} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$, corresponding to a linear functional $\sigma_h \in V_h'$ has components given by
 	\begin{equation*}
-		\boldsymbol{\psi}_i = \psi_h(\phi_i), \quad i=1,\dots,N.
+		\boldsymbol{\sigma}_i = \sigma_h(f_i), \quad i=1,\dots,N.
 	\end{equation*}
-	The action of a linear functional $\psi_h \in V_h'$ on a function $u_h \in V_h$ is given by
+	\item[Action of a functional:] The action of a linear functional $\sigma_h \in V_h'$ on a function $u_h \in V_h$ may be computed as follows:
 	\begin{equation*}
-		\psi_h(v_h) = \mathbf{v}^T \boldsymbol{\psi}.
+		\sigma_h(v_h) = \mathbf{u}^T \boldsymbol{\sigma}.
 	\end{equation*}
-	\item[Riesz representation of a functional:] Let $\psi_h \in V_h'$. We have
+	\item[Riesz representation:] Let $\sigma_h \in V_h'$. The Riesz representation of $\sigma_h$ is the unique  function $\sigma_h^* \in V_h$ satisfying 
 	\begin{equation*} 
-		 \psi_h^* \in V_h: \quad \left(\psi_h^*, v_h\right)_{L^2(\Omega)} = \psi_h(v_h) \quad\forall v_h \in V_h \quad \Leftrightarrow \quad \boldsymbol{\psi}^* = \mathbf{M}^{-1} \boldsymbol{\psi}.
+	\left(\sigma_h^*, v_h\right)_{L^2(\Omega)} = \sigma_h(v_h) \quad\forall v_h \in V_h.
 	\end{equation*}
-	The function $\psi_h^*$ is the Riesz representation of the functional $\psi_h$, and $\boldsymbol{\psi}^* \in \mathbb{R}^N_\mathbf{M}$ is the coefficient vector of $\psi_h^*$.
-	\item[$L^2$ projection:] Let $f \in L^2(\Omega)$, and define $\mathbf{f}^* \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ to be the vector with entries
+	The coefficient dual vector $\boldsymbol{\sigma}^*$ corresponding to $\sigma_h$ is given by
+	\begin{equation*} 
+		\boldsymbol{\sigma}^* = \mathbf{M}^{-1} \boldsymbol{\sigma}.
+	\end{equation*}
+	\item[Finite element $L^2$ projection:] Let $g \in L^2(\Omega)$. The orthogonal projection of $g$ onto $V_h$ with respect to the $L^2$ inner product is the unique function $g^\pi_h \in V_h$ satisfying
 	\begin{equation*}
-		\mathbf{f}^*_i = \int_\Omega f(x) \phi_i(x) dx, \quad i=1,\dots,N.
+		\left(g^\pi_h, v_h\right)_{L^2(\Omega)} = \left(g, v_h\right)_{L^2(\Omega)} \quad\forall v_h \in V_h.
 	\end{equation*}
-	We have
+	 Let $\left(\mathbf{g}^\pi\right)^* \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ be the vector with components
 	\begin{equation*}
-		f_h \in V_h, \quad \left(f_h, v_h\right)_{L^2(\Omega)} = \left(f, v_h\right)_{L^2(\Omega)} \quad\forall v_h \in V_h \quad \Leftrightarrow \quad \mathbf{f} = \mathbf{M}^{-1}\mathbf{f}^*.	
+		\left(\mathbf{g}^\pi\right)^*_i = \int_\Omega g(x) f_i(x) dx, \quad i=1,\dots,N.
 	\end{equation*}
-	The function $f_h$ is the $L^2$ projection of $f$ onto $V_h$, and $\mathbf{f} \in \mathbb{R}^N_\mathbf{M}$ is the coefficient vector of $f_h$.
+	The coefficient vector $\mathbf{g}^\pi \in \mathbb{R}^N_{\mathbf{M}}$ corresponding to $g^\pi_h$ is given by
+	\begin{equation*}
+		\mathbf{g}^\pi = \mathbf{M}^{-1}\left(\mathbf{g}^\pi\right)^*.
+	\end{equation*}
+	\item[Finite element interpolation:] Let $p_i \in \mathbb{R}^d$ be the Lagrange node associated with the finite element basis function $f_i$. The finite element interpolant of a function $g \in C\left(\overline{\Omega}\right)$ is the function $g^I \in V_h$ given by
+	\begin{equation*}
+		g_h^I(x) = \sum_{i=1}^N g(p_i) f_i(x).
+	\end{equation*}
+	The coefficient vector, $\mathbf{g}$, for $g_h^I$ has components 
+	\begin{equation*}
+	\mathbf{g}_i^I = g(p_i), \quad i=1.,\dots,N.
+	\end{equation*}
+	\item[Projection vs. interpolation:]
+	Typically $g^\pi$ is a more accurate approximation of $g$ than $g^I$. However, $g^I$ is typically cheaper to compute than $g^\pi$ because computing $g^\pi$ requires solving a linear system, while computing $g^I$ does not. Interpolation is typically sufficiently accurate for practical purposes so long as the finite element basis satisfies the following Kronecker property:
+	\begin{equation*}
+		f_i(p_j) = \begin{cases}1 & i=j \\
+		0 & \text{otherwise}.\end{cases}
+	\end{equation*}
 	\item[Matrix representation of an operator:] Let $\mathcal{B}_h : V_h \rightarrow V_h'$ be a linear operator, and let $\mathbf{B} \in \mathbf{R}^{N \times N}$ be the matrix with entries
 	\begin{equation*}
-		\mathbf{B}_{ij} = \left(\mathcal{B}_h \phi_j\right)(\phi_i).
+		\mathbf{B}_{ij} = \left(\mathcal{B}_h f_j\right)(f_i).
 	\end{equation*}
 	The matrix $\mathbf{B}$ maps $\mathbb{R}^N_\mathbf{M} \rightarrow \mathbb{R}^N_{\mathbf{M}^{-1}}$ by matrix multiplication, and
 	\begin{equation*}
-		\psi_h = \mathcal{B}_h u_h \quad \Leftrightarrow \quad \boldsymbol{\psi} = \mathbf{B} \mathbf{u}.
+		\sigma_h = \mathcal{B}_h u_h \quad \Leftrightarrow \quad \boldsymbol{\sigma} = \mathbf{B} \mathbf{u}.
 	\end{equation*}
 	\item[Transpose:] The matrix $\mathbf{B}^T$ maps $\mathbb{R}^N_\mathbf{M} \rightarrow \mathbb{R}^N_{\mathbf{M}^{-1}}$ via matrix multiplication, and
 	\begin{equation*}
-		\psi_h = \mathcal{B}_h^T u_h \quad \Leftrightarrow \quad \boldsymbol{\psi} = \mathbf{B}^T \mathbf{u}.
+		\sigma_h = \mathcal{B}_h^T u_h \quad \Leftrightarrow \quad \boldsymbol{\sigma} = \mathbf{B}^T \mathbf{u}.
 	\end{equation*}
 
-	\item[Distributions:] Let $\mu:C\left(\overline{\Omega}\right)\rightarrow \mathbb{R}$ be a distribution. If $\mu(\phi_i)$ is well-defined for all basis vectors $\phi_i$, then the restriction of $\mu$ to domain $V_h$ is a linear functional $\mu_h\in V_h'$. The functional $\mu_h$ has a coefficient dual vector $\boldsymbol{\mu} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ with entries $\boldsymbol{\mu}_i=\mu(\phi_i)$ for $i=1,\dots,N$. 
-	\item[Action of an operator on a distribution:] Since $V_h$ is finite-dimensional, the restriction, $\mu_h \in V_h$, of a distribution, $\mu$, has a a Riesz representation $\mu_h^* \in V_h$. Let $B_h$ be the integral kernel associated with an operator $\mathcal{B}_h:V_h \rightarrow V_h'$. For $w_h \in V_h$, we have
+	\item[Distributions:] Let $\mu:C\left(\overline{\Omega}\right)\rightarrow \mathbb{R}$ be a distribution. If $\mu(f_i)$ is well-defined for all finite element basis vectors $f_i$, then the restriction of $\mu$ to domain $V_h$ is a linear functional $\mu_h\in V_h'$. The functional $\mu_h$ has a coefficient dual vector $\boldsymbol{\mu} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ with entries 
+	\begin{equation*}
+	\boldsymbol{\mu}_i=\mu(f_i) \quad i=1,\dots,N.
+	\end{equation*} 
+	For example, let $\delta_p$ be the Dirac distribution centered at a point $p\in\Omega$. If the finite element basis functions, $f_i$, are continuous at $p$, then restricting the domain of $\delta_p$ to the space $V_h$ yields a linear functional in $V_h'$. The corresponding coefficient dual vector, $\boldsymbol{\delta}_p$, has entries $\left(\boldsymbol{\delta}_p\right)_i = f_i(p)$ for $i=1,\dots,N$.
+	
+	\item[Action of an operator on a distribution:] Since $V_h$ is finite-dimensional, the restriction $\mu_h \in V_h$ of a distribution $\mu$ to the space $V_h$ has a a Riesz representation $\mu_h^* \in V_h$. Let $B_h$ be the integral kernel associated with an operator $\mathcal{B}_h:V_h \rightarrow V_h'$. For $v_h \in V_h$, we have
 	\begin{align*}
-		\langle \mathcal{B}_h, \mu_h \rangle(w) &= \int_\Omega w_h(y) \mu_h\left(B_h(y, \cdot)\right) dy \\
-		&= \int_\Omega w_h(y) \left(\int_\Omega B_h(y,x) \mu_h^*(x) dx\right) dy \\
-		&= \int_\Omega \int_\Omega w_h(y) B_h(y,x) \mu_h^*(x) dx dy = \left(\mathcal{B}_h \mu_h^*\right)(w).
+		\langle \mathcal{B}_h, \mu_h \rangle(v) &= \int_\Omega v_h(y) \mu_h\left(B_h(y, \cdot)\right) dy \\
+		&= \int_\Omega v_h(y) \left(\int_\Omega B_h(y,x) \mu_h^*(x) dx\right) dy \\
+		&= \int_\Omega \int_\Omega v_h(y) B_h(y,x) \mu_h^*(x) dx dy = \left(\mathcal{B}_h \mu_h^*\right)(wv).
 	\end{align*}
 	Going from the first to the second line we used the definition of the Riesz representation. The action of $\mathcal{B}_h$ on $\mu_h$ in the sense of distributions is therefore equal to the action of $\mathcal{B}_h$ on $\mu^*_h$ in the conventional sense. We have
 	\begin{equation*}
@@ -964,24 +1021,6 @@ The coefficient vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ for $\e
 \boldsymbol{\eta}^b = \mathbf{M}^{-1} \mathbf{A}^T \mathbf{M}^{-1}\boldsymbol{\xi}^b.
 \end{equation*}
 
-\section{Background: distributions}
-\label{app:distributions}
-
-Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\mathcal{A}$ is extended to distributions $\mu:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
-\begin{equation*}
-\langle\mathcal{A},\mu\rangle(w) := \int_\Omega w(y) \mu\left(A(y, \cdot)\right) dy, 
-\end{equation*}
-where $A(y,\cdot)$ is the function $x \mapsto A(y,x)$. This is derived formally as follows:
-\begin{align*}
-\langle\mathcal{A},\mu\rangle(w) &= \int_\Omega \int_\Omega w(y) A(y,x) \textrm{``} \mu(x) \textrm{''} dx dy \\
-&= \int_\Omega w(y) \int_\Omega A(y,x) \textrm{``} \mu(x) \textrm{''} dx \\
-&= \int_\Omega w(y) \mu\left(A(y,\cdot)\right) dx.
-\end{align*}
-For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, the action of $\mathcal{A}$ on $\delta_x$ is given by
-\begin{equation*}
-\langle\mathcal{A},\delta_x\rangle(w)	= \int_\Omega w(y) A(y,x) dy,
-\end{equation*}
-and so the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$ is given by $\langle\mathcal{A},\delta_x\rangle^* = A(~\cdot~,x)$. That is, $\langle\mathcal{A},\delta_x\rangle^*$ is the function $y \mapsto A(y,x)$.
 
 \section{DISORGANIZED OLD STUFF}
 
