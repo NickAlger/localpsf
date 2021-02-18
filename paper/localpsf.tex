@@ -477,7 +477,7 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 		
 		Compute Lebesgue measure of the domain, $|\Omega|$
 		
-		\tcp{Compute harmonic functions $\{\psi_i\}_{i=1}^r$ and $\{\theta_i\}_{i=1}^r$}
+		\tcp{Compute Poisson impulse responses $\{\psi_i\}_{i=1}^r$ and Poisson squared impulse responses $\{\theta_i\}_{i=1}^r$}
 		
 		\For{$i=1,2, \dots, r$}{
 			Initialize $\delta_{x_i}$ as the point source (delta distribution) centered at $x_i$.
@@ -486,7 +486,7 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 			\begin{equation}
 			\label{eq:psi_eq}
 			\begin{cases}
-			\Delta \psi_i = \delta_{x_i} - C/|\Omega|, & \text{in }\Omega, \\
+			\Delta \psi_i = \delta_{x_i} - 1/|\Omega|, & \text{in }\Omega, \\
 			\nu \cdot \nabla \psi_i = 0 & \text{on } \partial \Omega,
 			\end{cases}
 			\end{equation}
@@ -517,20 +517,20 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 			Compute
 			\begin{equation}
 			\label{eq:definition_of_alpha_alg}
-			\alpha = \frac{\mathbf{1}^T S^{-1} e_i}{\mathbf{1}^T S^{-1} \mathbf{1}},
+			\beta = \frac{\mathbf{1}^T S^{-1} e_i}{\mathbf{1}^T S^{-1} \mathbf{1}},
 			\end{equation}
 			where $\mathbf{1} = (1,1,\dots,1) \in \mathbb{R}^r$, and $e_i = (0,\dots,0,1,0,\dots,0)\in \mathbb{R}^r$ is unit vector with $i^\text{th}$ component equal to one.
 			
 			Compute 
 			\begin{equation}
 			\label{eq:definition_of_mu_alg}
-			\lambda = -S^{-1} \left(e_i - \alpha \mathbf{1} \right).
+			\lambda = -S^{-1} \left(e_i - \beta \mathbf{1} \right).
 			\end{equation}
 			
 			Form the weighting function $w_i$ given by
 			\begin{equation}
 			\label{eq:definition_of_wi_alg}
-				w_i(x) = \alpha - \sum_{k=1}^r \lambda_k \theta_k(x).
+				w_i(x) = \beta - \sum_{k=1}^r \lambda_k \theta_k(x).
 			\end{equation}
 		}
 	}
@@ -589,14 +589,14 @@ where $b(i)$ denotes the batch index such that $x_i \in S^{b(i)}$. To compute $z
 \subsection{Conversion to hierarchical matrix format}
 \label{sec:H_matrix_conversion}
 
-In order to use the product-convolution approximation $\widetilde{\mathcal{A}}$, we convert $\widetilde{\mathcal{A}}$ to hierarchical matrix (H-matrix) format. Many classes of hierarchical matrices exist---H1, uniform H1, H2, HODLR, HSS, HBS, and more \cite{HMATRIX}. We use H1 matrices in our numerical results, but any of the other H-matrix formats could be used instead. The basic ideas behind H-matrices are as follows:
+In order to use the product-convolution approximation $\widetilde{\mathcal{A}}$, we convert $\widetilde{\mathbf{A}}$ (the discretized version of $\widetilde{\mathcal{A}}$) to hierarchical matrix (H-matrix) format. Many classes of hierarchical matrices exist---H1, uniform H1, H2, HODLR, HSS, HBS, and more \cite{HMATRIX}. We use H1 matrices in our numerical results, but any of the other H-matrix formats could be used instead. The basic ideas behind H-matrices are as follows:
 \begin{itemize} 
 	\item Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank.
 	\item Recursive algorithms can take advantage of this low rank block structure to perform matrix arithmetic fast. Conventional algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix addition require either $O(N^2)$ or $O(N^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log^a N)$ time and memory for hierarchical matrices. Here $N$ is the number of degrees of freedom for the discretized version of the problem, and $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix.
 \end{itemize}
 For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
-We convert $\widetilde{\mathcal{A}}$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{HLIBPRO}. Briefly, this method uses geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix to construct a recursive block partitioning of $\widetilde{\mathcal{A}}$, such that all blocks at the finest level of the partitioning are either low rank, or are small. Then, the method forms low rank approximations of the blocks that are expected to be low rank by sampling specially chosen rows and columns of those blocks. The small high rank blocks are formed directly by evaluating their entries. The primary cost of constructing the approximation is the evaluation of $O(N \log N)$ matrix entries of $\widetilde{\mathcal{A}}$, which we perform using Algorithm \ref{alg:eval_y_x}. We describe this H-matrix construction method in detail in Appendix \ref{app:h_matrix}.
+We convert $\widetilde{\mathbf{A}}$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{HLIBPRO}. Briefly, this method uses geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix to construct a recursive block partitioning of $\widetilde{\mathbf{A}}$, such that all blocks at the finest level of the partitioning are either low rank, or are small. Then, the method forms low rank approximations of the blocks that are expected to be low rank by sampling specially chosen rows and columns of those blocks. The small high rank blocks are formed directly by evaluating their entries. The primary cost of constructing the approximation is the evaluation of $O(N \log N)$ entries of the kernel $\widetilde{A}$, which we perform using Algorithm \ref{alg:eval_y_x}. We describe the H-matrix construction in detail in Appendix \ref{app:h_matrix}.
 
 
 
@@ -615,14 +615,16 @@ Some conclusions here.
 \section{Hierarchical matrix construction}
 \label{app:h_matrix}
 
-The H-matrix construction process that we use proceeds as follows. First, we construct a hierarchical partitionings of the degrees of freedom for the rows and columns of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(N \log N)$ specially-chosen matrix entries of $\widetilde{\mathcal{A}}$, which we do using the method described in Section \ref{sec:eval_matrix_entries}. 
+The H-matrix construction process that we use proceeds as follows. First, we construct hierarchical partitionings of the degrees of freedom for the columns and rows of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(N \log N)$ specially-chosen entries of $\widetilde{A}$, and we evaluate these entries using the method described in Section \ref{sec:eval_matrix_entries}. 
 
 \subsection{Cluster trees}
 \label{sec:cluster_trees}
 
-The degrees of freedom associated with the columns of the matrix are hierarchically clustered into a \emph{cluster tree} using recursive hyperplane splitting. Since we use finite elements to discretize the problem, we associate the $i^\text{th}$ column of $\widetilde{\mathcal{A}}$ with the nodal point in $\mathbb{R}^d$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^d$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which we call a cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
+We use recursive hyperplane splitting to hierarchically cluster the degrees of freedom associated with the columns and rows of the matrix into a \emph{column cluster tree} and a \emph{row cluster tree}, respectively. Here we describe construction of the column cluster tree; the row cluster tree is constructed similarly. 
 
-A depth-first search ordering of the cluster tree leaves is then generated. When the columns of the matrix are permuted into this depth-first ordering, the columns associated with each cluster in the cluster tree are contiguous.
+Since we use finite elements to discretize the problem, the $i^\text{th}$ column of $\widetilde{\mathbf{A}}$ corresponds to the nodal point in $\mathbb{R}^d$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^d$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which we call the column cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
+
+A depth-first search ordering of the column cluster tree leaves is then generated. When the columns of the matrix are permuted into this depth-first ordering, the columns associated with each cluster in the cluster tree are contiguous.
 
 In the same way, the degrees of freedom associated with the rows of the matrix are hierarchically clustered into another cluster tree, and an ordering for the rows is generated. In our examples, the degrees of freedom for the columns coincide with the degrees of freedom for the rows, so the cluster trees for the rows and columns are the same, but this is not required in general.
 
@@ -631,29 +633,29 @@ In the same way, the degrees of freedom associated with the rows of the matrix a
 
 We partition the matrix into a recursive hierarchy of mostly low rank blocks called the \emph{block cluster tree}. The idea is that a block of the matrix is likely to be low rank if the point cloud associated with the rows of the block is far away from the point cloud associated with the columns of the block. This is reasonable to expect here because of the locality property of $\mathcal{A}$. Indeed, locality implies that many blocks of the matrix corresponding to far away point cloud clusters will be rank zero.
 
-After reordering the rows and columns of $\widetilde{\mathcal{A}}$ via the depth-first ordering described above, we partition the reordered version of $\widetilde{\mathcal{A}}$ into a tree of $2 \times 2$ block matrices recursively. We use a geometric admissibility condition (discussed below) to decide which blocks to subdivide, and use the cluster trees for the rows and columns to determine how to subdivide those blocks. For the first stage of subdivision, let $r_1$ and $r_2$ be the children row clusters for the root of the row cluster tree, let $c_1$ and $c_2$ be the children column clusters for the root of the column cluster tree. The matrix $\widetilde{\mathcal{A}}$ is partitioned into blocks as follows:
+After reordering the rows and columns of $\widetilde{\mathbf{A}}$ via the depth-first ordering described above, we partition the reordered version of $\widetilde{\mathbf{A}}$ into a tree of $2 \times 2$ block matrices recursively. We use a geometric admissibility condition (discussed below) to decide which blocks to subdivide, and use the cluster trees for the rows and columns to determine how to subdivide those blocks. For the first stage of subdivision, let $r_1$ and $r_2$ be the children row clusters for the root of the row cluster tree, let $c_1$ and $c_2$ be the children column clusters for the root of the column cluster tree. The matrix $\widetilde{\mathbf{A}}$ is partitioned into blocks as follows:
 \begin{equation*}
 \begin{bmatrix}
-\widetilde{\mathcal{A}}_{11} & \widetilde{\mathcal{A}}_{12} \\
-\widetilde{\mathcal{A}}_{21} & \widetilde{\mathcal{A}}_{22},
+\widetilde{\mathbf{A}}_{11} & \widetilde{\mathbf{A}}_{12} \\
+\widetilde{\mathbf{A}}_{21} & \widetilde{\mathbf{A}}_{22},
 \end{bmatrix}
 \end{equation*}
-where $\widetilde{\mathcal{A}}_{11}$ denotes the block of $\widetilde{\mathcal{A}}$ with rows $r_1$ and columns $c_1$, $\widetilde{\mathcal{A}}_{12}$ denotes the block of $\widetilde{\mathcal{A}}$ with rows $r_1$ and columns $c_2$, and so on for $\widetilde{\mathcal{A}}_{21}$ and $\widetilde{\mathcal{A}}_{22}$.
+where $\widetilde{\mathbf{A}}_{11}$ denotes the block of $\widetilde{\mathbf{A}}$ with rows $r_1$ and columns $c_1$, $\widetilde{\mathbf{A}}_{12}$ denotes the block of $\widetilde{\mathbf{A}}$ with rows $r_1$ and columns $c_2$, and so on for $\widetilde{\mathbf{A}}_{21}$ and $\widetilde{\mathbf{A}}_{22}$.
 
-We now loop through the four blocks, $\widetilde{\mathcal{A}}_{11}$, $\widetilde{\mathcal{A}}_{12}$, $\widetilde{\mathcal{A}}_{21}$, and $\widetilde{\mathcal{A}}_{22}$, and decide which blocks should be subdivided further. For the purpose of explanation, consider $\widetilde{\mathcal{A}}_{12}$. If
+We now loop through the four blocks, $\widetilde{\mathbf{A}}_{11}$, $\widetilde{\mathbf{A}}_{12}$, $\widetilde{\mathbf{A}}_{21}$, and $\widetilde{\mathbf{A}}_{22}$, and decide which blocks should be subdivided further. For the purpose of explanation, consider $\widetilde{\mathbf{A}}_{12}$. If
 \begin{equation}
 \label{eq:weak_admissibility_cond}
 \dist\left(r_1, c_2\right) \ge \eta \min\left(\diam\left(r_1\right), \diam\left(c_2\right)\right),
 \end{equation}
-then we mark $\widetilde{\mathcal{A}}_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, c_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $c_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(c_2\right)$ is the analogous diameter associated with the column cluster $c_2$. The quantity $\eta$ is a scalar constant; we use $\eta=2.0$. Basically, if the point clouds associated with $r_1$ and $c_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\widetilde{\mathcal{A}}_{11}$ and $\widetilde{\mathcal{A}}_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
+then we mark $\widetilde{\mathbf{A}}_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, c_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $c_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(c_2\right)$ is the analogous diameter associated with the column cluster $c_2$. The quantity $\eta$ is a scalar constant; we use $\eta=2.0$. Basically, if the point clouds associated with $r_1$ and $c_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\widetilde{\mathbf{A}}_{11}$ and $\widetilde{\mathbf{A}}_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
 
-Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\mathcal{\widetilde{A}}$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree (quad-tree in $2$D, or oct-tree in $3$D), which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
+Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\mathbf{\widetilde{A}}$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree (quad-tree in $2$D, or oct-tree in $3$D), which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
 
 
 \subsection{Adaptive cross low rank approximation of blocks}
 \label{sec:adaptive_cross}
 
-Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method \cite{ACA}. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\widetilde{\mathcal{A}}$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
+Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method \cite{ACA}. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\widetilde{\mathbf{A}}$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
 \begin{itemize}
 	\item Let $C \in \mathbb{R}^{m \times r}$ be a matrix consisting of a subset of $r$ columns of $X$, such that the span of the columns in $C$ approximates the column space of $X$. 
 	\item Let $R\in\mathbb{R}^{r \times m}$ be a subset of the rows of $X$, such that the span of the rows in $R$ approximates the row space of $X$.
@@ -668,7 +670,7 @@ where $U^+$ is the pseudoinverse of $U$ \cite{CUR}. The quality of approximation
 
 In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible. This may be done via either the maxvol procedure \cite{GOODSUBMATRIX}, or via QR factorization. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $kr$ columns of $X$ and $kr$ rows of $X$, where $k$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. For more details on adaptive cross low rank approximation, see \cite{ACA}. The key point is that the adaptive cross method allows us to form a rank-$r$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(mr)$ entries of that block.
 
-We use the adaptive cross method to form low rank approximations for each admissible block of $\widetilde{\mathcal{A}}$. We directly compute all entries of the small dense blocks of $\widetilde{\mathcal{A}}$ that are not admissible. This process requires us to compute $O(r^2 N \log N)$ entries of $\widetilde{\mathcal{A}}$, which is relatively cheap compared to the matrix-vector products with $\mathcal{A}$ that are required to form the product-convolution approximation $\widetilde{\mathcal{A}}$.
+We use the adaptive cross method to form low rank approximations for each admissible block of $\widetilde{\mathbf{A}}$. We directly compute all entries of the small dense blocks of $\widetilde{\mathbf{A}}$ that are not admissible. This process requires us to compute $O(r^2 N \log N)$ entries of $\widetilde{\mathbf{A}}$, which is relatively cheap compared to the matrix-vector products with $\mathbf{A}$ that are required to form the product-convolution approximation $\widetilde{\mathbf{A}}$.
 
 
 
@@ -735,7 +737,7 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 
 \begin{lem}[Preparation for Theorem \ref{thm:smoothest_interpolant}]
 	\label{lem:T_is_linear}
-	Let $f \in \mathbb{R}^r$. There exists a unique solution to the following optimization problem:
+	Let $\Omega \subset \mathbb{R}^d$, $d\in\{1,2,3\}$, be an open bounded domain with a bounded extension operator, let $x_i \in \Omega$ for $i=1,\dots,r$, and let $f \in \mathbb{R}^r$. Consider the optimization problem
 	\begin{equation}
 	\label{eq:generic_optimization_initial}
 	\begin{aligned}
@@ -743,14 +745,20 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 	\text{such that} &\quad \gamma(x_i) = f_i, \quad i=1,\dots,r.
 	\end{aligned}
 	\end{equation}
-	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
-	\begin{equation*}
-	\mathcal{T}(f) := \gamma^*,
-	\end{equation*}
-	where $\gamma^*$ is the minimizer of \eqref{eq:generic_optimization_initial}. The operator $\mathcal{T}$ is a linear operator.
+	A minimizer, $\gamma^*$, of \eqref{eq:generic_optimization_initial} is a function defined on $\Omega$ that interpolates the data pairs $(x_i,f_i)$, and is as flat as possible in a least squares sense.
+	The following statements hold.
+	\begin{enumerate}
+		\item[(a)] There exists a unique solution to \eqref{eq:generic_optimization_initial}.
+		\item[(b)] 	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
+		\begin{equation}
+		\label{eq:opt_soln_operator}
+		\mathcal{T}(f) := \gamma^*,
+		\end{equation}
+		where $\gamma^*$ is the minimizer of \eqref{eq:generic_optimization_initial}. The operator $\mathcal{T}$ is a linear operator.
+	\end{enumerate}
 \end{lem}
 \begin{proof}
-	WRITE THIS PROOF
+	By the Rellich-Kondrachov theorem (see, e.g., Theorem 7.20 in \cite{ARBOGAST}), $H^2_N(\Omega)$ is compactly embedded in $C^0(\Omega)$. WORK IN PROGRESS
 \end{proof}
 
 
@@ -802,7 +810,7 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 	Using the definition of $w_i$ in \eqref{eq:definition_of_wi_alg}, we may write the gradient of $\mathcal{L}$ with respect to $\lambda_j$ as
 	\begin{equation*}
 	\nabla_{\lambda_j} \mathcal{L}(w, \lambda) = w(x_j) - e_j
-	= \alpha - \sum_{k=1}^r \lambda_k \theta_k(x_j) - e_j.
+	= \beta - \sum_{k=1}^r \lambda_k \theta_k(x_j) - e_j.
 	\end{equation*}
 	Using Lemma \ref{lem:psi_delta_eval} with $h=\theta_k$, the equation for $\theta_k$ in \eqref{eq:theta_eq}, and the definition of $S$ in \eqref{eq:defn_of_S_alg}, we have
 	\begin{align*}
@@ -811,8 +819,8 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 	\end{align*}
 	Combining all of these components of $\nabla_\lambda \mathcal{L}$ into a single vector and using the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} yields
 	\begin{align*}
-	\nabla_\lambda \mathcal{L}(w, \lambda) &= \alpha \mathbf{1} - e - S \lambda \\
-	&= \alpha \mathbf{1} - e - S \left(-S^{-1}\left(e - \alpha \mathbf{1}\right)\right) = 0.
+	\nabla_\lambda \mathcal{L}(w, \lambda) &= \beta \mathbf{1} - e - S \lambda \\
+	&= \beta \mathbf{1} - e - S \left(-S^{-1}\left(e - \beta \mathbf{1}\right)\right) = 0.
 	\end{align*}
 	
 	Taking the directional derivative of $\mathcal{L}$ with respect to $w$ in direction $h$ and using Lemma \ref{lem:psi_delta_eval} yields
@@ -826,10 +834,10 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 	\Delta w = -\sum_{j=1}^r \lambda_j \Delta \theta_j 
 	= -\sum_{j=1}^r \lambda_j \psi_j,
 	\end{equation*}
-	which implies that the first term in \eqref{eq:L_w_38} is zero. By the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} and $\alpha$ in \eqref{eq:definition_of_alpha_alg}, we have
+	which implies that the first term in \eqref{eq:L_w_38} is zero. By the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} and $\beta$ in \eqref{eq:definition_of_alpha_alg}, we have
 	\begin{align*}
-	\mathbf{1}^T \lambda &= -\mathbf{1}^T S^{-1} \left(e - \alpha \mathbf{1}\right) \\
-	&= -\mathbf{1}^T S^{-1} e + \alpha \mathbf{1}^T S^{-1} \mathbf{1} \\
+	\mathbf{1}^T \lambda &= -\mathbf{1}^T S^{-1} \left(e - \beta \mathbf{1}\right) \\
+	&= -\mathbf{1}^T S^{-1} e + \beta \mathbf{1}^T S^{-1} \mathbf{1} \\
 	&= -\mathbf{1}^T S^{-1} e + \frac{\mathbf{1}^T S^{-1} e}{\mathbf{1}^T S^{-1} \mathbf{1}} \mathbf{1}^T S^{-1} \mathbf{1} = 0,
 	\end{align*}
 	which implies that the second term in \eqref{eq:L_w_38} is zero. Thus $\nabla_w \mathcal{L}(w, \lambda) = 0$, so Algorithm \ref{alg:weighting_functions_incremental} produces the solution to optimization problem \ref{eq:wi_optimization_problem}.
@@ -838,20 +846,20 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 
 
 \begin{proof}[Proof of Theorem \ref{thm:vol_mean_cov}]
-	Let $w \in L^2$ be arbitrary. We have
+	Let $v \in L^2$ be arbitrary. We have
 	\begin{align*}
-		\left(w, \alpha\right)_{L^2(\Omega)} =& \int_\Omega w(x) \int_{\Omega} \langle\mathcal{A},\delta_x\rangle^*(z) dz dx\\
-		=& \int_\Omega w(x) \int_{\Omega} A(z,x) dz dx \\
-		=& \int_\Omega \int_\Omega w(x) A(z,x) C(z) dz dx \\
-		=& \left(\mathcal{A}^T C\right)(w),
+		\left(v, \alpha\right)_{L^2(\Omega)} =& \int_\Omega v(x) \int_{\Omega} \langle\mathcal{A},\delta_x\rangle^*(z) dz dx\\
+		=& \int_\Omega v(x) \int_{\Omega} A(z,x) dz dx \\
+		=& \int_\Omega \int_\Omega v(x) A(z,x) C(z) dz dx \\
+		=& \left(\mathcal{A}^T C\right)(v),
 	\end{align*}
 	which implies $\alpha = \left(\mathcal{A}^TC\right)^*$.
 	
 	Using similar techniques, we have
 	\begin{align*}
-		\left(w, \alpha \cdot \mu^i\right)_{L^2(\Omega)} =& \int_\Omega w(x) \alpha(x) \int_{\Omega} z^i \langle\mathcal{A},\delta_x\rangle^*(z)/\alpha(x) dz dx\\
-		=& \int_\Omega \int_\Omega w(x) L^i(z) A(z,x) dz dx \\
-		=& \left(\mathcal{A}^T L^i\right)(w),
+		\left(v, \alpha \cdot \mu^i\right)_{L^2(\Omega)} =& \int_\Omega v(x) \alpha(x) \int_{\Omega} z^i \langle\mathcal{A},\delta_x\rangle^*(z)/\alpha(x) dz dx\\
+		=& \int_\Omega \int_\Omega v(x) L^i(z) A(z,x) dz dx \\
+		=& \left(\mathcal{A}^T L^i\right)(v),
 	\end{align*}
 	which implies $\mu^i = \left(\mathcal{A}^T L^i\right)^* / \alpha$. 
 	
@@ -861,9 +869,9 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 	\end{equation*}
 	we have
 	\begin{align*}
-		\left(w, \alpha \cdot \left(\Sigma^{ij}+\mu^i \cdot \mu^j\right)\right)_{L^2(\Omega)} =& \int_\Omega w(x) \alpha(x) \int_\Omega z^i z^j \langle\mathcal{A},\delta_x\rangle^*(z) / \alpha(x) dz dx \\
-		=& \int_\Omega \int_\Omega w(x) Q^{ij}(z) A(z,x) dz dx \\
-		=& \left(\mathcal{A}Q^{ij}\right)(w),
+		\left(v, \alpha \cdot \left(\Sigma^{ij}+\mu^i \cdot \mu^j\right)\right)_{L^2(\Omega)} =& \int_\Omega v(x) \alpha(x) \int_\Omega z^i z^j \langle\mathcal{A},\delta_x\rangle^*(z) / \alpha(x) dz dx \\
+		=& \int_\Omega \int_\Omega v(x) Q^{ij}(z) A(z,x) dz dx \\
+		=& \left(\mathcal{A}Q^{ij}\right)(v),
 	\end{align*}
 	which implies $\Sigma^{ij} = \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot\mu^j$.
 	
@@ -874,18 +882,18 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 
 Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\mathcal{A}$ is extended to distributions $\mu:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
 \begin{equation*}
-\langle\mathcal{A},\mu\rangle(w) := \int_\Omega w(y) \mu\left(A(y, \cdot)\right) dy, 
+\langle\mathcal{A},\mu\rangle(v) := \int_\Omega v(y) \mu\left(A(y, \cdot)\right) dy, 
 \end{equation*}
 where $A(y,\cdot)$ is the function $x \mapsto A(y,x)$. This is derived formally as follows:
 \begin{align*}
-\langle\mathcal{A},\mu\rangle(w) &= \int_\Omega \int_\Omega w(y) A(y,x) \textrm{``} \mu(x) \textrm{''} dx dy \\
-&= \int_\Omega w(y) \int_\Omega A(y,x) \textrm{``} \mu(x) \textrm{''} dx \\
-&= \int_\Omega w(y) \mu\left(A(y,\cdot)\right) dx.
+\langle\mathcal{A},\mu\rangle(v) &= \int_\Omega \int_\Omega v(y) A(y,x) \textrm{``} \mu(x) \textrm{''} dx dy \\
+&= \int_\Omega v(y) \int_\Omega A(y,x) \textrm{``} \mu(x) \textrm{''} dx \\
+&= \int_\Omega v(y) \mu\left(A(y,\cdot)\right) dx.
 \end{align*}
 For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, and the action of $\mathcal{A}$ on $\delta_x$ is given by
 \begin{equation}
 \label{eq:appendix_impulse_response}
-\langle\mathcal{A},\delta_x\rangle(w)	= \int_\Omega w(y) A(y,x) dy.
+\langle\mathcal{A},\delta_x\rangle(v)	= \int_\Omega v(y) A(y,x) dy.
 \end{equation}
 Recall that the impulse response of $\mathcal{A}$ to $\delta_x$, denoted $\phi_x$, is the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$. From \eqref{eq:appendix_impulse_response} and the definition of the Riesz representation, we have $\phi_x = \langle\mathcal{A},\delta_x\rangle^* = A(~\cdot~,x)$. That is, $\phi_x$ is the function $y \mapsto A(y,x)$.
 
@@ -893,32 +901,34 @@ Recall that the impulse response of $\mathcal{A}$ to $\delta_x$, denoted $\phi_x
 \section{Discretization}
 \label{sec:discretization}
 
-Let $f_i$, $i=1,\dots,N$ be a set of finite element basis functions, and let
+Let $f_i$, $i=1,\dots,N$ be a set of finite element basis functions, let $h$ denote the mesh size parameter for the finite element mesh, and let
 \begin{equation*}
-V_h = \Span\left(f_1, f_2, \dots, f_N\right).
+V_h = \Span\left(f_1, f_2, \dots, f_N\right)
 \end{equation*}
-be the corresponding  finite element space with the $L^2$ inner product. Here $h$ denotes the mesh size parameter. Functions $u\in L^2(\Omega)$ are approximated by functions $u_h \in V_h$. In turn, functions $u_h\in V_h$ are represented in computations by length $N$ arrays $\mathbf{u}$, such that the array entries of $\mathbf{u}$ are the coordinates of $u_h$ in the finite element basis. That is,
+be the corresponding  finite element space with the $L^2$ inner product. Functions $u\in L^2(\Omega)$ are approximated by functions $u_h \in V_h$. In turn, functions $u_h\in V_h$ are represented in computations by length $N$ arrays $\mathbf{u}$, such that the array entries of $\mathbf{u}$ are the coordinates of $u_h$ in the finite element basis. That is,
 \begin{equation}
 \label{eq:finite_bijection}
 u_h(x) = \sum_{i=1}^N \mathbf{u}_i f_i(x).
 \end{equation}
 
-Let $\mathbf{M} \in \mathbb{R}^{N \times N}$ denote the finite element \emph{mass matrix}, which has entries
+We write $\mathbf{M} \in \mathbb{R}^{N \times N}$ to denote the finite element \emph{mass matrix}, which has entries
 \begin{equation*}
 \mathbf{M}_{ij} = \left(f_i, f_j\right)_{L^2(\Omega)} = \int_{\Omega} f_i(x) f_j(x) dx,
 \end{equation*}
-and let $\mathbb{R}^N_\mathbf{M}$ denote the space $\mathbb{R}^N$ with the matrix-weighted inner product
+and we write $\mathbb{R}^N_\mathbf{M}$ to denote the space $\mathbb{R}^N$ with the matrix-weighted inner product
 \begin{equation*}
-\left(\mathbf{u},\mathbf{v}\right)_\mathbf{M} := \left(\mathbf{M} \mathbf{u}\right)^T \mathbf{v}.
+\left(\mathbf{u},\mathbf{v}\right)_\mathbf{M} := \mathbf{v}^T\mathbf{M} \mathbf{u}.
 \end{equation*}
-Direct calculation shows that $V_h$ is isometrically isomorphic $\mathbb{R}^N_\mathbf{M}$, in the sense that \eqref{eq:finite_bijection} establishes a bijective correspondence between functions $u_h \in V_h$ and coefficient vectors $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and that this bijection preserves the inner product; i.e., $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u},\mathbf{v}\right)_\mathbf{M}$. Likewise, the dual space, $V_h'$, is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. 
-These isomorphisms allow us to identify functions $u_h \in V_h$ with their corresponding coefficient arrays $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and linear functionals $\sigma_h \in V_h'$ with their corresponding coefficient arrays $\boldsymbol{\sigma} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$.
+Direct calculation shows that $V_h$ is isometrically isomorphic $\mathbb{R}^N_\mathbf{M}$. That is, equation \eqref{eq:finite_bijection} establishes a bijection between functions $u_h \in V_h$ and coefficient vectors $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and this bijection preserves the inner product in the sense that $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u},\mathbf{v}\right)_\mathbf{M}$. Likewise, the dual space, $V_h'$, is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. 
+
+Here vectors in $\mathbf{u} \in \mathbb{R}^N_{\mathbf{M}}$ and $\boldsymbol{\sigma} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ are viewed as column vectors, and $\mathbf{u}^T$ and $\boldsymbol{\sigma}^T$ are the row vectors that result from taking the standard matrix transposes of $\mathbf{u}$ and $\boldsymbol{\sigma}$, respectively. The discrete dual of a vector $\mathbf{v}$ with respect to the $\mathbf{M}$ inner product is written as $\mathbf{v}^*$, and $\mathbf{v}^*$ is viewed as a column vector.
+%These isomorphisms allow us to identify functions $u_h \in V_h$ with their corresponding coefficient arrays $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and linear functionals $\sigma_h \in V_h'$ with their corresponding coefficient arrays $\boldsymbol{\sigma} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$.
 
 
 \subsection{Discretized operations}
 \label{app:discretized_operations}
 
-Here we list common function space operations on $V_h$ and $V_h'$, and show the corresponding matrix and vector operations on $\mathbb{R}^N_{\mathbf{M}}$ and $\mathbb{R}^N_{\mathbf{M}^{-1}}$.
+Here we list the function space operations on $V_h$ and $V_h'$ that are required for this paper, and show how to perform the corresponding matrix and vector operations on $\mathbb{R}^N_{\mathbf{M}}$ and $\mathbb{R}^N_{\mathbf{M}^{-1}}$.
 
 %We summarize coefficient vector versions of the function space operation that are used in this paper in Appendix \ref{app:discretized_operations}.
 %
@@ -935,7 +945,7 @@ Here we list common function space operations on $V_h$ and $V_h'$, and show the 
 	\end{equation*}
 	\item[Action of a functional:] The action of a linear functional $\sigma_h \in V_h'$ on a function $u_h \in V_h$ may be computed as follows:
 	\begin{equation*}
-		\sigma_h(v_h) = \mathbf{u}^T \boldsymbol{\sigma}.
+		\sigma_h(v_h) = \boldsymbol{\sigma}^T \mathbf{u}.
 	\end{equation*}
 	\item[Riesz representation:] Let $\sigma_h \in V_h'$. The Riesz representation of $\sigma_h$ is the unique  function $\sigma_h^* \in V_h$ satisfying 
 	\begin{equation*} 
@@ -957,7 +967,7 @@ Here we list common function space operations on $V_h$ and $V_h'$, and show the 
 	\begin{equation*}
 		\mathbf{g}^\pi = \mathbf{M}^{-1}\left(\mathbf{g}^\pi\right)^*.
 	\end{equation*}
-	\item[Finite element interpolation:] Let $p_i \in \mathbb{R}^d$ be the Lagrange node associated with the finite element basis function $f_i$. The finite element interpolant of a function $g \in C\left(\overline{\Omega}\right)$ is the function $g^I \in V_h$ given by
+	\item[Finite element interpolation:] Let $p_i \in \mathbb{R}^d$, $i=1,\dots,N$, be the Lagrange nodes associated with the finite element basis functions $f_i$. The finite element interpolant of a function $g \in C\left(\overline{\Omega}\right)$ is the function $g^I \in V_h$ given by
 	\begin{equation*}
 		g_h^I(x) = \sum_{i=1}^N g(p_i) f_i(x).
 	\end{equation*}
@@ -966,11 +976,12 @@ Here we list common function space operations on $V_h$ and $V_h'$, and show the 
 	\mathbf{g}_i^I = g(p_i), \quad i=1.,\dots,N.
 	\end{equation*}
 	\item[Projection vs. interpolation:]
-	Typically $g^\pi$ is a more accurate approximation of $g$ than $g^I$. However, $g^I$ is typically cheaper to compute than $g^\pi$ because computing $g^\pi$ requires solving a linear system, while computing $g^I$ does not. Interpolation is typically sufficiently accurate for practical purposes so long as the finite element basis satisfies the following Kronecker property:
+	Typically, $g^\pi$ is a more accurate approximation of $g$ than $g^I$, but $g^I$ is cheaper to compute than $g^\pi$ because computing $g^\pi$ requires solving a linear system, while computing $g^I$ does not. If the finite element basis satisfies the following Kronecker property,
 	\begin{equation*}
 		f_i(p_j) = \begin{cases}1 & i=j \\
-		0 & \text{otherwise}.\end{cases}
+		0 & \text{otherwise},\end{cases}
 	\end{equation*}
+	then $g^I(p_i) = g(p_i)$ for $i=1,\dots,N$ (i.e., the interpolant equals the original function at the Lagrange nodes). Interpolation is typically sufficiently accurate for practical purposes if the Kronecker property is satisfied. Projection should be used if the Kronecker property is not satisfied.
 	\item[Matrix representation of an operator:] Let $\mathcal{B}_h : V_h \rightarrow V_h'$ be a linear operator, and let $\mathbf{B} \in \mathbf{R}^{N \times N}$ be the matrix with entries
 	\begin{equation*}
 		\mathbf{B}_{ij} = \left(\mathcal{B}_h f_j\right)(f_i).
@@ -984,7 +995,7 @@ Here we list common function space operations on $V_h$ and $V_h'$, and show the 
 		\sigma_h = \mathcal{B}_h^T u_h \quad \Leftrightarrow \quad \boldsymbol{\sigma} = \mathbf{B}^T \mathbf{u}.
 	\end{equation*}
 
-	\item[Distributions:] Let $\mu:C\left(\overline{\Omega}\right)\rightarrow \mathbb{R}$ be a distribution. If $\mu(f_i)$ is well-defined for all finite element basis vectors $f_i$, then the restriction of $\mu$ to domain $V_h$ is a linear functional $\mu_h\in V_h'$. The functional $\mu_h$ has a coefficient dual vector $\boldsymbol{\mu} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ with entries 
+	\item[Distributions:] Let $\mu:C\left(\overline{\Omega}\right)\rightarrow \mathbb{R}$ be a distribution. If $\mu(f_i)$ is well-defined for $i=1,\dots,N$, then the restriction of $\mu$ to domain $V_h$ is a linear functional $\mu_h\in V_h'$. The functional $\mu_h$ has a coefficient dual vector $\boldsymbol{\mu} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ with entries 
 	\begin{equation*}
 	\boldsymbol{\mu}_i=\mu(f_i), \quad i=1,\dots,N.
 	\end{equation*} 
@@ -993,7 +1004,7 @@ Here we list common function space operations on $V_h$ and $V_h'$, and show the 
 	\left(\boldsymbol{\delta}_p\right)_i = f_i(p), \quad i=1,\dots,N.
 	\end{equation*}
 	
-	\item[Action of an operator on a distribution:] Since $V_h$ is finite-dimensional, the restriction $\mu_h \in V_h$ of a distribution $\mu$ to the space $V_h$ has a a Riesz representation $\mu_h^* \in V_h$. Let $B_h$ be the integral kernel associated with an operator $\mathcal{B}_h:V_h \rightarrow V_h'$. For $v_h \in V_h$, we have
+	\item[Action of an operator on a distribution:] Since $V_h$ is finite-dimensional, the restriction, $\mu_h \in V_h$, of a distribution, $\mu$, to the space $V_h$ has a a Riesz representation $\mu_h^* \in V_h$. Let $B_h$ be the integral kernel associated with an operator $\mathcal{B}_h:V_h \rightarrow V_h'$. For $v_h \in V_h$, we have
 	\begin{align*}
 		\langle \mathcal{B}_h, \mu_h \rangle(v) &= \int_\Omega v_h(y) \mu_h\left(B_h(y, \cdot)\right) dy \\
 		&= \int_\Omega v_h(y) \left(\int_\Omega B_h(y,x) \mu_h^*(x) dx\right) dy \\
@@ -1005,7 +1016,43 @@ Here we list common function space operations on $V_h$ and $V_h'$, and show the 
 	\end{equation*}
 \end{description}
 
-\subsection{Discretized mean and covariance estimation} In computations, $\alpha$, $\mu^{i}$, and $\Sigma^{ij}$ are replaced with finite element approximations $\alpha_h, \mu_h^i, \Sigma_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\alpha}, \boldsymbol{\mu}^{ij}, \boldsymbol{\Sigma}^{ij}\in\mathbb{R}^N_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with either finite element projections onto $V_h$ (if the finite element basis does not satisfy the Kronecker property), or finite element interpolations onto $V_h$ (if the finite element basis satisfies the Kronecker property). In our numerical examples we use finite element basis functions that satisfy the Kronecker property, and we use finite element interpolations. The coefficient vectors corresponding to either the interpolations or projections are denoted $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
+\subsection{Discretized mean and covariance estimation} 
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	{	
+		\Input{Operator $\mathbf{A}$}
+		\Output{$\boldsymbol{\alpha}\in \mathbb{R}^N$, $\boldsymbol{\mu}\in \mathbb{R}^{d \times N}$, and $\boldsymbol{\Sigma} \in \mathbb{R}^{d \times d \times N}$}
+		
+		Form vector $\mathbf{C} \in \mathbb{R}^N_{\mathbf{M}}$ by either projecting or interpolating constant function $C(x)=1$ onto $V_h$
+		
+		$\boldsymbol{\alpha} = \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{C}\right)^*$
+		
+		\For{$i=1,2,\dots,d$}{
+			Form vector $\mathbf{L}^i \in \mathbb{R}^N_{\mathbf{M}}$ by either projecting or interpolating linear function $L^i(x) = x^i$ onto $V_h$
+			
+			$\mathbf{\mu}^i = \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right)^* / \boldsymbol{\alpha}$
+		}
+		\For{$i=1,2,\dots,d$}{
+			\For{$j=1,\dots,i$}{
+				Form quadratic function $\mathbf{Q}^{ij} = x^i x^j$
+				
+				$\boldsymbol{\Sigma}^{ij} = \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{Q}^{ij}\right)^* / \boldsymbol{\alpha} - \boldsymbol{\mu}^i\cdot \boldsymbol{\mu}^j$
+				
+				$\boldsymbol{\Sigma}^{ij} = \boldsymbol{\Sigma}^{ji}$
+				
+			}
+		}
+		
+	}
+	\caption{Discretized version of Algorithm \ref{alg:varhpi_mean_cov}}
+	\label{alg:varhpi_mean_cov_discrete}
+\end{algorithm2e}
+
+
+In computations, $\alpha$, $\mu^{i}$, and $\Sigma^{ij}$ are replaced with finite element approximations $\alpha_h, \mu_h^i, \Sigma_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\alpha}, \boldsymbol{\mu}^{ij}, \boldsymbol{\Sigma}^{ij}\in\mathbb{R}^N_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with either finite element projections onto $V_h$ (if the finite element basis does not satisfy the Kronecker property), or finite element interpolations onto $V_h$ (if the finite element basis satisfies the Kronecker property). In our numerical examples we use finite element basis functions that satisfy the Kronecker property, and we use finite element interpolations. The coefficient vectors corresponding to either the interpolations or projections are denoted $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
 \begin{align*}
 \boldsymbol{\alpha} &= \mathbf{M}^{-1}\mathbf{A}^T\mathbf{C} \\
 \boldsymbol{\mu}^i &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right) / \boldsymbol{\alpha}\\
@@ -1015,11 +1062,11 @@ respectively. Here $\mathbf{f} \cdot \mathbf{g}$ and $\mathbf{f} / \mathbf{g}$ d
 
 
 \subsection{Discretized sampling of impulse responses}
-In computations, the Dirac comb $\xi^b$ is replaced by its restriction to $V_h$, denoted $\xi^b \in V_h'$. The response $\eta^b$ is replaced by the finite element approximation $\eta_h^b \in V_h$. The coefficient dual vector for $\xi_h^b$ is the vector $\boldsymbol{\xi}^b \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ which has entries
+In computations, the Dirac comb coefficient dual vector for $\xi_h^b$ is the vector $\boldsymbol{\xi}^b \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ which has entries
 \begin{equation*}
-\boldsymbol{\xi}^b_i = \sum_{x_j \in S_b} \phi_i(x_j), \quad i=1,\dots,N.
+\boldsymbol{\xi}^b_i = \sum_{x_j \in S_b} f_i(x_j), \quad i=1,\dots,N.
 \end{equation*}
-The coefficient vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ for $\eta_h^b$ is given by
+The Dirac comb impulse response coefficient vector for $\eta_h^b$ is the vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ given by
 \begin{equation*}
 \boldsymbol{\eta}^b = \mathbf{M}^{-1} \mathbf{A}^T \mathbf{M}^{-1}\boldsymbol{\xi}^b.
 \end{equation*}
