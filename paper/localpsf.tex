@@ -40,7 +40,7 @@
 
 % REQUIRED
 \begin{abstract}
-  We present an efficient matrix-free method for approximating locally translation invariant operators that have locally supported non-negative integral kernels. The idea of the method is to compute impulse responses of the operator at a collection of scattered points, then interpolate these computed impulse responses to approximate impulse responses at other arbitrary points. This results in a product-convolution approximation, which we convert to hierarchical matrix format. Once the approximation is represented in hierarchical matrix format, we perform matrix inversion and other matrix operations using fast hierarchical matrix arithmetic. Impulse responses are computed by applying the operator to a small number of Dirac comb ``batches'' of point sources. A key innovation of our method is a matrix-free procedure for choosing as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problem with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. Our method is able to form high quality approximations of high rank Hessians using only a small number of Hessian matrix-vector products.
+  We present an efficient matrix-free method for approximating locally translation invariant operators that have locally supported non-negative integral kernels. The idea of the method is to compute impulse responses of the operator at a collection of scattered points, then interpolate these computed impulse responses to approximate impulse responses at other arbitrary points. This results in a product-convolution approximation, which we convert to hierarchical matrix format in order to solve linear systems and perform other matrix operations efficiently using fast hierarchical matrix arithmetic. Impulse responses are computed by applying the operator to a small number of Dirac comb ``batches'' of point sources. A key innovation of our method is a matrix-free procedure for choosing as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problem with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. Our method is able to form high quality approximations of high rank Hessians using only a small number of Hessian matrix-vector products.
 \end{abstract}
 
 % REQUIRED
@@ -157,6 +157,7 @@ Once the $\varphi_i$ and $w_i$ are computed, we convert $\widetilde{\mathcal{A}}
 This follows from~\eqref{eq:product_convolution} and the fact that the convolution operator $u \mapsto \varphi_i \ast u$ has $(y,x)$ kernel entry given by $\varphi(y-x)$.
 Formula~\eqref{eq:kernel_entries} allows us to construct a H-matrix representation of $\widetilde{\mathcal{A}}$ using the conventional adaptive cross H-matrix construction method, in which one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. Once in H-matrix format, fast H-matrix arithmetic is used to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations.
 
+
 \subsection{Motivation: PDE constrained inverse problems with highly informative data}
 \label{sec:PDE_hessian_motivation}
 
@@ -178,6 +179,7 @@ where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and 
 %We only have access to $\mathcal{H}$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary linear PDEs.
 
 The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because high-rank approximations of an operator can be formed using a small number of matrix-vector products.
+
 
 \subsection{Existing work}
 
@@ -599,9 +601,42 @@ For more details on H-matrices, we recommend \cite{HMATRIXGOOD}.
 We convert $\widetilde{\mathbf{A}}$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{HLIBPRO}. Briefly, this method uses geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix to construct a recursive block partitioning of $\widetilde{\mathbf{A}}$, such that all blocks at the finest level of the partitioning are either low rank, or are small. Then, the method forms low rank approximations of the blocks that are expected to be low rank by sampling specially chosen rows and columns of those blocks. The small high rank blocks are formed directly by evaluating their entries. The primary cost of constructing the approximation is the evaluation of $O(N \log N)$ entries of the kernel $\widetilde{A}$, which we perform using Algorithm \ref{alg:eval_y_x}. We describe the H-matrix construction in detail in Appendix \ref{app:h_matrix}.
 
 
+\subsection{Computational cost}
+
+\begin{itemize}
+	\item computational complexity in terms of PDE solves:
+	\item cost of global low rank approximation (data scalability)
+	\item cost to build approximation
+	\item cost without compression to do a solve
+	\item cost with compression to do a solve
+	\item computational complexity for H-matrix alone vs. prod-conv + h-matrix $O(C k^2 \log N)$ PDE solves, C is big, k is big. Here $10$
+	\item HODLR: C is smaller, but k is bigger, vs. H1 peeling process
+	\item H-matrix operations cost for our method solve
+	\item irregular grid
+\end{itemize}
+
+
 
 \section{Numerical results}
 \label{sec:numerical_results}
+
+\begin{itemize}
+	\item GLR vs PCH diffusion time (H)
+	\item GLR vs PCH number of obs (Computational cost) (S)
+	\item GLR vs PCH aspect ratio (CC) (S)
+	\item mesh scalability of PCH (CC) (H)
+	\item spectrum plots $P^{-1} H - I$ (Quality of approximation) (H, not Stokes?)
+	\item number of krylov iterations: reg precond vs PCH (where?) (H)
+	\item turn on preconditioner after number of krylov iterations exceeds 15 in an iteration. Rebuild "as needed". (H)
+	\item $P - H = USV^T$ <- less good
+	\item $P^{-1} H - I = USV^T$ <- better
+	\item true parameter (H)
+	\item deterministic reconstruction (H)
+	\item noisy measurements (1\% noise). $u|_\text{top}$ (H)
+	\item recovered state at top (H)
+\end{itemize}
+
+
 
 Some numerical results here.
 
