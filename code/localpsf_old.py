@@ -105,11 +105,6 @@ def get_boundary_function(function_space_V, apply_hessian_transpose_Ht, solve_ma
     return boundary_function
 
 
-def get_boundary_inds(function_space_V):
-    boundary_form = fenics.TestFunction(function_space_V) * fenics.Constant(1.0) * fenics.ds
-    return np.argwhere(fenics.assemble(boundary_form)[:] > 1e-12).reshape(-1)
-
-
 ##
 
 
@@ -179,11 +174,13 @@ class FastGridFunction2D:
 
 class LocalPSF:
     def __init__(me, apply_hessian_H, apply_hessian_transpose_Ht, function_space_V, error_epsilon=1e-2,
-                 num_standard_deviations_tau=3, max_batches=5, verbose=True):
+                 boundary_tol=5e-1, num_standard_deviations_tau=3, max_batches=5, verbose=True,
+                 mass_matrix_M=None, solve_mass_matrix_M=None):
         me.apply_H = apply_hessian_H
         me.apply_Ht = apply_hessian_transpose_Ht
         me.V = function_space_V
         me.error_epsilon = error_epsilon
+        me.boundary_tol = boundary_tol
         me.tau = num_standard_deviations_tau
         me.max_batches = max_batches
 
@@ -192,9 +189,18 @@ class LocalPSF:
 
         me.FRGI = FenicsRegularGridInterpolator2D(me.V)
 
-        print('making mass matrix and solver')
-        me.M = make_mass_matrix(me.V)
-        me.solve_M = make_fenics_amg_solver(me.M)
+        if (mass_matrix_M == None) or (solve_mass_matrix_M == None):
+            print('making mass matrix and solver')
+            me.M = make_mass_matrix(me.V)
+            me.solve_M = make_fenics_amg_solver(me.M)
+            # me.M, M_solver = make_mass_matrix_and_solver(function_space_V)
+            # me.solve_M = lambda x: M_solver.solve(x)
+        else:
+            me.M = mass_matrix_M
+            me.solve_M = solve_mass_matrix_M
+
+        print('getting boundary function')
+        me.boundary_function = get_boundary_function(me.V, me.apply_Ht, me.solve_M)
 
         print('getting spatially varying volume')
         me.vol = compute_spatially_varying_volume(me.V, me.apply_Ht, me.solve_M)
@@ -206,31 +212,27 @@ class LocalPSF:
         me.Sigma = get_spatially_varying_covariance(me.V, me.apply_Ht, me.solve_M, me.vol, me.mu)
 
         print('constructing fast evaluators')
+        t = time()
+        me.eval_boundary_function = me.FRGI.make_fast_grid_function(me.boundary_function)
         me.eval_vol = me.FRGI.make_fast_grid_function(me.vol)
+        dt_cpp = time() - t
+        print('dt_cpp=', dt_cpp)
+
+        t = time()
+        me.eval_boundary_function2 = FenicsFunctionFastGridEvaluator(me.boundary_function)
+        me.eval_vol2 = FenicsFunctionFastGridEvaluator(me.vol)
+        dt_py = time() - t
+        print('dt_py=', dt_py)
+
         me.eval_mu = FenicsFunctionFastGridEvaluator(me.mu)
-        eval_Sigma0 = FenicsFunctionFastGridEvaluator(me.Sigma)
-        me.eval_Sigma = lambda pp : eval_Sigma0(pp).reshape((-1, me.d, me.d))
+        me.eval_Sigma = FenicsFunctionFastGridEvaluator(me.Sigma)
         print('done')
 
-        print('getting nodes on boundary')
-        me.boundary_inds = get_boundary_inds(me.V) # indices for nodes exactly on the boundary
-        print('done')
 
-        all_mu = me.eval_mu(me.X)
-        all_Sigma = me.eval_Sigma(me.X)
-
-        print('computing inds of points far from boundary')
-        me.inds_of_points_far_from_boundary = list()
-        for k in range(me.N):
-            far_bp = points_which_are_not_in_ellipsoid_numba(all_Sigma[k,:,:], all_mu[k,:],
-                                                             me.X[me.boundary_inds,:], me.tau)
-            if np.all(far_bp):
-                me.inds_of_points_far_from_boundary.append(k)
-        print('done')
-
-        me.candidate_points = me.X[me.inds_of_points_far_from_boundary, :]
-        me.candidate_mu = all_mu[me.inds_of_points_far_from_boundary, :]
-        me.candidate_Sigma = all_Sigma[me.inds_of_points_far_from_boundary, :, :]
+        interior_inds = (abs(me.eval_boundary_function(me.X)) < me.boundary_tol)
+        me.candidate_points = me.X[interior_inds, :]
+        me.candidate_mu = me.eval_mu(me.candidate_points)
+        me.candidate_Sigma = me.eval_Sigma(me.candidate_points).reshape((-1, me.d, me.d))
         me.candidate_inds = list(range(me.candidate_points.shape[0]))
 
         me.point_batches = list()
@@ -318,25 +320,29 @@ class LocalPSF:
     def old_evaluate_approximate_hessian_entries_at_points_yy_xx(me, yy, xx):
         return me.BPC.compute_product_convolution_entries(yy, xx)
 
-    def plot_far_from_boundary_region(me):
+    def plot_boundary_region(me):
         if me.d != 2:
-            print('d=', me.d, ', can only plot far from boundary region for d=2')
+            print('d=', me.d, ', can only plot boundary region for d=2')
             return
 
-        f = fenics.Function(me.V)
-        f.vector()[me.inds_of_points_far_from_boundary] = 1.0
+        xx_boundary = me.X[me.Omega_B, 0]
+        yy_boundary = me.X[me.Omega_B, 1]
 
-        fenics.plot(f)
-        plt.title('far from boundary region')
+        xx_interior = me.X[me.Omega_I, 0]
+        yy_interior = me.X[me.Omega_I, 1]
+
+        plt.figure()
+        plt.scatter(xx_boundary, yy_boundary, c='r')
+        plt.scatter(xx_interior, yy_interior, c='b')
+
+        plt.legend(['boundary points', 'interior points'])
 
     def integrate_function_over_Omega(me, f_vec):
-        f = fenics.Function(me.V)
-        f.vector()[:] = f_vec
-        return fenics.assemble(f * fenics.dx)
+        return np.dot(f_vec, me.ones_dual_vector)
 
     def compute_mean_of_function(me, f_vec):
-        vol = me.integrate_function_over_Omega(f_vec)
-        f_vec_hat = f_vec / vol
+        V = me.integrate_function_over_Omega(f_vec)
+        f_vec_hat = f_vec / V
         mu_f = np.zeros(me.d)
         for k in range(me.d):
            mu_f[k] =  me.integrate_function_over_Omega(me.X[:,k] * f_vec_hat)
