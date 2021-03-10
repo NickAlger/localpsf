@@ -228,6 +228,9 @@ class LocalPSF:
                 me.inds_of_points_far_from_boundary.append(k)
         print('done')
 
+        me.far_from_boundary_function = fenics.Function(me.V)
+        me.far_from_boundary_function.vector()[me.inds_of_points_far_from_boundary] = 1.0
+
         me.candidate_points = me.X[me.inds_of_points_far_from_boundary, :]
         me.candidate_mu = all_mu[me.inds_of_points_far_from_boundary, :]
         me.candidate_Sigma = all_Sigma[me.inds_of_points_far_from_boundary, :, :]
@@ -318,16 +321,61 @@ class LocalPSF:
     def old_evaluate_approximate_hessian_entries_at_points_yy_xx(me, yy, xx):
         return me.BPC.compute_product_convolution_entries(yy, xx)
 
-    def plot_far_from_boundary_region(me):
+    def make_plots(me):
         if me.d != 2:
-            print('d=', me.d, ', can only plot far from boundary region for d=2')
+            print('d=', me.d, ', can only make plots for d=2')
             return
 
-        f = fenics.Function(me.V)
-        f.vector()[me.inds_of_points_far_from_boundary] = 1.0
-
-        fenics.plot(f)
+        plt.figure()
+        fenics.plot(me.far_from_boundary_function)
         plt.title('far from boundary region')
+
+        plt.figure()
+        cm = fenics.plot(me.vol)
+        plt.colorbar(cm)
+        plt.title('volume function')
+
+        plt.figure()
+        cm = fenics.plot(me.mu.sub(0))
+        plt.colorbar(cm)
+        plt.title('mean in x direction')
+
+        plt.figure()
+        cm = fenics.plot(me.mu.sub(1))
+        plt.colorbar(cm)
+        plt.title('mean in y direction')
+
+        for k in range(me.num_batches):
+            me.plot_impulse_response_batch(k)
+
+        w_inds = np.random.permutation(len(me.weighting_functions))[:5]
+        for k in w_inds:
+            me.plot_weighting_function(k)
+
+    def plot_weighting_function(me, w_ind):
+        plt.figure()
+        cm = fenics.plot(me.weighting_functions[w_ind])
+        plt.colorbar(cm)
+        plt.plot(np.array(me.PSI.points)[:, 0], np.array(me.PSI.points)[:, 1], '.k')
+        plt.plot(me.PSI.points[w_ind][0], me.PSI.points[w_ind][1], '.r')
+        plt.title('weighting function ' + str(w_ind))
+
+    def plot_impulse_response_batch(me, batch_ind):
+        plt.figure()
+
+        pp_batch = me.point_batches[batch_ind]
+        Hdc = me.dirac_comb_responses[batch_ind]
+
+        cmap = fenics.plot(Hdc)
+        plt.colorbar(cmap)
+
+        plt.title('Hessian response 3-sigma support, batch '+str(batch_ind))
+
+        for k in range(pp_batch.shape[0]):
+            p = pp_batch[k, :]
+            mu_p = me.mu(p)
+            C_p = me.Sigma(p).reshape((me.d, me.d))
+            plot_ellipse(plt.gca(), mu_p, C_p, me.tau)
 
     def integrate_function_over_Omega(me, f_vec):
         f = fenics.Function(me.V)
