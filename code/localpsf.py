@@ -315,6 +315,10 @@ class LocalPSF:
     def r(me):
         return len(me.weighting_functions)
 
+    @property
+    def points(me):
+        return np.array(me.PSI.points)
+
     def evaluate_approximate_hessian_entries_at_points_yy_xx(me, yy, xx):
         return me.BPC_cpp.compute_entries(yy, xx)
 
@@ -356,8 +360,8 @@ class LocalPSF:
         plt.figure()
         cm = fenics.plot(me.weighting_functions[w_ind])
         plt.colorbar(cm)
-        plt.plot(np.array(me.PSI.points)[:, 0], np.array(me.PSI.points)[:, 1], '.k')
-        plt.plot(me.PSI.points[w_ind][0], me.PSI.points[w_ind][1], '.r')
+        plt.plot(me.points[:, 0], me.points[:, 1], '.k')
+        plt.plot(me.points[w_ind,0], me.points[w_ind,1], '.r')
         plt.title('weighting function ' + str(w_ind))
 
     def plot_impulse_response_batch(me, batch_ind):

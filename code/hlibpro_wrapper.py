@@ -12,6 +12,7 @@ class HMatrixWrapper:
         me.cpp_object = cpp_hmatrix_object
         me.bct = bct
         me.shape = (me.cpp_object.rows(), me.cpp_object.cols())
+        me.dtype = np.double # Real: Complex not supported currently
 
     def row_ct(me):
         return me.bct.row_ct()
@@ -24,6 +25,18 @@ class HMatrixWrapper:
 
     def copy_struct(me):
         return HMatrixWrapper(me.cpp_object.copy_struct(), me.bct)
+
+    def transpose(me):
+        transposed_cpp_object = me.cpp_object.copy()
+        transposed_cpp_object.transpose()
+        return HMatrixWrapper(transposed_cpp_object, me.bct)
+
+    @property
+    def T(me):
+        return me.transpose()
+
+    def sym(me, rtol=default_rtol, atol=default_atol):
+        return h_add(me, me.T, alpha=0.5, beta=0.5, rtol=rtol, atol=atol)
 
     def matvec(me, x):
         return h_matvec(me, x)
@@ -104,6 +117,7 @@ class FactorizedInverseHMatrixWrapper:
         me.bct = inverse_bct
         me._factors_cpp_object = factors_cpp_object  # Don't mess with this!! Could cause segfault if deleted
         me.shape = (me._factors_cpp_object.rows(), me._factors_cpp_object.cols())
+        me.dtype = np.double # Real: Complex not supported currently
 
     def row_ct(me):
         return me.bct.row_ct()
