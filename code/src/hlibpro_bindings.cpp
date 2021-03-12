@@ -34,7 +34,7 @@ using  real_t = double;
 #endif
 
 
-std::unique_ptr<HLIB::TClusterTree> build_cluster_tree_from_dof_coords(const MatrixXd & dof_coords, const double nmin)
+std::shared_ptr<HLIB::TClusterTree> build_cluster_tree_from_dof_coords(const MatrixXd & dof_coords, const double nmin)
 {
     size_t N = dof_coords.rows();
     size_t d = dof_coords.cols();
@@ -55,17 +55,17 @@ std::unique_ptr<HLIB::TClusterTree> build_cluster_tree_from_dof_coords(const Mat
 //    TAutoBSPPartStrat  part_strat;
     TCardBSPPartStrat  part_strat;
     TBSPCTBuilder      ct_builder( & part_strat, nmin );
-    std::unique_ptr<HLIB::TClusterTree>  ct = ct_builder.build( coord.get() );
+    std::shared_ptr<HLIB::TClusterTree>  ct = ct_builder.build( coord.get() );
     return ct;
 }
 
-std::unique_ptr<HLIB::TBlockClusterTree> build_block_cluster_tree(HLIB::TClusterTree *  row_ct_ptr,
+std::shared_ptr<HLIB::TBlockClusterTree> build_block_cluster_tree(HLIB::TClusterTree *  row_ct_ptr,
                                                                   HLIB::TClusterTree * col_ct_ptr,
                                                                   double admissibility_eta)
 {
         TStdGeomAdmCond    adm_cond( admissibility_eta );
         TBCBuilder         bct_builder;
-        std::unique_ptr<HLIB::TBlockClusterTree>  bct = bct_builder.build( row_ct_ptr, col_ct_ptr, & adm_cond );
+        std::shared_ptr<HLIB::TBlockClusterTree>  bct = bct_builder.build( row_ct_ptr, col_ct_ptr, & adm_cond );
         return bct;
 }
 
@@ -89,7 +89,7 @@ void visualize_block_cluster_tree(HLIB::TBlockClusterTree * bct_ptr, string titl
 }
 
 
-std::unique_ptr<HLIB::TMatrix> build_hmatrix_from_sparse_matfile (string mat_file,
+std::shared_ptr<HLIB::TMatrix> build_hmatrix_from_sparse_matfile (string mat_file,
                                                                   HLIB::TBlockClusterTree * bct_ptr)
 {
     auto row_ct_ptr = bct_ptr->row_ct();
@@ -121,7 +121,8 @@ std::unique_ptr<HLIB::TMatrix> build_hmatrix_from_sparse_matfile (string mat_fil
     TSparseMBuilder    h_builder( S, row_ct_ptr->perm_i2e(), col_ct_ptr->perm_e2i() );
 
     TTruncAcc                 acc(0.0, 0.0);
-    auto               A = h_builder.build( bct_ptr, acc );
+//    auto               A = h_builder.build( bct_ptr, acc );
+    std::shared_ptr<HLIB::TMatrix> A = h_builder.build( bct_ptr, acc );
 
     cout << "    size of H-matrix  = " << Mem::to_string( A->byte_size() ) << endl;
     cout << "    |A|_F             = " << norm_F( A.get() ) << endl;
@@ -136,7 +137,7 @@ std::unique_ptr<HLIB::TMatrix> build_hmatrix_from_sparse_matfile (string mat_fil
 }
 
 
-std::unique_ptr<HLIB::TMatrix> build_hmatrix_from_coefffn(TCoeffFn<real_t> & coefffn,
+std::shared_ptr<HLIB::TMatrix> build_hmatrix_from_coefffn(TCoeffFn<real_t> & coefffn,
 //                                                          HLIB::TClusterTree * row_ct_ptr,
 //                                                          HLIB::TClusterTree * col_ct_ptr,
                                                           HLIB::TBlockClusterTree * bct_ptr,
@@ -155,7 +156,8 @@ std::unique_ptr<HLIB::TMatrix> build_hmatrix_from_coefffn(TCoeffFn<real_t> & coe
 
     timer.start();
 
-    std::unique_ptr<HLIB::TMatrix>  A = h_builder.build( bct_ptr, acc, & progress );
+//    std::unique_ptr<HLIB::TMatrix>  A = h_builder.build( bct_ptr, acc, & progress );
+    std::shared_ptr<HLIB::TMatrix>  A = h_builder.build( bct_ptr, acc, & progress );
 
     timer.pause();
     std::cout << "    done in " << timer << std::endl;
@@ -235,7 +237,7 @@ VectorXd h_factorized_inverse_matvec(HLIB::TFacInvMatrix * inv_A_ptr,
     return y;
 }
 
-std::unique_ptr<HLIB::TFacInvMatrix> factorize_inv_with_progress_bar(HLIB::TMatrix * A_ptr, TTruncAcc acc)
+std::shared_ptr<HLIB::TFacInvMatrix> factorize_inv_with_progress_bar(HLIB::TMatrix * A_ptr, TTruncAcc acc)
 {
     double rtol = acc.rel_eps();
     TTimer                    timer( WALL_TIME );
@@ -363,7 +365,9 @@ PYBIND11_MODULE(hlibpro_bindings, m) {
 
     py::class_<HLIB::TVector>(m, "TVector");
 
-    py::class_<HLIB::TMatrix>(m, "TMatrix")
+    py::class_<HLIB::TMatrix, std::shared_ptr<HLIB::TMatrix>>(m, "TMatrix")
+//    py::class_<HLIB::TMatrix, std::unique_ptr<HLIB::TMatrix>>(m, "TMatrix")
+//    py::class_<HLIB::TMatrix>(m, "TMatrix")
         .def("id", &HLIB::TMatrix::id)
         .def("rows", &HLIB::TMatrix::rows)
         .def("cols", &HLIB::TMatrix::cols)
@@ -402,7 +406,9 @@ PYBIND11_MODULE(hlibpro_bindings, m) {
         .def("check_data", &HLIB::TMatrix::check_data)
         .def("byte_size", &HLIB::TMatrix::byte_size)
         .def("print", &HLIB::TMatrix::print)
-        .def("copy", static_cast<std::unique_ptr<TMatrix> (HLIB::TMatrix::*)() const>(&HLIB::TMatrix::copy))
+//        .def("copy", &HLIB::TMatrix::copy)
+        .def("copy", static_cast<std::unique_ptr<TMatrix> (HLIB::TMatrix::*)() const>(&HLIB::TMatrix::copy)) //Won't compile without this static_cast... Why??
+//        .def("copy", static_cast<std::shared_ptr<TMatrix> (HLIB::TMatrix::*)() const>(&HLIB::TMatrix::copy))
         .def("copy_struct", &HLIB::TMatrix::copy_struct)
         .def("create", &HLIB::TMatrix::create)
         .def("cluster", &HLIB::TMatrix::cluster)
@@ -417,15 +423,16 @@ PYBIND11_MODULE(hlibpro_bindings, m) {
 
     py::class_<HLIB::TCoeffFn<real_t>>(m, "TCoeffFn<real_t>");
 
-    py::class_<HLIB::TClusterTree>(m, "HLIB::TClusterTree")
+    py::class_<HLIB::TClusterTree, std::shared_ptr<HLIB::TClusterTree>>(m, "HLIB::TClusterTree")
         .def("perm_i2e", &HLIB::TClusterTree::perm_i2e)
         .def("perm_e2i", &HLIB::TClusterTree::perm_e2i)
         .def("nnodes", &HLIB::TClusterTree::nnodes)
         .def("depth", &HLIB::TClusterTree::depth)
         .def("byte_size", &HLIB::TClusterTree::byte_size);
 
-    py::class_<HLIB::TBlockClusterTree>(m, "HLIB::TBlockClusterTree")
+    py::class_<HLIB::TBlockClusterTree, std::shared_ptr<HLIB::TBlockClusterTree>>(m, "HLIB::TBlockClusterTree")
         .def("row_ct", &HLIB::TBlockClusterTree::row_ct)
+//        .def("row_ct", static_cast<std::unique_ptr<TClusterTree> (HLIB::TClusterTree::*)() const>(&HLIB::TBlockClusterTree::row_ct))
         .def("col_ct", &HLIB::TBlockClusterTree::col_ct)
         .def("nnodes", &HLIB::TBlockClusterTree::nnodes)
         .def("depth", &HLIB::TBlockClusterTree::depth)
