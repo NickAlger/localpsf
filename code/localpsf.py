@@ -472,11 +472,11 @@ class LocalPSF:
         M_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_csc, block_cluster_tree)
         print('done')
 
-        print('computing tmp_hmatrix = A0_hmatrix * M_hmatrix')
+        print('computing A_hmatrix = A_hmatrix * M_hmatrix')
         hpro.h_mul(A_hmatrix, M_hmatrix, overwrite_arg=0)
         print('done')
 
-        print('computing A_hmatrix = M_hmatrix * tmp_hmatrix')
+        print('computing A_hmatrix = M_hmatrix * A_hmatrix')
         hpro.h_mul(M_hmatrix, A_hmatrix, overwrite_arg=1)
         print('done')
 
