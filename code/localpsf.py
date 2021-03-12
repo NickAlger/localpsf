@@ -9,6 +9,7 @@ from make_fenics_amg_solver import make_fenics_amg_solver
 from mass_matrix import make_mass_matrix
 from fenics_function_fast_grid_evaluator import FenicsFunctionFastGridEvaluator
 import hlibpro_wrapper as hpro
+import scipy.sparse as sps
 
 from time import time
 
@@ -449,12 +450,24 @@ class LocalPSF:
                                                                   me.tau, grid_xmin, grid_xmax, grid_ymin, grid_ymax)
         return BPC_cpp
 
-    def build_hmatrix(me, block_cluster_tree, tol=1e-6):
+    def build_hmatrix(me, block_cluster_tree, tol=1e-6, symmetrize=False):
         BPC_coefffn = hpro.hpro_cpp.ProductConvolutionCoeffFn(me.BPC_cpp, me.X)
         hmatrix_cpp_object = hpro.hpro_cpp.build_hmatrix_from_coefffn(BPC_coefffn, block_cluster_tree, tol)
         A_hmatrix = hpro.HMatrixWrapper(hmatrix_cpp_object, block_cluster_tree)
+
+        if symmetrize:
+            A_hmatrix = A_hmatrix.sym()
+
+        M_csc = convert_fenics_csr_matrix_to_scipy_csr_matrix(me.M)
+        M_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_csc, block_cluster_tree)
+
+        A_hmatrix = M_hmatrix * (A_hmatrix * M_hmatrix)
+
         return A_hmatrix
 
 
-
+def convert_fenics_csr_matrix_to_scipy_csr_matrix(A_fenics):
+    ai, aj, av = fenics.as_backend_type(A_fenics).mat().getValuesCSR()
+    A_scipy = sps.csr_matrix((av, aj, ai))
+    return A_scipy
 
