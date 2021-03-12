@@ -96,10 +96,18 @@ def h_scale(A_hmatrix, alpha):
     C_hmatrix.cpp_object.scale(alpha)
     return C_hmatrix
 
-def h_mul(A_hmatrix, B_hmatrix, alpha=1.0, rtol=default_rtol, atol=default_atol, display_progress=True):
+def h_mul(A_hmatrix, B_hmatrix, alpha=1.0, rtol=default_rtol, atol=default_atol, display_progress=True, overwrite_arg=-1):
     # C = A * B
     acc = hpro_cpp.TTruncAcc(relative_eps=rtol, absolute_eps=atol)
-    C_hmatrix = A_hmatrix.copy_struct()
+    return_C_hmatrix = False
+    if overwrite_arg == 0:
+        C_hmatrix = A_hmatrix
+    elif overwrite_arg == 1:
+        C_hmatrix = B_hmatrix
+    else:
+        C_hmatrix = A_hmatrix.copy_struct()
+        return_C_hmatrix = True
+
     # C_hmatrix = A_hmatrix.copy()
     if display_progress:
         hpro_cpp.multiply_with_progress_bar(alpha, hpro_cpp.apply_normal, A_hmatrix.cpp_object,
@@ -109,7 +117,8 @@ def h_mul(A_hmatrix, B_hmatrix, alpha=1.0, rtol=default_rtol, atol=default_atol,
         hpro_cpp.multiply_without_progress_bar(alpha, hpro_cpp.apply_normal, A_hmatrix.cpp_object,
                                                hpro_cpp.apply_normal, B_hmatrix.cpp_object,
                                                0.0, C_hmatrix.cpp_object, acc)
-    return C_hmatrix
+    if return_C_hmatrix:
+        return C_hmatrix
 
 class FactorizedInverseHMatrixWrapper:
     def __init__(me, cpp_object, factors_cpp_object, inverse_bct):

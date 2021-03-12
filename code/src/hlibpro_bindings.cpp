@@ -363,6 +363,7 @@ PYBIND11_MODULE(hlibpro_bindings, m) {
 
     py::class_<HLIB::TVector>(m, "TVector");
 
+//    py::class_<HLIB::TMatrix, std::unique_ptr<HLIB::TMatrix>>(m, "TMatrix")
     py::class_<HLIB::TMatrix>(m, "TMatrix")
         .def("id", &HLIB::TMatrix::id)
         .def("rows", &HLIB::TMatrix::rows)
@@ -402,7 +403,9 @@ PYBIND11_MODULE(hlibpro_bindings, m) {
         .def("check_data", &HLIB::TMatrix::check_data)
         .def("byte_size", &HLIB::TMatrix::byte_size)
         .def("print", &HLIB::TMatrix::print)
+//        .def("copy", &HLIB::TMatrix::copy)
         .def("copy", static_cast<std::unique_ptr<TMatrix> (HLIB::TMatrix::*)() const>(&HLIB::TMatrix::copy))
+//        .def("copy", static_cast<std::shared_ptr<TMatrix> (HLIB::TMatrix::*)() const>(&HLIB::TMatrix::copy))
         .def("copy_struct", &HLIB::TMatrix::copy_struct)
         .def("create", &HLIB::TMatrix::create)
         .def("cluster", &HLIB::TMatrix::cluster)
