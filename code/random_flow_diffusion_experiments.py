@@ -9,41 +9,31 @@ import matplotlib.pyplot as plt
 #
 
 # np.random.seed(0)
+def wiggly_function(V0):
+    n=150
+    mesh = dl.RectangleMesh(dl.Point(-1.,-1.), dl.Point(2., 2.), n,n)
+    V = dl.FunctionSpace(mesh, 'CG', 2)
+    u = dl.interpolate(dl.Expression('sin(30*x[0])',domain=mesh, degree=5), V)
+    old_coords = mesh.coordinates()
 
-n=150
+    xx0 = old_coords[:,0]
+    yy0 = old_coords[:,1]
 
-mesh = dl.RectangleMesh(dl.Point(-1.,-1.), dl.Point(2., 2.), n,n)
+    xx1 = xx0
+    yy1 = yy0 + 0.2 * np.cos(5*xx0)
 
-dl.plot(mesh)
+    xx2 = yy1 + 0.3 * xx1
+    yy2 = xx1 + 0.3 * np.sin(5*(yy1-0.35))
 
-V = dl.FunctionSpace(mesh, 'CG', 1)
+    xx3 = (xx2 + yy2)
+    yy3 = (xx2 - yy2) + 0.2 * np.cos(8*(xx2 + yy2))
 
-u = dl.interpolate(dl.Expression('sin(30*x[0])',domain=mesh, degree=5), V)
+    new_coords = np.array([xx3, yy3]).T
 
+    mesh.coordinates()[:] = new_coords
 
-old_coords = mesh.coordinates()
-
-xx0 = old_coords[:,0]
-yy0 = old_coords[:,1]
-
-xx1 = xx0
-yy1 = yy0 + 0.2 * np.cos(5*xx0)
-
-xx2 = yy1 + 0.3 * xx1
-yy2 = xx1 + 0.3 * np.sin(5*(yy1-0.3))
-
-# xx2 = xx1
-# yy2 = yy1
-
-xx3 = (xx2 + yy2)
-yy3 = (xx2 - yy2) + 0.2 * np.cos(8*(xx2 + yy2))
-
-# xx3 = xx2
-# yy3 = yy2
-
-new_coords = np.array([xx3, yy3]).T
-
-mesh.coordinates()[:] = new_coords
+    u0 = dl.interpolate(u, V0)
+    return u0
 
 plt.figure()
 dl.plot(mesh)
