@@ -6,8 +6,12 @@ from scipy.interpolate import interpn
 
 def load_angel_peak_badlands_image_into_fenics(function_space_V):
     img = imread('angel_peak_badlands.png')
-    gray_img = np.mean(img, axis=-1)[::-1, :]
+    gray_img0 = np.mean(img, axis=-1)[::-1, :]
     # [::-1,:] flip because image array goes top left to bottom right whereas we want bottom left to top right
+
+    cmin = np.min(gray_img0)
+    cmax = np.max(gray_img0)
+    gray_img = (gray_img0 - cmin) / (cmax - cmin)
 
     coords = function_space_V.tabulate_dof_coordinates()
     xmin = np.min(coords[:, 0])
