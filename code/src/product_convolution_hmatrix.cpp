@@ -150,11 +150,11 @@ void ProductConvolutionCoeffFn::eval(
         for (int j = 0; j < m; ++j)
         {
             const idx_t  idxj = colidxs[ j ];
-            xx(j*n+i, 0) = dof_coords(idxi, 0);
-            xx(j*n+i, 1) = dof_coords(idxi, 1);
+            xx(j*n+i, 0) = dof_coords(idxj, 0);
+            xx(j*n+i, 1) = dof_coords(idxj, 1);
 
-            yy(j*n+i, 0) = dof_coords(idxj, 0);
-            yy(j*n+i, 1) = dof_coords(idxj, 1);
+            yy(j*n+i, 0) = dof_coords(idxi, 0);
+            yy(j*n+i, 1) = dof_coords(idxi, 1);
         }
     }
 
