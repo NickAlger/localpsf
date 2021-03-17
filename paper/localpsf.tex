@@ -620,20 +620,25 @@ We convert $\widetilde{\mathbf{A}}$ into H1 matrix format using the standard geo
 \section{Numerical results}
 \label{sec:numerical_results}
 
+\textbf{Heat equation}
 \begin{itemize}
-	\item GLR vs PCH diffusion time (H)
-	\item GLR vs PCH number of obs (Computational cost) (S)
-	\item GLR vs PCH aspect ratio (CC) (S)
-	\item mesh scalability of PCH (CC) (H)
-	\item spectrum plots $P^{-1} H - I$ (Quality of approximation) (H, not Stokes?)
-	\item number of krylov iterations: reg precond vs PCH (where?) (H)
-	\item turn on preconditioner after number of krylov iterations exceeds 15 in an iteration. Rebuild "as needed". (H)
-	\item $P - H = USV^T$ <- less good
-	\item $P^{-1} H - I = USV^T$ <- better
+	\item Hessian per-column error plots for 1, 5, and 15 batches
+	\item $H-P$ error vs number of batches for interior and whole domain
+	\item $P^{-1}H-I$: error vs rank for $P=R$ and $P=P_\text{pch}$ diffusion time, for 1, 5, and 15 batches
+	\item Krylov iterations to tols 1e-1 and 1e-6 vs diffusion parameter
+	\item Krylov method convergence plot: $R$ vs $P_\text{pch}$ vs no preconditioner
+	\item Krylov iterations to tols 1e-6 vs mesh size $h$, PCH vs no preconditioner (hold)
 	\item true parameter (H)
 	\item deterministic reconstruction (H)
 	\item noisy measurements (1\% noise). $u|_\text{top}$ (H)
 	\item recovered state at top (H)
+	\item mesh scalability of PCH (CC) (H)
+\end{itemize}
+
+\begin{itemize}
+	\item GLR vs PCH number of obs (Computational cost) (S)
+	\item GLR vs PCH aspect ratio (CC) (S)
+	\item turn on preconditioner after number of krylov iterations exceeds 15 in an iteration. Rebuild "as needed". (S)
 \end{itemize}
 
 
