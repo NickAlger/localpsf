@@ -15,16 +15,16 @@ class PSFInterpolator:
         me.ellipsoid_tau = ellipsoid_tau
         me.gaussian_tau = gaussian_tau
 
+        me.num_batches = len(me.sample_points_batches)
+        me.sample_points = np.vstack(me.sample_points_batches) # stack point arrays on top of each other
+        me.num_sample_pts, me.d = me.sample_points.shape
+
         me.V = me.impulse_response_batches[0].function_space()
         me.dof_coords = me.V.tabulate_dof_coordinates()
         me.num_dofs = me.V.dim()
 
         me.bbt = me.V.mesh().bounding_box_tree()
         me.bad_bbt_entity = me.bbt.compute_first_entity_collision(dl.Point(*(np.inf for _ in range(me.d))))
-
-        me.num_batches = len(me.sample_points_batches)
-        me.sample_points = np.array(me.sample_points_batches) # stack point arrays on top of each other
-        me.num_sample_pts, me.d = me.sample_points.shape
 
 
         print('forming global_to_local_ind_map')
@@ -79,6 +79,11 @@ class PSFInterpolator:
 
         me.interpolation_matrix_factorizations = dict()
 
+    def eval_kernel(me, target_dof_int_jj, source_dof_ind_ii):
+        x = me.dof_coords[source_dof_ind_ii, :]
+        y = me.dof_coords[target_dof_int_jj, :]
+        z = y - x
+        return me.eval_convolution_kernel(source_dof_ind_ii, z)
 
     def eval_convolution_kernel(me, dof_ind_ii, shift_z):
         ss_good = list()
@@ -142,7 +147,7 @@ def pointcloud_nearest_neighbor_distances(pp):
     nearest_neighbor_distances = np.zeros(N)
     for k in range(N):
         p = pp[k,:].reshape((1, d))
-        qq = np.array([pp[:k], pp[k+1:]]).reshape((N-1, d))
+        qq = np.vstack([pp[:k,:], pp[k+1:,:]]).reshape((N-1, d))
         nearest_neighbor_distances[k] = np.min(np.linalg.norm(qq - p, axis=1))
     return nearest_neighbor_distances
 
