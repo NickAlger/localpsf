@@ -120,13 +120,16 @@ class PSFInterpolator:
             me.interpolation_matrix_factorizations[ss_good] = LUF
 
         weights = sla.lu_solve(LUF, ff)
-        # print('weights=', weights)
-        # print('ff=', ff)
 
         x = me.dof_coords[dof_ind_ii, :]
         qq = me.sample_points[list(ss_good), :]
         widths = me.gaussian_kernel_widths[list(ss_good)]
         phis = eval_radial_gaussian_kernels_at_point(qq, widths, x)
+
+        print('weights=', weights)
+        print('ff=', ff)
+        print('phis=', phis)
+
         return np.sum(weights * phis)
 
     def point_is_in_mesh(me, z_numpy):
