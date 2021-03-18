@@ -72,9 +72,14 @@ class PoissonSquaredInterpolation:
         y = values_at_points_y
         alpha = (1. / me.mu) * np.dot(me.eta, y)
         p = -me.solve_S(y - alpha * np.ones(me.num_pts))
+        # print('np.sort(np.abs(p))=', np.sort(np.abs(p)))
+        good_inds = np.argwhere(np.abs(p) > 1e-3 * np.max(np.abs(p)))
+        p2 = np.zeros(p.shape)
+        p2[good_inds] = p[good_inds]
+        print('len(good_inds)=', len(good_inds))
         u = alpha * me.constant_one_function.vector()
         for k in range(len(me.smooth_basis)):
-            u = u + me.smooth_basis[k] * p[k]
+            u = u + me.smooth_basis[k] * p2[k]
         return u
 
 
