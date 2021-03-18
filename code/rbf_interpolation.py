@@ -6,7 +6,7 @@ import dolfin as dl
 
 class PSFInterpolator:
     def __init__(me, impulse_response_batches, sample_points_batches, mu_fenics_Function, Sigma_fenics_Function,
-                 ellipsoid_tau, drop_tol=1e-2, gaussian_tau=3.0):
+                 ellipsoid_tau, drop_tol=1e-2, gaussian_tau=2.0):
         me.impulse_response_batches = impulse_response_batches
         me.sample_points_batches = sample_points_batches
         me.mu = mu_fenics_Function
@@ -44,6 +44,7 @@ class PSFInterpolator:
 
         print('computing gaussian_kernel_sigmas')
         me.gaussian_kernel_widths = me.gaussian_tau * pointcloud_nearest_neighbor_distances(me.sample_points)
+        me.gaussian_kernel_widths[:] = np.mean(me.gaussian_kernel_widths)
 
 
         print('Constructing full_interpolation_matrix')
@@ -52,6 +53,7 @@ class PSFInterpolator:
             q = me.sample_points[s,:]
             me.full_interpolation_matrix[:,s] = eval_radial_gaussian_kernels_at_point(me.sample_points,
                                                                                       me.gaussian_kernel_widths, q)
+        # me.full_interpolation_matrix = me.full_interpolation_matrix.T
 
 
         print('Tabulating relevant_sample_point_inds')
@@ -126,9 +128,9 @@ class PSFInterpolator:
         widths = me.gaussian_kernel_widths[list(ss_good)]
         phis = eval_radial_gaussian_kernels_at_point(qq, widths, x)
 
-        print('weights=', weights)
-        print('ff=', ff)
-        print('phis=', phis)
+        # print('weights=', weights)
+        # print('ff=', ff)
+        # print('phis=', phis)
 
         return np.sum(weights * phis)
 

@@ -229,6 +229,8 @@ class LocalPSF:
                 me.inds_of_points_far_from_boundary.append(k)
         print('done')
 
+        me.inds_of_points_far_from_boundary = np.arange(me.N) # Testing
+
         me.far_from_boundary_function = fenics.Function(me.V)
         me.far_from_boundary_function.vector()[me.inds_of_points_far_from_boundary] = 1.0
 
