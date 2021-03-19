@@ -89,14 +89,17 @@ class PSFInterpolator:
 
     def eval_convolution_kernel(me, dof_ind_ii, shift_z):
         ss_good = list()
-        ss_initial = me.relevant_sample_point_inds[dof_ind_ii]
+        # ss_initial = me.relevant_sample_point_inds[dof_ind_ii]
+        ss_initial = list(np.arange(me.num_sample_pts))
         for s in ss_initial:
             p = me.sample_points[s,:].reshape(me.d)
             mu = me.mu_at_sample_points[s,:].reshape(me.d)
             Sigma = me.Sigma_at_sample_points[s,:,:].reshape((me.d, me.d))
             y = p + shift_z
-            if point_is_in_ellipsoid(y, mu, Sigma, me.ellipsoid_tau):
-                if me.point_is_in_mesh(y):
+            # if point_is_in_ellipsoid(y, mu, Sigma, me.ellipsoid_tau):
+            if True:
+                # if me.point_is_in_mesh(y):
+                if True:
                     ss_good.append(s)
         ss_good = tuple(ss_good)
 
@@ -110,7 +113,14 @@ class PSFInterpolator:
             p = me.sample_points[s,:]
             b, _ = me.global_to_local_ind_map[s]
             impulse_response_batch = me.impulse_response_batches[b]
-            ff.append(impulse_response_batch(p + shift_z))
+            mu = me.mu_at_sample_points[s, :].reshape(me.d)
+            Sigma = me.Sigma_at_sample_points[s, :, :].reshape((me.d, me.d))
+            y = p + shift_z
+            if point_is_in_ellipsoid(y, mu, Sigma, me.ellipsoid_tau):
+                fs = impulse_response_batch(y)
+            else:
+                fs = 0.0
+            ff.append(fs)
         ff = np.array(ff)
 
         if ss_good in me.interpolation_matrix_factorizations:
