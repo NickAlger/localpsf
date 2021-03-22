@@ -2,6 +2,7 @@ import numpy as np
 import scipy.linalg as sla
 from tqdm.auto import tqdm
 import dolfin as dl
+from nalger_helper_functions import *
 
 
 class PSFInterpolator:
@@ -157,18 +158,18 @@ def eval_radial_gaussian_kernels_at_point(qq, widths, p):
     return np.exp(-0.5 * dd_squared / (widths**2))
 
 
-def invert_dictionary(d):
-    return {d[key] : key for key in d.keys()}
+# def invert_dictionary(d):
+#     return {d[key] : key for key in d.keys()}
 
 
-def pointcloud_nearest_neighbor_distances(pp):
-    N, d = pp.shape
-    nearest_neighbor_distances = np.zeros(N)
-    for k in range(N):
-        p = pp[k,:].reshape((1, d))
-        qq = np.vstack([pp[:k,:], pp[k+1:,:]]).reshape((N-1, d))
-        nearest_neighbor_distances[k] = np.min(np.linalg.norm(qq - p, axis=1))
-    return nearest_neighbor_distances
+# def pointcloud_nearest_neighbor_distances(pp):
+#     N, d = pp.shape
+#     nearest_neighbor_distances = np.zeros(N)
+#     for k in range(N):
+#         p = pp[k,:].reshape((1, d))
+#         qq = np.vstack([pp[:k,:], pp[k+1:,:]]).reshape((N-1, d))
+#         nearest_neighbor_distances[k] = np.min(np.linalg.norm(qq - p, axis=1))
+#     return nearest_neighbor_distances
 
 
 def point_is_in_ellipsoid(p, mu, Sigma, tau):
