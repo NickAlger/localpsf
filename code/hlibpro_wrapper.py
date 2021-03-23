@@ -5,7 +5,6 @@ import hlibpro_bindings as hpro_cpp
 default_rtol = 1e-7
 default_atol = 1e-12
 
-hpro_cpp.initialize_hlibpro()
 
 class HMatrixWrapper:
     def __init__(me, cpp_hmatrix_object, bct):

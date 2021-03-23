@@ -322,7 +322,9 @@ void multiply_with_progress_bar(const T_value  	    alpha,
 }
 
 
-
+void print_hello() {
+    std::cout << "hello" << std::endl;
+}
 
 
 PYBIND11_MODULE(hlibpro_bindings, m) {
@@ -331,6 +333,8 @@ PYBIND11_MODULE(hlibpro_bindings, m) {
     // -----------------------------------------------
     // --------      H-matrix Bindings        --------
     // -----------------------------------------------
+
+    m.def("print_hello", &print_hello);
 
     py::class_<HLIB::TProgressBar>(m, "TProgressBar");
     py::class_<HLIB::TFacInvMatrix>(m, "TFacInvMatrix");
