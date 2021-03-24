@@ -11,7 +11,7 @@ class LocalPSFGrid:
                  ff_impulse_responses_unstructured_mesh, pp_sample_point_batches,
                  mu_batches, Sigma_batches, tau,
                  grid_density_multiplier=1.0, run_checks=True,
-                 max_postprocessing_neighbors=10, num_plots=5):
+                 max_postprocessing_neighbors=10, num_plots=10):
         me.ww_fenics = ww_weighting_functions_unstructured_mesh
         me.ff_fenics = ff_impulse_responses_unstructured_mesh
         me.pp_batches = pp_sample_point_batches
@@ -75,16 +75,16 @@ class LocalPSFGrid:
                                                   max_neighbors=max_postprocessing_neighbors)
             me.ff_grid.append(f_grid)
 
-
-
         if run_checks:
             me.check_conforming_error()
-            for ii in np.random.permutation(me.num_pts)[:me.num_plots]:
-                me.plot_w_box(ii)
-                me.plot_f_box(ii)
-                me.make_w_transfer_plot(ii)
-                me.make_f_boundary_extension_plot(ii)
+            me.make_several_plots(me.num_plots)
 
+    def make_several_plots(me, num_plots):
+        for ii in np.random.permutation(me.num_pts)[:num_plots]:
+            me.plot_w_box(ii)
+            me.plot_f_box(ii)
+            me.make_w_transfer_plot(ii)
+            me.make_f_boundary_extension_plot(ii)
 
     def check_conforming_error(me):
         hh_w = (me.ww_max - me.ww_min) / (me.ww_grid_shapes - 1)
@@ -207,18 +207,18 @@ class LocalPSFGrid:
 
         _, (Xi, Yi) = make_regular_grid(me.ff_min[ii, :], me.ff_max[ii, :], f0.shape)
 
-        plt.figure(figsize=(12, 8), dpi=100, facecolor='w', edgecolor='k')
+        plt.figure(figsize=(10, 5), dpi=100, facecolor='w', edgecolor='k')
 
         plt.subplot(121)
         plt.pcolor(Xi, Yi, f0)
         plt.colorbar()
-        plt.title('impulse response ' + str(ii) + 'without extension')
+        plt.title('impulse response ' + str(ii) + ' without extension')
 
-        plt.figure()
+        plt.subplot(122)
         plt.pcolor(Xi, Yi, f)
         plt.plot(me.pp[ii, 0], me.pp[ii, 1], '.k')
         plt.colorbar()
-        plt.title('impulse response ' + str(ii) + 'with extension')
+        plt.title('impulse response ' + str(ii) + ' with extension')
 
 
 
@@ -299,7 +299,6 @@ class Function2Grid:
         me.mu = mu
         me.Sigma = Sigma
         me.tau = tau
-        me.use_extrapolation = use_extrapolation
 
     def __call__(me, u_fenics, outside_domain_fill_value=0.0, use_extrapolation=False):
         U_array = me.F2G.interpolate(u_fenics, mu=me.mu, Sigma=me.Sigma, tau=me.tau,
@@ -365,15 +364,12 @@ def postprocess_impulse_response(ii, pp, box_mins, box_maxes,
     inds = list(np.argsort(dd)[1:]) # first ind is the point itself
     for jj in inds[:max_neighbors]:
         if not np.any(np.isnan(PSI_i)):
-            print('jj final=', jj)
             break
 
         PSI_j = impulse_responses_grid0[jj]
         pj = pp[jj,:]
         min_j = box_mins[jj,:]
         max_j = box_maxes[jj,:]
-
-        print('jj=', jj)
 
         _, _, PSI_i = \
             combine_grid_functions([min_i, min_j + pi - pj],
