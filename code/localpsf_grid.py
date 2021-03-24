@@ -75,9 +75,46 @@ class LocalPSFGrid:
                                                   max_neighbors=max_postprocessing_neighbors)
             me.ff_grid.append(f_grid)
 
+        print('making convolution grid transfer operators')
+        me.cc_min = me.ww_min + me.ff_min - me.pp
+        me.cc_max = me.ww_max + me.ff_max - me.pp
+        me.cc_G2F = make_grid_to_function_transfer_operators(me.V, me.cc_min, me.cc_max)
+
+
         if run_checks:
+            print('running checks')
             me.check_conforming_error()
             me.make_several_plots(me.num_plots)
+
+    def matvec(me, u_fenics): # product-convolution on each patch
+        Au_fenics = dl.Function(me.V)
+        ui_fenics = dl.Function(me.V)
+        for ii in range(me.num_pts):
+            ui_fenics.vector()[:] = u_fenics.vector() * me.ww_fenics[ii].vector()
+            Ui = me.ww_F2G[ii](ui_fenics)
+            Fi = me.ff_grid[ii]
+
+            # print('Ui.shape=', Ui.shape, ', me.ww_grid_shapes[ii]=', me.ww_grid_shapes[ii])
+            # print('Fi.shape=', Fi.shape, ', me.ff_grid_shapes[ii]=', me.ff_grid_shapes[ii])
+            #
+            # hh_w = (me.ww_max[ii,:] - me.ww_min[ii,:]) / (np.array(Ui.shape) - 1)
+            # hh_f = (me.ff_max[ii,:] - me.ff_min[ii,:]) / (np.array(Fi.shape) - 1)
+            #
+            # print('hh_w=', hh_w, ', hh_f=', hh_f)
+
+            AUi, min_i, max_i = conforming_grid_convolution(Ui, me.ww_min[ii,:], me.ww_max[ii,:],
+                                                            Fi, me.ff_min[ii,:], me.ff_max[ii,:], p2=me.pp[ii,:])
+
+            if ((np.linalg.norm(min_i - me.cc_min[ii]) > 1e-10)
+                    or (np.linalg.norm(max_i - me.cc_max[ii]) > 1e-10)):
+                print('min_i=', min_i, ', me.cc_min[ii]=', me.cc_min[ii])
+                print('max_i=', max_i, ', me.cc_max[ii]=', me.cc_max[ii])
+                raise RuntimeError('convolution grid consistency problem')
+
+            Aui = me.cc_G2F[ii](AUi)
+            Au_fenics.vector()[:] = Au_fenics.vector() + Aui.vector()
+
+        return Au_fenics
 
     def make_several_plots(me, num_plots):
         for ii in np.random.permutation(me.num_pts)[:num_plots]:
@@ -281,15 +318,15 @@ def make_conforming_boxgrids(ww_min0, ww_max0, ff_min0, ff_max0, pp, dof_coords,
     hh0_w = np.array([box_h(ww_min0[k,:], ww_max0[k,:], dof_coords)
                       for k in range(num_pts)])
 
-    hh0_Hdelta = np.array([box_h(ff_min0[k, :], ff_max0[k, :], dof_coords)
+    hh0_f = np.array([box_h(ff_min0[k, :], ff_max0[k, :], dof_coords)
                            for k in range(num_pts)])
 
-    hh = np.min([hh0_w, hh0_Hdelta], axis=0) / grid_density_multiplier
+    hh = np.min([hh0_w, hh0_f], axis=0) / grid_density_multiplier
 
     ww_min, ww_max, ww_grid_shapes = many_conforming_boxes(ww_min0, ww_max0, hh, pp)
-    Hdeltas_min, Hdeltas_max, Hdeltas_grid_shapes = many_conforming_boxes(ff_min0, ff_max0, hh, pp)
+    ff_min, ff_max, ff_grid_shapes = many_conforming_boxes(ff_min0, ff_max0, hh, pp)
 
-    return ww_min, ww_max, ww_grid_shapes, Hdeltas_min, Hdeltas_max, Hdeltas_grid_shapes
+    return ww_min, ww_max, ww_grid_shapes, ff_min, ff_max, ff_grid_shapes
 
 
 class Function2Grid:
