@@ -9,14 +9,14 @@ from nalger_helper_functions import *
 class LocalPSFGrid:
     def __init__(me, ww_weighting_functions_unstructured_mesh,
                  ff_impulse_responses_unstructured_mesh, pp_sample_point_batches,
-                 all_mu, all_Sigma, tau,
+                 mu_batches, Sigma_batches, tau,
                  grid_density_multiplier=1.0, run_checks=True,
                  max_postprocessing_neighbors=10, num_plots=5):
         me.ww_fenics = ww_weighting_functions_unstructured_mesh
         me.ff_fenics = ff_impulse_responses_unstructured_mesh
         me.pp_batches = pp_sample_point_batches
-        me.all_mu = all_mu
-        me.all_Sigma = all_Sigma
+        me.mu_batches = mu_batches
+        me.Sigma_batches = Sigma_batches
         me.tau = tau
         me.grid_density_multiplier = 1.0
         me.max_postprocessing_neighbors = max_postprocessing_neighbors
@@ -27,6 +27,8 @@ class LocalPSFGrid:
         me.d = me.V.mesh().geometric_dimension()
 
         me.pp = np.vstack(me.pp_batches)
+        me.all_mu = np.vstack(me.mu_batches)
+        me.all_Sigma = np.vstack(me.Sigma_batches)
         me.batch_lengths = [point_batch.shape[0] for point_batch in me.pp_batches]
         me.num_batches = len(me.batch_lengths)
         me.num_pts = me.pp.shape[0]
@@ -77,7 +79,7 @@ class LocalPSFGrid:
 
         if run_checks:
             me.check_conforming_error()
-            for ii in np.random.permutation(num_pts)[:me.num_plots]:
+            for ii in np.random.permutation(me.num_pts)[:me.num_plots]:
                 me.plot_w_box(ii)
                 me.plot_f_box(ii)
                 me.make_w_transfer_plot(ii)
@@ -214,7 +216,7 @@ class LocalPSFGrid:
 
         plt.figure()
         plt.pcolor(Xi, Yi, f)
-        plt.plot(pp[ii, 0], pp[ii, 1], '.k')
+        plt.plot(me.pp[ii, 0], me.pp[ii, 1], '.k')
         plt.colorbar()
         plt.title('impulse response ' + str(ii) + 'with extension')
 
@@ -274,6 +276,8 @@ def many_conforming_boxes(all_min0, all_max0, hh, pp):
 
 
 def make_conforming_boxgrids(ww_min0, ww_max0, ff_min0, ff_max0, pp, dof_coords, grid_density_multiplier):
+    num_pts = pp.shape[0]
+
     hh0_w = np.array([box_h(ww_min0[k,:], ww_max0[k,:], dof_coords)
                       for k in range(num_pts)])
 
@@ -283,23 +287,23 @@ def make_conforming_boxgrids(ww_min0, ww_max0, ff_min0, ff_max0, pp, dof_coords,
     hh = np.min([hh0_w, hh0_Hdelta], axis=0) / grid_density_multiplier
 
     ww_min, ww_max, ww_grid_shapes = many_conforming_boxes(ww_min0, ww_max0, hh, pp)
-    Hdeltas_min, Hdeltas_max, Hdeltas_grid_shapes = many_conforming_boxes(ff_min0, Hdeltas_max0, hh, pp)
+    Hdeltas_min, Hdeltas_max, Hdeltas_grid_shapes = many_conforming_boxes(ff_min0, ff_max0, hh, pp)
 
     return ww_min, ww_max, ww_grid_shapes, Hdeltas_min, Hdeltas_max, Hdeltas_grid_shapes
 
 
 class Function2Grid:
     def __init__(me, V, box_min, box_max, grid_shape,
-                 mu=None, Sigma=None, tau=None, use_extrapolation=False):
+                 mu=None, Sigma=None, tau=None):
         me.F2G = FenicsFunctionToRegularGridInterpolator(V, box_min, box_max, grid_shape)
         me.mu = mu
         me.Sigma = Sigma
         me.tau = tau
         me.use_extrapolation = use_extrapolation
 
-    def __call__(me, u_fenics, outside_domain_fill_value=0.0):
+    def __call__(me, u_fenics, outside_domain_fill_value=0.0, use_extrapolation=False):
         U_array = me.F2G.interpolate(u_fenics, mu=me.mu, Sigma=me.Sigma, tau=me.tau,
-                                     use_extrapolation=me.use_extrapolation,
+                                     use_extrapolation=use_extrapolation,
                                      outside_domain_default_value=outside_domain_fill_value)
         return U_array
 
