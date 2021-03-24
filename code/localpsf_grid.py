@@ -43,6 +43,8 @@ class LocalPSFGrid:
             make_conforming_boxgrids(me.ww_min0, me.ww_max0, me.ff_min0, me.ff_max0,
                                      me.pp, me.dof_coords, grid_density_multiplier)
 
+        me.hh = (me.ww_max - me.ww_min) / (me.ww_grid_shapes - 1.)
+
         print('making weighting function grid transfer operators:')
         me.ww_G2F = make_grid_to_function_transfer_operators(me.V, me.ww_min, me.ww_max)
         me.ww_F2G = make_function_to_grid_transfer_operators(me.V, me.ww_min, me.ww_max, me.ww_grid_shapes)
@@ -75,11 +77,23 @@ class LocalPSFGrid:
                                                   max_neighbors=max_postprocessing_neighbors)
             me.ff_grid.append(f_grid)
 
-        print('making convolution grid transfer operators')
+        print('making convolution grid and transfer operators')
         me.cc_min = me.ww_min + me.ff_min - me.pp
         me.cc_max = me.ww_max + me.ff_max - me.pp
-        me.cc_G2F = make_grid_to_function_transfer_operators(me.V, me.cc_min, me.cc_max)
+        me.cc_grid_shapes = np.round(((me.cc_max - me.cc_min) / me.hh) + 1.).astype(int)
 
+        me.cc_G2F = make_grid_to_function_transfer_operators(me.V, me.cc_min, me.cc_max)
+        me.cc_F2G = make_function_to_grid_transfer_operators(me.V, me.cc_min, me.cc_max, me.cc_grid_shapes)
+
+        print('making adjoint convolution grids and functions')
+        me.ffstar_min = me.pp - me.ff_min
+        me.ffstar_max = me.pp - me.ff_max
+        me.ffstar_grid_shapes = me.ff_grid_shapes
+        me.ffstar_grid = list()
+        for ii in range(me.num_pts):
+            F = me.ff_grid[ii]
+            flipped_F = F[[slice(None, None, -1) for _ in F.shape]]
+            me.ffstar_grid.append(flipped_F)
 
         if run_checks:
             print('running checks')
@@ -105,6 +119,8 @@ class LocalPSFGrid:
             AUi, min_i, max_i = conforming_grid_convolution(Ui, me.ww_min[ii,:], me.ww_max[ii,:],
                                                             Fi, me.ff_min[ii,:], me.ff_max[ii,:], p2=me.pp[ii,:])
 
+            # print('AUi.shape=', AUi.shape, ', me.cc_grid_shapes[ii]=', me.cc_grid_shapes[ii])
+
             if ((np.linalg.norm(min_i - me.cc_min[ii]) > 1e-10)
                     or (np.linalg.norm(max_i - me.cc_max[ii]) > 1e-10)):
                 print('min_i=', min_i, ', me.cc_min[ii]=', me.cc_min[ii])
@@ -116,6 +132,9 @@ class LocalPSFGrid:
 
         return Au_fenics
 
+    # def rmatvec(me, u_fenics):
+    #     U = me.cc_F2G(u_fenics)
+
     def make_several_plots(me, num_plots):
         for ii in np.random.permutation(me.num_pts)[:num_plots]:
             me.plot_w_box(ii)
@@ -126,9 +145,13 @@ class LocalPSFGrid:
     def check_conforming_error(me):
         hh_w = (me.ww_max - me.ww_min) / (me.ww_grid_shapes - 1)
         hh_f = (me.ff_max - me.ff_min) / (me.ff_grid_shapes - 1)
+        hh_c = (me.cc_max - me.cc_min) / (me.cc_grid_shapes - 1)
 
-        conforming_error_0 = np.linalg.norm(hh_w - hh_f)
-        print('conforming_error_0=', conforming_error_0)
+        conforming_error_0a = np.linalg.norm(hh_w - hh_f)
+        print('conforming_error_0a=', conforming_error_0a)
+
+        conforming_error_0b = np.linalg.norm(hh_w - hh_c)
+        print('conforming_error_0b=', conforming_error_0b)
 
         w_spacing1 = (me.ww_max - me.pp) / hh_w
         w_spacing2 = (me.ww_min - me.pp) / hh_w
@@ -147,6 +170,15 @@ class LocalPSFGrid:
 
         print('conforming_error_3=', conforming_error_3)
         print('conforming_error_4=', conforming_error_4)
+
+        cc_spacing1 = (me.cc_max - me.pp) / hh_c
+        cc_spacing2 = (me.cc_min - me.pp) / hh_c
+
+        conforming_error_5 = np.linalg.norm(np.round(cc_spacing1) - cc_spacing1)
+        conforming_error_6 = np.linalg.norm(np.round(cc_spacing2) - cc_spacing2)
+
+        print('conforming_error_5=', conforming_error_5)
+        print('conforming_error_6=', conforming_error_6)
 
     def plot_w_box(me, ii, which='both'):
         plt.figure()
