@@ -106,6 +106,12 @@ class LocalPSFGrid:
             me.check_conforming_error()
             me.make_several_plots(me.num_plots)
 
+    def eval_wi(me, ii, eval_points, fill_value=0.0):
+        return grid_interpolate(me.ww_min[ii,:], me.ww_max[ii,:], me.ww_grid[ii], eval_points, fill_value=fill_value)
+
+    def eval_fi(me, ii, eval_points, fill_value=0.0):
+        return grid_interpolate(me.ff_min[ii,:], me.ff_max[ii,:], me.ff_grid[ii], eval_points, fill_value=fill_value)
+
     def matvec(me, u_fenics): # product-convolution on each patch
         Au_fenics = dl.Function(me.V)
         ui_fenics = dl.Function(me.V)
@@ -114,18 +120,8 @@ class LocalPSFGrid:
             Ui = me.ww_F2G[ii](ui_fenics)
             Fi = me.ff_grid[ii]
 
-            # print('Ui.shape=', Ui.shape, ', me.ww_grid_shapes[ii]=', me.ww_grid_shapes[ii])
-            # print('Fi.shape=', Fi.shape, ', me.ff_grid_shapes[ii]=', me.ff_grid_shapes[ii])
-            #
-            # hh_w = (me.ww_max[ii,:] - me.ww_min[ii,:]) / (np.array(Ui.shape) - 1)
-            # hh_f = (me.ff_max[ii,:] - me.ff_min[ii,:]) / (np.array(Fi.shape) - 1)
-            #
-            # print('hh_w=', hh_w, ', hh_f=', hh_f)
-
             AUi, min_i, max_i = conforming_grid_convolution(Ui, me.ww_min[ii,:], me.ww_max[ii,:],
                                                             Fi, me.ff_min[ii,:], me.ff_max[ii,:], p2=me.pp[ii,:])
-
-            # print('AUi.shape=', AUi.shape, ', me.cc_grid_shapes[ii]=', me.cc_grid_shapes[ii])
 
             if ((np.linalg.norm(min_i - me.cc_min[ii]) > 1e-10)
                     or (np.linalg.norm(max_i - me.cc_max[ii]) > 1e-10)):
