@@ -45,6 +45,12 @@ class LocalPSFGrid:
 
         me.hh = (me.ww_max - me.ww_min) / (me.ww_grid_shapes - 1.)
 
+        print('making meshgrids') # not sure about whether to build these
+        me.ff_meshgrids = [make_regular_grid(me.ff_min[ii, :], me.ff_max[ii, :], me.ff_grid_shapes[ii, :])[1]
+                           for ii in range(me.num_pts)]
+        me.ww_meshgrids = [make_regular_grid(me.ww_min[ii, :], me.ww_max[ii, :], me.ww_grid_shapes[ii, :])[1]
+                           for ii in range(me.num_pts)]
+
         print('making weighting function grid transfer operators:')
         me.ww_G2F = make_grid_to_function_transfer_operators(me.V, me.ww_min, me.ww_max)
         me.ww_F2G = make_function_to_grid_transfer_operators(me.V, me.ww_min, me.ww_max, me.ww_grid_shapes)
@@ -63,17 +69,17 @@ class LocalPSFGrid:
             me.ww_grid.append(w_grid)
 
         print('computing initial impulse response grid functions')
-        me.ff_grid0 = list()
+        me.ff_grid1 = list()
         for ii in tqdm(range(me.num_pts)):
             b, k = ind2sub_batches(ii, me.batch_lengths)
             f = me.ff_fenics[b]
             F2G = me.ff_F2G[ii]
-            me.ff_grid0.append(F2G(f, outside_domain_fill_value=np.nan))
+            me.ff_grid1.append(F2G(f, outside_domain_fill_value=np.nan))
 
         print('postprocessing impulse responses to fill in boundary nans')
         me.ff_grid = list()
         for ii in tqdm(range(me.num_pts)):
-            f_grid = postprocess_impulse_response(ii, me.pp, me.ff_min, me.ff_max, me.ff_grid0,
+            f_grid = postprocess_impulse_response(ii, me.pp, me.ff_min, me.ff_max, me.ff_grid1,
                                                   max_neighbors=max_postprocessing_neighbors)
             me.ff_grid.append(f_grid)
 
@@ -256,7 +262,7 @@ class LocalPSFGrid:
 
         _, (XX, YY) = make_regular_grid(me.ff_min[ii, :], me.ff_max[ii, :], me.ff_grid_shapes[ii])
 
-        F = me.ff_grid0[ii]
+        F = me.ff_grid1[ii]
         plt.subplot(132)
         plt.pcolor(XX, YY, F)
         plt.xlim(xlims)
@@ -271,7 +277,7 @@ class LocalPSFGrid:
         plt.title('backtransferred impulse response ' + str(ii))
 
     def make_f_boundary_extension_plot(me, ii):
-        f0 = me.ff_grid0[ii]
+        f0 = me.ff_grid1[ii]
         f = me.ff_grid[ii]
 
         _, (Xi, Yi) = make_regular_grid(me.ff_min[ii, :], me.ff_max[ii, :], f0.shape)
