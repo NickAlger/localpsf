@@ -198,12 +198,14 @@ class LocalPSFGrid:
                 plt.figure(figsize=(12,8))
                 plt.subplot(121)
                 plt.pcolor(meshgrids_new[0], meshgrids_new[1], new_ff_nbrs[k,:])
+                plt.colorbar()
                 plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.k')
                 plt.plot(me.pp[neighbor_inds[k], 0], me.pp[neighbor_inds[k], 1], '.r')
 
                 jj = neighbor_inds[k]
                 plt.subplot(122)
                 plt.pcolor(me.ff_meshgrids[jj][0], me.ff_meshgrids[jj][1], me.ff_grid1[jj])
+                plt.colorbar()
                 plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.k')
                 plt.plot(me.pp[jj, 0], me.pp[jj, 1], '.r')
 
@@ -239,6 +241,59 @@ class LocalPSFGrid:
             # plt.figure()
             plt.plot(gauss_vectors[:, 0], gauss_vectors[:, 1], 'g.')
             plt.plot(me.pp[ii, 0], me.pp[ii, 1], '.r')
+
+
+        W0_gauss = np.zeros((num_neighbors, np.prod(new_f_grid_shape)))
+        for k in range(num_neighbors):
+            W0_gauss[k, nan_inds] = me.eval_wi(neighbor_inds[k], gauss_vectors)
+        W0_gauss = W0_gauss.reshape(tuple([num_neighbors]) + tuple(new_f_grid_shape))
+
+        if make_plots:
+            for k in range(num_neighbors):
+                plt.figure()
+                plt.pcolor(meshgrids_new[0], meshgrids_new[1], W0_gauss[k, :])
+                plt.title('W_gauss[' + str(k) + ',:]')
+
+                plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.k')
+                ii_nbr = neighbor_inds[k]
+                plt.plot(me.pp[ii_nbr, 0], me.pp[ii_nbr, 1], '.r')
+                plt.colorbar()
+
+        W1_gauss = W0_gauss.reshape((num_neighbors, -1))
+        W1_gauss[np.isnan(W1_gauss)] = 0.
+        W1_gauss[0, valid_inds] = 1.
+        W1_gauss = W1_gauss.reshape(tuple([num_neighbors]) + tuple(new_f_grid_shape))
+
+        W1_gauss = np.logical_not(np.isnan(new_ff_nbrs)) * W1_gauss * (W1_gauss > 0)
+
+        W2_gauss = W1_gauss / np.sum(W1_gauss, axis=0).reshape(tuple([1]) + W1_gauss.shape[1:])
+        W2_gauss[np.isnan(W2_gauss)] = 0.
+
+        if make_plots:
+            for k in range(num_neighbors):
+                plt.figure()
+                plt.pcolor(meshgrids_new[0], meshgrids_new[1], W2_gauss[k,:])
+                plt.colorbar()
+                plt.title('W2_gauss['+str(k)+',:]')
+
+            plt.figure()
+            plt.pcolor(meshgrids_new[0], meshgrids_new[1], np.sum(W2_gauss, axis=0))
+            plt.colorbar()
+            plt.title('np.sum(W2_gauss, axis=0)')
+
+        new_ff_nbrs2 = new_ff_nbrs
+        new_ff_nbrs2[np.isnan(new_ff_nbrs2)] = 0.
+
+        new_f = np.sum(W2_gauss * new_ff_nbrs2, axis=0)
+
+        if make_plots:
+            plt.figure()
+            plt.pcolor(meshgrids_new[0], meshgrids_new[1], new_f)
+            plt.colorbar()
+            plt.title('new_f')
+
+        return new_f, new_f_min, new_f_max, new_f_grid_shape
+
 
 
 
