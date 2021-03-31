@@ -136,40 +136,48 @@ class LocalPSFGrid:
 
         return Au_fenics
 
-    def postprocess_impulse_response2(me, ii, num_neighbors0=10):
-
+    def get_neighbors(me, ii, num_neighbors0=10, make_plots=True):
         dd, neighbor_inds0 = me.pp_cKDTree.query(me.pp[ii, :], num_neighbors0)
         dd = dd.reshape(-1)
         neighbor_inds0 = neighbor_inds0.reshape(-1)
-        nearest_point_distance = dd[1]
+        nearest_neighbor_distance = dd[1]
 
         W0_nbrs = np.zeros(tuple([num_neighbors0]) + tuple(me.ww_grid_shapes[ii]))
         for k in range(len(neighbor_inds0)):
-            W0_nbrs[k,:] = me.ww_F2G[ii](me.ww_fenics[neighbor_inds0[k]], outside_domain_fill_value=np.nan)
+            W0_nbrs[k, :] = me.ww_F2G[ii](me.ww_fenics[neighbor_inds0[k]], outside_domain_fill_value=np.nan)
 
         coords_ww0 = np.vstack([X.reshape(-1) for X in me.ww_meshgrids[ii]]).T
 
-        in_annulus = np.logical_and(np.linalg.norm(coords_ww0 - me.pp[ii,:], axis=1) <= nearest_point_distance,
-                                    np.linalg.norm(coords_ww0 - me.pp[ii,:], axis=1) >= nearest_point_distance / 2.)
-        in_domain = np.logical_not(np.isnan(W0_nbrs[0,:])).reshape(-1)
+        in_annulus = np.logical_and(np.linalg.norm(coords_ww0 - me.pp[ii, :], axis=1) <= nearest_neighbor_distance,
+                                    np.linalg.norm(coords_ww0 - me.pp[ii, :], axis=1) >= nearest_neighbor_distance / 2.)
+        in_domain = np.logical_not(np.isnan(W0_nbrs[0, :])).reshape(-1)
         annulus_mask = np.logical_and(in_annulus, in_domain).reshape(me.ww_grid_shapes[ii])
-
-        plt.figure()
-        plt.pcolor(me.ww_meshgrids[ii][0], me.ww_meshgrids[ii][1], (in_domain * 0.5).reshape(me.ww_grid_shapes[ii]).astype(float))
-        plt.pcolor(me.ww_meshgrids[ii][0], me.ww_meshgrids[ii][1], (annulus_mask).astype(float))
 
         relevant_nbrs = np.unique((np.argmax(W0_nbrs[1:], axis=0) + 1)[annulus_mask].reshape(-1))
         neighbor_inds = np.concatenate([[ii], neighbor_inds0[relevant_nbrs]])
+
+        if make_plots:
+            plt.figure()
+            plt.pcolor(me.ww_meshgrids[ii][0], me.ww_meshgrids[ii][1],
+                       (in_domain * 0.5).reshape(me.ww_grid_shapes[ii]).astype(float))
+            plt.pcolor(me.ww_meshgrids[ii][0], me.ww_meshgrids[ii][1], (annulus_mask).astype(float))
+
+            print('neighbor_inds=', neighbor_inds)
+            me.plot_w_box(ii, which='final')
+            plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.r')
+
+        return neighbor_inds, nearest_neighbor_distance
+
+    def postprocess_impulse_response2(me, ii, num_neighbors0=10, make_plots=True):
+
+        neighbor_inds, nearest_neighbor_distance = me.get_neighbors(ii, num_neighbors0=num_neighbors0, make_plots=make_plots)
+
         num_neighbors = len(neighbor_inds)
 
-        print('neighbor_inds=', neighbor_inds)
-        me.plot_w_box(ii, which='final')
-        plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.r')
-
-        new_f_min0 = np.min(me.ff_min[neighbor_inds, :] - me.pp[neighbor_inds,:] + me.pp[ii,:], axis=0)
-        new_f_max0 = np.max(me.ff_max[neighbor_inds, :] - me.pp[neighbor_inds,:] + me.pp[ii,:], axis=0)
-
-        new_f_min, new_f_max, new_f_grid_shape = conforming_box(new_f_min0, new_f_max0, me.pp[ii,:], me.hh[ii,:])
+        # Get new bigger box for f_i that will fit shifted neighbor f_j's
+        new_f_min0 = np.min(me.ff_min[neighbor_inds, :] - me.pp[neighbor_inds, :] + me.pp[ii, :], axis=0)
+        new_f_max0 = np.max(me.ff_max[neighbor_inds, :] - me.pp[neighbor_inds, :] + me.pp[ii, :], axis=0)
+        new_f_min, new_f_max, new_f_grid_shape = conforming_box(new_f_min0, new_f_max0, me.pp[ii, :], me.hh[ii, :])
 
         new_ff_nbrs = np.zeros(tuple([num_neighbors]) + tuple(new_f_grid_shape))
         for k in range(num_neighbors):
@@ -185,18 +193,53 @@ class LocalPSFGrid:
         _, meshgrids_new = make_regular_grid(new_f_min, new_f_max, new_f_grid_shape)
         coords_ff_new = np.vstack([X.reshape(-1) for X in meshgrids_new]).T
 
-        for k in range(num_neighbors):
-            plt.figure(figsize=(12,8))
-            plt.subplot(121)
-            plt.pcolor(meshgrids_new[0], meshgrids_new[1], new_ff_nbrs[k,:])
-            plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.k')
-            plt.plot(me.pp[neighbor_inds[k], 0], me.pp[neighbor_inds[k], 1], '.r')
+        if make_plots:
+            for k in range(num_neighbors):
+                plt.figure(figsize=(12,8))
+                plt.subplot(121)
+                plt.pcolor(meshgrids_new[0], meshgrids_new[1], new_ff_nbrs[k,:])
+                plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.k')
+                plt.plot(me.pp[neighbor_inds[k], 0], me.pp[neighbor_inds[k], 1], '.r')
 
-            jj = neighbor_inds[k]
-            plt.subplot(122)
-            plt.pcolor(me.ff_meshgrids[jj][0], me.ff_meshgrids[jj][1], me.ff_grid1[jj])
-            plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.k')
-            plt.plot(me.pp[jj, 0], me.pp[jj, 1], '.r')
+                jj = neighbor_inds[k]
+                plt.subplot(122)
+                plt.pcolor(me.ff_meshgrids[jj][0], me.ff_meshgrids[jj][1], me.ff_grid1[jj])
+                plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.k')
+                plt.plot(me.pp[jj, 0], me.pp[jj, 1], '.r')
+
+        nan_mask = np.isnan(new_ff_nbrs[0,:]).reshape(-1)
+        valid_mask = np.logical_not(nan_mask)
+
+        nan_inds = np.argwhere(nan_mask).reshape(-1)
+        valid_inds = np.argwhere(valid_mask).reshape(-1)
+
+        nan_coords = coords_ff_new[nan_inds, :]
+        valid_coords = coords_ff_new[valid_inds, :]
+
+        T = cKDTree(valid_coords)
+        _, closest_valid_inds = T.query(nan_coords, k=1)
+
+        closest_valid_coords = coords_ff_new[valid_inds[closest_valid_inds], :]
+
+        nan_to_domain_vectors = closest_valid_coords - nan_coords
+        unit_nan_to_domain_vectors = nan_to_domain_vectors / np.linalg.norm(nan_to_domain_vectors, axis=1).reshape((-1, 1))
+
+        gauss_vectors = me.pp[ii, :].reshape((1, -1)) + nearest_neighbor_distance * unit_nan_to_domain_vectors
+
+        if make_plots:
+            plt.figure()
+            plt.pcolor(meshgrids_new[0], meshgrids_new[1], new_ff_nbrs[0, :])
+            plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.r')
+
+            for jj in range(nan_coords.shape[0]):
+                plt.plot(nan_coords[jj, 0], nan_coords[jj, 1], '.k')
+                plt.plot(np.array([nan_coords[jj, 0], closest_valid_coords[jj, 0]]),
+                         np.array([nan_coords[jj, 1], closest_valid_coords[jj, 1]]))
+
+            # plt.figure()
+            plt.plot(gauss_vectors[:, 0], gauss_vectors[:, 1], 'g.')
+            plt.plot(me.pp[ii, 0], me.pp[ii, 1], '.r')
+
 
 
 
