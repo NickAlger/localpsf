@@ -33,6 +33,8 @@ class LocalPSFGrid:
         me.num_batches = len(me.batch_lengths)
         me.num_pts = me.pp.shape[0]
 
+        me.pp_cKDTree = cKDTree(me.pp)
+
         print('getting initial boxes')
         me.ww_min0, me.ww_max0 = get_initial_weighting_function_boxes(me.ww_fenics)
         me.ff_min0, me.ff_max0 = get_initial_impulse_response_boxes(me.all_mu, me.all_Sigma, me.tau)
@@ -133,6 +135,70 @@ class LocalPSFGrid:
             Au_fenics.vector()[:] = Au_fenics.vector() + Aui.vector()
 
         return Au_fenics
+
+    def postprocess_impulse_response2(me, ii, num_neighbors0=10):
+
+        dd, neighbor_inds0 = me.pp_cKDTree.query(me.pp[ii, :], num_neighbors0)
+        dd = dd.reshape(-1)
+        neighbor_inds0 = neighbor_inds0.reshape(-1)
+        nearest_point_distance = dd[1]
+
+        W0_nbrs = np.zeros(tuple([num_neighbors0]) + me.ff_grid_shapes[ii])
+        for k in range(len(neighbor_inds0)):
+            W0_nbrs[k,:] = me.cc_F2G[ii](me.ww_fenics[neighbor_inds0[k]], outside_domain_fill_value=np.nan)
+
+        coords_ww0 = np.vstack([X.reshape(-1) for X in me.ww_meshgrids[ii]]).T
+
+        in_ball = (np.linalg.norm(coords_ww0 - me.pp[ii,:], axis=1) <= nearest_point_distance)
+        in_domain = np.logical_not(np.isnan(W0_nbrs[0,:]))
+        ball_mask = np.logical_and(in_ball, in_domain).reshape(me.ff_grid_shapes[ii])
+
+        relevant_nbrs = np.unique1d((np.argmax(W0_nbrs[1:], axis=0) + 1)[ball_mask].reshape(-1))
+        neighbor_inds = neighbor_inds0[relevant_nbrs]
+        num_neighbors = len(neighbor_inds)
+
+        print('neighbor_inds=', neighbor_inds)
+        me.plot_w_box(ii, which='final')
+        plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.r')
+
+        new_f_min0 = np.max(me.ff_min[neighbor_inds, :], axis=0)
+        new_f_max0 = np.max(me.ff_max[neighbor_inds, :], axis=0)
+
+        new_f_min, new_f_max, new_f_grid_shape = conforming_box(new_f_min0, new_f_max0, me.pp[ii,:], me.hh[ii,:])
+
+        new_ff_nbrs = np.zeros(tuple([num_neighbors]) + new_f_grid_shape)
+        for k in range(num_neighbors):
+            jj = neighbor_inds[k]
+            F2G = Function2Grid(me.V,
+                                new_f_min - me.pp[ii,:] + me.pp[jj,:],
+                                new_f_max - me.pp[ii,:] + me.pp[jj,:],
+                                new_f_grid_shape,
+                                mu=me.all_mu[jj, :], Sigma=me.all_Sigma[jj, :, :], tau=me.tau)
+            new_ff_nbrs[k,:] = F2G(me.ff_fenics[jj], outside_domain_fill_value=np.nan)
+
+        _, meshgrids_new = make_regular_grid(new_f_min, new_f_max, new_f_grid_shape)
+        coords_ff_new = np.vstack([X.reshape(-1) for X in meshgrids_new]).T
+
+        for k in range(num_neighbors):
+            plt.figure()
+            plt.pcolor(meshgrids_new[0], meshgrids_new[1], new_ff_nbrs[k,:])
+            plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.k')
+            plt.plot(me.pp[neighbor_inds[k], 0], me.pp[neighbor_inds[k], 1], '.r')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     # def rmatvec(me, u_fenics):
     #     U = me.cc_F2G(u_fenics)
