@@ -71,19 +71,37 @@ class LocalPSFGrid:
             me.ww_grid.append(w_grid)
 
         print('computing initial impulse response grid functions')
-        me.ff_grid1 = list()
+        me.ff_grid = list()
         for ii in tqdm(range(me.num_pts)):
             b, k = ind2sub_batches(ii, me.batch_lengths)
             f = me.ff_fenics[b]
             F2G = me.ff_F2G[ii]
-            me.ff_grid1.append(F2G(f, outside_domain_fill_value=np.nan))
+            me.ff_grid.append(F2G(f, outside_domain_fill_value=np.nan))
 
         print('postprocessing impulse responses to fill in boundary nans')
-        me.ff_grid = list()
-        for ii in tqdm(range(me.num_pts)):
-            f_grid = postprocess_impulse_response(ii, me.pp, me.ff_min, me.ff_max, me.ff_grid1,
-                                                  max_neighbors=max_postprocessing_neighbors)
-            me.ff_grid.append(f_grid)
+        ff_grid_new = list()
+        ff_min_new = list()
+        ff_max_new = list()
+        ff_grid_shapes_new = list()
+        for _ in range(2):
+            for ii in tqdm(range(len(me.ff_grid))):
+                if np.any(np.isnan(me.ff_grid[ii])):
+                    new_f, new_f_min, new_f_max, new_f_grid_shape = \
+                        me.compute_impulse_response_neighbor_extension(ii,make_plots=False)
+                    ff_grid_new.append(new_f)
+                    ff_min_new.append(new_f_min)
+                    ff_max_new.append(new_f_max)
+                    ff_grid_shapes_new.append(new_f_grid_shape)
+            me.ff_grid = ff_grid_new
+            me.ff_min = ff_min_new
+            me.ff_max = ff_max_new
+            me.ff_grid_shapes = ff_grid_shapes_new
+
+        # me.ff_grid = list()
+        # for ii in tqdm(range(me.num_pts)):
+        #     f_grid = postprocess_impulse_response(ii, me.pp, me.ff_min, me.ff_max, me.ff_grid1,
+        #                                           max_neighbors=max_postprocessing_neighbors)
+        #     me.ff_grid.append(f_grid)
 
         print('making convolution grid and transfer operators')
         me.cc_min = me.ww_min + me.ff_min - me.pp
@@ -168,7 +186,7 @@ class LocalPSFGrid:
 
         return neighbor_inds, nearest_neighbor_distance
 
-    def postprocess_impulse_response2(me, ii, num_neighbors0=10, make_plots=True):
+    def compute_impulse_response_neighbor_extension(me, ii, num_neighbors0=10, make_plots=True):
 
         neighbor_inds, nearest_neighbor_distance = me.get_neighbors(ii, num_neighbors0=num_neighbors0, make_plots=make_plots)
 
@@ -281,10 +299,13 @@ class LocalPSFGrid:
             plt.colorbar()
             plt.title('np.sum(W2_gauss, axis=0)')
 
+        still_nan_mask = np.all(np.isnan(new_ff_nbrs), axis=0)
+
         new_ff_nbrs2 = new_ff_nbrs
         new_ff_nbrs2[np.isnan(new_ff_nbrs2)] = 0.
 
         new_f = np.sum(W2_gauss * new_ff_nbrs2, axis=0)
+        new_f[still_nan_mask] = np.nan
 
         if make_plots:
             plt.figure()
