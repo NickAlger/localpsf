@@ -41,15 +41,15 @@ class LocalPSFGrid:
 
         print('making conforming boxgrids')
         me.ww_min, me.ww_max, me.ww_grid_shapes, \
-        me.ff_min, me.ff_max, me.ff_grid_shapes = \
+        me.ff_min1, me.ff_max1, me.ff_grid_shapes1 = \
             make_conforming_boxgrids(me.ww_min0, me.ww_max0, me.ff_min0, me.ff_max0,
                                      me.pp, me.dof_coords, grid_density_multiplier)
 
         me.hh = (me.ww_max - me.ww_min) / (me.ww_grid_shapes - 1.)
 
-        print('making meshgrids') # not sure about whether to build these
-        me.ff_meshgrids = [make_regular_grid(me.ff_min[ii, :], me.ff_max[ii, :], me.ff_grid_shapes[ii, :])[1]
-                           for ii in range(me.num_pts)]
+        print('making initial meshgrids') # not sure about whether to build these
+        me.ff_meshgrids1 = [make_regular_grid(me.ff_min1[ii, :], me.ff_max1[ii, :], me.ff_grid_shapes1[ii, :])[1]
+                            for ii in range(me.num_pts)]
         me.ww_meshgrids = [make_regular_grid(me.ww_min[ii, :], me.ww_max[ii, :], me.ww_grid_shapes[ii, :])[1]
                            for ii in range(me.num_pts)]
 
@@ -57,11 +57,11 @@ class LocalPSFGrid:
         me.ww_G2F = make_grid_to_function_transfer_operators(me.V, me.ww_min, me.ww_max)
         me.ww_F2G = make_function_to_grid_transfer_operators(me.V, me.ww_min, me.ww_max, me.ww_grid_shapes)
 
-        print('making impulse response grid transfer operators:')
-        me.ff_G2F = make_grid_to_function_transfer_operators(me.V, me.ff_min, me.ff_max)
-        me.ff_F2G = make_function_to_grid_transfer_operators(me.V, me.ff_min, me.ff_max,
-                                                             me.ff_grid_shapes,
-                                                             me.all_mu, me.all_Sigma, me.tau)
+        print('making initial impulse response grid transfer operators:')
+        me.ff_G2F1 = make_grid_to_function_transfer_operators(me.V, me.ff_min1, me.ff_max1)
+        me.ff_F2G1 = make_function_to_grid_transfer_operators(me.V, me.ff_min1, me.ff_max1,
+                                                              me.ff_grid_shapes1,
+                                                              me.all_mu, me.all_Sigma, me.tau)
 
         print('computing weighting function grid functions')
         me.ww_grid = list()
@@ -71,37 +71,51 @@ class LocalPSFGrid:
             me.ww_grid.append(w_grid)
 
         print('computing initial impulse response grid functions')
-        me.ff_grid = list()
+        me.ff_grid1 = list()
         for ii in tqdm(range(me.num_pts)):
             b, k = ind2sub_batches(ii, me.batch_lengths)
             f = me.ff_fenics[b]
-            F2G = me.ff_F2G[ii]
-            me.ff_grid.append(F2G(f, outside_domain_fill_value=np.nan))
+            F2G = me.ff_F2G1[ii]
+            me.ff_grid1.append(F2G(f, outside_domain_fill_value=np.nan))
 
         print('postprocessing impulse responses to fill in boundary nans')
-        ff_grid_new = list()
-        ff_min_new = list()
-        ff_max_new = list()
-        ff_grid_shapes_new = list()
+        me.ff_grid = me.ff_grid1
+        me.ff_min = me.ff_min1
+        me.ff_max = me.ff_max1
+        me.ff_grid_shapes = me.ff_grid_shapes1
+        me.ff_meshgrids = me.ff_meshgrids1.copy()
         for _ in range(2):
+            ff_grid_new = me.ff_grid.copy()
+            ff_min_new = me.ff_min.copy()
+            ff_max_new = me.ff_max.copy()
+            ff_grid_shapes_new = me.ff_grid_shapes.copy()
             for ii in tqdm(range(len(me.ff_grid))):
                 if np.any(np.isnan(me.ff_grid[ii])):
-                    new_f, new_f_min, new_f_max, new_f_grid_shape = \
+                    new_f, new_f_min, new_f_max, new_f_grid_shape, new_meshgrid = \
                         me.compute_impulse_response_neighbor_extension(ii,make_plots=False)
-                    ff_grid_new.append(new_f)
-                    ff_min_new.append(new_f_min)
-                    ff_max_new.append(new_f_max)
-                    ff_grid_shapes_new.append(new_f_grid_shape)
+                    ff_grid_new[ii] = new_f
+                    ff_min_new[ii,:] = new_f_min
+                    ff_max_new[ii,:] = new_f_max
+                    ff_grid_shapes_new[ii,:] = new_f_grid_shape
+                    me.ff_meshgrids[ii] = new_meshgrid
+
             me.ff_grid = ff_grid_new
             me.ff_min = ff_min_new
             me.ff_max = ff_max_new
             me.ff_grid_shapes = ff_grid_shapes_new
+
 
         # me.ff_grid = list()
         # for ii in tqdm(range(me.num_pts)):
         #     f_grid = postprocess_impulse_response(ii, me.pp, me.ff_min, me.ff_max, me.ff_grid1,
         #                                           max_neighbors=max_postprocessing_neighbors)
         #     me.ff_grid.append(f_grid)
+
+        print('making final impulse response grid transfer operators:')
+        me.ff_G2F = make_grid_to_function_transfer_operators(me.V, me.ff_min, me.ff_max)
+        me.ff_F2G = make_function_to_grid_transfer_operators(me.V, me.ff_min, me.ff_max,
+                                                             me.ff_grid_shapes,
+                                                             me.all_mu, me.all_Sigma, me.tau)
 
         print('making convolution grid and transfer operators')
         me.cc_min = me.ww_min + me.ff_min - me.pp
@@ -208,14 +222,14 @@ class LocalPSFGrid:
             b, _ = ind2sub_batches(jj, me.batch_lengths)
             new_ff_nbrs[k,:] = F2G(me.ff_fenics[b], outside_domain_fill_value=np.nan)
 
-        _, meshgrids_new = make_regular_grid(new_f_min, new_f_max, new_f_grid_shape)
-        coords_ff_new = np.vstack([X.reshape(-1) for X in meshgrids_new]).T
+        _, new_meshgrid = make_regular_grid(new_f_min, new_f_max, new_f_grid_shape)
+        coords_ff_new = np.vstack([X.reshape(-1) for X in new_meshgrid]).T
 
         if make_plots:
             for k in range(num_neighbors):
                 plt.figure(figsize=(12,8))
                 plt.subplot(121)
-                plt.pcolor(meshgrids_new[0], meshgrids_new[1], new_ff_nbrs[k,:])
+                plt.pcolor(new_meshgrid[0], new_meshgrid[1], new_ff_nbrs[k,:])
                 plt.colorbar()
                 plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.k')
                 plt.plot(me.pp[neighbor_inds[k], 0], me.pp[neighbor_inds[k], 1], '.r')
@@ -248,7 +262,7 @@ class LocalPSFGrid:
 
         if make_plots:
             plt.figure()
-            plt.pcolor(meshgrids_new[0], meshgrids_new[1], new_ff_nbrs[0, :])
+            plt.pcolor(new_meshgrid[0], new_meshgrid[1], new_ff_nbrs[0, :])
             plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.r')
 
             for jj in range(nan_coords.shape[0]):
@@ -269,7 +283,7 @@ class LocalPSFGrid:
         if make_plots:
             for k in range(num_neighbors):
                 plt.figure()
-                plt.pcolor(meshgrids_new[0], meshgrids_new[1], W0_gauss[k, :])
+                plt.pcolor(new_meshgrid[0], new_meshgrid[1], W0_gauss[k, :])
                 plt.title('W_gauss[' + str(k) + ',:]')
 
                 plt.plot(me.pp[neighbor_inds, 0], me.pp[neighbor_inds, 1], '.k')
@@ -290,12 +304,12 @@ class LocalPSFGrid:
         if make_plots:
             for k in range(num_neighbors):
                 plt.figure()
-                plt.pcolor(meshgrids_new[0], meshgrids_new[1], W2_gauss[k,:])
+                plt.pcolor(new_meshgrid[0], new_meshgrid[1], W2_gauss[k,:])
                 plt.colorbar()
                 plt.title('W2_gauss['+str(k)+',:]')
 
             plt.figure()
-            plt.pcolor(meshgrids_new[0], meshgrids_new[1], np.sum(W2_gauss, axis=0))
+            plt.pcolor(new_meshgrid[0], new_meshgrid[1], np.sum(W2_gauss, axis=0))
             plt.colorbar()
             plt.title('np.sum(W2_gauss, axis=0)')
 
@@ -309,11 +323,11 @@ class LocalPSFGrid:
 
         if make_plots:
             plt.figure()
-            plt.pcolor(meshgrids_new[0], meshgrids_new[1], new_f)
+            plt.pcolor(new_meshgrid[0], new_meshgrid[1], new_f)
             plt.colorbar()
             plt.title('new_f')
 
-        return new_f, new_f_min, new_f_max, new_f_grid_shape
+        return new_f, new_f_min, new_f_max, new_f_grid_shape, new_meshgrid
 
 
 
@@ -408,6 +422,7 @@ class LocalPSFGrid:
             plot_rectangle(me.ff_min[ii, :], me.ff_max[ii, :], edgecolor='r')
         else:
             plot_rectangle(me.ff_min0[ii, :], me.ff_max0[ii, :])
+            plot_rectangle(me.ff_min1[ii, :], me.ff_max1[ii, :], edgecolor='g')
             plot_rectangle(me.ff_min[ii, :], me.ff_max[ii, :], edgecolor='r')
 
         plot_ellipse(me.all_mu[ii, :], me.all_Sigma[ii, :, :], me.tau)
@@ -456,7 +471,7 @@ class LocalPSFGrid:
 
         _, (XX, YY) = make_regular_grid(me.ff_min[ii, :], me.ff_max[ii, :], me.ff_grid_shapes[ii])
 
-        F = me.ff_grid1[ii]
+        F = me.ff_grid[ii]
         plt.subplot(132)
         plt.pcolor(XX, YY, F)
         plt.xlim(xlims)
@@ -471,15 +486,16 @@ class LocalPSFGrid:
         plt.title('backtransferred impulse response ' + str(ii))
 
     def make_f_boundary_extension_plot(me, ii):
-        f0 = me.ff_grid1[ii]
+        f1 = me.ff_grid1[ii]
         f = me.ff_grid[ii]
 
-        _, (Xi, Yi) = make_regular_grid(me.ff_min[ii, :], me.ff_max[ii, :], f0.shape)
+        _, (Xi1, Yi1) = make_regular_grid(me.ff_min1[ii, :], me.ff_max1[ii, :], f1.shape)
+        _, (Xi, Yi) = make_regular_grid(me.ff_min[ii, :], me.ff_max[ii, :], f.shape)
 
         plt.figure(figsize=(10, 5), dpi=100, facecolor='w', edgecolor='k')
 
         plt.subplot(121)
-        plt.pcolor(Xi, Yi, f0)
+        plt.pcolor(Xi1, Yi1, f1)
         plt.colorbar()
         plt.title('impulse response ' + str(ii) + ' without extension')
 
