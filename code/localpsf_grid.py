@@ -104,6 +104,10 @@ class LocalPSFGrid:
             me.ff_max = ff_max_new
             me.ff_grid_shapes = ff_grid_shapes_new
 
+        for ii in range(me.num_pts):
+            nan_inds = np.isnan(me.ff_grid[ii])
+            me.ff_grid[ii][nan_inds] = 0.
+
 
         # me.ff_grid = list()
         # for ii in tqdm(range(me.num_pts)):
