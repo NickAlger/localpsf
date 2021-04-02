@@ -84,7 +84,7 @@ class LocalPSFGrid:
         me.ff_max = me.ff_max1
         me.ff_grid_shapes = me.ff_grid_shapes1
         me.ff_meshgrids = me.ff_meshgrids1.copy()
-        for _ in range(2):
+        for _ in range(1):
             ff_grid_new = me.ff_grid.copy()
             ff_min_new = me.ff_min.copy()
             ff_max_new = me.ff_max.copy()
@@ -92,7 +92,7 @@ class LocalPSFGrid:
             for ii in tqdm(range(len(me.ff_grid))):
                 if np.any(np.isnan(me.ff_grid[ii])):
                     new_f, new_f_min, new_f_max, new_f_grid_shape, new_meshgrid = \
-                        me.compute_impulse_response_neighbor_extension(ii,make_plots=False)
+                        me.compute_impulse_response_neighbor_extension2(ii,make_plots=False)
                     ff_grid_new[ii] = new_f
                     ff_min_new[ii,:] = new_f_min
                     ff_max_new[ii,:] = new_f_max
@@ -204,6 +204,27 @@ class LocalPSFGrid:
 
         return neighbor_inds, nearest_neighbor_distance
 
+    def make_expanded_box_using_neighbors(me, ii, neighbor_inds):
+        new_f_min0 = np.min(me.ff_min[neighbor_inds, :] - me.pp[neighbor_inds, :] + me.pp[ii, :], axis=0)
+        new_f_max0 = np.max(me.ff_max[neighbor_inds, :] - me.pp[neighbor_inds, :] + me.pp[ii, :], axis=0)
+        new_f_min, new_f_max, new_f_grid_shape = conforming_box(new_f_min0, new_f_max0, me.pp[ii, :], me.hh[ii, :])
+        return new_f_min, new_f_max, new_f_grid_shape
+
+    def get_shifted_neighbor_ff(me, ii, fi_min, fi_max, fi_grid_shape, neighbor_inds):
+        num_neighbors = len(neighbor_inds)
+        shifted_ff_nbrs = np.zeros(tuple([num_neighbors]) + tuple(fi_grid_shape))
+        for k in range(num_neighbors):
+            jj = neighbor_inds[k]
+            F2G = Function2Grid(me.V,
+                                fi_min - me.pp[ii, :] + me.pp[jj, :],
+                                fi_max - me.pp[ii, :] + me.pp[jj, :],
+                                fi_grid_shape,
+                                mu=me.all_mu[jj, :], Sigma=me.all_Sigma[jj, :, :], tau=me.tau)
+            b, _ = ind2sub_batches(jj, me.batch_lengths)
+            shifted_ff_nbrs[k, :] = F2G(me.ff_fenics[b], outside_domain_fill_value=np.nan)
+
+        return shifted_ff_nbrs
+
     def compute_impulse_response_neighbor_extension(me, ii, num_neighbors0=10, make_plots=True):
 
         neighbor_inds, nearest_neighbor_distance = me.get_neighbors(ii, num_neighbors0=num_neighbors0, make_plots=make_plots)
@@ -211,20 +232,9 @@ class LocalPSFGrid:
         num_neighbors = len(neighbor_inds)
 
         # Get new bigger box for f_i that will fit shifted neighbor f_j's
-        new_f_min0 = np.min(me.ff_min[neighbor_inds, :] - me.pp[neighbor_inds, :] + me.pp[ii, :], axis=0)
-        new_f_max0 = np.max(me.ff_max[neighbor_inds, :] - me.pp[neighbor_inds, :] + me.pp[ii, :], axis=0)
-        new_f_min, new_f_max, new_f_grid_shape = conforming_box(new_f_min0, new_f_max0, me.pp[ii, :], me.hh[ii, :])
+        new_f_min, new_f_max, new_f_grid_shape = me.make_expanded_box_using_neighbors(ii, neighbor_inds)
+        new_ff_nbrs = me.get_shifted_neighbor_ff(ii, new_f_min, new_f_max, new_f_grid_shape, neighbor_inds)
 
-        new_ff_nbrs = np.zeros(tuple([num_neighbors]) + tuple(new_f_grid_shape))
-        for k in range(num_neighbors):
-            jj = neighbor_inds[k]
-            F2G = Function2Grid(me.V,
-                                new_f_min - me.pp[ii,:] + me.pp[jj,:],
-                                new_f_max - me.pp[ii,:] + me.pp[jj,:],
-                                new_f_grid_shape,
-                                mu=me.all_mu[jj, :], Sigma=me.all_Sigma[jj, :, :], tau=me.tau)
-            b, _ = ind2sub_batches(jj, me.batch_lengths)
-            new_ff_nbrs[k,:] = F2G(me.ff_fenics[b], outside_domain_fill_value=np.nan)
 
         _, new_meshgrid = make_regular_grid(new_f_min, new_f_max, new_f_grid_shape)
         coords_ff_new = np.vstack([X.reshape(-1) for X in new_meshgrid]).T
@@ -332,6 +342,39 @@ class LocalPSFGrid:
             plt.title('new_f')
 
         return new_f, new_f_min, new_f_max, new_f_grid_shape, new_meshgrid
+
+    def compute_impulse_response_neighbor_extension2(me, ii, num_neighbors0=6, make_plots=False):
+        num_neighbors = num_neighbors0
+        _, neighbor_inds = me.pp_cKDTree.query(me.pp[ii, :], num_neighbors)
+        neighbor_inds = neighbor_inds.reshape(-1)
+        num_neighbors = len(neighbor_inds)
+        new_f_min, new_f_max, new_f_grid_shape = me.make_expanded_box_using_neighbors(ii, neighbor_inds)
+        ff_nbrs = me.get_shifted_neighbor_ff(ii, new_f_min, new_f_max, new_f_grid_shape, neighbor_inds)
+
+        valid_mask_0 = np.logical_not(np.isnan(ff_nbrs[0,:]))
+        cc = np.zeros(num_neighbors)
+        JJ = np.zeros(num_neighbors)
+        for k in range(num_neighbors):
+            valid_mask_k = np.logical_not(np.isnan(ff_nbrs[k,:]))
+            valid_mask_joint = np.logical_and(valid_mask_0, valid_mask_k)
+            f0 = ff_nbrs[0, valid_mask_joint]
+            fk = ff_nbrs[k, valid_mask_joint]
+            cc[k] = np.sum(f0 * fk) / np.sum(fk * fk)
+            JJ[k] = np.linalg.norm(f0 - cc[k]*fk)
+
+        best_match_sort_inds = np.argsort(JJ).reshape(-1)
+        new_f = np.nan * np.ones(ff_nbrs[0,:].shape)
+        for k in list(best_match_sort_inds):
+            nan_mask = np.isnan(new_f)
+            new_f[nan_mask] = cc[k] * ff_nbrs[k,nan_mask]
+
+        _, new_meshgrid = make_regular_grid(new_f_min, new_f_max, new_f_grid_shape)
+
+        return new_f, new_f_min, new_f_max, new_f_grid_shape, new_meshgrid
+
+
+
+
 
 
 
