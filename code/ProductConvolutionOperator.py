@@ -1,5 +1,4 @@
 import numpy as np
-from functools import cached_property
 
 from nalger_helper_functions import *
 
@@ -10,8 +9,14 @@ def make_grid2dofs_transfer_matrix(Wk, Fk, pp):
     T_grid2dof = multilinear_interpolation_matrix(pp[inside_inds_k, :], C.min, C.max, C.shape)
     return T_grid2dof, inside_inds_k
 
+
 def make_dofs2grid_transfer_matrix(Wk, V):
-    pass
+    mesh = V.mesh()
+    pp = V.tabulate_dof_coordinates()
+    inside_mesh_mask = points_inside_mesh(pp, mesh)  # <-- True where point is in mesh, false where point is outside
+    outside_mesh_mask = np.logical_not(inside_mesh_mask)
+    T_dof2grid, nonzero_cols = pointwise_observation_matrix(pp, V, nonzero_columns_only=True)
+
 
 class ProductConvolutionOperator:
     def __init__(me, WW, FF, shape, input_ind_groups, output_ind_groups, TT_dof2grid, TT_grid2dof):
