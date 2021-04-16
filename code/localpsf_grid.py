@@ -373,26 +373,6 @@ class LocalPSFGrid:
         return new_f, new_f_min, new_f_max, new_f_grid_shape, new_meshgrid
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     # def rmatvec(me, u_fenics):
     #     U = me.cc_F2G(u_fenics)
 
