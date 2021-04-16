@@ -3,6 +3,44 @@ import numpy as np
 from nalger_helper_functions import *
 
 
+def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, support_rtol=2e-2):
+    # Input:
+    #   w: weighting function (fenics Function)
+    #   f: convolution kernel batch function (fenics Function)
+    #   p: sample point coordinates (np.array, p.shape=(d,)
+    #   mu: convolution kernel mean (np.array, mu.shape=(d,))
+    #   Sigma: convolution kernel covariance matrix (np.array, Sigma.shape=(d,d))
+    #   tau: scalar ellipsoid size. Ellipsoid={x: (x-mu)^T Sigma^{-1} (x-mu) <= tau}
+    #   grid_density_multiplier: scalar determining density of grid for BoxFunctions. 1.0 => grid h = min mesh h in box
+    #   support_rtol: scalar determining support box for weighting function
+    # Output:
+    #   W: weighting BoxFunction
+    #   F0: initial convolution kernel BoxFunction
+    V = w[0].function_space()
+    dof_coords = V.tabulate_dof_coordinates()
+    W_min0, W_max0 = function_support_box(w.vector()[:], dof_coords, support_rtol=support_rtol)
+    F_min0, F_max0 = ellipsoid_bounding_box(mu, Sigma, tau)
+    h_w = shortest_distance_between_points_in_box(W_min0, W_max0, dof_coords)
+    h_f = shortest_distance_between_points_in_box(F_min0, F_max0, dof_coords)
+    h = np.min([h_w, h_f]) * grid_density_multiplier
+    W_min, W_max, W_shape = conforming_box(W_min0, W_max0, p, h)
+    F_min, F_max, F_shape = conforming_box(F_min0, F_max0, p, h)
+
+    W = BoxFunction(W_min, W_max, np.zeros(W_shape))
+    F0 = BoxFunction(F_min, F_max, np.zeros(F_shape))
+
+    T_w = pointwise_observation_matrix(W.gridpoints, V)
+    W.array = (T_w * w.vector()[:]).reshape(W.shape)
+
+    T_f = pointwise_observation_matrix(F0.gridpoints, V)
+    F0.array = (T_f * f.vector()[:]).reshape(F0.shape)
+    F0 = F0.translate(-p)
+
+    return W, F0
+
+
+
+
 def form_product_convolution_operator(WW, FF, V_in, V_out):
     shape = (V_out.dim(), V_in.dim())
 
@@ -23,8 +61,8 @@ def form_product_convolution_operator(WW, FF, V_in, V_out):
 
 
 def make_grid2dofs_transfer_matrix(Wk, Fk, V_out):
-    if not box_functions_are_conforming(Wk, Fk):
-        raise RuntimeError('BoxFunctions are not conforming')
+    if np.linalg.norm(Wk.h - Fk.h) > 1e-10:
+        raise RuntimeError('BoxFunctions have different spacings h')
 
     pp = V_out.tabulate_dof_coordinates()
 
