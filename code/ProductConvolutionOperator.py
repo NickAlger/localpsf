@@ -18,11 +18,14 @@ def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, su
     #   F0: initial convolution kernel BoxFunction
     V = w[0].function_space()
     dof_coords = V.tabulate_dof_coordinates()
+
     W_min0, W_max0 = function_support_box(w.vector()[:], dof_coords, support_rtol=support_rtol)
     F_min0, F_max0 = ellipsoid_bounding_box(mu, Sigma, tau)
+
     h_w = shortest_distance_between_points_in_box(W_min0, W_max0, dof_coords)
     h_f = shortest_distance_between_points_in_box(F_min0, F_max0, dof_coords)
     h = np.min([h_w, h_f]) * grid_density_multiplier
+
     W_min, W_max, W_shape = conforming_box(W_min0, W_max0, p, h)
     F_min, F_max, F_shape = conforming_box(F_min0, F_max0, p, h)
 
