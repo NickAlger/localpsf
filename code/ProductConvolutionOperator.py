@@ -3,23 +3,49 @@ import numpy as np
 from nalger_helper_functions import *
 
 
-def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, support_rtol=2e-2):
+def build_product_convolution_operator(ww, ff_batches, pp, all_mu, all_Sigma, tau, batch_lengths,
+                                       grid_density_multiplier=1.0, w_support_rtol=2e-2,
+                                       max_neighbors_for_f_extension=10):
     # Input:
-    #   w: weighting function (fenics Function)
-    #   f: convolution kernel batch function (fenics Function)
-    #   p: sample point coordinates (np.array, p.shape=(d,)
-    #   mu: convolution kernel mean (np.array, mu.shape=(d,))
-    #   Sigma: convolution kernel covariance matrix (np.array, Sigma.shape=(d,d))
+    #   ww: weighting functions (list of fenics Functions, len(ww) = num_pts)
+    #   ff_batches: impulse response batches (list of fenic Functions, len(ff) = num_batches)
+    #   pp: sample points (np.array, pp.shape = (num_pts, d))
+    #   all_mu: impulse response means (np.array, all_mu.shape = (num_pts, d))
+    #   all_Sigma: impulse response covariance matrices (np.array, all_Sigma.shape = (num_pts, d, d))
     #   tau: scalar ellipsoid size. Ellipsoid={x: (x-mu)^T Sigma^{-1} (x-mu) <= tau}
     #   grid_density_multiplier: scalar determining density of grid for BoxFunctions. 1.0 => grid h = min mesh h in box
-    #   support_rtol: scalar determining support box for weighting function
+    #   w_support_rtol: scalar determining support box for weighting function
+    #   max_neighbors_for_f_extension: number of neighboring impulse response neighbors used to fill in missing information
+    num_pts, d = pp.shape
+
+    WW = list()
+    FF0 = list()
+    for ii in range(num_pts):
+        b, k = ind2sub_batches(ii, batch_lengths)
+        W, F0 = get_W_and_F0(ww[ii], ff_batches[b], pp[ii,:], all_mu[ii,:], all_Sigma[ii,:,:], tau,
+                             grid_density_multiplier=grid_density_multiplier, w_support_rtol=w_support_rtol)
+        WW.append(W)
+        FF0.append(F0)
+
+
+
+def get_W_and_F0(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, w_support_rtol=2e-2):
+    # Input:
+    #   w: weighting function (fenics Function)
+    #   f: impulse response batch function (fenics Function)
+    #   p: sample point coordinates (np.array, p.shape=(d,)
+    #   mu: impulse response mean (np.array, mu.shape=(d,))
+    #   Sigma: impulse response covariance matrix (np.array, Sigma.shape=(d,d))
+    #   tau: scalar ellipsoid size. Ellipsoid={x: (x-mu)^T Sigma^{-1} (x-mu) <= tau}
+    #   grid_density_multiplier: scalar determining density of grid for BoxFunctions. 1.0 => grid h = min mesh h in box
+    #   w_support_rtol: scalar determining support box for weighting function
     # Output:
     #   W: weighting BoxFunction
     #   F0: initial convolution kernel BoxFunction
     V = w[0].function_space()
     dof_coords = V.tabulate_dof_coordinates()
 
-    W_min0, W_max0 = function_support_box(w.vector()[:], dof_coords, support_rtol=support_rtol)
+    W_min0, W_max0 = function_support_box(w.vector()[:], dof_coords, support_rtol=w_support_rtol)
     F_min0, F_max0 = ellipsoid_bounding_box(mu, Sigma, tau)
 
     h_w = shortest_distance_between_points_in_box(W_min0, W_max0, dof_coords)
@@ -44,7 +70,7 @@ def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, su
 
 
 
-def form_product_convolution_operator(WW, FF, V_in, V_out):
+def form_product_convolution_operator_from_patches(WW, FF, V_in, V_out):
     shape = (V_out.dim(), V_in.dim())
 
     input_ind_groups = list()
