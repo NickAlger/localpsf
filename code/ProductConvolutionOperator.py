@@ -1,11 +1,13 @@
 import numpy as np
+from scipy.spatial import cKDTree
+from tqdm.auto import tqdm
 
 from nalger_helper_functions import *
 
 
 def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp, all_mu, all_Sigma, tau, batch_lengths,
                                                              grid_density_multiplier=1.0, w_support_rtol=2e-2,
-                                                             max_neighbors_for_f_extension=10):
+                                                             num_neighbors_for_f_extension=8):
     # Input:
     #   ww: weighting functions (list of fenics Functions, len(ww) = num_pts)
     #   ff_batches: impulse response batches (list of fenic Functions, len(ff) = num_batches)
@@ -15,20 +17,41 @@ def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp,
     #   tau: scalar ellipsoid size. Ellipsoid={x: (x-mu)^T Sigma^{-1} (x-mu) <= tau}
     #   grid_density_multiplier: scalar determining density of grid for BoxFunctions. 1.0 => grid h = min mesh h in box
     #   w_support_rtol: scalar determining support box for weighting function
-    #   max_neighbors_for_f_extension: number of neighboring impulse response neighbors used to fill in missing information
+    #   num_neighbors_for_f_extension: number of neighboring impulse response neighbors used to fill in missing information
     num_pts, d = pp.shape
 
+    print('Forming weighting function patches and initial kernel patches')
     WW = list()
     initial_FF = list()
-    for ii in range(num_pts):
+    for ii in tqdm(range(num_pts)):
         b, k = ind2sub_batches(ii, batch_lengths)
         W, F = get_W_and_initial_F(ww[ii], ff_batches[b], pp[ii,:], all_mu[ii,:], all_Sigma[ii,:,:], tau,
                                    grid_density_multiplier=grid_density_multiplier, w_support_rtol=w_support_rtol)
         WW.append(W)
         initial_FF.append(F)
 
-    for ii in range(num_pts):
-        pass
+    print('Filling in missing kernel entries using neighboring kernels')
+    pp_cKDTree = cKDTree(pp)
+    FF = list()
+    for ii in tqdm(range(num_pts)):
+        _, neighbor_inds = pp_cKDTree.query(pp[ii, :], num_neighbors_for_f_extension)
+        neighbor_inds = list(neighbor_inds.reshape(-1))
+        pp_nbrs = pp[neighbor_inds, :]
+        mu_nbrs = all_mu[neighbor_inds, :]
+        Sigma_nbrs = all_Sigma[neighbor_inds, :, :]
+        FF_nbrs = [initial_FF[k] for k in neighbor_inds]
+        ff_nbrs = list()
+        for jj in neighbor_inds:
+            b, k = ind2sub_batches(jj, batch_lengths)
+            ff_nbrs.append(ff_batches[b])
+
+        filled_in_F = fill_in_missing_kernel_values_using_other_kernels(FF_nbrs, ff_nbrs, pp_nbrs,
+                                                                        mu_nbrs, Sigma_nbrs, tau)
+        FF.append(filled_in_F)
+
+    V = ww[0].function_space()
+    PC = form_product_convolution_operator_from_patches(WW, FF, V, V)
+    return PC
 
 
 def fill_in_missing_kernel_values_using_other_kernels(FF, ff, pp, mus, Sigmas, tau):
@@ -108,16 +131,15 @@ def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, w_
     return W, F
 
 
-
-
 def form_product_convolution_operator_from_patches(WW, FF, V_in, V_out):
     shape = (V_out.dim(), V_in.dim())
 
+    print('constructing patch transfer matrices')
     input_ind_groups = list()
     TT_dof2grid = list()
     output_ind_groups = list()
     TT_grid2dof = list()
-    for k in range(len(WW)):
+    for k in tqdm(range(len(WW))):
         T_dof2grid, input_dof_inds = make_dofs2grid_transfer_matrix(WW[k], V_in)
         input_ind_groups.append(input_dof_inds)
         TT_dof2grid.append(T_dof2grid)
