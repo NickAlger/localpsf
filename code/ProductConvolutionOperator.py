@@ -3,9 +3,9 @@ import numpy as np
 from nalger_helper_functions import *
 
 
-def build_product_convolution_operator(ww, ff_batches, pp, all_mu, all_Sigma, tau, batch_lengths,
-                                       grid_density_multiplier=1.0, w_support_rtol=2e-2,
-                                       max_neighbors_for_f_extension=10):
+def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp, all_mu, all_Sigma, tau, batch_lengths,
+                                                             grid_density_multiplier=1.0, w_support_rtol=2e-2,
+                                                             max_neighbors_for_f_extension=10):
     # Input:
     #   ww: weighting functions (list of fenics Functions, len(ww) = num_pts)
     #   ff_batches: impulse response batches (list of fenic Functions, len(ff) = num_batches)
@@ -19,17 +19,58 @@ def build_product_convolution_operator(ww, ff_batches, pp, all_mu, all_Sigma, ta
     num_pts, d = pp.shape
 
     WW = list()
-    FF0 = list()
+    initial_FF = list()
     for ii in range(num_pts):
         b, k = ind2sub_batches(ii, batch_lengths)
-        W, F0 = get_W_and_F0(ww[ii], ff_batches[b], pp[ii,:], all_mu[ii,:], all_Sigma[ii,:,:], tau,
-                             grid_density_multiplier=grid_density_multiplier, w_support_rtol=w_support_rtol)
+        W, F = get_W_and_initial_F(ww[ii], ff_batches[b], pp[ii,:], all_mu[ii,:], all_Sigma[ii,:,:], tau,
+                                   grid_density_multiplier=grid_density_multiplier, w_support_rtol=w_support_rtol)
         WW.append(W)
-        FF0.append(F0)
+        initial_FF.append(F)
+
+
+def fill_in_missing_kernel_values_using_other_kernels(FF, ff, pp, mus, Sigmas, tau):
+    num_kernels, d = pp.shape
+    new_F_min0 = np.min([F.min for F in FF], axis=0)
+    new_F_max0 = np.max([F.max for F in FF], axis=0)
+    new_F_min, new_F_max, new_F_shape = conforming_box(new_F_min0, new_F_max0, np.zeros(d), FF[0].h)
+
+    new_FF = list()
+    for k in range(num_kernels):
+        new_Fk_array = eval_fenics_function_on_regular_grid(ff[k],
+                                                            new_F_min + pp[k,:],
+                                                            new_F_max + pp[k,:],
+                                                            new_F_shape, outside_mesh_fill_value=np.nan)
+        Fk = BoxFunction(new_F_min, new_F_max, new_Fk_array)
+        Ek = ellipsoid_characteristic_function(new_F_min, new_F_max, new_F_shape, mus[k,:], Sigmas[k,:,:], tau)
+        new_FF.append(Ek * Fk)
+
+    valid_mask_0 = np.logical_not(np.isnan(new_FF[0].array))
+    cc = np.zeros(num_kernels)
+    JJ = np.zeros(num_kernels)
+    for k in range(num_kernels):
+        valid_mask_k = np.logical_not(np.isnan(new_FF[k].array))
+        valid_mask_joint = np.logical_and(valid_mask_0, valid_mask_k)
+        f0 = FF[0].array[valid_mask_joint]
+        fk = FF[k].array[valid_mask_joint]
+        cc[k] = np.sum(f0 * fk) / np.sum(fk * fk) # what if there is no overlap?
+        JJ[k] = np.linalg.norm(f0 - cc[k] * fk)
+
+    best_match_sort_inds = np.argsort(JJ).reshape(-1)
+    filled_in_F_array = np.nan * np.ones(new_F_shape)
+    for k in list(best_match_sort_inds):
+        nan_mask = np.isnan(filled_in_F_array)
+        filled_in_F_array[nan_mask] = cc[k] * new_FF[k].array[nan_mask]
+
+    nan_mask = np.isnan(filled_in_F_array)
+    filled_in_F_array[nan_mask] = 0.0
+    filled_in_F = BoxFunction(new_F_min, new_F_max, filled_in_F_array)
+    return filled_in_F
 
 
 
-def get_W_and_F0(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, w_support_rtol=2e-2):
+
+
+def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, w_support_rtol=2e-2):
     # Input:
     #   w: weighting function (fenics Function)
     #   f: impulse response batch function (fenics Function)
@@ -41,31 +82,27 @@ def get_W_and_F0(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, w_support
     #   w_support_rtol: scalar determining support box for weighting function
     # Output:
     #   W: weighting BoxFunction
-    #   F0: initial convolution kernel BoxFunction
+    #   F: initial convolution kernel BoxFunction
     V = w[0].function_space()
     dof_coords = V.tabulate_dof_coordinates()
 
     W_min0, W_max0 = function_support_box(w.vector()[:], dof_coords, support_rtol=w_support_rtol)
-    F_min0, F_max0 = ellipsoid_bounding_box(mu, Sigma, tau)
+    F_min_plus_p0, F_max_plus_p0 = ellipsoid_bounding_box(mu, Sigma, tau)
 
     h_w = shortest_distance_between_points_in_box(W_min0, W_max0, dof_coords)
-    h_f = shortest_distance_between_points_in_box(F_min0, F_max0, dof_coords)
+    h_f = shortest_distance_between_points_in_box(F_min_plus_p0, F_max_plus_p0, dof_coords)
     h = np.min([h_w, h_f]) * grid_density_multiplier
 
     W_min, W_max, W_shape = conforming_box(W_min0, W_max0, p, h)
-    F_min, F_max, F_shape = conforming_box(F_min0, F_max0, p, h)
+    F_min_plus_p, F_max_plus_p, F_shape = conforming_box(F_min_plus_p0, F_max_plus_p0, p, h)
 
-    W = BoxFunction(W_min, W_max, np.zeros(W_shape))
-    F0 = BoxFunction(F_min, F_max, np.zeros(F_shape))
+    W_array = eval_fenics_function_on_regular_grid(w, W_min, W_max, W_shape, outside_mesh_fill_value=0.0)
+    F_array = eval_fenics_function_on_regular_grid(f, F_min_plus_p, F_max_plus_p, F_shape, outside_mesh_fill_value=np.nan)
+    E = ellipsoid_characteristic_function(F_min_plus_p, F_max_plus_p, F_shape, mu, Sigma, tau)
 
-    T_w = pointwise_observation_matrix(W.gridpoints, V)
-    W.array = (T_w * w.vector()[:]).reshape(W.shape)
-
-    T_f = pointwise_observation_matrix(F0.gridpoints, V)
-    F0.array = (T_f * f.vector()[:]).reshape(F0.shape)
-    F0 = F0.translate(-p)
-
-    return W, F0
+    W = BoxFunction(W_min, W_max, W_array)
+    F = (E * BoxFunction(F_min_plus_p, F_max_plus_p, F_array)).translate(-p)
+    return W, F
 
 
 
