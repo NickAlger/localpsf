@@ -27,6 +27,9 @@ def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp,
         WW.append(W)
         initial_FF.append(F)
 
+    for ii in range(num_pts):
+        pass
+
 
 def fill_in_missing_kernel_values_using_other_kernels(FF, ff, pp, mus, Sigmas, tau):
     num_kernels, d = pp.shape
