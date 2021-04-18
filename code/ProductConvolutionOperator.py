@@ -7,18 +7,58 @@ from nalger_helper_functions import *
 
 def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp, all_mu, all_Sigma, tau, batch_lengths,
                                                              grid_density_multiplier=1.0, w_support_rtol=2e-2,
-                                                             num_neighbors_for_f_extension=8):
-    # Input:
-    #   ww: weighting functions (list of fenics Functions, len(ww) = num_pts)
-    #   ff_batches: impulse response batches (list of fenic Functions, len(ff) = num_batches)
-    #   pp: sample points (np.array, pp.shape = (num_pts, d))
-    #   all_mu: impulse response means (np.array, all_mu.shape = (num_pts, d))
-    #   all_Sigma: impulse response covariance matrices (np.array, all_Sigma.shape = (num_pts, d, d))
-    #   tau: scalar ellipsoid size. Ellipsoid={x: (x-mu)^T Sigma^{-1} (x-mu) <= tau}
-    #   grid_density_multiplier: scalar determining density of grid for BoxFunctions. 1.0 => grid h = min mesh h in box
-    #   w_support_rtol: scalar determining support box for weighting function
-    #   num_neighbors_for_f_extension: number of neighboring impulse response neighbors used to fill in missing information
+                                                             num_f_extension_kernels=8, V_out=None):
+    '''Constructs a ProductConvolutionOperator from fenics weighting functions and impulse response batches
+
+    Parameters
+    ----------
+    ww : list of fenics Functions, len(ww)=num_pts
+        weighting functions
+    ff_batches : list of fenics Functions, len(ff)=num_batches
+        impulse response function batches
+    pp : numpy array, pp.shape=(num_pts,d)
+        sample points
+        pp[k,:] is the k'th sample point
+    all_mu : numpy array, all_mu.shape=(num_pts,d)
+        impulse response means
+        all_mu[k,:] is the mean of the k'th impulse response
+    all_Sigma : numpy array, all_Sigma.shape=(num_pts,d,d)
+        impulse response covariance matrices
+        all_Sigma[k,:,:] is the covariance matrix for the k'th impulse response
+    tau : nonnegative float
+        impulse response ellipsoid size parameter
+        k'th ellipsoid = {x: (x-mu[k,:])^T Sigma[k,:,:]^{-1} (x-mu[k,:]) <= tau}
+        support of k'th impulse response should be contained inside k'th ellipsoid
+    batch_lengths : list of ints, len(batch_lengths)=num_batches
+        number of impulse responses in each batch.
+        E.g., if batch_lengths=[3,5,4], then
+        ff_batches[0] contains the first 3 impulse responses,
+        ff_batches[1] contains the next 5 impulse responses,
+        ff_batches[2] contains the last 4 impulse responses,
+    grid_density_multiplier : nonnegative float
+        grid density scaling factor
+        If grid_density_multiplier=1.0, then the spacing between gridpoints
+        in a given BoxFunction equals the minimum distance between mesh nodes in the box.
+        If grid_density_multiplier=0.5, then the spacing between gridpoints
+        in a given BoxFunction equals one half the minimum distance between mesh nodes in the box.
+    w_support_rtol : nonnegative float
+        truncation tolerance determining how big the support boxes are for the weighting functions.
+        If w_support_rtol=2e-2, then values of w outside the box will be no more than 2% of the maximum
+        value of w.
+    V_out : fenics FunctionSpace
+        function space for output of product-convolution operator.
+        If V_out is None, then the input FunctionSpace is also used for the output
+    num_f_extension_kernels : positive int
+        number of initial impulse responses used to fill in the missing information for each impulse response
+        E.g., if num_f_extension_kernels=8, then a given filled in impulse response will contain information
+        from itself, and the 7 other nearest impulse responses.
+
+    Returns
+    -------
+    PC : ProductConvolutionOperator
+    '''
     num_pts, d = pp.shape
+    num_f_extension_kernels = np.min([num_f_extension_kernels,  num_pts])
 
     print('Forming weighting function patches and initial kernel patches')
     WW = list()
@@ -34,7 +74,7 @@ def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp,
     pp_cKDTree = cKDTree(pp)
     FF = list()
     for ii in tqdm(range(num_pts)):
-        _, neighbor_inds = pp_cKDTree.query(pp[ii, :], num_neighbors_for_f_extension)
+        _, neighbor_inds = pp_cKDTree.query(pp[ii, :], num_f_extension_kernels)
         neighbor_inds = list(neighbor_inds.reshape(-1))
         pp_nbrs = pp[neighbor_inds, :]
         mu_nbrs = all_mu[neighbor_inds, :]
@@ -49,8 +89,10 @@ def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp,
                                                                         mu_nbrs, Sigma_nbrs, tau)
         FF.append(filled_in_F)
 
-    V = ww[0].function_space()
-    PC = form_product_convolution_operator_from_patches(WW, FF, V, V)
+    V_in = ww[0].function_space()
+    if V_out is None:
+        V_out = V_in
+    PC = form_product_convolution_operator_from_patches(WW, FF, V_in, V_out)
     return PC
 
 
@@ -93,22 +135,43 @@ def fill_in_missing_kernel_values_using_other_kernels(FF, ff, pp, mus, Sigmas, t
     return filled_in_F
 
 
-
-
-
 def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, w_support_rtol=2e-2):
-    # Input:
-    #   w: weighting function (fenics Function)
-    #   f: impulse response batch function (fenics Function)
-    #   p: sample point coordinates (np.array, p.shape=(d,)
-    #   mu: impulse response mean (np.array, mu.shape=(d,))
-    #   Sigma: impulse response covariance matrix (np.array, Sigma.shape=(d,d))
-    #   tau: scalar ellipsoid size. Ellipsoid={x: (x-mu)^T Sigma^{-1} (x-mu) <= tau}
-    #   grid_density_multiplier: scalar determining density of grid for BoxFunctions. 1.0 => grid h = min mesh h in box
-    #   w_support_rtol: scalar determining support box for weighting function
-    # Output:
-    #   W: weighting BoxFunction
-    #   F: initial convolution kernel BoxFunction
+    '''Constructs initial BoxFunctions for one weighting function and associated convolution kernel
+
+    Parameters
+    ----------
+    w : fenics Function
+        weighting function
+    f : fenics Function
+        impulse response batch
+    p : numpy array, p.shape=(d,)
+        sample point
+    mu : numpy array, mu.shape=(d,)
+        impulse response mean
+    Sigma : numpy array, Sigma.shape=(d,d)
+        impulse response covariance matrix
+    tau : nonnegative float
+        scalar ellipsoid size for impulse response
+        impulse response support should be contained in ellipsoid E, given by
+        E={x: (x-mu)^T Sigma^{-1} (x-mu) <= tau}
+    grid_density_multiplier : nonnegative float
+        grid density scaling factor
+        If grid_density_multiplier=1.0, then the spacing between gridpoints
+        in a given BoxFunction equals the minimum distance between mesh nodes in the box.
+        If grid_density_multiplier=0.5, then the spacing between gridpoints
+        in a given BoxFunction equals one half the minimum distance between mesh nodes in the box.
+    w_support_rtol : nonnegative float
+        truncation tolerance determining how big the support boxes are for the weighting functions.
+        If w_support_rtol=2e-2, then values of w outside the box will be no more than 2% of the maximum
+        value of w.
+
+    Returns
+    -------
+    W : BoxFunction
+        weighting function on regular grid in a box
+    F : BoxFunction
+        convolution kernel on regular grid in a box
+    '''
     V = w[0].function_space()
     dof_coords = V.tabulate_dof_coordinates()
 
