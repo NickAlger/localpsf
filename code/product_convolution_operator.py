@@ -214,15 +214,23 @@ def form_product_convolution_operator_from_patches(WW, FF, V_in, V_out):
     return ProductConvolutionOperator(WW, FF, shape, input_ind_groups, output_ind_groups, TT_dof2grid, TT_grid2dof)
 
 
+def convolution_support(F, G):
+    C_min = F.min + G.min
+    C_max = F.max + G.max
+    C_shape = tuple(np.array(F.shape) + np.array(G.shape) - 1)
+    return C_min, C_max, C_shape
+
+
 def make_grid2dofs_transfer_matrix(Wk, Fk, V_out):
     if np.linalg.norm(Wk.h - Fk.h) > 1e-10:
         raise RuntimeError('BoxFunctions have different spacings h')
 
     pp = V_out.tabulate_dof_coordinates()
 
-    C_min = Wk.min + Fk.min
-    C_max = Wk.max + Fk.max
-    C_shape = tuple(np.array(Wk.shape) + np.array(Fk.shape) - 1)
+    C_min, C_max, C_shape = convolution_support(Wk, Fk)
+    # C_min = Wk.min + Fk.min
+    # C_max = Wk.max + Fk.max
+    # C_shape = tuple(np.array(Wk.shape) + np.array(Fk.shape) - 1)
     output_dof_inds = np.argwhere(point_is_in_box(pp, C_min, C_max)).reshape(-1)
     T_grid2dof = multilinear_interpolation_matrix(pp[output_dof_inds, :], C_min, C_max, C_shape)
     return T_grid2dof, output_dof_inds
@@ -275,14 +283,14 @@ class ProductConvolutionOperator:
             ii = me.input_ind_groups[k]
             oo = me.output_ind_groups[k]
             Ti = me.TT_dof2grid[k]
-            To = me.TT_grid2dof
+            To = me.TT_grid2dof[k]
             Wk = me.WW[k]
             Fk = me.FF[k]
 
             Uk_array = (Ti * u[ii]).reshape(Wk.shape)
             WUk = BoxFunction(Wk.min, Wk.max, Wk.array * Uk_array)
             Vk = boxconv(Fk, WUk)
-            v[oo] += To * Vk.reshape(-1)
+            v[oo] += To * Vk.array.reshape(-1)
         return v
 
     def rmatvec(me, v):
@@ -291,15 +299,19 @@ class ProductConvolutionOperator:
             ii = me.input_ind_groups[k]
             oo = me.output_ind_groups[k]
             Ti = me.TT_dof2grid[k]
-            To = me.TT_grid2dof
+            To = me.TT_grid2dof[k]
             Wk = me.WW[k]
+            Fk = me.FF[k]
             Fk_star = me.FF_star[k]
 
-            Vk = To.T * v[oo]
+            Vk_min, Vk_max, Vk_shape = convolution_support(Fk, Wk)
+
+            Vk_array = (To.T * v[oo]).reshape(Vk_shape)
+            Vk = BoxFunction(Vk_min, Vk_max, Vk_array)
             Sk = boxconv(Fk_star, Vk)
             Uk_big = Sk * Wk
             Uk = Uk_big.restrict_to_new_box(Wk.min, Wk.max)
-            u[ii] += Ti.T * Uk.reshape(-1)
+            u[ii] += Ti.T * Uk.array.reshape(-1)
         return u
 
     def astype(me, dtype):
