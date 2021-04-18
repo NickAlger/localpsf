@@ -79,7 +79,7 @@ def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp,
         pp_nbrs = pp[neighbor_inds, :]
         mu_nbrs = all_mu[neighbor_inds, :]
         Sigma_nbrs = all_Sigma[neighbor_inds, :, :]
-        FF_nbrs = [initial_FF[k] for k in neighbor_inds]
+        FF_nbrs = [initial_FF[jj] for jj in neighbor_inds]
         ff_nbrs = list()
         for jj in neighbor_inds:
             b, k = ind2sub_batches(jj, batch_lengths)
@@ -109,7 +109,7 @@ def fill_in_missing_kernel_values_using_other_kernels(FF, ff, pp, mus, Sigmas, t
                                                             new_F_max + pp[k,:],
                                                             new_F_shape, outside_mesh_fill_value=np.nan)
         Fk = BoxFunction(new_F_min, new_F_max, new_Fk_array)
-        Ek = ellipsoid_characteristic_function(new_F_min, new_F_max, new_F_shape, mus[k,:], Sigmas[k,:,:], tau)
+        Ek = ellipsoid_characteristic_function(new_F_min, new_F_max, new_F_shape, mus[k,:]-pp[k,:], Sigmas[k,:,:], tau)
         new_FF.append(Ek * Fk)
 
     valid_mask_0 = np.logical_not(np.isnan(new_FF[0].array))
@@ -118,8 +118,8 @@ def fill_in_missing_kernel_values_using_other_kernels(FF, ff, pp, mus, Sigmas, t
     for k in range(num_kernels):
         valid_mask_k = np.logical_not(np.isnan(new_FF[k].array))
         valid_mask_joint = np.logical_and(valid_mask_0, valid_mask_k)
-        f0 = FF[0].array[valid_mask_joint]
-        fk = FF[k].array[valid_mask_joint]
+        f0 = new_FF[0].array[valid_mask_joint]
+        fk = new_FF[k].array[valid_mask_joint]
         cc[k] = np.sum(f0 * fk) / np.sum(fk * fk) # what if there is no overlap?
         JJ[k] = np.linalg.norm(f0 - cc[k] * fk)
 
@@ -172,7 +172,7 @@ def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, w_
     F : BoxFunction
         convolution kernel on regular grid in a box
     '''
-    V = w[0].function_space()
+    V = w.function_space()
     dof_coords = V.tabulate_dof_coordinates()
 
     W_min0, W_max0 = function_support_box(w.vector()[:], dof_coords, support_rtol=w_support_rtol)
