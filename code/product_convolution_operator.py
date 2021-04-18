@@ -341,3 +341,11 @@ class ProductConvolutionOperator:
                                           me.TT_dof2grid, me.TT_grid2dof)
 
 
+def square_root_of_product_convolution_operator(PC):
+    sqrt_FF = [convolution_square_root(F, positive_real_branch_cut=np.pi,
+                                       negative_real_branch_cut=np.pi).real for F in PC.FF]
+    sqrt_PC = ProductConvolutionOperator(PC.WW, sqrt_FF, PC.shape,
+                                         PC.input_ind_groups, PC.output_ind_groups,
+                                         PC.TT_dof2grid, PC.TT_grid2dof)
+    return sqrt_PC
+
