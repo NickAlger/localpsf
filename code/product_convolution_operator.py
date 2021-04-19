@@ -211,7 +211,10 @@ def form_product_convolution_operator_from_patches(WW, FF, V_in, V_out):
         output_ind_groups.append(output_dof_inds)
         TT_grid2dof.append(T_grid2dof)
 
-    return ProductConvolutionOperator(WW, FF, shape, input_ind_groups, output_ind_groups, TT_dof2grid, TT_grid2dof)
+    row_coords = V_out.tabulate_dof_coordinates()
+    col_coords = V_in.tabulate_dof_coordinates()
+    return ProductConvolutionOperator(WW, FF, shape, input_ind_groups, output_ind_groups,
+                                      TT_dof2grid, TT_grid2dof, row_coords, col_coords)
 
 
 def convolution_support(F, G):
@@ -228,9 +231,6 @@ def make_grid2dofs_transfer_matrix(Wk, Fk, V_out):
     pp = V_out.tabulate_dof_coordinates()
 
     C_min, C_max, C_shape = convolution_support(Wk, Fk)
-    # C_min = Wk.min + Fk.min
-    # C_max = Wk.max + Fk.max
-    # C_shape = tuple(np.array(Wk.shape) + np.array(Fk.shape) - 1)
     output_dof_inds = np.argwhere(point_is_in_box(pp, C_min, C_max)).reshape(-1)
     T_grid2dof = multilinear_interpolation_matrix(pp[output_dof_inds, :], C_min, C_max, C_shape)
     return T_grid2dof, output_dof_inds
@@ -242,16 +242,16 @@ def make_dofs2grid_transfer_matrix(Wk, V_in):
 
 
 class ProductConvolutionOperator:
-    def __init__(me, WW, FF, shape, input_ind_groups, output_ind_groups, TT_dof2grid, TT_grid2dof):
+    def __init__(me, WW, FF, shape, patch_cols, patch_rows, TT_dof2grid, TT_grid2dof, row_coords, col_coords):
         # WW: weighting functions (a length-k list of BoxFunctions)
         # FF: convolution kernels (a length-k list of BoxFunctions)
         # shape: shape of the operator. tuple. shape=(num_rows, num_cols)
         #
-        # input_ind_groups: length-k list of arrays of indices for dofs that contribute to each convolution input
-        #     u[input_ind_groups[k]] = dof values from u that are relevant to WW[k]
+        # patch_cols: length-k list of arrays of indices for dofs that contribute to each convolution input
+        #     u[patch_cols[k]] = dof values from u that are relevant to WW[k]
         #
-        # output_ind_groups: length-k list of arrays of indices for dofs that are affected by each convolution output
-        #     v[input_ind_groups[k]] = dof values from v that are affected to boxconv(FF[k], WW[k])
+        # patch_rows: length-k list of arrays of indices for dofs that are affected by each convolution output
+        #     v[patch_rows[k]] = dof values from v that are affected to boxconv(FF[k], WW[k])
         #
         # TT_dof2grid: list of sparse dof-to-grid transfer matrices.
         #     U = (TT_dof2grid[k] * u[input_ind_groups[k]]).reshape(WW[k].shape)
@@ -264,10 +264,12 @@ class ProductConvolutionOperator:
         #     Q is array of function values on convolution grid, Q.shape=boxconv(FF[k], WW[k]).shape
         me.WW = WW
         me.FF = FF
-        me.input_ind_groups = input_ind_groups
-        me.output_ind_groups = output_ind_groups
+        me.patch_cols = patch_cols
+        me.patch_rows = patch_rows
         me.TT_dof2grid = TT_dof2grid
         me.TT_grid2dof = TT_grid2dof
+        me.row_coords = row_coords
+        me.col_coords = col_coords
 
         me.num_patches = len(me.WW)
         me.d = WW[0].ndim
@@ -277,15 +279,42 @@ class ProductConvolutionOperator:
 
         me.dtype = dtype_max([W.dtype for W in me.WW] + [F.dtype for F in me.FF])
 
+        me.col_patches = [set() for _ in me.shape[0]]
+        for p in range(len(me.patch_cols)):
+            for col in me.patch_cols[p]:
+                me.col_patches[col].add(p)
+
+        me.row_patches = [set() for _ in me.shape[1]]
+        for p in range(len(me.patch_rows)):
+            for row in me.patch_rows[p]:
+                me.row_patches[row].add(p)
+
+    def get_scattered_entries(me, rows, cols):
+        num_entries = len(rows)
+        print('computing ' + str(num_entries) + ' entries')
+        entries = np.zeros(num_entries, dtype=me.dtype)
+        for k in tqdm(range(num_entries)):
+            row = rows[k]
+            col = cols[k]
+            patches = me.col_patches[col].intersection(me.row_patches[row])
+            if patches:
+                x = me.col_coords[col, :]
+                y = me.row_coords[row, :]
+                for p in patches:
+                    entries[k] += me.WW[p](x) * me.FF[p](y - x)
+        return entries
+
+
+
     def matvec(me, u):
         v = np.zeros(me.shape[0], dtype=dtype_max([me.dtype, u.dtype]))
-        for k in range(me.num_patches):
-            ii = me.input_ind_groups[k]
-            oo = me.output_ind_groups[k]
-            Ti = me.TT_dof2grid[k]
-            To = me.TT_grid2dof[k]
-            Wk = me.WW[k]
-            Fk = me.FF[k]
+        for p in range(me.num_patches):
+            ii = me.patch_cols[p]
+            oo = me.patch_rows[p]
+            Ti = me.TT_dof2grid[p]
+            To = me.TT_grid2dof[p]
+            Wk = me.WW[p]
+            Fk = me.FF[p]
 
             Uk_array = (Ti * u[ii]).reshape(Wk.shape)
             WUk = BoxFunction(Wk.min, Wk.max, Wk.array * Uk_array)
@@ -295,14 +324,14 @@ class ProductConvolutionOperator:
 
     def rmatvec(me, v):
         u = np.zeros(me.shape[1], dtype=dtype_max([me.dtype, v.dtype]))
-        for k in range(me.num_patches):
-            ii = me.input_ind_groups[k]
-            oo = me.output_ind_groups[k]
-            Ti = me.TT_dof2grid[k]
-            To = me.TT_grid2dof[k]
-            Wk = me.WW[k]
-            Fk = me.FF[k]
-            Fk_star = me.FF_star[k]
+        for p in range(me.num_patches):
+            ii = me.patch_cols[p]
+            oo = me.patch_rows[p]
+            Ti = me.TT_dof2grid[p]
+            To = me.TT_grid2dof[p]
+            Wk = me.WW[p]
+            Fk = me.FF[p]
+            Fk_star = me.FF_star[p]
 
             Vk_min, Vk_max, Vk_shape = convolution_support(Fk, Wk)
 
@@ -320,7 +349,7 @@ class ProductConvolutionOperator:
         TT_dof2grid_new = [T.astype(dtype) for T in me.TT_dof2grid]
         TT_grid2dof_new = [T.astype(dtype) for T in me.TT_grid2dof]
         return ProductConvolutionOperator(WW_new, FF_new,
-                                          me.input_ind_groups, me.output_ind_groups,
+                                          me.patch_cols, me.patch_rows,
                                           TT_dof2grid_new, TT_grid2dof_new)
 
     @property
@@ -330,14 +359,14 @@ class ProductConvolutionOperator:
         TT_dof2grid_new = [T.real for T in me.TT_dof2grid]
         TT_grid2dof_new = [T.real for T in me.TT_grid2dof]
         return ProductConvolutionOperator(WW_new, FF_new,
-                                          me.input_ind_groups, me.output_ind_groups,
+                                          me.patch_cols, me.patch_rows,
                                           TT_dof2grid_new, TT_grid2dof_new)
 
     @property
     def imag(me):
         FF_new = [F.imag for F in me.FF]
         return ProductConvolutionOperator(me.WW, FF_new,
-                                          me.input_ind_groups, me.output_ind_groups,
+                                          me.patch_cols, me.patch_rows,
                                           me.TT_dof2grid, me.TT_grid2dof)
 
 
@@ -345,7 +374,7 @@ def square_root_of_product_convolution_operator(PC):
     sqrt_FF = [convolution_square_root(F, positive_real_branch_cut=np.pi,
                                        negative_real_branch_cut=np.pi).real for F in PC.FF]
     sqrt_PC = ProductConvolutionOperator(PC.WW, sqrt_FF, PC.shape,
-                                         PC.input_ind_groups, PC.output_ind_groups,
+                                         PC.patch_cols, PC.patch_rows,
                                          PC.TT_dof2grid, PC.TT_grid2dof)
     return sqrt_PC
 
