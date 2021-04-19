@@ -279,17 +279,19 @@ class ProductConvolutionOperator:
 
         me.dtype = dtype_max([W.dtype for W in me.WW] + [F.dtype for F in me.FF])
 
-        me.col_patches = [set() for _ in me.shape[0]]
-        for p in range(len(me.patch_cols)):
-            for col in me.patch_cols[p]:
-                me.col_patches[col].add(p)
-
-        me.row_patches = [set() for _ in me.shape[1]]
-        for p in range(len(me.patch_rows)):
+        print('precomputing which patches are relevant for each row')
+        me.row_patches = [set() for _ in range(me.shape[0])]
+        for p in tqdm(range(len(me.patch_rows))):
             for row in me.patch_rows[p]:
                 me.row_patches[row].add(p)
 
-    def get_scattered_entries(me, rows, cols):
+        print('precomputing which patches are relevant for each column')
+        me.col_patches = [set() for _ in range(me.shape[1])]
+        for p in tqdm(range(len(me.patch_cols))):
+            for col in me.patch_cols[p]:
+                me.col_patches[col].add(p)
+
+    def get_scattered_entries_slow(me, rows, cols):
         num_entries = len(rows)
         print('computing ' + str(num_entries) + ' entries')
         entries = np.zeros(num_entries, dtype=me.dtype)
@@ -304,6 +306,36 @@ class ProductConvolutionOperator:
                     entries[k] += me.WW[p](x) * me.FF[p](y - x)
         return entries
 
+    def get_scattered_entries(me, rows, cols):
+        num_entries = len(rows)
+
+        print('determining which patches are relevant for each row and column')
+        kk_per_patch = [list() for _ in range(me.num_patches)]
+        xx_per_patch = [list() for _ in range(me.num_patches)]
+        yy_per_patch = [list() for _ in range(me.num_patches)]
+        for k in tqdm(range(num_entries)):
+            row = rows[k]
+            col = cols[k]
+            patches = me.col_patches[col].intersection(me.row_patches[row])
+            if patches:
+                x = me.col_coords[col, :]
+                y = me.row_coords[row, :]
+                for p in patches:
+                    kk_per_patch[p].append(k)
+                    xx_per_patch[p].append(x)
+                    yy_per_patch[p].append(y)
+
+        print('computing ' + str(num_entries) + ' matrix entries')
+        entries = np.zeros(num_entries, dtype=me.dtype)
+        for p in tqdm(range(me.num_patches)):
+            kk = kk_per_patch[p]
+            if kk:
+                kk = np.array(kk)
+                xx = np.array(xx_per_patch[p])
+                yy = np.array(yy_per_patch[p])
+                entries[kk] += me.WW[p](xx) * me.FF[p](yy - xx)
+
+        return entries
 
 
     def matvec(me, u):
