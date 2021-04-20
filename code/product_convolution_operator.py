@@ -198,23 +198,23 @@ def form_product_convolution_operator_from_patches(WW, FF, V_in, V_out):
     shape = (V_out.dim(), V_in.dim())
 
     print('constructing patch transfer matrices')
-    input_ind_groups = list()
-    TT_dof2grid = list()
-    output_ind_groups = list()
-    TT_grid2dof = list()
+    patch_cols = list()
+    TT_dof2patch = list()
+    patch_rows = list()
+    TT_patch2dof = list()
     for k in tqdm(range(len(WW))):
-        T_dof2grid, input_dof_inds = make_dofs2grid_transfer_matrix(WW[k], V_in)
-        input_ind_groups.append(input_dof_inds)
-        TT_dof2grid.append(T_dof2grid)
+        T_dof2patch, col_dof_inds = make_dofs2patch_transfer_matrix(WW[k], V_in)
+        patch_cols.append(col_dof_inds)
+        TT_dof2patch.append(T_dof2patch)
 
-        T_grid2dof, output_dof_inds = make_grid2dofs_transfer_matrix(WW[k], FF[k], V_out)
-        output_ind_groups.append(output_dof_inds)
-        TT_grid2dof.append(T_grid2dof)
+        T_patch2dof, row_dof_inds = make_patch2dofs_transfer_matrix(WW[k], FF[k], V_out)
+        patch_rows.append(row_dof_inds)
+        TT_patch2dof.append(T_patch2dof)
 
     row_coords = V_out.tabulate_dof_coordinates()
     col_coords = V_in.tabulate_dof_coordinates()
-    return ProductConvolutionOperator(WW, FF, shape, input_ind_groups, output_ind_groups,
-                                      TT_dof2grid, TT_grid2dof, row_coords, col_coords)
+    return ProductConvolutionOperator(WW, FF, shape, patch_cols, patch_rows,
+                                      TT_dof2patch, TT_patch2dof, row_coords, col_coords)
 
 
 def convolution_support(F, G):
@@ -224,50 +224,63 @@ def convolution_support(F, G):
     return C_min, C_max, C_shape
 
 
-def make_grid2dofs_transfer_matrix(Wk, Fk, V_out):
+def make_patch2dofs_transfer_matrix(Wk, Fk, V_out):
     if np.linalg.norm(Wk.h - Fk.h) > 1e-10:
         raise RuntimeError('BoxFunctions have different spacings h')
 
     pp = V_out.tabulate_dof_coordinates()
 
     C_min, C_max, C_shape = convolution_support(Wk, Fk)
-    output_dof_inds = np.argwhere(point_is_in_box(pp, C_min, C_max)).reshape(-1)
-    T_grid2dof = multilinear_interpolation_matrix(pp[output_dof_inds, :], C_min, C_max, C_shape)
-    return T_grid2dof, output_dof_inds
+    dof_inds = np.argwhere(point_is_in_box(pp, C_min, C_max)).reshape(-1)
+    T_patch2dof = multilinear_interpolation_matrix(pp[dof_inds, :], C_min, C_max, C_shape)
+    return T_patch2dof, dof_inds
 
 
-def make_dofs2grid_transfer_matrix(Wk, V_in):
-    T_dof2grid, input_dof_inds = pointwise_observation_matrix(Wk.gridpoints, V_in, nonzero_columns_only=True)
-    return T_dof2grid, input_dof_inds
+def make_dofs2patch_transfer_matrix(Wk, V_in):
+    T_dof2patch, dof_inds = pointwise_observation_matrix(Wk.gridpoints, V_in, nonzero_columns_only=True)
+    return T_dof2patch, dof_inds
 
 
 class ProductConvolutionOperator:
-    def __init__(me, WW, FF, shape, patch_cols, patch_rows, TT_dof2grid, TT_grid2dof, row_coords, col_coords):
-        # WW: weighting functions (a length-k list of BoxFunctions)
-        # FF: convolution kernels (a length-k list of BoxFunctions)
-        # shape: shape of the operator. tuple. shape=(num_rows, num_cols)
-        #
-        # patch_cols: length-k list of arrays of indices for dofs that contribute to each convolution input
-        #     u[patch_cols[k]] = dof values from u that are relevant to WW[k]
-        #
-        # patch_rows: length-k list of arrays of indices for dofs that are affected by each convolution output
-        #     v[patch_rows[k]] = dof values from v that are affected to boxconv(FF[k], WW[k])
-        #
-        # TT_dof2grid: list of sparse dof-to-grid transfer matrices.
-        #     U = (TT_dof2grid[k] * u[input_ind_groups[k]]).reshape(WW[k].shape)
-        #     u is vector of function values at dof locations, u.shape=(num_pts,)
-        #     U is array of function values on weighting function grid, U.shape=WW[k].shape
-        #
-        # TT_grid2dof: list of sparse grid-to-dof transfer matrices.
-        #     q[output_ind_groups[k]] = TT_dof2grid[k] * Q.reshape(-1)
-        #     q is vector of function values at dof locations, q.shape=(num_pts,)
-        #     Q is array of function values on convolution grid, Q.shape=boxconv(FF[k], WW[k]).shape
+    def __init__(me, WW, FF, shape, patch_cols, patch_rows, TT_dof2patch, TT_patch2dof, row_coords, col_coords):
+        '''Product-convolution operator with weighting functions
+        and convolution kernels defined on regular grid patches
+
+        Parameters
+        ----------
+        WW : list of BoxFunctions, len(WW)=num_patches
+            weighting functions for each patch
+        FF : list of BoxFunctions, len(FF)=num_patches
+            convolution kernels for each patch (zero-centered)
+        shape : tuple
+            shape of the operator. shape=(num_rows, num_cols)
+        patch_cols : list of numpy arrays, len(patch_cols)=num_patches, patch_cols[k].dtype=int
+            list of arrays of potentially nonzero columns associated with each patch
+        patch_rows : list of numpy arrays, len(patch_rows)=num_patches, patch_rows[k].dtype=int
+            list of arrays of potentially nonzero rows associated with each patch
+        TT_dof2patch : list of scipy.sparse.csr_matrix, len(TT_dof2patch)=num_patches
+            list of dof_vector-to-patch transfer matrices
+            U = (TT_dof2patch[k] * u[patch_rows[k]]).reshape(WW[k].shape)
+            u is vector of function values at dof locations, u.shape=(num_rows,)
+            U is array of function values on weighting function patch grid, U.shape=WW[k].shape
+        TT_patch2dof : list of scipy.sparse.csr_matrix, len(TT_patch2dof)=num_patches
+            list of patch-to-dof_vector transfer matrices
+            let q be a vector of function values at dof locations, q.shape=(num_cols,)
+            q[output_ind_groups[k]] = TT_dof2grid[k] * Q.reshape(-1)
+            Q is array of function values on convolution patch grid, Q.shape=boxconv(FF[k], WW[k]).shape
+        row_coords : numpy array, row_coords.shape=(num_rows,d), d=spatial dimension
+            coordinates for row dof locations
+            row_coords[k,:] is the point in R^d associated with the k'th row of the operator
+        col_coords : numpy array, row_coords.shape=(num_rows,d), d=spatial dimension
+            coordinates for column dof locations
+            col_coords[k,:] is the point in R^d associated with the k'th column of the operator
+        '''
         me.WW = WW
         me.FF = FF
         me.patch_cols = patch_cols
         me.patch_rows = patch_rows
-        me.TT_dof2grid = TT_dof2grid
-        me.TT_grid2dof = TT_grid2dof
+        me.TT_dof2grid = TT_dof2patch
+        me.TT_grid2dof = TT_patch2dof
         me.row_coords = row_coords
         me.col_coords = col_coords
 
@@ -296,7 +309,6 @@ class ProductConvolutionOperator:
         print('computing ' + str(num_entries) + ' entries')
         entries = np.zeros(num_entries, dtype=me.dtype)
         for k in tqdm(range(num_entries)):
-        # for k in range(num_entries):
             row = rows[k]
             col = cols[k]
             patches = me.col_patches[col].intersection(me.row_patches[row])
