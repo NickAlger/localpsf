@@ -348,11 +348,9 @@ class ProductConvolutionOperator:
         yy_per_patch = [list() for _ in range(me.num_patches)]
         xx_per_patch = [list() for _ in range(me.num_patches)]
 
-        unique_jj_per_patch = [list() for _ in range(me.num_patches)]
-        unique_jj_inverse_per_patch = [list() for _ in range(me.num_patches)]
         for jj in tqdm(range(block_shape[1])):
             col = block_cols[jj]
-            for ii in tqdm(range(block_shape[0])):
+            for ii in range(block_shape[0]):
                 row = block_rows[ii]
                 patches = me.col_patches[col].intersection(me.row_patches[row])
                 if patches:
@@ -364,8 +362,12 @@ class ProductConvolutionOperator:
                         xx_per_patch[p].append(x)
                         yy_per_patch[p].append(y)
 
-                        unique_jj_per_patch[p], unique_jj_inverse_per_patch[p] = \
-                            np.unique(jj, return_inverse=True)
+        print('computing unique columns')
+        unique_jj_per_patch = [list() for _ in range(me.num_patches)]
+        unique_jj_inverse_per_patch = [list() for _ in range(me.num_patches)]
+        for p in tqdm(range(me.num_patches)):
+            unique_jj_per_patch[p], unique_jj_inverse_per_patch[p] = \
+                np.unique(jj_per_patch[p], return_inverse=True)
 
         print('computing ' + str(block_shape[0]) + ' x ' + str(block_shape[1]) + ' matrix block')
         entries = np.zeros(block_shape, dtype=me.dtype)
@@ -379,7 +381,10 @@ class ProductConvolutionOperator:
                 xx = np.array(xx_per_patch[p])
                 yy = np.array(yy_per_patch[p])
 
-                entries[ii,jj] += me.WW[p](xx[unique_jj,:])[unique_jj_inverse] * me.FF[p](yy - xx)
+                Wp = me.WW[p](me.col_coords[block_cols[unique_jj],:])[unique_jj_inverse]
+                Fp = me.FF[p](yy - xx)
+
+                entries[ii,jj] += Wp * Fp
 
         return entries
 
