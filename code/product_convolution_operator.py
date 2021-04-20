@@ -197,16 +197,18 @@ def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, w_
 def form_product_convolution_operator_from_patches(WW, FF, V_in, V_out):
     shape = (V_out.dim(), V_in.dim())
 
-    print('constructing patch transfer matrices')
+    print('constructing dofs2patch transfer matrices')
     patch_cols = list()
     TT_dof2patch = list()
-    patch_rows = list()
-    TT_patch2dof = list()
     for k in tqdm(range(len(WW))):
         T_dof2patch, col_dof_inds = make_dofs2patch_transfer_matrix(WW[k], V_in)
         patch_cols.append(col_dof_inds)
         TT_dof2patch.append(T_dof2patch)
 
+    print('constructing patch2dofs transfer matrices')
+    patch_rows = list()
+    TT_patch2dof = list()
+    for k in tqdm(range(len(WW))):
         T_patch2dof, row_dof_inds = make_patch2dofs_transfer_matrix(WW[k], FF[k], V_out)
         patch_rows.append(row_dof_inds)
         TT_patch2dof.append(T_patch2dof)
