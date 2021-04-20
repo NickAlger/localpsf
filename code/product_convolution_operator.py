@@ -337,16 +337,24 @@ class ProductConvolutionOperator:
 
         return entries
 
+    def get_block(me, block_rows, block_cols, col_batch_size=500):
+        block_shape = (len(block_rows), len(block_cols))
+        entries = list()
+        start = 0
+        while start < block_shape[1]:
+            stop = np.min(start + col_batch_size, block_shape[1])
+            cols_batch = block_cols[start:stop]
+            print('getting rows ' + str(start) + ' : ' + str(stop))
+            entries.append(me._get_block(block_rows, cols_batch))
+        entries = np.hstack(entries)
+        return entries
 
-    def get_block(me, block_rows, block_cols):
+    def _get_block(me, block_rows, block_cols):
         block_shape = (len(block_rows), len(block_cols))
 
         print('determining which patches are relevant for each (row,column) pair')
         ii_per_patch = [list() for _ in range(me.num_patches)]
         jj_per_patch = [list() for _ in range(me.num_patches)]
-
-        # yy_per_patch = [list() for _ in range(me.num_patches)]
-        # xx_per_patch = [list() for _ in range(me.num_patches)]
 
         for jj in tqdm(range(block_shape[1])):
             col = block_cols[jj]
@@ -354,13 +362,9 @@ class ProductConvolutionOperator:
                 row = block_rows[ii]
                 patches = me.col_patches[col].intersection(me.row_patches[row])
                 if patches:
-                    # x = me.col_coords[col, :]
-                    # y = me.row_coords[row, :]
                     for p in patches:
                         ii_per_patch[p].append(ii)
                         jj_per_patch[p].append(jj)
-                        # xx_per_patch[p].append(x)
-                        # yy_per_patch[p].append(y)
 
         print('computing unique columns')
         unique_jj_per_patch = [list() for _ in range(me.num_patches)]
@@ -374,15 +378,13 @@ class ProductConvolutionOperator:
         for p in tqdm(range(me.num_patches)):
             ii = ii_per_patch[p]
             if ii:
-                ii = np.array(ii)
-                jj = np.array(jj_per_patch[p])
+                # ii = np.array(ii)
+                # jj = np.array(jj_per_patch[p])
+                jj = jj_per_patch[p]
                 unique_jj = unique_jj_per_patch[p]
                 unique_jj_inverse = unique_jj_inverse_per_patch[p]
-                # xx = np.array(xx_per_patch[p])
-                # yy = np.array(yy_per_patch[p])
 
                 Wp = me.WW[p](me.col_coords[block_cols[unique_jj],:])[unique_jj_inverse]
-                # Fp = me.FF[p](yy - xx)
                 Fp = me.FF[p](me.row_coords[block_rows[ii],:] - me.col_coords[block_cols[jj],:])
 
                 entries[ii,jj] += Wp * Fp
