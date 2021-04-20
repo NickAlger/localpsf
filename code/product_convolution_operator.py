@@ -296,6 +296,7 @@ class ProductConvolutionOperator:
         print('computing ' + str(num_entries) + ' entries')
         entries = np.zeros(num_entries, dtype=me.dtype)
         for k in tqdm(range(num_entries)):
+        # for k in range(num_entries):
             row = rows[k]
             col = cols[k]
             patches = me.col_patches[col].intersection(me.row_patches[row])
@@ -309,54 +310,63 @@ class ProductConvolutionOperator:
     def get_scattered_entries(me, rows, cols):
         num_entries = len(rows)
 
-        print('determining which patches are relevant for each (row,column) pair')
-        kk_per_patch = [list() for _ in range(me.num_patches)]
-        xx_per_patch = [list() for _ in range(me.num_patches)]
-        yy_per_patch = [list() for _ in range(me.num_patches)]
-        for k in tqdm(range(num_entries)):
+        # print('determining which patches are relevant for each (row,column) pair')
+        kk_per_patch = [list() for _ in range(me.num_patches)] # index into entries
+        # xx_per_patch = [list() for _ in range(me.num_patches)]
+        # yy_per_patch = [list() for _ in range(me.num_patches)]
+        # for k in tqdm(range(num_entries)):
+        for k in range(num_entries):
             row = rows[k]
             col = cols[k]
             patches = me.col_patches[col].intersection(me.row_patches[row])
             if patches:
-                x = me.col_coords[col, :]
-                y = me.row_coords[row, :]
+                # x = me.col_coords[col, :]
+                # y = me.row_coords[row, :]
                 for p in patches:
                     kk_per_patch[p].append(k)
-                    xx_per_patch[p].append(x)
-                    yy_per_patch[p].append(y)
+                    # xx_per_patch[p].append(x)
+                    # yy_per_patch[p].append(y)
 
-        print('computing ' + str(num_entries) + ' matrix entries')
+        # print('computing ' + str(num_entries) + ' matrix entries')
         entries = np.zeros(num_entries, dtype=me.dtype)
-        for p in tqdm(range(me.num_patches)):
+        # for p in tqdm(range(me.num_patches)):
+        for p in range(me.num_patches):
             kk = kk_per_patch[p]
             if kk:
-                kk = np.array(kk)
-                xx = np.array(xx_per_patch[p])
-                yy = np.array(yy_per_patch[p])
+                # kk = np.array(kk)
+                xx = me.col_coords[cols[kk], :]
+                yy = me.row_coords[rows[kk], :]
+                # xx = np.array(xx_per_patch[p])
+                # yy = np.array(yy_per_patch[p])
                 entries[kk] += me.WW[p](xx) * me.FF[p](yy - xx)
 
         return entries
 
-    def get_block(me, block_rows, block_cols, col_batch_size=500):
+    def get_block(me, block_rows, block_cols, entries_per_batch=int(1e6)):
         block_shape = (len(block_rows), len(block_cols))
+        print('computing ' + str(block_shape[0]) + ' x ' + str(block_shape[1]) + ' matrix block')
+        col_batch_size = int(np.ceil(entries_per_batch / block_shape[1]))
         entries = list()
-        start = 0
-        while start < block_shape[1]:
-            stop = np.min(start + col_batch_size, block_shape[1])
+        starts = range(0,block_shape[1], col_batch_size)
+        # start = 0
+        # while start < block_shape[1]:
+        for start in tqdm(starts):
+            stop = np.min([start + col_batch_size, block_shape[1]])
             cols_batch = block_cols[start:stop]
-            print('getting rows ' + str(start) + ' : ' + str(stop))
             entries.append(me._get_block(block_rows, cols_batch))
+            # start = stop
         entries = np.hstack(entries)
         return entries
 
     def _get_block(me, block_rows, block_cols):
         block_shape = (len(block_rows), len(block_cols))
 
-        print('determining which patches are relevant for each (row,column) pair')
+        # print('determining which patches are relevant for each (row,column) pair')
         ii_per_patch = [list() for _ in range(me.num_patches)]
         jj_per_patch = [list() for _ in range(me.num_patches)]
 
-        for jj in tqdm(range(block_shape[1])):
+        # for jj in tqdm(range(block_shape[1])):
+        for jj in range(block_shape[1]):
             col = block_cols[jj]
             for ii in range(block_shape[0]):
                 row = block_rows[ii]
@@ -366,16 +376,18 @@ class ProductConvolutionOperator:
                         ii_per_patch[p].append(ii)
                         jj_per_patch[p].append(jj)
 
-        print('computing unique columns')
+        # print('computing unique columns')
         unique_jj_per_patch = [list() for _ in range(me.num_patches)]
         unique_jj_inverse_per_patch = [list() for _ in range(me.num_patches)]
-        for p in tqdm(range(me.num_patches)):
+        # for p in tqdm(range(me.num_patches)):
+        for p in range(me.num_patches):
             unique_jj_per_patch[p], unique_jj_inverse_per_patch[p] = \
                 np.unique(jj_per_patch[p], return_inverse=True)
 
-        print('computing ' + str(block_shape[0]) + ' x ' + str(block_shape[1]) + ' matrix block')
+        # print('computing ' + str(block_shape[0]) + ' x ' + str(block_shape[1]) + ' matrix block')
         entries = np.zeros(block_shape, dtype=me.dtype)
-        for p in tqdm(range(me.num_patches)):
+        # for p in tqdm(range(me.num_patches)):
+        for p in range(me.num_patches):
             ii = ii_per_patch[p]
             if ii:
                 # ii = np.array(ii)
