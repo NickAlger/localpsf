@@ -345,8 +345,8 @@ class ProductConvolutionOperator:
         ii_per_patch = [list() for _ in range(me.num_patches)]
         jj_per_patch = [list() for _ in range(me.num_patches)]
 
-        yy_per_patch = [list() for _ in range(me.num_patches)]
-        xx_per_patch = [list() for _ in range(me.num_patches)]
+        # yy_per_patch = [list() for _ in range(me.num_patches)]
+        # xx_per_patch = [list() for _ in range(me.num_patches)]
 
         for jj in tqdm(range(block_shape[1])):
             col = block_cols[jj]
@@ -354,13 +354,13 @@ class ProductConvolutionOperator:
                 row = block_rows[ii]
                 patches = me.col_patches[col].intersection(me.row_patches[row])
                 if patches:
-                    x = me.col_coords[col, :]
-                    y = me.row_coords[row, :]
+                    # x = me.col_coords[col, :]
+                    # y = me.row_coords[row, :]
                     for p in patches:
                         ii_per_patch[p].append(ii)
                         jj_per_patch[p].append(jj)
-                        xx_per_patch[p].append(x)
-                        yy_per_patch[p].append(y)
+                        # xx_per_patch[p].append(x)
+                        # yy_per_patch[p].append(y)
 
         print('computing unique columns')
         unique_jj_per_patch = [list() for _ in range(me.num_patches)]
@@ -378,11 +378,12 @@ class ProductConvolutionOperator:
                 jj = np.array(jj_per_patch[p])
                 unique_jj = unique_jj_per_patch[p]
                 unique_jj_inverse = unique_jj_inverse_per_patch[p]
-                xx = np.array(xx_per_patch[p])
-                yy = np.array(yy_per_patch[p])
+                # xx = np.array(xx_per_patch[p])
+                # yy = np.array(yy_per_patch[p])
 
                 Wp = me.WW[p](me.col_coords[block_cols[unique_jj],:])[unique_jj_inverse]
-                Fp = me.FF[p](yy - xx)
+                # Fp = me.FF[p](yy - xx)
+                Fp = me.FF[p](me.row_coords[block_rows[ii],:] - me.col_coords[block_cols[jj],:])
 
                 entries[ii,jj] += Wp * Fp
 
