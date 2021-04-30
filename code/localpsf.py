@@ -8,7 +8,7 @@ from eval_product_convolution import BatchProductConvolution
 from make_fenics_amg_solver import make_fenics_amg_solver
 from mass_matrix import make_mass_matrix
 from fenics_function_fast_grid_evaluator import FenicsFunctionFastGridEvaluator
-import hlibpro_wrapper as hpro
+import hlibpro_python_wrapper as hpro
 import scipy.sparse as sps
 
 from time import time
