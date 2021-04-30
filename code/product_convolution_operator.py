@@ -4,16 +4,286 @@ from scipy.interpolate import interpn
 from tqdm.auto import tqdm
 
 from nalger_helper_functions import *
+import hlibpro_python_wrapper as hpro
 
 
-def build_product_convolution_patches(ww, ff_batches, pp, all_mu, all_Sigma, tau, batch_lengths,
-                                      grid_density_multiplier=1.0, w_support_rtol=2e-2,
-                                      num_f_extension_kernels=8):
-    pass
+def build_product_convolution_hmatrix_from_fenics_functions(ww, ff_batches, batch_lengths, pp,
+                                                            all_mu, all_Sigma, tau,
+                                                            V_out=None,
+                                                            grid_density_multiplier=1.0,
+                                                            w_support_rtol=2e-2,
+                                                            num_extension_kernels=8,
+                                                            block_cluster_tree=None,
+                                                            hmatrix_tol=1e-6,
+                                                            bct_admissibility_eta=2.0,
+                                                            cluster_size_cutoff=50,
+                                                            use_boundary_extension=True,
+                                                            return_extras=False):
+    '''Builds hierarchical matrix representation of product convolution operator
+    with given weighting functions and impulse response batches
+
+    Parameters
+    ----------
+    ww : list of fenics Functions, len(ww)=num_pts
+        weighting functions
+    ff_batches : list of fenics Functions, len(ff)=num_batches
+        impulse response function batches
+    batch_lengths : list of ints, len(batch_lengths)=num_batches
+        number of impulse responses in each batch.
+        E.g., if batch_lengths=[3,5,4], then
+        ff_batches[0] contains the first 3 impulse responses,
+        ff_batches[1] contains the next 5 impulse responses,
+        ff_batches[2] contains the last 4 impulse responses
+    pp : numpy array, pp.shape=(num_pts,d)
+        sample points
+        pp[k,:] is the k'th sample point
+    all_mu : numpy array, all_mu.shape=(num_pts,d)
+        impulse response means
+        all_mu[k,:] is the mean of the k'th impulse response
+    all_Sigma : numpy array, all_Sigma.shape=(num_pts,d,d)
+        impulse response covariance matrices
+        all_Sigma[k,:,:] is the covariance matrix for the k'th impulse response
+    tau : nonnegative float
+        impulse response ellipsoid size parameter
+        k'th ellipsoid = {x: (x-mu[k,:])^T Sigma[k,:,:]^{-1} (x-mu[k,:]) <= tau}
+        support of k'th impulse response should be contained inside k'th ellipsoid
+    V_out : fenics FunctionSpace
+        function space for output of product-convolution operator.
+        If V_out is None (default), then the input FunctionSpace (inferred from weighting functions)
+        is also used for the output
+    grid_density_multiplier : nonnegative float
+        grid density scaling factor
+        If grid_density_multiplier=1.0, then the spacing between gridpoints
+        in a given BoxFunction equals the minimum distance between mesh nodes in the box.
+        If grid_density_multiplier=0.5, then the spacing between gridpoints
+        in a given BoxFunction equals one half the minimum distance between mesh nodes in the box.
+    w_support_rtol : nonnegative float
+        truncation tolerance determining how big the support boxes are for the weighting functions.
+        If w_support_rtol=2e-2, then values of w outside the box will be no more than 2% of the maximum
+        value of w.
+    num_extension_kernels : positive int
+        number of initial impulse responses used to fill in the missing information for each impulse response
+        E.g., if num_extension_kernels=8, then a given filled in impulse response will contain information
+        from itself, and the 7 other nearest impulse responses.
+    block_cluster_tree : BlockClusterTree.
+        Block cluster tree for H-matrix.
+        None (Default): build block cluster tree from scratch
+    hmatrix_tol : nonnegative float. Accuracy tolerance for H-matrix
+    bct_admissibility_eta : nonnegative float. Admissibility tolerance for block cluster tree.
+        Only used of block_cluster_tree is not supplied
+        A block of the matrix is admissible (low rank) if:
+            distance(A, B) <= eta * min(diameter(A), diameter(B))
+        where A is the cluster of points associated with the rows of the block, and
+              B is the cluster of points associated with the columns of the block.
+    cluster_size_cutoff : positive int. number of points below which clusters are not subdivided.
+    use_boundary_extension : bool. True:
+        fill in convolution kernel missing values using neighboring convolution kernels
+    return_extras
+
+    Returns
+    -------
+    A_hmatrix : HMatrix. hierarchical matrix representation of product-convolution operator
+    WW : list of BoxFunctions. Weighting functions for each patch
+    FF : list of BoxFunctions. Convolution kernels for each patch (with extension if done)
+    initial_FF : list of BoxFunctions. Convolution kernels for each patch without extension
+
+    '''
+    if use_boundary_extension:
+        kernel_fill_value=np.nan
+    else:
+        kernel_fill_value = 0.0
+
+    WW, initial_FF = \
+        build_product_convolution_patches_from_fenics_functions(ww, ff_batches, pp,
+                                                                all_mu, all_Sigma, tau,
+                                                                batch_lengths,
+                                                                grid_density_multiplier=grid_density_multiplier,
+                                                                w_support_rtol=w_support_rtol,
+                                                                fill_value=kernel_fill_value)
+
+    if use_boundary_extension:
+        FF = compute_convolution_kernel_boundary_extensions(initial_FF, pp,
+                                                            num_extension_kernels=num_extension_kernels)
+    else:
+        FF = initial_FF
+
+    V_in = ww[0].function_space()
+    row_dof_coords = V_in.tabulate_dof_coordinates()
+    if V_out is not None:
+        col_dof_coords = V_out.tabulate_dof_coordinates()
+    else:
+        col_dof_coords = row_dof_coords
+
+    A_hmatrix = build_product_convolution_hmatrix_from_patches(WW, FF, row_dof_coords, col_dof_coords,
+                                                               block_cluster_tree=block_cluster_tree,
+                                                               tol=hmatrix_tol,
+                                                               admissibility_eta=bct_admissibility_eta,
+                                                               cluster_size_cutoff=cluster_size_cutoff)
+
+    if return_extras:
+        return A_hmatrix, WW, FF, initial_FF
+    else:
+        return A_hmatrix
+
+
+
+def build_product_convolution_hmatrix_from_patches(WW, FF, row_dof_coords, col_dof_coords,
+                                                   block_cluster_tree=None, tol=1e-6,
+                                                   admissibility_eta=2.0, cluster_size_cutoff=50):
+    '''Build H-Matrix for product-convolution operator based on rectangular patches
+
+    Parameters
+    ----------
+    WW : list of BoxFunctions. len=num_patches. W0eighting functions
+    FF : list of BoxFunctions. len=num_patches. Convolution kernels
+    row_dof_coords : numpy array. shape=(num_points, spatial_dimension). spatial locations of row degrees of freedom
+    col_dof_coords : numpy array. shape=(num_points, spatial_dimension). spatial locations of column degrees of freedom
+    block_cluster_tree : BlockClusterTree. Block cluster tree for H-matrix. None (Default): build block cluster tree from scratch
+    tol : nonnegative float. Accuracy tolerance for H-matrix
+    admissibility_eta : nonnegative float. Admissibility tolerance for block cluster tree.
+        Only used of block_cluster_tree is not supplied
+        A block of the matrix is admissible (low rank) if:
+            distance(A, B) <= eta * min(diameter(A), diameter(B))
+        where A is the cluster of points associated with the rows of the block, and
+              B is the cluster of points associated with the columns of the block.
+    cluster_size_cutoff : positive int. number of points below which clusters are not subdivided.
+
+    Returns
+    -------
+    A_hmatrix : HMatrix
+
+    '''
+    WW_mins = [W.min for W in WW]
+    WW_maxes = [W.max for W in WW]
+    WW_arrays = [W.array for W in WW]
+
+    FF_mins = [F.min for F in FF]
+    FF_maxes = [F.max for F in FF]
+    FF_arrays = [F.array for F in FF]
+
+    if block_cluster_tree is None:
+        print('Building cluster trees and block cluster tree')
+        row_ct = hpro.build_cluster_tree_from_pointcloud(row_dof_coords, cluster_size_cutoff=cluster_size_cutoff)
+        col_ct = hpro.build_cluster_tree_from_pointcloud(col_dof_coords, cluster_size_cutoff=cluster_size_cutoff)
+        block_cluster_tree = hpro.build_block_cluster_tree(row_ct, col_ct, admissibility_eta=admissibility_eta)
+
+    print('Building product convolution hmatrix from patches')
+    A_hmatrix = hpro.build_product_convolution_hmatrix_2d(WW_mins, WW_maxes, WW_arrays,
+                                                          FF_mins, FF_maxes, FF_arrays,
+                                                          row_dof_coords, col_dof_coords,
+                                                          block_cluster_tree, tol=tol)
+
+    return A_hmatrix
+
+
+def build_product_convolution_patches_from_fenics_functions(ww, ff_batches, pp,
+                                                            all_mu, all_Sigma, tau,
+                                                            batch_lengths,
+                                                            grid_density_multiplier=1.0,
+                                                            w_support_rtol=2e-2,
+                                                            fill_value=np.nan):
+    '''Constructs weighting function and convolution kernel BoxFunctions
+    by sampling fenics weighting functions and impulse response batches on regular grids
+
+    Parameters
+    ----------
+    ww : list of fenics Functions, len(ww)=num_pts
+        weighting functions
+    ff_batches : list of fenics Functions, len(ff)=num_batches
+        impulse response function batches
+    pp : numpy array, pp.shape=(num_pts,d)
+        sample points
+        pp[k,:] is the k'th sample point
+    all_mu : numpy array, all_mu.shape=(num_pts,d)
+        impulse response means
+        all_mu[k,:] is the mean of the k'th impulse response
+    all_Sigma : numpy array, all_Sigma.shape=(num_pts,d,d)
+        impulse response covariance matrices
+        all_Sigma[k,:,:] is the covariance matrix for the k'th impulse response
+    tau : nonnegative float
+        impulse response ellipsoid size parameter
+        k'th ellipsoid = {x: (x-mu[k,:])^T Sigma[k,:,:]^{-1} (x-mu[k,:]) <= tau}
+        support of k'th impulse response should be contained inside k'th ellipsoid
+    batch_lengths : list of ints, len(batch_lengths)=num_batches
+        number of impulse responses in each batch.
+        E.g., if batch_lengths=[3,5,4], then
+        ff_batches[0] contains the first 3 impulse responses,
+        ff_batches[1] contains the next 5 impulse responses,
+        ff_batches[2] contains the last 4 impulse responses,
+    grid_density_multiplier : nonnegative float
+        grid density scaling factor
+        If grid_density_multiplier=1.0, then the spacing between gridpoints
+        in a given BoxFunction equals the minimum distance between mesh nodes in the box.
+        If grid_density_multiplier=0.5, then the spacing between gridpoints
+        in a given BoxFunction equals one half the minimum distance between mesh nodes in the box.
+    w_support_rtol : nonnegative float
+        truncation tolerance determining how big the support boxes are for the weighting functions.
+        If w_support_rtol=2e-2, then values of w outside the box will be no more than 2% of the maximum
+        value of w.
+    fill_value : float or numpy float. Default: np.nan
+        Value to fill in missing convolution kernel information due to domain truncation.
+
+    Returns
+    -------
+    WW : list of BoxFunctions. Weighting functions for each patch
+    FF : list of BoxFunctions. Convolution kernels for each patch
+    '''
+    num_pts, d = pp.shape
+
+    print('Forming weighting function patches and (un-extended) convolution kernel patches')
+    WW = list()
+    FF = list()
+    for ii in tqdm(range(num_pts)):
+        b, k = ind2sub_batches(ii, batch_lengths)
+        W, F = get_W_and_initial_F(ww[ii], ff_batches[b], pp[ii,:], all_mu[ii,:], all_Sigma[ii,:,:], tau,
+                                   grid_density_multiplier=grid_density_multiplier, w_support_rtol=w_support_rtol)
+        WW.append(W)
+
+        F.array[np.isnan(F.array)] = fill_value
+        FF.append(F)
+
+    return WW, FF
+
+
+def compute_convolution_kernel_boundary_extensions(initial_FF, pp, num_extension_kernels):
+    '''Fill in missing values in convolution kernels using neighboring kernels
+
+    Parameters
+    ----------
+    initial_FF : list of BoxFunctions. len=num_kernels. Convolution kernels
+    pp : numpy array. shape=(num_kernels, spatial_dimension). Sample points
+    num_extension_kernels : number of neighboring kernels used to fill in missing values
+
+    Returns
+    -------
+    FF : list of BoxFunctions. len=num_kernels. Convolution kernels with missing values filled in
+
+    '''
+    num_pts, d = pp.shape
+    num_extension_kernels = np.min([num_extension_kernels, num_pts])
+
+    print('Filling in missing kernel entries using neighboring kernels')
+    pp_cKDTree = cKDTree(pp)
+    FF = list()
+    for ii in tqdm(range(num_pts)):
+        _, neighbor_inds = pp_cKDTree.query(pp[ii, :], num_extension_kernels)
+        neighbor_inds = list(neighbor_inds.reshape(-1))
+        pp_nbrs = pp[neighbor_inds, :]
+        FF_nbrs = [initial_FF[jj] for jj in neighbor_inds]
+
+        if np.any(np.isnan(initial_FF[ii].array)):
+            filled_in_F = fill_in_missing_kernel_values_using_other_kernels(FF_nbrs, pp_nbrs)
+        else:
+            filled_in_F = initial_FF[ii]
+
+        FF.append(filled_in_F)
+
+    return FF
+
 
 def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp, all_mu, all_Sigma, tau, batch_lengths,
                                                              grid_density_multiplier=1.0, w_support_rtol=2e-2,
-                                                             num_f_extension_kernels=8, V_out=None):
+                                                             num_extension_kernels=8, V_out=None):
     '''Constructs a ProductConvolutionOperator from fenics weighting functions and impulse response batches
 
     Parameters
@@ -54,9 +324,9 @@ def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp,
     V_out : fenics FunctionSpace
         function space for output of product-convolution operator.
         If V_out is None, then the input FunctionSpace is also used for the output
-    num_f_extension_kernels : positive int
+    num_extension_kernels : positive int
         number of initial impulse responses used to fill in the missing information for each impulse response
-        E.g., if num_f_extension_kernels=8, then a given filled in impulse response will contain information
+        E.g., if num_extension_kernels=8, then a given filled in impulse response will contain information
         from itself, and the 7 other nearest impulse responses.
 
     Returns
@@ -64,41 +334,13 @@ def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp,
     PC : ProductConvolutionOperator
     '''
     num_pts, d = pp.shape
-    num_f_extension_kernels = np.min([num_f_extension_kernels,  num_pts])
+    num_extension_kernels = np.min([num_extension_kernels, num_pts])
 
-    print('Forming weighting function patches and initial kernel patches')
-    WW = list()
-    initial_FF = list()
-    for ii in tqdm(range(num_pts)):
-        b, k = ind2sub_batches(ii, batch_lengths)
-        W, F = get_W_and_initial_F(ww[ii], ff_batches[b], pp[ii,:], all_mu[ii,:], all_Sigma[ii,:,:], tau,
-                                   grid_density_multiplier=grid_density_multiplier, w_support_rtol=w_support_rtol)
-        WW.append(W)
-        initial_FF.append(F)
+    WW, initial_FF = build_product_convolution_patches_from_fenics_functions(ww, ff_batches, pp, all_mu, all_Sigma, tau, batch_lengths,
+                                                                             grid_density_multiplier=grid_density_multiplier,
+                                                                             w_support_rtol=w_support_rtol, fill_value=np.nan)
 
-    print('Filling in missing kernel entries using neighboring kernels')
-    pp_cKDTree = cKDTree(pp)
-    FF = list()
-    for ii in tqdm(range(num_pts)):
-        _, neighbor_inds = pp_cKDTree.query(pp[ii, :], num_f_extension_kernels)
-        neighbor_inds = list(neighbor_inds.reshape(-1))
-        pp_nbrs = pp[neighbor_inds, :]
-        mu_nbrs = all_mu[neighbor_inds, :]
-        Sigma_nbrs = all_Sigma[neighbor_inds, :, :]
-        FF_nbrs = [initial_FF[jj] for jj in neighbor_inds]
-        ff_nbrs = list()
-        for jj in neighbor_inds:
-            b, k = ind2sub_batches(jj, batch_lengths)
-            ff_nbrs.append(ff_batches[b])
-
-        # if False:
-        if np.any(np.isnan(initial_FF[ii].array)):
-            filled_in_F = fill_in_missing_kernel_values_using_other_kernels(FF_nbrs, ff_nbrs, pp_nbrs,
-                                                                            mu_nbrs, Sigma_nbrs, tau)
-        else:
-            filled_in_F = initial_FF[ii]
-
-        FF.append(filled_in_F)
+    FF = compute_convolution_kernel_boundary_extensions(initial_FF, pp, num_extension_kernels)
 
     V_in = ww[0].function_space()
     if V_out is None:
@@ -107,7 +349,7 @@ def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp,
     return PC
 
 
-def fill_in_missing_kernel_values_using_other_kernels(FF, ff, pp, mus, Sigmas, tau):
+def fill_in_missing_kernel_values_using_other_kernels(FF, pp):
     num_kernels, d = pp.shape
     new_F_min0 = np.min([F.min for F in FF], axis=0)
     new_F_max0 = np.max([F.max for F in FF], axis=0)
