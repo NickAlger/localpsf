@@ -1,9 +1,15 @@
 import numpy as np
 from scipy.spatial import cKDTree
+from scipy.interpolate import interpn
 from tqdm.auto import tqdm
 
 from nalger_helper_functions import *
 
+
+def build_product_convolution_patches(ww, ff_batches, pp, all_mu, all_Sigma, tau, batch_lengths,
+                                      grid_density_multiplier=1.0, w_support_rtol=2e-2,
+                                      num_f_extension_kernels=8):
+    pass
 
 def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp, all_mu, all_Sigma, tau, batch_lengths,
                                                              grid_density_multiplier=1.0, w_support_rtol=2e-2,
@@ -85,8 +91,13 @@ def build_product_convolution_operator_from_fenics_functions(ww, ff_batches, pp,
             b, k = ind2sub_batches(jj, batch_lengths)
             ff_nbrs.append(ff_batches[b])
 
-        filled_in_F = fill_in_missing_kernel_values_using_other_kernels(FF_nbrs, ff_nbrs, pp_nbrs,
-                                                                        mu_nbrs, Sigma_nbrs, tau)
+        # if False:
+        if np.any(np.isnan(initial_FF[ii].array)):
+            filled_in_F = fill_in_missing_kernel_values_using_other_kernels(FF_nbrs, ff_nbrs, pp_nbrs,
+                                                                            mu_nbrs, Sigma_nbrs, tau)
+        else:
+            filled_in_F = initial_FF[ii]
+
         FF.append(filled_in_F)
 
     V_in = ww[0].function_space()
@@ -104,13 +115,17 @@ def fill_in_missing_kernel_values_using_other_kernels(FF, ff, pp, mus, Sigmas, t
 
     new_FF = list()
     for k in range(num_kernels):
-        new_Fk_array = eval_fenics_function_on_regular_grid(ff[k],
-                                                            new_F_min + pp[k,:],
-                                                            new_F_max + pp[k,:],
-                                                            new_F_shape, outside_mesh_fill_value=np.nan)
-        Fk = BoxFunction(new_F_min, new_F_max, new_Fk_array)
-        Ek = ellipsoid_characteristic_function(new_F_min, new_F_max, new_F_shape, mus[k,:]-pp[k,:], Sigmas[k,:,:], tau)
-        new_FF.append(Ek * Fk)
+        Fk = BoxFunction(new_F_min, new_F_max, np.zeros(new_F_shape))
+        Fk.array = FF[k](Fk.gridpoints, fill_value=np.nan).reshape(new_F_shape)
+        new_FF.append(Fk)
+
+        # new_Fk_array = eval_fenics_function_on_regular_grid(ff[k],
+        #                                                     new_F_min + pp[k,:],
+        #                                                     new_F_max + pp[k,:],
+        #                                                     new_F_shape, outside_mesh_fill_value=np.nan)
+        # Fk = BoxFunction(new_F_min, new_F_max, new_Fk_array)
+        # Ek = ellipsoid_characteristic_function(new_F_min, new_F_max, new_F_shape, mus[k,:]-pp[k,:], Sigmas[k,:,:], tau)
+        # new_FF.append(Ek * Fk)
 
     valid_mask_0 = np.logical_not(np.isnan(new_FF[0].array))
     cc = np.zeros(num_kernels)
