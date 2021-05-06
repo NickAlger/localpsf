@@ -1,12 +1,35 @@
 import numpy as np
 import dolfin as dl
 from numba import jit
+from tqdm.auto import tqdm
 
 from ellipsoid import points_which_are_not_in_ellipsoid_numba, ellipsoids_intersect
 from nalger_helper_functions import *
 
 
 def choose_sample_point_batches(num_batches, mu_function, Sigma_function, tau, max_candidate_points=None):
+    '''Chooses several batches of sample points. Uses a greedy algorithm to choose as many sample points as possible per patch,
+     under the constraint that that the supports of impulse responses for a given batch do not overlap.
+
+    Parameters
+    ----------
+    num_batches: nonnegative int. Number of sample point batches
+    mu_function: fenics Function. Vector-valued. spatially varying mean function
+    Sigma_function: fenics Function. Matrix-valued. spatially varying covariance function
+    tau: positive float. Number of standard deviations for ellipsoid.
+        ellipsoid = {x : (x-mu)^T Sigma^-1 (x-mu) <= tau^2}
+    max_candidate_points: (optional) positive int. Maximum number of candidate points to pick sample points points from.
+
+    Returns
+    -------
+    point_batches: list of numpy arrays. Batches of sample points
+        point_batches[b].shape=(num_sample_points_in_batch_b, spatial_dimension).
+    mu_batches: list of numpy arrays. Impulse response means at each sample point
+        mu_batches[b].shape=(num_sample_points_in_batch_b, spatial_dimension).
+    Sigma_batches: list of numpy arrays. Impulse response covariance matrices at each sample point
+        Sigma_batches[b].shape=(num_sample_points, spatial_dimension, spatial_dimension).
+
+    '''
     V = mu_function.function_space()
 
     dof_coords = V.tabulate_dof_coordinates()
@@ -21,7 +44,8 @@ def choose_sample_point_batches(num_batches, mu_function, Sigma_function, tau, m
     point_batches = list()
     mu_batches = list()
     Sigma_batches = list()
-    for b in range(num_batches):
+    print('Choosing sample point batches')
+    for b in tqdm(range(num_batches)):
         qq = dof_coords[candidate_inds, :]
         dd = np.inf * np.ones(len(candidate_inds))
         for pp in point_batches:
@@ -44,12 +68,7 @@ def choose_sample_point_batches(num_batches, mu_function, Sigma_function, tau, m
 
         candidate_inds = list(np.setdiff1d(candidate_inds, new_inds))
 
-    sample_points = np.vstack(point_batches)
-    sample_mu = np.vstack(mu_batches)
-    sample_Sigma = np.vstack(Sigma_batches)
-    batch_lengths = [pp.shape[0] for pp in point_batches]
-
-    return sample_points, sample_mu, sample_Sigma, batch_lengths
+    return point_batches, mu_batches, Sigma_batches
 
 
 @jit(nopython=True)
