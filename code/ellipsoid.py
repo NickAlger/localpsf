@@ -13,15 +13,29 @@ def points_which_are_not_in_ellipsoid_numba(Sigma, mu, pp, tau):
 
 @jit(nopython=True)
 def ellipsoids_intersect(Sigma_a, Sigma_b, mu_a, mu_b, tau):
-    lambdas, Phi = geigh_numpy(Sigma_a, Sigma_b)
-    v_squared = np.dot(Phi.T, mu_a - mu_b)**2
+    lambdas, Phi, v_squared = ellipsoids_intersect_helper(Sigma_a, Sigma_b, mu_a, mu_b)
     xmin, fval, iter, funcalls = brent_minimize(K_fct, 0., 1., args=(lambdas, v_squared, tau))
     return np.bool_(fval >= 0)
 
 
 @jit(nopython=True)
+def ellipsoids_intersect_helper(Sigma_a, Sigma_b, mu_a, mu_b):
+    lambdas, Phi = geigh_numpy(Sigma_a, Sigma_b)
+    v_squared = np.dot(Phi.T, mu_a - mu_b) ** 2
+    return lambdas, Phi, v_squared
+
+
+@jit(nopython=True)
 def K_fct(s, lambdas, v_squared, tau):
     return 1. - (1. / tau**2) * np.sum(v_squared * ((s * (1. - s)) / (1. + s * (lambdas - 1.))))
+
+
+@jit(nopython=True)
+def K_fct_vectorized(ss, lambdas, v_squared, tau):
+    KK = np.empty(len(ss))
+    for ii in range(len(ss)):
+        KK[ii] = K_fct(ss[ii], lambdas, v_squared, tau)
+    return KK
 
 
 @jit(nopython=True)

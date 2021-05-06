@@ -5,8 +5,12 @@ from numba import jit
 from ellipsoid import points_which_are_not_in_ellipsoid_numba, ellipsoids_intersect
 
 
+def choose_sample_points_batches(num_batches, mu_function, Sigma_function, tau, ):
+    pass
+
+
 @jit(nopython=True)
-def choose_sample_points_batch(mu, Sigma, num_standard_deviations_tau, candidate_inds, randomize=True):
+def choose_one_sample_points_batch(mu, Sigma, num_standard_deviations_tau, candidate_inds, randomize=True):
     N = len(candidate_inds)
     mu_candidates = mu[candidate_inds, :]
     Sigma_candidates = Sigma[candidate_inds, :, :]
