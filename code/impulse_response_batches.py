@@ -5,19 +5,22 @@ from tqdm.auto import tqdm
 from nalger_helper_functions import *
 
 
-def compute_impulse_response_batches(sample_point_batches, function_space_V,
-                                     apply_operator_A, solve_mass_matrix_M):
-    '''Computes impulse responses of operator A to Dirac combs associated with batches of points.
+def compute_impulse_response_batches(point_batches, V_in, V_out, apply_A, solve_M_in, solve_M_out):
+    '''Computes impulse responses of operator
+        A: V_in -> V_out
+    to Dirac combs associated with batches of points.
 
     Parameters
     ----------
-    sample_point_batches: list of numpy arrays. Sample point batches
+    point_batches: list of numpy arrays. Sample point batches
         sample_point_batches[b].shape = (num_sample_points_in_batch_b, spatial_dimension)
-    function_space_V: fenics FunctionSpace. Function space for impulse response functions
-    apply_operator_A: callable. Function that applies the linear operator A to a vector.
-        maps fenics vector to fenics vector. apply_operator_A(v) := A v
-    solve_mass_matrix_M: callable. Fuction that applies the inverse of the mass matrix to a vector
-        maps fenics vector to fenics vector. solve_mass_matrix_M(v) := M^-1 v
+    V_in: fenics FunctionSpace.
+    V_out: fenics FunctionSpace.
+    apply_A: callable. Applies the operator A to a fenics vector, and returns a fenics vector.
+    solve_M_in: callable. Applies the inverse of the mass matrix for the input space, V_in,
+        to a fenics vector and returns a fenics vector
+    solve_M_out: callable. Applies the inverse of the mass matrix for the output space, V_in,
+        to a fenics vector and returns a fenics vector
 
     Returns
     -------
@@ -25,12 +28,12 @@ def compute_impulse_response_batches(sample_point_batches, function_space_V,
         ff[b] is the result of applying the operator A to the dirac comb associated with b'th batch of sample points.
 
     '''
-    num_batches = len(sample_point_batches)
+    num_batches = len(point_batches)
     ff = list()
     print('Computing Dirac comb impulse responses')
     for b in tqdm(range(num_batches)):
-        pp_batch = sample_point_batches[b]
-        f = get_one_dirac_comb_response(pp_batch, function_space_V, apply_operator_A, solve_mass_matrix_M)
+        pp_batch = point_batches[b]
+        f = get_one_dirac_comb_response(pp_batch, V_in, V_out, apply_A, solve_M_in, solve_M_out)
         ff.append(f)
     return ff
 
@@ -50,19 +53,14 @@ def visualize_impulse_response_batch(impulse_response_batch_f, sample_points_bat
         plot_ellipse(mu_batch[k,:], Sigma_batch[k,:,:], n_std_tau=tau, facecolor='none', edgecolor='k', linewidth=1)
 
 
-def get_one_dirac_comb_response(points_pp, function_space_V, apply_operator_A, solve_mass_matrix_M):
-    apply_H = apply_operator_A
-    solve_M = solve_mass_matrix_M
-
-    dirac_comb_dual_vector = make_dirac_comb_dual_vector(points_pp, function_space_V)
-    dirac_comb_response = dl.Function(function_space_V)
-    dirac_comb_response.vector()[:] = solve_M(apply_H(solve_M(dirac_comb_dual_vector)))
+def get_one_dirac_comb_response(points_pp, V_in, V_out, apply_A, solve_M_in, solve_M_out):
+    dirac_comb_dual_vector = make_dirac_comb_dual_vector(points_pp, V_in)
+    dirac_comb_response = dl.Function(V_out)
+    dirac_comb_response.vector()[:] = solve_M_out(apply_A(solve_M_in(dirac_comb_dual_vector)))
     return dirac_comb_response
 
 
-def make_dirac_comb_dual_vector(points_pp, function_space_V):
-    pp = points_pp
-    V = function_space_V
+def make_dirac_comb_dual_vector(pp, V):
     num_pts, d = pp.shape
     dirac_comb_dual_vector = dl.assemble(dl.Constant(0.0) * dl.TestFunction(V) * dl.dx)
     for k in range(num_pts):

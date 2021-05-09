@@ -1,17 +1,17 @@
 import dolfin as dl
 
-from mass_matrix import make_mass_matrix
-from make_fenics_amg_solver import make_fenics_amg_solver
 
-
-def impulse_response_moments(function_space_V, apply_operator_transpose_At, solve_mass_matrix_M=None):
-    '''Computes spatially varying volume, mean, and covariance of impulse response function for operator A
+def impulse_response_moments(V_in, V_out, apply_At, solve_M_in):
+    '''Computes spatially varying volume, mean, and covariance of impulse response function for operator
+        A : V_in -> V_out
 
     Parameters
     ----------
-    function_space_V: fenics FunctionSpace.
-    apply_operator_transpose_At: callable. u -> A^T u. Maps fenics Vector to fenics Vector.
-    solve_mass_matrix_M: (optional) callable. u -> M^-1 u. Maps fenics Vector to fenics Vector.
+    V_in: fenics FunctionSpace.
+    V_out: fenis FunctionSpace.
+    apply_At: callable. u -> A^T u. Maps fenics Vector to fenics Vector.
+    solve_M_in: callable. u -> M_in^-1 u. Maps fenics Vector to fenics Vector.
+        Solver for input space mass matrix
 
     Returns
     -------
@@ -20,79 +20,52 @@ def impulse_response_moments(function_space_V, apply_operator_transpose_At, solv
     Sigma: tensor-valued fenics Function. spatially varying covariance of impulse response
 
     '''
-    V = function_space_V
-    apply_At = apply_operator_transpose_At
-
-    print('making mass matrix and solver')
-    if solve_mass_matrix_M is None:
-        M = make_mass_matrix(V)
-        solve_M = make_fenics_amg_solver(M)
-    else:
-        solve_M = solve_mass_matrix_M
-
     print('getting spatially varying volume')
-    vol = compute_spatially_varying_volume(V, apply_At, solve_M)
+    vol = compute_spatially_varying_volume(V_in, V_out, apply_At, solve_M_in)
 
     print('getting spatially varying mean')
-    mu = compute_spatially_varying_mean(V, apply_At, solve_M, vol)
+    mu = compute_spatially_varying_mean(V_in, V_out, apply_At, solve_M_in, vol)
 
     print('getting spatially varying covariance')
-    Sigma = get_spatially_varying_covariance(V, apply_At, solve_M, vol, mu)
+    Sigma = get_spatially_varying_covariance(V_in, V_out, apply_At, solve_M_in, vol, mu)
 
     return vol, mu, Sigma
 
 
-def compute_spatially_varying_volume(function_space_V, apply_operator_transpose_At, solve_mass_matrix_M):
-    V = function_space_V
-    apply_Ht = apply_operator_transpose_At
-    solve_M = solve_mass_matrix_M
-
-    volume_function_vol = dl.Function(V)
-    constant_fct = dl.interpolate(dl.Constant(1.0), V)
-    volume_function_vol.vector()[:] = solve_M(apply_Ht(constant_fct.vector()))
+def compute_spatially_varying_volume(V_in, V_out, apply_At, solve_M_in):
+    volume_function_vol = dl.Function(V_in)
+    constant_fct = dl.interpolate(dl.Constant(1.0), V_out)
+    volume_function_vol.vector()[:] = solve_M_in(apply_At(constant_fct.vector()))
     return volume_function_vol
 
 
-def compute_spatially_varying_mean(function_space_V, apply_operator_transpose_At,
-                                   solve_mass_matrix_M, volume_function_vol):
-    V = function_space_V
-    apply_Ht = apply_operator_transpose_At
-    solve_M = solve_mass_matrix_M
-    vol = volume_function_vol
+def compute_spatially_varying_mean(V_in, V_out, apply_At, solve_M_in, vol):
+    d = V_in.mesh().geometric_dimension()
+    V_in_vec = dl.VectorFunctionSpace(V_in.mesh(), V_in.ufl_element().family(), V_in.ufl_element().degree())
 
-    d = V.mesh().geometric_dimension()
-    V_vec = dl.VectorFunctionSpace(V.mesh(), V.ufl_element().family(), V.ufl_element().degree())
-
-    mean_function_mu = dl.Function(V_vec)
+    mu = dl.Function(V_in_vec)
     for k in range(d):
-        linear_fct = dl.interpolate(dl.Expression('x[k]', element=V.ufl_element(), k=k), V)
-        mu_k = dl.Function(V)
-        mu_k.vector()[:] = solve_M(apply_Ht(linear_fct.vector()))
-        mu_k = dl.project(mu_k / vol, V)
-        dl.assign(mean_function_mu.sub(k), mu_k)
+        linear_fct = dl.interpolate(dl.Expression('x[k]', element=V_out.ufl_element(), k=k), V_out)
+        mu_k = dl.Function(V_in)
+        mu_k.vector()[:] = solve_M_in(apply_At(linear_fct.vector()))
+        mu_k = dl.project(mu_k / vol, V_in)
+        dl.assign(mu.sub(k), mu_k)
 
-    mean_function_mu.set_allow_extrapolation(True)
-    return mean_function_mu
+    mu.set_allow_extrapolation(True)
+    return mu
 
 
-def get_spatially_varying_covariance(function_space_V, apply_operator_transpose_At, solve_mass_matrix_M,
-                                     volume_function_vol, mean_function_mu):
-    V = function_space_V
-    apply_Ht = apply_operator_transpose_At
-    solve_M = solve_mass_matrix_M
-    vol = volume_function_vol
-    mu = mean_function_mu
+def get_spatially_varying_covariance(V_in, V_out, apply_At, solve_M_in, vol, mu):
+    d = V_in.mesh().geometric_dimension()
+    V_in_mat = dl.TensorFunctionSpace(V_in.mesh(), V_in.ufl_element().family(), V_in.ufl_element().degree())
 
-    d = V.mesh().geometric_dimension()
-    V_mat = dl.TensorFunctionSpace(V.mesh(), V.ufl_element().family(), V.ufl_element().degree())
-
-    covariance_function_Sigma = dl.Function(V_mat)
+    covariance_function_Sigma = dl.Function(V_in_mat)
     for k in range(d):
         for j in range(k + 1):
-            quadratic_fct = dl.interpolate(dl.Expression('x[k]*x[j]', element=V.ufl_element(), k=k, j=j), V)
-            Sigma_kj = dl.Function(V)
-            Sigma_kj.vector()[:] = solve_M(apply_Ht(quadratic_fct.vector()))
-            Sigma_kj = dl.project(Sigma_kj / vol - mu.sub(k) * mu.sub(j), V)
+            quadratic_fct = dl.interpolate(dl.Expression('x[k]*x[j]', element=V_out.ufl_element(), k=k, j=j), V_out)
+            Sigma_kj = dl.Function(V_in)
+            Sigma_kj.vector()[:] = solve_M_in(apply_At(quadratic_fct.vector()))
+            Sigma_kj = dl.project(Sigma_kj / vol - mu.sub(k) * mu.sub(j), V_in)
             dl.assign(covariance_function_Sigma.sub(k + d * j), Sigma_kj)
             dl.assign(covariance_function_Sigma.sub(j + d * k), Sigma_kj)
 

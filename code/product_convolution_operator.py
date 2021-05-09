@@ -3,10 +3,14 @@ from scipy.spatial import cKDTree
 from scipy.interpolate import interpn
 from tqdm.auto import tqdm
 
+from mass_matrix import make_mass_matrix
+from make_fenics_amg_solver import make_fenics_amg_solver
+
 from nalger_helper_functions import *
 from impulse_response_moments import impulse_response_moments
 from sample_point_batches import choose_sample_point_batches
 from impulse_response_batches import compute_impulse_response_batches
+from poisson_weighting_functions import make_poisson_weighting_functions
 import hlibpro_python_wrapper as hpro
 
 
@@ -93,10 +97,37 @@ def build_product_convolution_hmatrix_from_fenics_functions(ww, ff_batches, batc
     initial_FF : list of BoxFunctions. Convolution kernels for each patch without extension
 
     '''
+    row_dof_coords = V_in.tabulate_dof_coordinates()
+    print('Making input mass matrix and solver')
+    M_in = make_mass_matrix(V_in)
+    solve_M_in = make_fenics_amg_solver(M_in)
+
+    if V_out is None:
+        V_out = V_in
+        col_dof_coords = row_dof_coords
+        M_out = M_in
+        solve_M_out = solve_M_in
+    else:
+        col_dof_coords = V_out.tabulate_dof_coordinates()
+        print('Making output mass matrix and solver')
+        M_out = make_mass_matrix(V_out)
+        solve_M_out = make_fenics_amg_solver(M_out)
+
+
     if use_boundary_extension:
         kernel_fill_value=np.nan
     else:
         kernel_fill_value = 0.0
+
+    vol, mu, Sigma = impulse_response_moments(V_in, V_out, apply_At, solve_M_in)
+
+    point_batches, mu_batches, Sigma_batches = choose_sample_point_batches(num_batches, mu, Sigma, tau,
+                                                                           max_candidate_points=max_candidate_points)
+
+    ff_batches = compute_impulse_response_batches(point_batches, V_in, V_out, apply_A, solve_M_in, solve_M_out)
+
+    ww = make_poisson_weighting_functions(V_in, np.vstack(point_batches))
+
 
     WW, initial_FF = \
         build_product_convolution_patches_from_fenics_functions(ww, ff_batches, pp,
