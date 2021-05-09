@@ -4,7 +4,12 @@ from scipy.interpolate import interpn
 from tqdm.auto import tqdm
 
 from nalger_helper_functions import *
+from impulse_response_moments import impulse_response_moments
+from sample_point_batches import choose_sample_point_batches
+from impulse_response_batches import compute_impulse_response_batches
 import hlibpro_python_wrapper as hpro
+
+
 
 
 def build_product_convolution_hmatrix_from_fenics_functions(ww, ff_batches, batch_lengths, pp,
