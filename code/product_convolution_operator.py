@@ -14,20 +14,19 @@ from poisson_weighting_functions import make_poisson_weighting_functions
 import hlibpro_python_wrapper as hpro
 
 
-
-
-def build_product_convolution_hmatrix_from_fenics_functions(V_in, V_out,
-                                                            apply_A, apply_At,
-                                                            num_batches, tau,
-                                                            max_candidate_points=None,
-                                                            grid_density_multiplier=1.0,
-                                                            w_support_rtol=2e-2,
-                                                            num_extension_kernels=8,
-                                                            hmatrix_tol=1e-6,
-                                                            bct_admissibility_eta=2.0,
-                                                            cluster_size_cutoff=50,
-                                                            use_boundary_extension=True,
-                                                            return_extras=False):
+def product_convolution_hmatrix(V_in, V_out,
+                                apply_A, apply_At,
+                                num_batches,
+                                tau=2.5,
+                                max_candidate_points=None,
+                                grid_density_multiplier=1.0,
+                                w_support_rtol=2e-2,
+                                num_extension_kernels=8,
+                                hmatrix_tol=1e-6,
+                                bct_admissibility_eta=2.0,
+                                cluster_size_cutoff=50,
+                                use_boundary_extension=True,
+                                return_extras=False):
     '''Builds hierarchical matrix representation of product convolution operator
     with given weighting functions and impulse response batches
 
