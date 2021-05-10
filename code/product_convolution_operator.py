@@ -22,7 +22,7 @@ def product_convolution_hmatrix(V_in, V_out,
                                 grid_density_multiplier=1.0,
                                 w_support_rtol=2e-2,
                                 num_extension_kernels=8,
-                                hmatrix_tol=1e-6,
+                                hmatrix_tol=1e-4,
                                 bct_admissibility_eta=2.0,
                                 cluster_size_cutoff=50,
                                 use_boundary_extension=True,
@@ -30,6 +30,7 @@ def product_convolution_hmatrix(V_in, V_out,
                                 return_extras=False):
     '''Builds hierarchical matrix representation of product convolution approximation of operator
         A: V_in -> V_out
+    using only matrix-vector products with A and A^T.
 
     Parameters
     ----------
@@ -44,9 +45,9 @@ def product_convolution_hmatrix(V_in, V_out,
         impulse response ellipsoid size parameter
         k'th ellipsoid = {x: (x-mu[k,:])^T Sigma[k,:,:]^{-1} (x-mu[k,:]) <= tau}
         support of k'th impulse response should be contained inside k'th ellipsoid
-    max_candidate_points : nonnegative int. Maximum number of points to consider when choosing sample points
+    max_candidate_points : nonnegative int. Maximum number of candidate points to consider when choosing sample points
     grid_density_multiplier : nonnegative float
-        grid density scaling factor
+        grid density scaling factor for converting functions on irregular grids to regular grid patches
         If grid_density_multiplier=1.0, then the spacing between gridpoints
         in a given BoxFunction equals the minimum distance between mesh nodes in the box.
         If grid_density_multiplier=0.5, then the spacing between gridpoints
@@ -162,6 +163,9 @@ def product_convolution_hmatrix(V_in, V_out,
     hpro.h_mul(M_in_hmatrix, A_kernel_hmatrix, alpha_A_B_hmatrix=A_kernel_hmatrix, rtol=hmatrix_tol)
     A_hmatrix = A_kernel_hmatrix
 
+    if make_positive_definite:
+        A_hmatrix = hpro.rational_positive_definite_approximation_method(A_hmatrix, overwrite=True, atol_inv=hmatrix_tol)
+
     if return_extras:
         return (A_hmatrix,
                 vol, mu, Sigma,
@@ -170,7 +174,6 @@ def product_convolution_hmatrix(V_in, V_out,
                 WW, FF, initial_FF)
     else:
         return A_hmatrix
-
 
 
 def build_product_convolution_hmatrix_from_patches(WW, FF, block_cluster_tree, row_dof_coords, col_dof_coords, tol=1e-6):
