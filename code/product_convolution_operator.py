@@ -97,27 +97,17 @@ def build_product_convolution_hmatrix_from_fenics_functions(ww, ff_batches, batc
     initial_FF : list of BoxFunctions. Convolution kernels for each patch without extension
 
     '''
-    row_dof_coords = V_in.tabulate_dof_coordinates()
-    print('Making input mass matrix and solver')
-    M_in = make_mass_matrix(V_in)
-    solve_M_in = make_fenics_amg_solver(M_in)
-
-    if V_out is None:
-        V_out = V_in
-        col_dof_coords = row_dof_coords
-        M_out = M_in
-        solve_M_out = solve_M_in
-    else:
-        col_dof_coords = V_out.tabulate_dof_coordinates()
-        print('Making output mass matrix and solver')
-        M_out = make_mass_matrix(V_out)
-        solve_M_out = make_fenics_amg_solver(M_out)
-
-
     if use_boundary_extension:
         kernel_fill_value=np.nan
     else:
         kernel_fill_value = 0.0
+
+    print('Making mass matrices and solvers')
+    M_in = make_mass_matrix(V_in)
+    solve_M_in = make_fenics_amg_solver(M_in)
+
+    M_out = make_mass_matrix(V_out)
+    solve_M_out = make_fenics_amg_solver(M_out)
 
     vol, mu, Sigma = impulse_response_moments(V_in, V_out, apply_At, solve_M_in)
 
@@ -143,21 +133,37 @@ def build_product_convolution_hmatrix_from_fenics_functions(ww, ff_batches, batc
     else:
         FF = initial_FF
 
-    V_in = ww[0].function_space()
-    row_dof_coords = V_in.tabulate_dof_coordinates()
-    if V_out is not None:
-        col_dof_coords = V_out.tabulate_dof_coordinates()
-    else:
-        col_dof_coords = row_dof_coords
+    print('Making row and column cluster trees')
+    dof_coords_in = V_in.tabulate_dof_coordinates()
+    dof_coords_out = V_out.tabulate_dof_coordinates()
+    ct_in = hpro.build_cluster_tree_from_pointcloud(dof_coords_in, cluster_size_cutoff=cluster_size_cutoff)
+    ct_out = hpro.build_cluster_tree_from_pointcloud(dof_coords_out, cluster_size_cutoff=cluster_size_cutoff)
 
-    A_hmatrix = build_product_convolution_hmatrix_from_patches(WW, FF, row_dof_coords, col_dof_coords,
-                                                               block_cluster_tree=block_cluster_tree,
-                                                               tol=hmatrix_tol,
-                                                               admissibility_eta=bct_admissibility_eta,
-                                                               cluster_size_cutoff=cluster_size_cutoff)
+    print('Making block cluster trees')
+    bct_in = hpro.build_block_cluster_tree(ct_in, ct_in, admissibility_eta=bct_admissibility_eta)
+    bct_out = hpro.build_block_cluster_tree(ct_out, ct_out, admissibility_eta=bct_admissibility_eta)
+    bct_kernel = hpro.build_block_cluster_tree(ct_out, ct_in, admissibility_eta=bct_admissibility_eta)
+
+    print('Building A kernel hmatrix')
+    A_kernel_hmatrix = build_product_convolution_hmatrix_from_patches(WW, FF, bct_kernel, tol=hmatrix_tol)
+
+    print('Making input and output mass matrix hmatrices')
+    M_in_scipy = csr_fenics2scipy(M_in)
+    M_in_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_in_scipy, bct_in)
+    M_out_scipy = csr_fenics2scipy(M_in)
+    M_out_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_out_scipy, bct_out)
+
+    print('Computing A_hmatrix = M_out_hmatrix * A_kernel_hmatrix * M_in_hmatrix')
+    hpro.h_mul(A_kernel_hmatrix, M_out_hmatrix, alpha_A_B_hmatrix=A_kernel_hmatrix, rtol=hmatrix_tol)
+    hpro.h_mul(M_in_hmatrix, A_kernel_hmatrix, alpha_A_B_hmatrix=A_kernel_hmatrix, rtol=hmatrix_tol)
+    A_hmatrix = A_kernel_hmatrix
 
     if return_extras:
-        return A_hmatrix, WW, FF, initial_FF
+        return (A_hmatrix,
+                vol, mu, Sigma,
+                point_batches, mu_batches, Sigma_batches,
+                ww, ff_batches,
+                WW, FF, initial_FF)
     else:
         return A_hmatrix
 
