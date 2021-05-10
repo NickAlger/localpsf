@@ -16,13 +16,13 @@ import hlibpro_python_wrapper as hpro
 
 
 
-def build_product_convolution_hmatrix_from_fenics_functions(ww, ff_batches, batch_lengths, pp,
-                                                            all_mu, all_Sigma, tau,
-                                                            V_out=None,
+def build_product_convolution_hmatrix_from_fenics_functions(V_in, V_out,
+                                                            apply_A, apply_At,
+                                                            num_batches, tau,
+                                                            max_candidate_points=None,
                                                             grid_density_multiplier=1.0,
                                                             w_support_rtol=2e-2,
                                                             num_extension_kernels=8,
-                                                            block_cluster_tree=None,
                                                             hmatrix_tol=1e-6,
                                                             bct_admissibility_eta=2.0,
                                                             cluster_size_cutoff=50,
@@ -114,10 +114,14 @@ def build_product_convolution_hmatrix_from_fenics_functions(ww, ff_batches, batc
     point_batches, mu_batches, Sigma_batches = choose_sample_point_batches(num_batches, mu, Sigma, tau,
                                                                            max_candidate_points=max_candidate_points)
 
+    pp = np.vstack(point_batches)
+    all_mu = np.vstack(mu_batches)
+    all_Sigma = np.vstack(Sigma_batches)
+    batch_lengths = [pp_batch.shape[0] for pp_batch in point_batches]
+
     ff_batches = compute_impulse_response_batches(point_batches, V_in, V_out, apply_A, solve_M_in, solve_M_out)
 
-    ww = make_poisson_weighting_functions(V_in, np.vstack(point_batches))
-
+    ww = make_poisson_weighting_functions(V_in, pp)
 
     WW, initial_FF = \
         build_product_convolution_patches_from_fenics_functions(ww, ff_batches, pp,
@@ -145,7 +149,9 @@ def build_product_convolution_hmatrix_from_fenics_functions(ww, ff_batches, batc
     bct_kernel = hpro.build_block_cluster_tree(ct_out, ct_in, admissibility_eta=bct_admissibility_eta)
 
     print('Building A kernel hmatrix')
-    A_kernel_hmatrix = build_product_convolution_hmatrix_from_patches(WW, FF, bct_kernel, tol=hmatrix_tol)
+    A_kernel_hmatrix = build_product_convolution_hmatrix_from_patches(WW, FF, bct_kernel,
+                                                                      dof_coords_out, dof_coords_in,
+                                                                      tol=hmatrix_tol)
 
     print('Making input and output mass matrix hmatrices')
     M_in_scipy = csr_fenics2scipy(M_in)
@@ -169,9 +175,7 @@ def build_product_convolution_hmatrix_from_fenics_functions(ww, ff_batches, batc
 
 
 
-def build_product_convolution_hmatrix_from_patches(WW, FF, row_dof_coords, col_dof_coords,
-                                                   block_cluster_tree=None, tol=1e-6,
-                                                   admissibility_eta=2.0, cluster_size_cutoff=50):
+def build_product_convolution_hmatrix_from_patches(WW, FF, block_cluster_tree, row_dof_coords, col_dof_coords, tol=1e-6):
     '''Build H-Matrix for product-convolution operator based on rectangular patches
 
     Parameters
@@ -202,12 +206,6 @@ def build_product_convolution_hmatrix_from_patches(WW, FF, row_dof_coords, col_d
     FF_mins = [F.min for F in FF]
     FF_maxes = [F.max for F in FF]
     FF_arrays = [F.array for F in FF]
-
-    if block_cluster_tree is None:
-        print('Building cluster trees and block cluster tree')
-        row_ct = hpro.build_cluster_tree_from_pointcloud(row_dof_coords, cluster_size_cutoff=cluster_size_cutoff)
-        col_ct = hpro.build_cluster_tree_from_pointcloud(col_dof_coords, cluster_size_cutoff=cluster_size_cutoff)
-        block_cluster_tree = hpro.build_block_cluster_tree(row_ct, col_ct, admissibility_eta=admissibility_eta)
 
     print('Building product convolution hmatrix from patches')
     A_hmatrix = hpro.build_product_convolution_hmatrix_2d(WW_mins, WW_maxes, WW_arrays,
