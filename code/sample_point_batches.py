@@ -7,7 +7,7 @@ from ellipsoid import points_which_are_not_in_ellipsoid_numba, ellipsoids_inters
 from nalger_helper_functions import *
 
 
-def choose_sample_point_batches(num_batches, mu_function, Sigma_function, tau, max_candidate_points=None):
+def choose_sample_point_batches(num_batches, V, mu_function, Sigma_function, tau, max_candidate_points=None):
     '''Chooses several batches of sample points. Uses a greedy algorithm to choose as many sample points as possible per patch,
      under the constraint that that the supports of impulse responses for a given batch do not overlap.
 
@@ -30,14 +30,15 @@ def choose_sample_point_batches(num_batches, mu_function, Sigma_function, tau, m
         Sigma_batches[b].shape=(num_sample_points, spatial_dimension, spatial_dimension).
 
     '''
-    V = mu_function.function_space()
+    # V = mu_function.function_space()
 
+    # dof_coords = np.unique(V.tabulate_dof_coordinates(), axis=0)
     dof_coords = V.tabulate_dof_coordinates()
     mu_array = dlfct2array(mu_function)
     Sigma_array = dlfct2array(Sigma_function)
 
     if max_candidate_points is None:
-        candidate_inds = np.arange(V.dim())
+        candidate_inds = np.arange(dof_coords.shape[0])
     else:
         candidate_inds = np.random.permutation(V.dim())[:max_candidate_points]
 
@@ -56,7 +57,7 @@ def choose_sample_point_batches(num_batches, mu_function, Sigma_function, tau, m
         candidate_inds_ordered_by_distance = np.array(candidate_inds)[np.argsort(dd)]
 
         new_inds = choose_one_sample_point_batch(mu_array, Sigma_array, tau,
-                                                  candidate_inds_ordered_by_distance, randomize=False)
+                                                 candidate_inds_ordered_by_distance, randomize=False)
 
         new_points = dof_coords[new_inds, :]
         new_mu = mu_array[new_inds, :]

@@ -110,7 +110,7 @@ def product_convolution_hmatrix(V_in, V_out,
 
     vol, mu, Sigma = impulse_response_moments(V_in, V_out, apply_At, solve_M_in)
 
-    point_batches, mu_batches, Sigma_batches = choose_sample_point_batches(num_batches, mu, Sigma, tau,
+    point_batches, mu_batches, Sigma_batches = choose_sample_point_batches(num_batches, V_in, mu, Sigma, tau,
                                                                            max_candidate_points=max_candidate_points)
 
     pp = np.vstack(point_batches)
@@ -159,9 +159,10 @@ def product_convolution_hmatrix(V_in, V_out,
     M_out_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_out_scipy, bct_out)
 
     print('Computing A_hmatrix = M_out_hmatrix * A_kernel_hmatrix * M_in_hmatrix')
-    hpro.h_mul(A_kernel_hmatrix, M_out_hmatrix, alpha_A_B_hmatrix=A_kernel_hmatrix, rtol=hmatrix_tol)
-    hpro.h_mul(M_in_hmatrix, A_kernel_hmatrix, alpha_A_B_hmatrix=A_kernel_hmatrix, rtol=hmatrix_tol)
-    A_hmatrix = A_kernel_hmatrix
+    A_hmatrix = M_out_hmatrix * (A_kernel_hmatrix * M_in_hmatrix)
+    # hpro.h_mul(A_kernel_hmatrix, M_out_hmatrix, alpha_A_B_hmatrix=A_kernel_hmatrix, rtol=hmatrix_tol)
+    # hpro.h_mul(M_in_hmatrix, A_kernel_hmatrix, alpha_A_B_hmatrix=A_kernel_hmatrix, rtol=hmatrix_tol)
+    # A_hmatrix = A_kernel_hmatrix
 
     if make_positive_definite:
         A_hmatrix = hpro.rational_positive_definite_approximation_method(A_hmatrix, overwrite=True, atol_inv=hmatrix_tol)
@@ -169,7 +170,7 @@ def product_convolution_hmatrix(V_in, V_out,
     if return_extras:
         return (A_hmatrix,
                 vol, mu, Sigma,
-                point_batches, mu_batches, Sigma_batches,
+                point_batches, mu_batches, Sigma_batches, tau,
                 ww, ff_batches,
                 WW, FF, initial_FF)
     else:
