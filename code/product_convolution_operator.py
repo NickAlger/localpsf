@@ -26,39 +26,25 @@ def product_convolution_hmatrix(V_in, V_out,
                                 bct_admissibility_eta=2.0,
                                 cluster_size_cutoff=50,
                                 use_boundary_extension=True,
+                                make_positive_definite=False,
                                 return_extras=False):
-    '''Builds hierarchical matrix representation of product convolution operator
-    with given weighting functions and impulse response batches
+    '''Builds hierarchical matrix representation of product convolution approximation of operator
+        A: V_in -> V_out
 
     Parameters
     ----------
-    ww : list of fenics Functions, len(ww)=num_pts
-        weighting functions
-    ff_batches : list of fenics Functions, len(ff)=num_batches
-        impulse response function batches
-    batch_lengths : list of ints, len(batch_lengths)=num_batches
-        number of impulse responses in each batch.
-        E.g., if batch_lengths=[3,5,4], then
-        ff_batches[0] contains the first 3 impulse responses,
-        ff_batches[1] contains the next 5 impulse responses,
-        ff_batches[2] contains the last 4 impulse responses
-    pp : numpy array, pp.shape=(num_pts,d)
-        sample points
-        pp[k,:] is the k'th sample point
-    all_mu : numpy array, all_mu.shape=(num_pts,d)
-        impulse response means
-        all_mu[k,:] is the mean of the k'th impulse response
-    all_Sigma : numpy array, all_Sigma.shape=(num_pts,d,d)
-        impulse response covariance matrices
-        all_Sigma[k,:,:] is the covariance matrix for the k'th impulse response
+    V_in : fenics FunctionSpace
+    V_out : fenics FunctionSpace
+    apply_A : callable. Takes fenics Vector as input and returns fenics Vector as output
+        apply_A(v) computes v -> A*v.
+    apply_At : callable. Takes fenics Vector as input and returns fenics Vector as output
+        apply_At(v) computes v -> A^T*v.
+    num_batches : nonnegative int. Number of batches used in product convolution approximation
     tau : nonnegative float
         impulse response ellipsoid size parameter
         k'th ellipsoid = {x: (x-mu[k,:])^T Sigma[k,:,:]^{-1} (x-mu[k,:]) <= tau}
         support of k'th impulse response should be contained inside k'th ellipsoid
-    V_out : fenics FunctionSpace
-        function space for output of product-convolution operator.
-        If V_out is None (default), then the input FunctionSpace (inferred from weighting functions)
-        is also used for the output
+    max_candidate_points : nonnegative int. Maximum number of points to consider when choosing sample points
     grid_density_multiplier : nonnegative float
         grid density scaling factor
         If grid_density_multiplier=1.0, then the spacing between gridpoints
@@ -73,9 +59,6 @@ def product_convolution_hmatrix(V_in, V_out,
         number of initial impulse responses used to fill in the missing information for each impulse response
         E.g., if num_extension_kernels=8, then a given filled in impulse response will contain information
         from itself, and the 7 other nearest impulse responses.
-    block_cluster_tree : BlockClusterTree.
-        Block cluster tree for H-matrix.
-        None (Default): build block cluster tree from scratch
     hmatrix_tol : nonnegative float. Accuracy tolerance for H-matrix
     bct_admissibility_eta : nonnegative float. Admissibility tolerance for block cluster tree.
         Only used of block_cluster_tree is not supplied
@@ -84,13 +67,29 @@ def product_convolution_hmatrix(V_in, V_out,
         where A is the cluster of points associated with the rows of the block, and
               B is the cluster of points associated with the columns of the block.
     cluster_size_cutoff : positive int. number of points below which clusters are not subdivided.
-    use_boundary_extension : bool. True:
-        fill in convolution kernel missing values using neighboring convolution kernels
-    return_extras
+    use_boundary_extension : bool.
+        if True (default), fill in convolution kernel missing values using neighboring convolution kernels
+    make_positive_definite : bool. Default=False
+        if True, modify hmatrix via rational approximation to make it symmetric positive definite
+    return_extras : bool.
+        If False (default), only return hmatrix. Otherwise, return other intermediate objects.
 
     Returns
     -------
     A_hmatrix : HMatrix. hierarchical matrix representation of product-convolution operator
+    vol : fenics Function. Spatially varying impulse response volume
+    mu : Vector-valued fenics Function. Spatially varying impulse response mean
+    Sigma : Tensor-valued fenics Function. Spatially varying impulse response covariance
+    point_batches : list of numpy arrays. point_batches[b].shape=(num_points_in_batch_b, spatial_dimension)
+        Batches of sample points
+    mu_batches : list of numpy arrays. mu_batches[b].shape=(num_points_in_batch_b, spatial_dimension)
+        Impulse response means evaluated at the sample points
+    Sigma_batches : list of numpy arrays. mu_batches[b].shape=(num_points_in_batch_b, spatial_dimension, spatial_dimension)
+        Impulse response covariances evaluated at the sample points
+    ww : list of fenics Functions, len(ww)=num_pts
+        weighting functions
+    ff_batches : list of fenics Functions, len(ff)=num_batches
+        impulse response function batches
     WW : list of BoxFunctions. Weighting functions for each patch
     FF : list of BoxFunctions. Convolution kernels for each patch (with extension if done)
     initial_FF : list of BoxFunctions. Convolution kernels for each patch without extension
