@@ -164,15 +164,18 @@ def product_convolution_hmatrix(V_in, V_out,
     # hpro.h_mul(M_in_hmatrix, A_kernel_hmatrix, alpha_A_B_hmatrix=A_kernel_hmatrix, rtol=hmatrix_tol)
     # A_hmatrix = A_kernel_hmatrix
 
+    extras = (vol, mu, Sigma,
+              point_batches, mu_batches, Sigma_batches, tau,
+              ww, ff_batches,
+              WW, FF, initial_FF)
+
     if make_positive_definite:
-        A_hmatrix = hpro.rational_positive_definite_approximation_method(A_hmatrix, overwrite=True, atol_inv=hmatrix_tol)
+        A_hmatrix_nonsym = A_hmatrix
+        A_hmatrix = hpro.rational_positive_definite_approximation_method1(A_hmatrix_nonsym, overwrite=False, atol_inv=hmatrix_tol)
+        extras = extras + (A_hmatrix_nonsym,)
 
     if return_extras:
-        return (A_hmatrix,
-                vol, mu, Sigma,
-                point_batches, mu_batches, Sigma_batches, tau,
-                ww, ff_batches,
-                WW, FF, initial_FF)
+        return (A_hmatrix,) + extras
     else:
         return A_hmatrix
 
