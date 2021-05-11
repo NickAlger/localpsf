@@ -171,7 +171,7 @@ def product_convolution_hmatrix(V_in, V_out,
 
     if make_positive_definite:
         A_hmatrix_nonsym = A_hmatrix
-        A_hmatrix = hpro.rational_positive_definite_approximation_method1(A_hmatrix_nonsym, overwrite=False, atol_inv=hmatrix_tol)
+        A_hmatrix = hpro.rational_positive_definite_approximation_method1(A_hmatrix_nonsym, overwrite=False, rtol_inv=hmatrix_tol)
         extras = extras + (A_hmatrix_nonsym,)
 
     if return_extras:
