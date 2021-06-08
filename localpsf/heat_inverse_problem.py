@@ -8,6 +8,7 @@ import os
 
 from nalger_helper_functions import *
 
+# HIP = localpsf.heat_inverse_problem.HeatInverseProblem()
 
 class HeatInverseProblem:
     def __init__(me,
@@ -46,8 +47,10 @@ class HeatInverseProblem:
                       'initial_condition_type' : initial_condition_type}
 
         project_root = get_project_root()
+        example_root = project_root / 'numerical_examples' / 'heat'
+
         me.identifier_str = str(hash(me))
-        me.save_dir = project_root / 'numerical_results' / 'heat' / me.identifier_str
+        me.save_dir = example_root / me.identifier_str
         me.data_save_dir = me.save_dir / 'data'
         me.paraview_save_dir = me.save_dir / 'paraview'
         me.matplotlib_save_dir = me.save_dir / 'matplotlib'
@@ -73,7 +76,9 @@ class HeatInverseProblem:
             raise RuntimeError('mesh_type must be circle')
 
         if me.make_plots:
+            plt.figure()
             dl.plot(me.mesh)
+            plt.title('mesh')
             if me.save_plots:
                 pass
 
@@ -95,9 +100,10 @@ class HeatInverseProblem:
             raise RuntimeError('conductivity_type must be wiggly')
 
         if me.make_plots:
+            plt.figure()
             cm = dl.plot(me.kappa, cmap='gray')
             plt.colorbar(cm)
-            plt.title(me.kappa)
+            plt.title('conductivity kappa')
             if me.save_plots:
                 pass
 
@@ -105,9 +111,11 @@ class HeatInverseProblem:
         ########    TRUE INITIAL CONCENTRATION (INVERSION PARAMETER)    ########
 
         if me.initial_condition_type == 'angel_peak':
-            me.u0_true = load_image_into_fenics(me.V, 'angel_peak_badlands.png')
+            image_file = example_root / 'angel_peak_badlands.png'
+            me.u0_true = load_image_into_fenics(me.V, image_file)
         elif me.initial_condition_type == 'aces_building':
-            me.u0_true = load_image_into_fenics(me.V, 'aces_building.png')
+            image_file = example_root / 'aces_building.png'
+            me.u0_true = load_image_into_fenics(me.V, image_file)
         else:
             raise RuntimeError('initial_condition_type must be angel_peak or aces_building')
 
@@ -160,11 +168,13 @@ class HeatInverseProblem:
         me.uT_obs.vector()[:] = me.uT_true.vector()[:] + me.noise.vector()[:]
 
         if me.make_plots:
+            plt.figure()
             dl.plot(me.uT_true, cmap='gray')
             plt.title('Final concentration uT')
             if me.save_plots:
                 pass
 
+            plt.figure()
             dl.plot(me.uT_obs, cmap='gray')
             plt.title('Noisy observations of uT')
             if me.save_plots:
@@ -201,7 +211,7 @@ class HeatInverseProblem:
 
     def gradient(me, u0_petsc):
         uT_petsc = me.forward_map(u0_petsc)
-        discrepancy = uT_petsc - me.uT_obs
+        discrepancy = uT_petsc - me.uT_obs.vector()
         return me.adjoint_map(me.mass_matrix * discrepancy)
 
     def apply_hessian_petsc(me, p_petsc):
@@ -276,12 +286,14 @@ class HeatInverseProblem:
         print('adjoint_err=', adjoint_err)
 
     def perform_finite_difference_checks(me):
-        u0 = np.random.randn(me.N)
+        u0 = dl.Function(me.V).vector()
+        u0[:] = np.random.randn(me.N)
 
         J = me.objective(u0)
         g = me.gradient(u0)
 
-        du = np.random.randn(me.N)
+        du = dl.Function(me.V).vector()
+        du[:] = np.random.randn(me.N)
 
         ss = np.logspace(-15, 0, 11)
         grad_errs = np.zeros(len(ss))
@@ -291,7 +303,7 @@ class HeatInverseProblem:
 
             J2 = me.objective(u0_2)
             dJ_diff = (J2 - J) / s
-            dJ = np.dot(g, du)
+            dJ = g.inner(du)
             grad_err = np.abs(dJ - dJ_diff) / np.abs(dJ_diff)
             grad_errs[k] = grad_err
 
@@ -303,11 +315,12 @@ class HeatInverseProblem:
         plt.xlabel('s')
         plt.ylabel('relative gradient error')
 
-        u0_2 = np.random.randn(me.N)
+        u0_2 = dl.Function(me.V).vector()
+        u0_2[:] = np.random.randn(me.N)
         dg = me.apply_hessian_petsc(u0_2 - u0)
         g2 = me.gradient(u0_2)
         dg_diff = g2 - g
-        hess_err = np.linalg.norm(dg - dg_diff) / np.linalg.norm(dg_diff)
+        hess_err = np.linalg.norm(dg[:] - dg_diff[:]) / np.linalg.norm(dg_diff[:])
         print('hess_err=', hess_err)
 
     def interactive_hessian_impulse_response_plot(me):
