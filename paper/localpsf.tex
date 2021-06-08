@@ -615,6 +615,9 @@ We convert $\widetilde{\mathbf{A}}$ into H1 matrix format using the standard geo
 	\item irregular grid
 \end{itemize}
 
+\section{Rational positive definite modification}
+WRITE THIS
+
 
 
 \section{Numerical results}
@@ -626,17 +629,20 @@ We convert $\widetilde{\mathbf{A}}$ into H1 matrix format using the standard geo
 	\item $H-P$ error vs number of batches for interior and whole domain
 	\item $P^{-1}H-I$: error vs rank for $P=R$ and $P=P_\text{pch}$ diffusion time, for 1, 5, and 15 batches
 	\item Krylov iterations to tols 1e-1 and 1e-6 vs diffusion parameter
+	\item GLR vs PCH vs diffusion time
 	\item Krylov method convergence plot: $R$ vs $P_\text{pch}$ vs no preconditioner
-	\item Krylov iterations to tols 1e-6 vs mesh size $h$, PCH vs no preconditioner (hold)
+	\item Krylov iterations to tols 1e-6 vs mesh size $h$, PCH vs R vs no preconditioner (hold)
 	\item true parameter (H)
 	\item deterministic reconstruction (H)
-	\item noisy measurements (1\% noise). $u|_\text{top}$ (H)
+	\item noisy measurements (1\%, 5\%, 10\% noise). $u|_\text{top}$ (H)
 	\item recovered state at top (H)
 	\item mesh scalability of PCH (CC) (H)
+	\item put plot data into data directory
+	\item save function .pvd files in paraview  directory
 \end{itemize}
 
 \begin{itemize}
-	\item GLR vs PCH number of obs (Computational cost) (S)
+	\item GLR vs PCH number of obs (Computational cost in PDE solves) (S)
 	\item GLR vs PCH aspect ratio (CC) (S)
 	\item turn on preconditioner after number of krylov iterations exceeds 15 in an iteration. Rebuild "as needed". (S)
 \end{itemize}
