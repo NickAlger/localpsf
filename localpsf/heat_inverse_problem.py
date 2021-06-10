@@ -242,8 +242,14 @@ class HeatInverseProblem:
     def solve_M_petsc(me, p_petsc):
         return me.solve_mass_matrix_petsc(p_petsc)
 
+    def apply_Hr_petsc(me, p_petsc):
+        return me.apply_regularization_hessian_petsc(p_petsc)
+
     def apply_Hd_petsc(me, p_petsc):
         return me.apply_misfit_hessian_petsc(p_petsc)
+
+    def apply_H_petsc(me, p_petsc):
+        return me.apply_hessian_petsc(p_petsc)
 
     def apply_iM_Hd_iM_petsc(me, p_petsc):
         return me.solve_M_petsc(me.apply_Hd_petsc(me.solve_M_petsc(p_petsc)))
@@ -282,6 +288,12 @@ class HeatInverseProblem:
 
     def apply_Hd_numpy(me, p_numpy):
         return me.numpy_wrapper_for_petsc_function_call(me.apply_Hd_petsc, p_numpy)
+
+    def apply_Hr_numpy(me, p_numpy):
+        return me.numpy_wrapper_for_petsc_function_call(me.apply_Hr_petsc, p_numpy)
+
+    def apply_H_numpy(me, p_numpy):
+        return me.numpy_wrapper_for_petsc_function_call(me.apply_H_petsc, p_numpy)
 
     def apply_iM_Hd_iM_numpy(me, p_numpy):
         return me.numpy_wrapper_for_petsc_function_call(me.apply_iM_Hd_iM_petsc, p_numpy)
