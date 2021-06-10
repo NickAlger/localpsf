@@ -8,7 +8,6 @@ import os
 
 from nalger_helper_functions import *
 
-# HIP = localpsf.heat_inverse_problem.HeatInverseProblem()
 
 class HeatInverseProblem:
     def __init__(me,
@@ -20,6 +19,8 @@ class HeatInverseProblem:
                  mesh_type='circle',
                  conductivity_type='wiggly',
                  initial_condition_type='angel_peak',
+                 prior_correlation_length=0.05,
+                 regularization_parameter=1e-1,
                  perform_checks=True,
                  make_plots=True,
                  save_plots=True):
@@ -33,37 +34,12 @@ class HeatInverseProblem:
         me.mesh_type = mesh_type
         me.conductivity_type = conductivity_type
         me.initial_condition_type = initial_condition_type
+        me.prior_correlation_length = prior_correlation_length
+        me.regularization_parameter = regularization_parameter
 
         me.perform_checks = perform_checks
         me.make_plots = make_plots
         me.save_plots = save_plots
-
-        me.options = {'mesh_h' : me.mesh_h,
-                      'finite_element_order' : me.finite_element_order,
-                      'final_time' : me.final_time,
-                      'noise_level' : me.noise_level,
-                      'mesh_type' : me.mesh_type,
-                      'conductivity_type' : conductivity_type,
-                      'initial_condition_type' : initial_condition_type}
-
-        project_root = get_project_root()
-        example_root = project_root / 'numerical_examples' / 'heat'
-
-        me.identifier_str = str(hash(me))
-        me.save_dir = example_root / me.identifier_str
-        me.data_save_dir = me.save_dir / 'data'
-        me.paraview_save_dir = me.save_dir / 'paraview'
-        me.matplotlib_save_dir = me.save_dir / 'matplotlib'
-
-        me.save_dir.mkdir(parents=True, exist_ok=True)
-        me.data_save_dir.mkdir(parents=True, exist_ok=True)
-        me.paraview_save_dir.mkdir(parents=True, exist_ok=True)
-        me.matplotlib_save_dir.mkdir(parents=True, exist_ok=True)
-
-
-        me.options_file = me.save_dir / 'options.txt'
-        with open(me.options_file, 'w') as f:
-            print(me.options, file=f)
 
 
         ########    MESH    ########
@@ -74,13 +50,6 @@ class HeatInverseProblem:
             me.mesh = circle_mesh(mesh_center, mesh_radius, mesh_h)
         else:
             raise RuntimeError('mesh_type must be circle')
-
-        if me.make_plots:
-            plt.figure()
-            dl.plot(me.mesh)
-            plt.title('mesh')
-            if me.save_plots:
-                pass
 
 
         ########    FUNCTION SPACE    ########
@@ -99,32 +68,20 @@ class HeatInverseProblem:
         else:
             raise RuntimeError('conductivity_type must be wiggly')
 
-        if me.make_plots:
-            plt.figure()
-            cm = dl.plot(me.kappa, cmap='gray')
-            plt.colorbar(cm)
-            plt.title('conductivity kappa')
-            if me.save_plots:
-                pass
-
 
         ########    TRUE INITIAL CONCENTRATION (INVERSION PARAMETER)    ########
 
+        image_dir = get_project_root() / 'localpsf'
+
         if me.initial_condition_type == 'angel_peak':
-            image_file = example_root / 'angel_peak_badlands.png'
+            image_file = image_dir / 'angel_peak_badlands.png'
             me.u0_true = load_image_into_fenics(me.V, image_file)
         elif me.initial_condition_type == 'aces_building':
-            image_file = example_root / 'aces_building.png'
+            image_file = image_dir / 'aces_building.png'
             me.u0_true = load_image_into_fenics(me.V, image_file)
         else:
             raise RuntimeError('initial_condition_type must be angel_peak or aces_building')
 
-        if me.make_plots:
-            plt.figure()
-            dl.plot(me.u0_true, cmap='gray')
-            plt.title('Initial concentration u0')
-            if me.save_plots:
-                pass
 
         ########    MASS AND STIFFNESS MATRICES    ########
 
@@ -167,18 +124,29 @@ class HeatInverseProblem:
         me.uT_obs = dl.Function(me.V)
         me.uT_obs.vector()[:] = me.uT_true.vector()[:] + me.noise.vector()[:]
 
-        if me.make_plots:
-            plt.figure()
-            dl.plot(me.uT_true, cmap='gray')
-            plt.title('Final concentration uT')
-            if me.save_plots:
-                pass
 
-            plt.figure()
-            dl.plot(me.uT_obs, cmap='gray')
-            plt.title('Noisy observations of uT')
-            if me.save_plots:
-                pass
+        ########    REGULARIZATION / PRIOR    ########
+
+        K_form = dl.inner(dl.grad(u_trial), dl.grad(v_test)) * dl.dx
+        K = dl.assemble(K_form)
+
+        K_csr = csr_fenics2scipy(K)
+        M_csr = csr_fenics2scipy(me.mass_matrix)
+
+        diag_M = M_csr.diagonal()
+        me.M_lumped_scipy = sps.diags(diag_M, 0).tocsr()
+        me.iM_lumped_scipy = sps.diags(1. / diag_M, 0).tocsr()
+
+        me.sqrt_R0_scipy = me.prior_correlation_length ** 2 * K_csr + M_csr
+        me.R0_scipy = me.sqrt_R0_scipy.T * (me.iM_lumped_scipy * me.sqrt_R0_scipy)
+
+        me.M_lumped = csr_scipy2fenics(me.M_lumped_scipy)
+        me.iM_lumped = csr_scipy2fenics(me.iM_lumped_scipy)
+        me.sqrt_R0 = csr_scipy2fenics(me.sqrt_R0_scipy)
+        me.R0 = csr_scipy2fenics(me.R0_scipy)
+
+        me.solve_sqrt_R0 = make_fenics_amg_solver(me.sqrt_R0)
+        me.solve_R0 = make_fenics_amg_solver(me.R0)
 
 
         ########    FINITE DIFFERENCE CHECKS    ########
@@ -186,10 +154,40 @@ class HeatInverseProblem:
         if perform_checks:
             me.perform_adjoint_correctness_check()
             me.perform_finite_difference_checks()
+            me.check_R_solver()
 
+    @property
+    def options(me):
+        return {'mesh_h': me.mesh_h,
+                'finite_element_order': me.finite_element_order,
+                'final_time': me.final_time,
+                'noise_level': me.noise_level,
+                'mesh_type': me.mesh_type,
+                'conductivity_type': me.conductivity_type,
+                'initial_condition_type': me.initial_condition_type,
+                'prior_correlation_length': me.prior_correlation_length,
+                'regularization_parameter': me.regularization_parameter}
 
     def __hash__(me):
         return hash(tuple(me.options.items()))
+
+    def apply_R_petsc(me, p_petsc):
+        return me.regularization_parameter * (me.R0 * p_petsc)
+
+    def solve_R_petsc(me, p_petsc):
+        return me.solve_R0(p_petsc) / me.regularization_parameter
+        # return me.solve_sqrt_R0(me.M_lumped * me.solve_sqrt_R0(p_petsc)) / me.regularization_parameter
+
+    def apply_R_numpy(me, p_numpy):
+        return me.numpy_wrapper_for_petsc_function_call(me.apply_R_petsc, p_numpy)
+
+    def solve_R_numpy(me, p_numpy):
+        return me.numpy_wrapper_for_petsc_function_call(me.solve_R_petsc, p_numpy)
+
+    def check_R_solver(me):
+        x = np.random.randn(me.N)
+        err_R_solver = np.linalg.norm(me.solve_R_numpy(me.apply_R_numpy(x)) - x) / np.linalg.norm(x)
+        print('err_R_solver=', err_R_solver)
 
     def forward_map(me, u0_petsc):
         uT_petsc = dl.Vector(u0_petsc)
@@ -203,19 +201,37 @@ class HeatInverseProblem:
             v0_petsc = me.Z_minus * me.solve_Z_plus(v0_petsc)
         return v0_petsc
 
-    def objective(me, u0_petsc):
+    def misfit_objective(me, u0_petsc):
         uT_petsc = me.forward_map(u0_petsc)
         discrepancy = uT_petsc - me.uT_obs.vector()
         J = 0.5 * discrepancy.inner(me.mass_matrix * discrepancy)
         return J
 
-    def gradient(me, u0_petsc):
+    def regularization_objective(me, u0_petsc):
+        return 0.5 * u0_petsc.inner(me.apply_R_petsc(u0_petsc))
+
+    def objective(me, u0_petsc):
+        return me.misfit_objective(u0_petsc) + me.regularization_objective(u0_petsc)
+
+    def misfit_gradient(me, u0_petsc):
         uT_petsc = me.forward_map(u0_petsc)
         discrepancy = uT_petsc - me.uT_obs.vector()
         return me.adjoint_map(me.mass_matrix * discrepancy)
 
-    def apply_hessian_petsc(me, p_petsc):
+    def regularization_gradient(me, u0_petsc):
+        return me.apply_R_petsc(u0_petsc)
+
+    def gradient(me, u0_petsc):
+        return me.misfit_gradient(u0_petsc) + me.regularization_gradient(u0_petsc)
+
+    def apply_misfit_hessian_petsc(me, p_petsc):
         return me.adjoint_map(me.mass_matrix * me.forward_map(p_petsc))
+
+    def apply_regularization_hessian_petsc(me, p_petsc):
+        return me.apply_R_petsc(p_petsc)
+
+    def apply_hessian_petsc(me, p_petsc):
+        return me.apply_misfit_hessian_petsc(p_petsc) + me.apply_regularization_hessian_petsc(p_petsc)
 
     def apply_mass_matrix_petsc(me, p_petsc):
         return me.mass_matrix * p_petsc
@@ -226,17 +242,17 @@ class HeatInverseProblem:
     def solve_M_petsc(me, p_petsc):
         return me.solve_mass_matrix_petsc(p_petsc)
 
-    def apply_H_petsc(me, p_petsc):
-        return me.apply_hessian_petsc(p_petsc)
+    def apply_Hd_petsc(me, p_petsc):
+        return me.apply_misfit_hessian_petsc(p_petsc)
 
-    def apply_iM_H_iM_petsc(me, p_petsc):
-        return me.solve_M_petsc(me.apply_H_petsc(me.solve_M_petsc(p_petsc)))
+    def apply_iM_Hd_iM_petsc(me, p_petsc):
+        return me.solve_M_petsc(me.apply_Hd_petsc(me.solve_M_petsc(p_petsc)))
 
-    def apply_H_iM_petsc(me, p_petsc):
-        return me.apply_H_petsc(me.solve_M_petsc(p_petsc))
+    def apply_Hd_iM_petsc(me, p_petsc):
+        return me.apply_Hd_petsc(me.solve_M_petsc(p_petsc))
 
-    def apply_iM_H_petsc(me, p_petsc):
-        return me.solve_M_petsc(me.apply_H_petsc(p_petsc))
+    def apply_iM_Hd_petsc(me, p_petsc):
+        return me.solve_M_petsc(me.apply_Hd_petsc(p_petsc))
 
     def petsc2numpy(me, p_petsc):
         return p_petsc[:]
@@ -249,8 +265,8 @@ class HeatInverseProblem:
     def numpy_wrapper_for_petsc_function_call(me, func_petsc, p_numpy):
         return me.petsc2numpy(func_petsc(me.numpy2petsc(p_numpy)))
 
-    def apply_hessian_numpy(me, p_numpy):
-        return me.numpy_wrapper_for_petsc_function_call(me.apply_hessian_petsc, p_numpy)
+    def apply_misfit_hessian_numpy(me, p_numpy):
+        return me.numpy_wrapper_for_petsc_function_call(me.apply_misfit_hessian_petsc, p_numpy)
 
     def apply_mass_matrix_numpy(me, p_numpy):
         return me.numpy_wrapper_for_petsc_function_call(me.apply_mass_matrix_petsc, p_numpy)
@@ -264,17 +280,17 @@ class HeatInverseProblem:
     def solve_M_numpy(me, p_numpy):
         return me.numpy_wrapper_for_petsc_function_call(me.solve_M_petsc, p_numpy)
 
-    def apply_H_numpy(me, p_numpy):
-        return me.numpy_wrapper_for_petsc_function_call(me.apply_H_petsc, p_numpy)
+    def apply_Hd_numpy(me, p_numpy):
+        return me.numpy_wrapper_for_petsc_function_call(me.apply_Hd_petsc, p_numpy)
 
-    def apply_iM_H_iM_numpy(me, p_numpy):
-        return me.numpy_wrapper_for_petsc_function_call(me.apply_iM_H_iM_petsc, p_numpy)
+    def apply_iM_Hd_iM_numpy(me, p_numpy):
+        return me.numpy_wrapper_for_petsc_function_call(me.apply_iM_Hd_iM_petsc, p_numpy)
 
-    def apply_H_iM_numpy(me, p_numpy):
-        return me.numpy_wrapper_for_petsc_function_call(me.apply_H_iM_petsc, p_numpy)
+    def apply_Hd_iM_numpy(me, p_numpy):
+        return me.numpy_wrapper_for_petsc_function_call(me.apply_Hd_iM_petsc, p_numpy)
 
-    def apply_iM_H_numpy(me, p_numpy):
-        return me.numpy_wrapper_for_petsc_function_call(me.apply_iM_H_petsc, p_numpy)
+    def apply_iM_Hd_numpy(me, p_numpy):
+        return me.numpy_wrapper_for_petsc_function_call(me.apply_iM_Hd_petsc, p_numpy)
 
     def perform_adjoint_correctness_check(me):
         x = dl.Function(me.V)
@@ -324,7 +340,7 @@ class HeatInverseProblem:
         print('hess_err=', hess_err)
 
     def interactive_hessian_impulse_response_plot(me):
-        interactive_impulse_response_plot(me.apply_iM_H_iM_petsc, me.V)
+        interactive_impulse_response_plot(me.apply_iM_Hd_iM_petsc, me.V)
 
 
 
