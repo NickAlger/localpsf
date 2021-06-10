@@ -106,3 +106,45 @@ plt.savefig(str(save_dir / 'prior_greens.pdf'), bbox_inches='tight', dpi=100)
 file = dl.XDMFFile(str(save_dir / ('prior_greens.xdmf')))
 file.write(prior_greens)
 file.close()
+
+
+########    REG PARAM SWEEP USING CONVENTIONAL REG-CG AND TIGHT TOLERANCE    ########
+
+regularization_parameters = np.logspace(-4,0,10)
+u0_reconstructions = list()
+morozov_discrepancies = list()
+noise_Mnorms = list()
+for a_reg in list(regularization_parameters):
+    print('a_reg=', a_reg)
+    HIP.regularization_parameter = a_reg
+    g0_numpy = HIP.g_numpy(np.zeros(HIP.N))
+    u0_numpy, info, residuals = custom_cg(HIP.H_linop, g0_numpy, M=HIP.solve_R_linop, tol=1e-10, maxiter=500)
+    u0 = dl.Function(HIP.V)
+    u0.vector()[:] = u0_numpy
+    u0_reconstructions.append(u0)
+
+    morozov_discrepancy = HIP.morozov_discrepancy(u0.vector())
+    noise_Mnorm = HIP.noise_Mnorm
+
+    morozov_discrepancies.append(morozov_discrepancy)
+    noise_Mnorms.append(noise_Mnorm)
+
+    print('noise_Mnorm=', noise_Mnorm, ', morozov_discrepancy=', morozov_discrepancy)
+
+    plt.figure()
+    cm = dl.plot(u0, cmap='gray')
+    plt.colorbar(cm)
+    plt.title(r'Reconstructed initial condition $u_0$, for $\alpha=$'+str(a_reg))
+
+morozov_discrepancies = np.array(morozov_discrepancies)
+noise_Mnorms = np.array(noise_Mnorms)
+
+
+########    COMPUTE MOROZ DISCREPANCIES    ########
+
+morozov_discrepancies = np.zeros(range(len(regularization_parameters)))
+for k in range(len(regularization_parameters)):
+    a_reg = regularization_parameters[k]
+    u0 = u0_reconstructions[k]
+    Jd = HIP.misfit_objective(u0.vector())
+    Jr = HIP.regularization_objective(u0.vector())

@@ -117,9 +117,10 @@ class HeatInverseProblem:
         noise_Mnorm0 = np.sqrt(me.noise.vector().inner(me.mass_matrix * me.noise.vector()))
         me.noise.vector()[:] = me.noise_level * (uT_true_Mnorm / noise_Mnorm0) * me.noise.vector()
 
+        me.noise_Mnorm = np.sqrt(me.noise.vector().inner(me.mass_matrix * me.noise.vector()))
+
         if me.perform_checks:
-            noise_Mnorm = np.sqrt(me.noise.vector().inner(me.mass_matrix * me.noise.vector()))
-            print('noise_level=', noise_level, ', noise_Mnorm/uT_true_Mnorm=', noise_Mnorm/uT_true_Mnorm)
+            print('noise_level=', noise_level, ', noise_Mnorm/uT_true_Mnorm=', me.noise_Mnorm/uT_true_Mnorm)
 
         me.uT_obs = dl.Function(me.V)
         me.uT_obs.vector()[:] = me.uT_true.vector()[:] + me.noise.vector()[:]
@@ -219,6 +220,9 @@ class HeatInverseProblem:
     def objective(me, u0_petsc):
         return me.misfit_objective(u0_petsc) + me.regularization_objective(u0_petsc)
 
+    def morozov_discrepancy(me, u0_petsc):
+        return np.sqrt(2.0 * me.misfit_objective(u0_petsc))
+
     def misfit_gradient(me, u0_petsc):
         uT_petsc = me.forward_map(u0_petsc)
         discrepancy = uT_petsc - me.uT_obs.vector()
@@ -241,6 +245,12 @@ class HeatInverseProblem:
 
     def apply_mass_matrix_petsc(me, p_petsc):
         return me.mass_matrix * p_petsc
+
+    def g_petsc(me, u0_petsc):
+        return me.gradient(u0_petsc)
+
+    def g_numpy(me, u0_numpy):
+        return me.numpy_wrapper_for_petsc_function_call(me.g_petsc, u0_numpy)
 
     def apply_M_petsc(me, p_petsc):
         return me.apply_mass_matrix_petsc(p_petsc)
