@@ -149,6 +149,12 @@ class HeatInverseProblem:
         me.solve_R0 = make_fenics_amg_solver(me.R0)
 
 
+        ########    Hessian as a linear operator    ########
+
+        me.H_linop = spla.LinearOperator((me.N, me.N), matvec=me.apply_H_numpy)
+        me.solve_R_linop = spla.LinearOperator((me.N, me.N), matvec=me.solve_R_numpy)
+
+
         ########    FINITE DIFFERENCE CHECKS    ########
 
         if perform_checks:
@@ -175,8 +181,8 @@ class HeatInverseProblem:
         return me.regularization_parameter * (me.R0 * p_petsc)
 
     def solve_R_petsc(me, p_petsc):
-        return me.solve_R0(p_petsc) / me.regularization_parameter
-        # return me.solve_sqrt_R0(me.M_lumped * me.solve_sqrt_R0(p_petsc)) / me.regularization_parameter
+        # return me.solve_R0(p_petsc) / me.regularization_parameter
+        return me.solve_sqrt_R0(me.M_lumped * me.solve_sqrt_R0(p_petsc)) / me.regularization_parameter
 
     def apply_R_numpy(me, p_numpy):
         return me.numpy_wrapper_for_petsc_function_call(me.apply_R_petsc, p_numpy)
