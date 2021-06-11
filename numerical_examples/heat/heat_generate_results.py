@@ -4,7 +4,9 @@ import time
 import pathlib
 
 from nalger_helper_functions import *
+import hlibpro_python_wrapper as hpro
 from localpsf.heat_inverse_problem import *
+from localpsf.product_convolution_hmatrix import product_convolution_hmatrix
 
 
 ########    OPTIONS    ########
@@ -108,7 +110,12 @@ file.write(prior_greens)
 file.close()
 
 
-########    REG PARAM SWEEP USING CONVENTIONAL REG-CG AND TIGHT TOLERANCE    ########
+########    REG PARAM SWEEP    ########
+
+Hd_hmatrix = product_convolution_hmatrix(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, 5,
+                                         hmatrix_tol=1e-6, make_positive_definite=True, return_extras=False)
+
+R0_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(HIP.R0_scipy, Hd_hmatrix.bct)
 
 regularization_parameters = np.logspace(-5,0,10)
 u0_reconstructions = list()
@@ -117,8 +124,12 @@ noise_Mnorms = list()
 for a_reg in list(regularization_parameters):
     print('a_reg=', a_reg)
     HIP.regularization_parameter = a_reg
+    H_hmatrix = Hd_hmatrix + a_reg * R0_hmatrix
+    iH_hmatrix = hpro.h_lu(H_hmatrix)
     g0_numpy = HIP.g_numpy(np.zeros(HIP.N))
-    u0_numpy, info, residuals = custom_cg(HIP.H_linop, -g0_numpy, M=HIP.solve_R_linop, tol=1e-10, maxiter=500)
+    u0_numpy, info, residuals = custom_cg(HIP.H_linop, -g0_numpy,
+                                          M=iH_hmatrix.as_linear_operator(inverse=True), tol=1e-10, maxiter=500)
+    # u0_numpy, info, residuals = custom_cg(HIP.H_linop, -g0_numpy, M=HIP.solve_R_linop, tol=1e-10, maxiter=500)
     u0 = dl.Function(HIP.V)
     u0.vector()[:] = u0_numpy
     u0_reconstructions.append(u0)
