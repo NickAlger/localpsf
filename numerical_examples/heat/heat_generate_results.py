@@ -110,7 +110,7 @@ file.close()
 
 ########    REG PARAM SWEEP USING CONVENTIONAL REG-CG AND TIGHT TOLERANCE    ########
 
-regularization_parameters = np.logspace(-4,0,10)
+regularization_parameters = np.logspace(-5,0,10)
 u0_reconstructions = list()
 morozov_discrepancies = list()
 noise_Mnorms = list()
@@ -118,7 +118,7 @@ for a_reg in list(regularization_parameters):
     print('a_reg=', a_reg)
     HIP.regularization_parameter = a_reg
     g0_numpy = HIP.g_numpy(np.zeros(HIP.N))
-    u0_numpy, info, residuals = custom_cg(HIP.H_linop, g0_numpy, M=HIP.solve_R_linop, tol=1e-10, maxiter=500)
+    u0_numpy, info, residuals = custom_cg(HIP.H_linop, -g0_numpy, M=HIP.solve_R_linop, tol=1e-10, maxiter=500)
     u0 = dl.Function(HIP.V)
     u0.vector()[:] = u0_numpy
     u0_reconstructions.append(u0)
@@ -139,12 +139,26 @@ for a_reg in list(regularization_parameters):
 morozov_discrepancies = np.array(morozov_discrepancies)
 noise_Mnorms = np.array(noise_Mnorms)
 
+# Morozov discrepancy
 
-########    COMPUTE MOROZ DISCREPANCIES    ########
+plt.figure()
+plt.loglog(regularization_parameters, morozov_discrepancies)
+plt.loglog(regularization_parameters, noise_Mnorms)
+plt.xlabel(r'Regularization parameter, $\alpha$')
+plt.title('Morozov discrepancy')
+plt.legend(['Morozov discrepancy', 'noise norm'])
 
-morozov_discrepancies = np.zeros(range(len(regularization_parameters)))
-for k in range(len(regularization_parameters)):
-    a_reg = regularization_parameters[k]
-    u0 = u0_reconstructions[k]
-    Jd = HIP.misfit_objective(u0.vector())
-    Jr = HIP.regularization_objective(u0.vector())
+ind = np.argwhere(morozov_discrepancies - noise_Mnorms > 0)[0,0]
+f0 = morozov_discrepancies[ind-1]
+f1 = morozov_discrepancies[ind]
+x0 = regularization_parameters[ind-1]
+x1 = regularization_parameters[ind]
+
+slope_log = (np.log(f1) - np.log(f0)) / (np.log(x1) - np.log(x0))
+dx_log = (np.log(noise_Mnorms[0]) - np.log(f0)) / slope_log
+x_log = np.log(x0) + dx_log
+a_reg_morozov = np.exp(x_log)
+print('a_reg_morozov=', a_reg_morozov)
+
+#
+
