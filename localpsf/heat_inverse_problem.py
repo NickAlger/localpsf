@@ -150,10 +150,12 @@ class HeatInverseProblem:
         me.solve_R0 = make_fenics_amg_solver(me.R0)
 
 
-        ########    Hessian as a linear operator    ########
+        ########    Hessian and Regularization as linear operators    ########
 
         me.H_linop = spla.LinearOperator((me.N, me.N), matvec=me.apply_H_numpy)
+        me.R_linop = spla.LinearOperator((me.N, me.N), matvec = me.apply_R_numpy)
         me.solve_R_linop = spla.LinearOperator((me.N, me.N), matvec=me.solve_R_numpy)
+
 
 
         ########    FINITE DIFFERENCE CHECKS    ########

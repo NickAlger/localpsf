@@ -240,8 +240,8 @@ np.savez(str(save_dir / 'krylov_iter_vs_reg_parameter.npz'),
          all_cg_none_iters=all_cg_none_iters,
          krylov_tol=krylov_tol)
 
-########    KRYLOV CONVERGENCE FOR FIXED REG PARAM    ########
 
+########    KRYLOV CONVERGENCE FOR FIXED REG PARAM    ########
 
 HIP.regularization_parameter = a_reg_morozov
 H_hmatrix = Hd_hmatrix + a_reg_morozov * R0_hmatrix
@@ -276,3 +276,18 @@ np.savez(str(save_dir / 'error_vs_krylov_iter.npz'),
          errors_hmatrix_morozov=errors_hmatrix_morozov,
          errors_none_morozov=errors_none_morozov,
          a_reg_morozov=a_reg_morozov)
+
+
+########    PRECONDITIONED SPECTRUM PLOTS    ########
+
+k_eig = 1000
+
+delta_hmatrix_linop = spla.LinearOperator((HIP.N, HIP.N), matvec=lambda x : HIP.apply_H_numpy(x) - H_hmatrix * x)
+ee_hmatrix, _ = spla.eigsh(delta_hmatrix_linop, k=k_eig, M=H_hmatrix.as_linear_operator(), Minv=iH_hmatrix.as_linear_operator(), which='LM')
+
+delta_reg_linop = spla.LinearOperator((HIP.N, HIP.N), matvec=lambda x : HIP.apply_H_numpy(x) - HIP.apply_R_numpy(x))
+ee_reg, _ = spla.eigsh(delta_reg_linop, k=k_eig, M=HIP.R_linop, Minv=HIP.solve_R_linop, which='LM')
+
+plt.figure()
+plt.semilogy(np.sort(np.abs(ee_reg))[::-1])
+plt.semilogy(np.sort(np.abs(ee_hmatrix))[::-1])
