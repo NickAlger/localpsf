@@ -23,6 +23,12 @@ HIP_options = {'mesh_h' : 3e-2,
                'prior_correlation_length' : 0.05,
                'regularization_parameter' : 1e-1}
 
+hmatrix_rtol = 1e-4
+krylov_tol = 1e-6
+a_reg_min = 1e-5
+a_reg_max = 1e0
+num_reg = 10
+
 save_dir = get_project_root() / 'numerical_examples' / 'heat' / time.ctime()
 save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -113,23 +119,37 @@ file.close()
 ########    REG PARAM SWEEP    ########
 
 Hd_hmatrix = product_convolution_hmatrix(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, 5,
-                                         hmatrix_tol=1e-6, make_positive_definite=True, return_extras=False)
+                                         hmatrix_tol=hmatrix_rtol, make_positive_definite=True, return_extras=False)
 
 R0_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(HIP.R0_scipy, Hd_hmatrix.bct)
 
-regularization_parameters = np.logspace(-5,0,10)
+def iterations_to_achieve_tolerance(errors, tol):
+    successful_iterations = np.argwhere(np.array(errors) < tol)
+    if len(successful_iterations > 0):
+        first_successful_iteration = successful_iterations[0, 0] + 1
+    else:
+        first_successful_iteration = -1
+    return first_successful_iteration
+
+regularization_parameters = np.logspace(np.log10(a_reg_min), np.log10(a_reg_max), num_reg)
 u0_reconstructions = list()
 morozov_discrepancies = list()
 noise_Mnorms = list()
+all_cg_reg_iters = list()
+all_cg_hmatrix_iters = list()
+all_cg_none_iters = list()
 for a_reg in list(regularization_parameters):
     print('a_reg=', a_reg)
     HIP.regularization_parameter = a_reg
     H_hmatrix = Hd_hmatrix + a_reg * R0_hmatrix
-    iH_hmatrix = hpro.h_lu(H_hmatrix)
+    # iH_hmatrix = hpro.h_lu(H_hmatrix)
+    iH_hmatrix = H_hmatrix.inv()
     g0_numpy = HIP.g_numpy(np.zeros(HIP.N))
+    # u0_numpy, info, residuals = custom_cg(HIP.H_linop, -g0_numpy,
+    #                                       M=iH_hmatrix.as_linear_operator(inverse=True), tol=1e-10, maxiter=500)
     u0_numpy, info, residuals = custom_cg(HIP.H_linop, -g0_numpy,
-                                          M=iH_hmatrix.as_linear_operator(inverse=True), tol=1e-10, maxiter=500)
-    # u0_numpy, info, residuals = custom_cg(HIP.H_linop, -g0_numpy, M=HIP.solve_R_linop, tol=1e-10, maxiter=500)
+                                          M=iH_hmatrix.as_linear_operator(), tol=1e-10, maxiter=500)
+
     u0 = dl.Function(HIP.V)
     u0.vector()[:] = u0_numpy
     u0_reconstructions.append(u0)
@@ -147,8 +167,29 @@ for a_reg in list(regularization_parameters):
     plt.colorbar(cm)
     plt.title(r'Reconstructed initial condition $u_0$, for $\alpha=$'+str(a_reg))
 
+    _, _, errors_reg = custom_cg(HIP.H_linop, -g0_numpy, M=HIP.solve_R_linop, tol=1e-10, maxiter=500,
+                             x_true=u0_numpy, track_residuals=False)
+
+    cg_reg_iters = iterations_to_achieve_tolerance(errors_reg, krylov_tol)
+    all_cg_reg_iters.append(cg_reg_iters)
+
+    _, _, errors_hmatrix = custom_cg(HIP.H_linop, -g0_numpy, M=iH_hmatrix.as_linear_operator(), tol=1e-10, maxiter=500,
+                             x_true=u0_numpy, track_residuals=False)
+
+    cg_hmatrix_iters = iterations_to_achieve_tolerance(errors_hmatrix, krylov_tol)
+    all_cg_hmatrix_iters.append(cg_hmatrix_iters)
+
+    _, _, errors_none = custom_cg(HIP.H_linop, -g0_numpy, tol=1e-10, maxiter=500,
+                                  x_true=u0_numpy, track_residuals=False)
+
+    cg_none_iters = iterations_to_achieve_tolerance(errors_none, krylov_tol)
+    all_cg_none_iters.append(cg_none_iters)
+
 morozov_discrepancies = np.array(morozov_discrepancies)
 noise_Mnorms = np.array(noise_Mnorms)
+all_cg_reg_iters = np.array(all_cg_reg_iters)
+all_cg_hmatrix_iters = np.array(all_cg_hmatrix_iters)
+all_cg_none_iters = np.array(all_cg_none_iters)
 
 # Morozov discrepancy
 
@@ -171,5 +212,15 @@ x_log = np.log(x0) + dx_log
 a_reg_morozov = np.exp(x_log)
 print('a_reg_morozov=', a_reg_morozov)
 
-#
+# Krylov iterations to given tolerance
+
+plt.figure()
+plt.loglog(regularization_parameters, all_cg_reg_iters)
+plt.loglog(regularization_parameters, all_cg_hmatrix_iters)
+plt.loglog(regularization_parameters, all_cg_none_iters)
+plt.title(r'Conjugate gradient iterations to achieve tolerance $10^{-6}$')
+plt.legend(['Regularization', 'PC-Hmatrix', 'None'])
+plt.xlabel(r'Regularization parameter, $\alpha$')
+plt.ylabel(r'$\frac{\|u_0 - u_0^*\|}{\|u_0^*\|}$')
+
 
