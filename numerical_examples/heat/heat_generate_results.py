@@ -193,13 +193,6 @@ all_cg_none_iters = np.array(all_cg_none_iters)
 
 # Morozov discrepancy
 
-plt.figure()
-plt.loglog(regularization_parameters, morozov_discrepancies)
-plt.loglog(regularization_parameters, noise_Mnorms)
-plt.xlabel(r'Regularization parameter, $\alpha$')
-plt.title('Morozov discrepancy')
-plt.legend(['Morozov discrepancy', 'noise norm'])
-
 ind = np.argwhere(morozov_discrepancies - noise_Mnorms > 0)[0,0]
 f0 = morozov_discrepancies[ind-1]
 f1 = morozov_discrepancies[ind]
@@ -212,6 +205,21 @@ x_log = np.log(x0) + dx_log
 a_reg_morozov = np.exp(x_log)
 print('a_reg_morozov=', a_reg_morozov)
 
+plt.figure()
+plt.loglog(regularization_parameters, morozov_discrepancies)
+plt.loglog(regularization_parameters, noise_Mnorms)
+plt.xlabel(r'Regularization parameter, $\alpha$')
+plt.title('Morozov discrepancy')
+plt.legend(['Morozov discrepancy', 'noise norm'])
+
+plt.savefig(str(save_dir / 'morozov.pdf'), bbox_inches='tight', dpi=100)
+
+np.savez(str(save_dir / 'morozov.npz'),
+         regularization_parameters=regularization_parameters,
+         morozov_discrepancies=morozov_discrepancies,
+         noise_Mnorms=noise_Mnorms,
+         a_reg_morozov=a_reg_morozov)
+
 # Krylov iterations to given tolerance
 
 plt.figure()
@@ -219,8 +227,16 @@ plt.loglog(regularization_parameters, all_cg_reg_iters)
 plt.loglog(regularization_parameters, all_cg_hmatrix_iters)
 plt.loglog(regularization_parameters, all_cg_none_iters)
 plt.title(r'Conjugate gradient iterations to achieve tolerance $10^{-6}$')
-plt.legend(['Regularization', 'PC-Hmatrix', 'None'])
+plt.legend(['Regularization', 'PC-HMatrix', 'None'])
 plt.xlabel(r'Regularization parameter, $\alpha$')
 plt.ylabel(r'$\frac{\|u_0 - u_0^*\|}{\|u_0^*\|}$')
 
+plt.savefig(str(save_dir / 'krylov_iter_vs_reg_parameter.pdf'), bbox_inches='tight', dpi=100)
+
+np.savez(str(save_dir / 'krylov_iter_vs_reg_parameter.npz'),
+         regularization_parameters=regularization_parameters,
+         all_cg_reg_iters=all_cg_reg_iters,
+         all_cg_hmatrix_iters=all_cg_hmatrix_iters,
+         all_cg_none_iters=all_cg_none_iters,
+         krylov_tol=krylov_tol)
 
