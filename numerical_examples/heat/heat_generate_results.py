@@ -27,7 +27,7 @@ hmatrix_rtol = 1e-4
 krylov_tol = 1e-6
 a_reg_min = 1e-5
 a_reg_max = 1e0
-num_reg = 10
+num_reg = 11
 
 save_dir = get_project_root() / 'numerical_examples' / 'heat' / time.ctime()
 save_dir.mkdir(parents=True, exist_ok=True)
@@ -240,3 +240,39 @@ np.savez(str(save_dir / 'krylov_iter_vs_reg_parameter.npz'),
          all_cg_none_iters=all_cg_none_iters,
          krylov_tol=krylov_tol)
 
+########    KRYLOV CONVERGENCE FOR FIXED REG PARAM    ########
+
+
+HIP.regularization_parameter = a_reg_morozov
+H_hmatrix = Hd_hmatrix + a_reg_morozov * R0_hmatrix
+iH_hmatrix = H_hmatrix.inv()
+g0_numpy = HIP.g_numpy(np.zeros(HIP.N))
+
+u0_numpy, _, _ = custom_cg(HIP.H_linop, -g0_numpy, M=iH_hmatrix.as_linear_operator(), tol=1e-11,
+                           maxiter=1000, track_residuals=True)
+
+_, _, errors_reg_morozov = custom_cg(HIP.H_linop, -g0_numpy, M=HIP.solve_R_linop, tol=1e-10, maxiter=1000,
+                                     x_true=u0_numpy, track_residuals=False)
+
+_, _, errors_hmatrix_morozov = custom_cg(HIP.H_linop, -g0_numpy, M=iH_hmatrix.as_linear_operator(), tol=1e-10, maxiter=1000,
+                                         x_true=u0_numpy, track_residuals=False)
+
+_, _, errors_none_morozov = custom_cg(HIP.H_linop, -g0_numpy, tol=1e-10, maxiter=1000,
+                                      x_true=u0_numpy, track_residuals=False)
+
+plt.figure()
+plt.semilogy(errors_reg_morozov)
+plt.semilogy(errors_hmatrix_morozov)
+plt.semilogy(errors_none_morozov)
+plt.xlabel('Conjugate gradient iteration')
+plt.ylabel(r'$\frac{\|u_0 - u_0^*\|}{\|u_0^*\|}$')
+plt.title('Convergence of conjugate gradient')
+plt.legend(['Regularization', 'PC-HMatrix', 'None'])
+
+plt.savefig(str(save_dir / 'error_vs_krylov_iter.pdf'), bbox_inches='tight', dpi=100)
+
+np.savez(str(save_dir / 'error_vs_krylov_iter.npz'),
+         errors_reg_morozov=errors_reg_morozov,
+         errors_hmatrix_morozov=errors_hmatrix_morozov,
+         errors_none_morozov=errors_none_morozov,
+         a_reg_morozov=a_reg_morozov)
