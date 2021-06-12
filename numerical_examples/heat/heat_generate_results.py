@@ -11,7 +11,7 @@ from localpsf.product_convolution_hmatrix import product_convolution_hmatrix
 
 ########    OPTIONS    ########
 
-HIP_options = {'mesh_h' : 3e-2,
+HIP_options = {'mesh_h' : 2e-2,
                'finite_element_order' : 1,
                'final_time' : 3e-4,
                'num_timesteps' : 35,
@@ -128,7 +128,7 @@ def iterations_to_achieve_tolerance(errors, tol):
     if len(successful_iterations > 0):
         first_successful_iteration = successful_iterations[0, 0] + 1
     else:
-        first_successful_iteration = -1
+        first_successful_iteration = np.nan
     return first_successful_iteration
 
 regularization_parameters = np.logspace(np.log10(a_reg_min), np.log10(a_reg_max), num_reg)
@@ -167,19 +167,19 @@ for a_reg in list(regularization_parameters):
     plt.colorbar(cm)
     plt.title(r'Reconstructed initial condition $u_0$, for $\alpha=$'+str(a_reg))
 
-    _, _, errors_reg = custom_cg(HIP.H_linop, -g0_numpy, M=HIP.solve_R_linop, tol=1e-10, maxiter=500,
+    _, _, errors_reg = custom_cg(HIP.H_linop, -g0_numpy, M=HIP.solve_R_linop, tol=1e-8, maxiter=1500,
                              x_true=u0_numpy, track_residuals=False)
 
     cg_reg_iters = iterations_to_achieve_tolerance(errors_reg, krylov_tol)
     all_cg_reg_iters.append(cg_reg_iters)
 
-    _, _, errors_hmatrix = custom_cg(HIP.H_linop, -g0_numpy, M=iH_hmatrix.as_linear_operator(), tol=1e-10, maxiter=500,
+    _, _, errors_hmatrix = custom_cg(HIP.H_linop, -g0_numpy, M=iH_hmatrix.as_linear_operator(), tol=1e-8, maxiter=500,
                              x_true=u0_numpy, track_residuals=False)
 
     cg_hmatrix_iters = iterations_to_achieve_tolerance(errors_hmatrix, krylov_tol)
     all_cg_hmatrix_iters.append(cg_hmatrix_iters)
 
-    _, _, errors_none = custom_cg(HIP.H_linop, -g0_numpy, tol=1e-10, maxiter=500,
+    _, _, errors_none = custom_cg(HIP.H_linop, -g0_numpy, tol=1e-8, maxiter=1500,
                                   x_true=u0_numpy, track_residuals=False)
 
     cg_none_iters = iterations_to_achieve_tolerance(errors_none, krylov_tol)
