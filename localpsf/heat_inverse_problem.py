@@ -373,70 +373,6 @@ class HeatInverseProblem:
         interactive_impulse_response_plot(me.apply_iM_Hd_iM_petsc, me.V)
 
 
-
-
-# def random_spd_matrix(d):
-#     U,ss,_ = np.linalg.svd(np.random.randn(d,d))
-#     A = np.dot(U, np.dot(np.diag(ss**3), U.T))
-#     return A
-#
-#
-# def random_conductivity_field(V):
-#     u_trial = fenics.TrialFunction(V)
-#     v_test = fenics.TestFunction(V)
-#
-#     mass_form = u_trial * v_test * fenics.dx
-#     M = convert_fenics_csr_matrix_to_scipy_csr_matrix(fenics.assemble(mass_form))
-#
-#     stiffness_form = fenics.inner(fenics.grad(u_trial), fenics.grad(v_test)) * fenics.dx
-#     K = convert_fenics_csr_matrix_to_scipy_csr_matrix(fenics.assemble(stiffness_form))
-#
-#     smoother = spla.factorized(M + K)
-#     def random_smooth_vec(min=0.01, max=1):
-#         w0_vec = smoother(np.random.rand(V.dim()))
-#         m = np.min(w0_vec)
-#         M = np.max(w0_vec)
-#         w_vec = min + (w0_vec - m) * (max - min) / (M - m)
-#         return w_vec
-#
-#     def random_smooth_partition_functions(nspd):
-#         ww0 = np.array([random_smooth_vec()**6 for _ in range(nspd)])
-#         ww = ww0 / np.sum(ww0, axis=0)
-#         ww_fct = [fenics.Function(V) for _ in range(nspd)]
-#         for k in range(nspd):
-#             ww_fct[k].vector()[:] = np.copy(ww[k,:])
-#         return ww_fct
-#
-#     # C0 = fenics.Constant(np.array([[2.5, 1.5],[1.5,2.5]]))
-#     # C1 = fenics.Constant(np.array([[4,0],[0,0.5]]))
-#     # C2 = fenics.Constant(np.array([[0.5,-0.5],[-0.5,2.5]]))
-#     # conductivity_matrices = [C0, C1, C2]
-#     #
-#     # C0 = fenics.Constant(np.array([[10, 0.0],[0.0,0.1]]))
-#     # C1 = fenics.Constant(np.array([[0.1, 0.0],[0.0,10]]))
-#     # conductivity_matrices = [C0, C1]
-#
-#     d = V.mesh().geometric_dimension()
-#     conductivity_matrices = [fenics.Constant(random_spd_matrix(d)) for _ in range(3)]
-#     nspd = len(conductivity_matrices)
-#     smooth_conductivity_weights = random_smooth_partition_functions(nspd)
-#
-#     kappa = fenics.Constant(np.zeros((d, d)))
-#     for k in range(nspd):
-#         C = conductivity_matrices[k]
-#         w = smooth_conductivity_weights[k]
-#         kappa = kappa + C * w
-#
-#     return kappa
-#
-#
-#
-# def random_function(function_space_V):
-#     x = fenics.Function(function_space_V)
-#     x.vector()[:] = np.random.randn(function_space_V.dim())
-#     return x
-
-
 def get_project_root():
     return Path(__file__).parent.parent
 
@@ -467,3 +403,67 @@ def wiggly_function(V0):
 
     u0 = dl.interpolate(u, V0)
     return u0
+
+
+def solve_heat_inverse_problem_morozov(HIP, Hd_hmatrix, R0_hmatrix, a_reg0=1e0, a_reg_min=1e-8, gamma=3e-1, tol=1e-10,
+                                       make_morozov_plot=True):
+    a_reg = a_reg0
+    u0 = dl.Function(HIP.V)
+    morozov_discrepancies = list()
+    noise_Mnorms = list()
+    regularization_parameters = list()
+    while a_reg > a_reg_min:
+        regularization_parameters.append(a_reg)
+        HIP.regularization_parameter = a_reg
+
+        g0_numpy = HIP.g_numpy(np.zeros(HIP.N))
+        H_hmatrix = Hd_hmatrix + a_reg * R0_hmatrix
+        iH_hmatrix = H_hmatrix.inv()
+
+        u0_numpy, info, residuals = custom_cg(HIP.H_linop, -g0_numpy,
+                                              M=iH_hmatrix.as_linear_operator(),
+                                              tol=tol, maxiter=500)
+        u0.vector()[:] = u0_numpy
+
+        morozov_discrepancy = HIP.morozov_discrepancy(u0.vector())
+        noise_Mnorm = HIP.noise_Mnorm
+
+        morozov_discrepancies.append(morozov_discrepancy)
+        noise_Mnorms.append(noise_Mnorm)
+
+        print('a_reg=', a_reg, ', noise_Mnorm=', noise_Mnorm, ', morozov_discrepancy=', morozov_discrepancy)
+        if morozov_discrepancy < noise_Mnorm:
+            break
+
+        a_reg = gamma * a_reg
+
+    regularization_parameters = np.array(regularization_parameters[::-1])
+    morozov_discrepancies = np.array(morozov_discrepancies[::-1])
+    noise_Mnorms = np.array(noise_Mnorms[::-1])
+    a_reg_morozov = inverse_of_monotone_increasing_piecewise_loglinear_function(noise_Mnorms[0],
+                                                                                regularization_parameters,
+                                                                                morozov_discrepancies)
+
+    print('a_reg_morozov=', a_reg_morozov)
+
+    if make_morozov_plot:
+        plt.figure()
+        plt.loglog(regularization_parameters, morozov_discrepancies)
+        plt.loglog(regularization_parameters, noise_Mnorms)
+        plt.title('Morozov discrepancy')
+
+    return u0, a_reg_morozov
+
+
+def inverse_of_monotone_increasing_piecewise_loglinear_function(y_target, xx, yy):
+    xx = np.array(xx)
+    yy = np.array(yy)
+    ind = np.argwhere(yy > y_target)[0, 0]
+    y_minus = yy[ind-1]
+    y_plus = yy[ind]
+    x_minus = xx[ind-1]
+    x_plus = xx[ind]
+    slope_log = (np.log(y_plus) - np.log(y_minus)) / (np.log(x_plus) - np.log(x_minus))
+    dx_log = (np.log(y_target) - np.log(y_minus)) / slope_log
+    x_target_log = np.log(x_minus) + dx_log
+    return np.exp(x_target_log)

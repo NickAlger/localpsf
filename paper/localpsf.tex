@@ -604,21 +604,17 @@ We convert $\widetilde{\mathbf{A}}$ into H1 matrix format using the standard geo
 \subsection{Rational positive semi-definite modification}
 
 In many problems of practical interest (e.g., Hessian approximation) $\mathcal{A}$ is symmetric positive semi-definite. However, $\widetilde{\mathbf{A}}$ is generally non-symmetric and indefinite because of errors in the product-convolution approximation. 
-This is undesirable because symmetry and positive semi-definiteness are important properties of an operator which should be preserved by approximations, if possible. Moreover, a lack of symmetry and/or positive semi-definiteness in $\widetilde{\mathbf{A}}$ may prevent one from using many popular and highly effective algorithms to perform further useful matrix operations involving $\widetilde{\mathbf{A}}$.
-To address this issue, here we describe a method for modifying $\widetilde{\mathbf{A}}$ to force it to be symmetric positive semi-definite.
+This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved by the approximation, if possible. Also, a lack of symmetry and/or positive semi-definiteness in $\widetilde{\mathbf{A}}$ may prevent one from using popular and highly effective algorithms, such as the conjugate gradient method, to perform further useful operations involving $\widetilde{\mathbf{A}}$.
+In this section we describe a method for modifying $\widetilde{\mathbf{A}}$ to make it symmetric positive semi-definite.
 
-We use fast H-matrix addition to symmetrize $\widetilde{\mathbf{A}}$:
+First, we use fast H-matrix addition to symmetrize $\widetilde{\mathbf{A}}$:
 $$\widetilde{\mathbf{A}}_\text{sym} := \frac{1}{2}\left(\widetilde{\mathbf{A}} + \widetilde{\mathbf{A}}^T\right).$$
 Then we modify $\widetilde{\mathbf{A}}_\text{sym}$ to make it positive definite by forming a rational matrix function of the following form: 
 \begin{equation}
 \label{eq:rational_matrix_function}
 \widetilde{\mathbf{A}}_\text{sym}^+ := c_0 + c_1 \widetilde{\mathbf{A}}_\text{sym} + c_2 \left(\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}\right)^{-1},
 \end{equation}
-where $\mathbf{I}$ is the identity matrix which has the same shape as $\widetilde{\mathbf{A}}_\text{sym}$. The scalars $c_0$, $c_1$, $c_2$, and $\mu$ are chosen so that the spectrum of $\widetilde{\mathbf{A}}_\text{sym}^+$ has certain desirable properties, which we will describe later in this section. Forming $\widetilde{\mathbf{A}}_\text{sym}^+$ requires computing the H-matrix inverse $\left(\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should typically be avoided, here it is fine to compute the inverse because we are inverting an H-matrix, and there are fast, stable, scalable, and widely accepted algorithms for inverting H-matrices \cite{Hmatrixinverse}.
-
-Our choice of the constants $c_0$, $c_1$, $c_2$, and $\mu$ will depend on upper and lower bounds for the spectrum of $\widetilde{\mathbf{A}}_\text{sym}$. Let $m$ and $M$ be the smallest and largest eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$, respectively, so that the interval $[m, M] \subset \mathbb{R}$ contains the spectrum of $\widetilde{\mathbf{A}}_\text{sym}$. Note that $m < 0$ since $\widetilde{\mathbf{A}}_\text{sym}$ is indefinite. 
-%Also note that $|m| \ll |M|$ if $\widetilde{A}$ is positive definite, since negative eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ are a result of approximation error. 
-We estimate $m$ and $M$ using the implicitly restarted Lanczos method [CITE], a matrix-free Krylov method. This is fast because computing matrix-vector products with an H-matrix is fast, and because the eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ do not cluster near $m$ or $M$ (though the eigenvalues may cluster at zero). Other matrix-free extremal eigenvalue methods, such as LOBPCG or shifted power iteration, could also be used.
+where $\mathbf{I}$ is the identity matrix which has the same shape as $\widetilde{\mathbf{A}}_\text{sym}$. The scalars $c_0$, $c_1$, $c_2$, and $\mu$ are chosen so that the spectrum of $\widetilde{\mathbf{A}}_\text{sym}^+$ has certain desirable properties, which we will describe later in this section. Forming $\widetilde{\mathbf{A}}_\text{sym}^+$ requires computing an H-matrix inverse, $\left(\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should typically be avoided, here it is fine to compute the inverse because $\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}$ is an H-matrix, and there are fast, stable, scalable, and widely used algorithms for inverting H-matrices \cite{Hmatrixinverse}.
 
 The rational matrix approximation \eqref{eq:rational_matrix_function} may be written as $\widetilde{\mathbf{A}}_\text{sym}^+ = f(\widetilde{\mathbf{A}}_\text{sym})$, where $f$ is the rational function 
 \begin{equation}
@@ -629,31 +625,30 @@ We choose the four unknown constants, $c_0, c_1, c_2$, and $\mu$, to be the solu
 \begin{align}
 f(0) &= 0 \label{eq:desired_property_1} \\
 f'(0) &= 0 \label{eq:desired_property_2} \\
-f(m) &= |m| \label{eq:desired_property_3} \\
-f(M) &= M \label{eq:desired_property_4}
+f(\lambda_\text{min}) &= |\lambda_\text{min}| \label{eq:desired_property_3} \\
+f(\lambda_\text{max}) &= \lambda_\text{max}, \label{eq:desired_property_4}
 \end{align}
-with the further condition that $\mu > |m|$ (so that the pole of $f$ is not in $[m,M]$). Together, these equations imply that $f(0)=0$ is the unique minimum of $f$ on $[m,M]$, which implies that $f$ is non-negative on $[m,M]$, which implies that  $f(\widetilde{\mathbf{A}}_\text{sym}) = \widetilde{\mathbf{A}}_\text{sym}^+$ is positive semi-definite. The equation $f(0)=0$ implies that the null space of $\widetilde{\mathbf{A}}_\text{sym}^+$ contains the null-space of $\widetilde{\mathbf{A}}_\text{sym}$. This is important when the operator $\mathcal{A}$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. The equation $f(M)=M$ forces the moderate and large positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}^+$ to be close to the corresponding moderate and large positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$. I.e., $f$ modifies the ``important'' part of the spectrum of $\widetilde{\mathbf{A}}_\text{sym}$ as little as possible. The equation $f(m)=|m|$ ensures that the negative eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $f$. There is a tradeoff: if we choose a larger value for $f(m)$, then the positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}^+$ will be closer to the corresponding positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ (good), but the erroneous negative eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ will be amplified more in magnitude (bad). We find that $f(m)=|m|$ is an appropriate balance between these competing interests.
+where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$, respectively. We also require $\mu > |\lambda_\text{min}|$, so that the pole of $f$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. Note that $\lambda_\text{min} < 0$ since $\widetilde{\mathbf{A}}_\text{sym}$ is indefinite. 
+We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}, a matrix-free Krylov method. This is fast because computing matrix-vector products with an H-matrix is fast, and because the eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ do not cluster near $\lambda_\text{min}$ or $\lambda_\text{max}$ (though the eigenvalues may cluster at zero). 
+
+Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $f(0)=0$ is the unique minimum of $f$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $f$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $f(\widetilde{\mathbf{A}}_\text{sym}) = \widetilde{\mathbf{A}}_\text{sym}^+$ is positive semi-definite. The equation $f(0)=0$ implies that the null space of $\widetilde{\mathbf{A}}_\text{sym}^+$ contains the null-space of $\widetilde{\mathbf{A}}_\text{sym}$. This is important when the operator $\mathcal{A}$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. The equation $f(\lambda_\text{max})=\lambda_\text{max}$ forces the moderate and large positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}^+$ to be close to the corresponding moderate and large positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$. I.e., $f$ modifies the ``important'' part of the spectrum of $\widetilde{\mathbf{A}}_\text{sym}$ as little as possible. The equation $f(\lambda_\text{min})=|\lambda_\text{min}|$ ensures that the negative eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $f$. There is a tradeoff: if we choose a larger value for $f(\lambda_\text{min})$, then the positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}^+$ will be closer to the corresponding positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ (good), but the erroneous negative eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ will be amplified more in magnitude (bad). We find that $f(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
 
 Using the definition of $f$ in \eqref{eq:rational_function_scalar}, and basic calculus and linear algebra, we may write Equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, and \eqref{eq:desired_property_4} in the following matrix form:
 \begin{equation}
 \label{eq:rational_3_linear_system}
-\begin{bmatrix} 1 & 0 & \frac{1}{\mu} \\ 0 & 1 & -\frac{1}{\mu^2} \\ 1 & M & \frac{1}{M+\mu} \end{bmatrix} \begin{bmatrix} c_0 \\ c_1 \\ c_2 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \\ M \end{bmatrix},
+\begin{bmatrix} 1 & 0 & 1/\mu \\ 0 & 1 & -1/\mu^2 \\ 1 & \lambda_\text{max} & 1/(\lambda_\text{max}+\mu) \end{bmatrix} \begin{bmatrix} c_0 \\ c_1 \\ c_2 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \\ \lambda_\text{max} \end{bmatrix},
 \end{equation}
 and we may write Equation \eqref{eq:desired_property_3} as follows: 
 \begin{equation}
 \label{eq:rational_extra_eq}
-c_0 + c_1 m + \frac{c_2}{m+\mu} - |m| = 0.
+c_0 + c_1 \lambda_\text{min} + \frac{c_2}{\lambda_\text{min}+\mu} - |\lambda_\text{min}| = 0.
 \end{equation}
-Let 
-\begin{equation*}
-g(\mu) := c_0(\mu) + c_1(\mu) m + \frac{c_2(\mu)}{m+\mu} - |m|,
-\end{equation*}
-where $c_0(\mu)$, $c_1(\mu)$, and $c_2(\mu)$ denote the values of $c_0$, $c_1$, and $c_2$, respectively, that solve the linear system $\eqref{eq:rational_3_linear_system}$ for a given value of $\mu$. That is, $g(\mu)$ is the left hand side of \eqref{eq:rational_extra_eq}, except instead of being free variables, $c_0$, $c_1$, and $c_2$ now depend on $\mu$ through the solution of \eqref{eq:rational_3_linear_system}. We solve the combined system, \eqref{eq:rational_3_linear_system} and $\eqref{eq:rational_extra_eq}$, by solving the one-dimensional nonlinear root finding problem
+Let $g(\mu)$ denote the left hand side of \eqref{eq:rational_extra_eq}, but with $c_0$, $c_1$, and $c_2$ now solving \eqref{eq:rational_3_linear_system} for the given value of $\mu$. I.e., within $g(\mu)$ the quantities $c_0$, $c_1$, and $c_2$ are no longer free variables; they now depend on $\mu$ implicitly. We solve the combined system, \eqref{eq:rational_3_linear_system} and $\eqref{eq:rational_extra_eq}$, by solving the one-dimensional nonlinear root finding problem
 \begin{equation}
 \label{eq:g_mu_zero}
-g(\mu)=0.
+g(\mu)=0
 \end{equation}
-with bound $\mu > |m|$ and initial guess $\mu_0 = 2 |m|$. Each evaluation of $g$ implicitly requires solving the $3 \times 3$ linear system \eqref{eq:rational_3_linear_system}, and once the solution $\mu$ is found, we must solve \eqref{eq:rational_3_linear_system} one more time to get $c_0$, $c_1$, and $c_2$.
+with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\text{min}|$. Each evaluation of $g$ requires solving the $3 \times 3$ linear system \eqref{eq:rational_3_linear_system}, and once the solution $\mu$ is found, we solve \eqref{eq:rational_3_linear_system} one more time to get the final values of $c_0$, $c_1$, and $c_2$.
 %
 %Row 1 corresponds to the condition $f(M)=M$, row 2 corresponds to the condition $f(0)=0$, and row 3 corresponds to the condition $f'(0)=0$. To find the third row of $A$, we used the fact that the derivative of $f$ is given by $$f'(\lambda) = c_1 - \frac{c_2}{(\lambda+\mu)^2}.$$
 %

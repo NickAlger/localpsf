@@ -13,7 +13,7 @@ from localpsf.product_convolution_hmatrix import product_convolution_hmatrix
 
 ########    OPTIONS    ########
 
-HIP_options = {'mesh_h' : 1.5e-2,
+HIP_options = {'mesh_h' : 2e-2,
                'finite_element_order' : 1,
                'final_time' : 3e-4,
                'num_timesteps' : 35,
@@ -25,20 +25,20 @@ HIP_options = {'mesh_h' : 1.5e-2,
                'prior_correlation_length' : 0.05,
                'regularization_parameter' : 1e-1}
 
-hmatrix_rtol = 1e-4
-krylov_tol = 1e-6
-a_reg_min = 1e-5
-a_reg_max = 1e0
-num_reg = 11
-hmatrix_num_batches = 5
-n_random_error_matvecs = 50
+hmatrix_options = {'hmatrix_rtol' : 1e-4,
+                   'hmatrix_num_batches' : 5,
+                   'grid_density_multiplier' : 0.5}
 
-save_dir = get_project_root() / 'numerical_examples' / 'heat' / time.ctime()
+save_dir = get_project_root() / 'numerical_examples' / 'heat' / 'basic_plots' / time.ctime()
 save_dir.mkdir(parents=True, exist_ok=True)
 
-options_file = save_dir / 'options.txt'
+options_file = save_dir / 'HIP_options.txt'
 with open(options_file, 'w') as f:
     print(HIP_options, file=f)
+
+options_file = save_dir / 'hmatrix_options.txt'
+with open(options_file, 'w') as f:
+    print(hmatrix_options, file=f)
 
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
@@ -79,7 +79,7 @@ file = dl.XDMFFile(str(save_dir / 'initial_temperature_u0.xdmf'))
 file.write(HIP.u0_true)
 file.close()
 
-# Final concentration uT
+# Final temperature uT
 
 plt.figure()
 dl.plot(HIP.uT_true, cmap='gray')
@@ -122,9 +122,26 @@ file.close()
 
 ########    BUILD PC-HMATRIX APPROXIMATION    ########
 
-Hd_hmatrix, extras = product_convolution_hmatrix(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, hmatrix_num_batches,
-                                                 hmatrix_tol=hmatrix_rtol, make_positive_definite=True,
-                                                 return_extras=True, grid_density_multiplier=0.5)
+Hd_hmatrix, extras = product_convolution_hmatrix(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc,
+                                                 hmatrix_options['hmatrix_num_batches'],
+                                                 hmatrix_tol=hmatrix_options['hmatrix_rtol'],
+                                                 make_positive_definite=True,
+                                                 return_extras=True,
+                                                 grid_density_multiplier=hmatrix_options['grid_density_multiplier'])
+
+R0_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(HIP.R0_scipy, Hd_hmatrix.bct)
 
 
 ########    SOLVE INVERSE PROBLEM    ########
+
+u0, a_reg_morozov = solve_heat_inverse_problem_morozov(HIP, Hd_hmatrix, R0_hmatrix, tol=1e-10)
+
+plt.figure()
+cm = dl.plot(u0, cmap='gray')
+plt.colorbar(cm)
+plt.title('Reconstructed initial temperature')
+plt.savefig(str(save_dir / 'reconstructed_initial_temperature.pdf'), bbox_inches='tight', dpi=100)
+
+file = dl.XDMFFile(str(save_dir / ('reconstructed_initial_temperature.xdmf')))
+file.write(u0)
+file.close()
