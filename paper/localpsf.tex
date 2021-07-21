@@ -60,28 +60,28 @@ We present a fast matrix free method for approximating locally translation-invar
 Let $\Omega \subset \mathbb{R}^d$ be a bounded domain in dimension $d=1$, $2$, or $3$, and let $\mathcal{A}:L^2(\Omega)\rightarrow L^2(\Omega)'$ be an integral operator of the form
 \begin{equation}
 \label{eq:kernel_representation}
-(\mathcal{A}u)(v) := \int_\Omega \int_\Omega v(y) A(y,x) u(x) dx dy,
+(\mathcal{A}u)(v) := \int_\Omega \int_\Omega v(y) \Phi(y,x) u(x) dx dy,
 \end{equation}
-with integral kernel $A:\Omega \times \Omega \rightarrow \mathbb{R}$. Here $\mathcal{A}u \in L^2(\Omega)'$ is the linear functional that results from applying $\mathcal{A}$ to $u\in L^2(\Omega)$, and $\left(\mathcal{A}u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. We focus on operators of this form which have the following properties:
+with integral kernel $\Phi:\Omega \times \Omega \rightarrow \mathbb{R}$. Here $\mathcal{A}u \in L^2(\Omega)'$ is the linear functional that results from applying $\mathcal{A}$ to $u\in L^2(\Omega)$, and $\left(\mathcal{A}u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. We focus on operators of this form which have the following properties:
 \begin{description}
-\item[Matrix-free:] One cannot easily access kernel entries $A(y,x)$. Access to $\mathcal{A}$ is available only through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary functions (i.e., operator actions). That is, evaluation of the maps
+\item[Matrix-free:] One cannot easily access kernel entries $\Phi(y,x)$. Access to $\mathcal{A}$ is available only through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary functions (i.e., operator actions). That is, evaluation of the maps
 \begin{equation*}
 	u \mapsto\mathcal{A}u \quad \text{and} \quad v \mapsto\mathcal{A}^Tv.
 \end{equation*} 
 \item[Non-negative kernel:] For all $(y,x) \in \Omega \times \Omega$, we have
 \begin{equation*}
-	A(y,x) \ge 0.
+	\Phi(y,x) \ge 0.
 \end{equation*}
 \item[Local support:] Let $\phi_x$ be the following \emph{impulse response}:
 \begin{equation}
 \label{eq:impulse_response_defn}
-\phi_x(y) := A(y, x).
+\phi_x(y) := \Phi(y, x).
 \end{equation} 
 We say that $\mathcal{A}$ has local support if, for all $x\in \Omega$, the support of $\phi_x$ is contained (or approximately contained) in a neighborhood of $x$. The smaller these supports are, the better our algorithm will perform.
 \item[Local translation invariance:] If $h$ is not too large, then
 \begin{equation}
 	\label{eq:local_translation_invariance}
-	A(y+h, x+h) \approx A(y,x).
+	\Phi(y+h, x+h) \approx \Phi(y,x).
 \end{equation}
 \end{description}
 
@@ -444,7 +444,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 Let $y \in \mathbb{R}^d$, and let $\gamma_y$ be the function
 \begin{equation}
 \label{eq:u_defn_in_thm}
-\gamma_y(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \widetilde{A}\left(y+x,x\right),
+\gamma_y(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \widetilde{\Phi}\left(y+x,x\right),
 \end{equation}
 where the weighting functions $w_i$ are the solutions to optimization problem \eqref{eq:wi_optimization_problem}. Then $\gamma_y$ solves the optimization problem
 \begin{equation}
@@ -550,10 +550,10 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 \subsection{Evaluating kernel entries of the approximation}
 \label{sec:eval_matrix_entries}
 
-We now describe how to efficiently evaluate $\widetilde{A}(y,x)$ at an arbitrary point $(x,y) \in \Omega \times \Omega$. From \eqref{eq:kernel_entries}, we have
+We now describe how to efficiently evaluate $\widetilde{\Phi}(y,x)$ at an arbitrary point $(x,y) \in \Omega \times \Omega$. From \eqref{eq:kernel_entries}, we have
 \begin{equation}
 \label{eq:eval_y_x}
-\widetilde{A}(y,x) = \sum_{i=1}^r w_i(x) \varphi_{x_i}(y-x),
+\widetilde{\Phi}(y,x) = \sum_{i=1}^r w_i(x) \varphi_{x_i}(y-x),
 \end{equation}
 and from \eqref{eq:varphi_eval}, we have
 \begin{equation}
@@ -563,7 +563,7 @@ and from \eqref{eq:varphi_eval}, we have
 0, & \text{otherwise},
 \end{cases}
 \end{equation}
-where $b(i)$ denotes the batch index such that $x_i \in S^{b(i)}$. To compute $z=\widetilde{A}(y,x)$, we start with $z=0$, then loop through all batches $b$, and all sample points in each batch. For each sample point, we add one term in the sum in \eqref{eq:eval_y_x} to $z$, using \eqref{eq:kernel_entry_formua} as needed to evaluate $\varphi_{x_i}$. This is shown in Algorithm \ref{alg:eval_y_x}.
+where $b(i)$ denotes the batch index such that $x_i \in S^{b(i)}$. To compute $z=\widetilde{\Phi}(y,x)$, we start with $z=0$, then loop through all batches $b$, and all sample points in each batch. For each sample point, we add one term in the sum in \eqref{eq:eval_y_x} to $z$, using \eqref{eq:kernel_entry_formua} as needed to evaluate $\varphi_{x_i}$. This is shown in Algorithm \ref{alg:eval_y_x}.
 
 
 \begin{algorithm2e}
@@ -609,12 +609,12 @@ In this section we describe a method for modifying $\widetilde{\mathbf{A}}$ to m
 
 First, we use fast H-matrix addition to symmetrize $\widetilde{\mathbf{A}}$:
 $$\widetilde{\mathbf{A}}_\text{sym} := \frac{1}{2}\left(\widetilde{\mathbf{A}} + \widetilde{\mathbf{A}}^T\right).$$
-Then we modify $\widetilde{\mathbf{A}}_\text{sym}$ to make it positive definite by forming a rational matrix function of the following form: 
+Then we modify $\widetilde{\mathbf{A}}_\text{sym}$ to make it positive semi-definite by forming a rational matrix function of the following form: 
 \begin{equation}
 \label{eq:rational_matrix_function}
-\widetilde{\mathbf{A}}_\text{sym}^+ := c_0 + c_1 \widetilde{\mathbf{A}}_\text{sym} + c_2 \left(\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}\right)^{-1},
+\widetilde{\mathbf{A}}_\text{sym}^+ := c_0 \mathbf{I} + c_1 \widetilde{\mathbf{A}}_\text{sym} + c_2 \left(\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}\right)^{-1},
 \end{equation}
-where $\mathbf{I}$ is the identity matrix which has the same shape as $\widetilde{\mathbf{A}}_\text{sym}$. The scalars $c_0$, $c_1$, $c_2$, and $\mu$ are chosen so that the spectrum of $\widetilde{\mathbf{A}}_\text{sym}^+$ has certain desirable properties, which we will describe later in this section. Forming $\widetilde{\mathbf{A}}_\text{sym}^+$ requires computing an H-matrix inverse, $\left(\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should typically be avoided, here it is fine to compute the inverse because $\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}$ is an H-matrix, and there are fast, stable, scalable, and widely used algorithms for inverting H-matrices \cite{Hmatrixinverse}.
+where $\mathbf{I}$ is the identity matrix which has the same shape as $\widetilde{\mathbf{A}}_\text{sym}$. The scalars $c_0$, $c_1$, $c_2$, and $\mu$ are chosen so that the spectrum of $\widetilde{\mathbf{A}}_\text{sym}^+$ has certain desirable properties. Later in this section we will describe how $c_0$, $c_1$, $c_2$, and $\mu$ are chosen and how our choice of these scalars affects the spectral properties of $\widetilde{\mathbf{A}}_\text{sym}^+$. Forming $\widetilde{\mathbf{A}}_\text{sym}^+$ requires computing an H-matrix inverse, $\left(\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is fine to compute the inverse because $\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}$ is an H-matrix. There exist fast, stable, scalable, and widely used algorithms for inverting H-matrices \cite{Hmatrixinverse}.
 
 The rational matrix approximation \eqref{eq:rational_matrix_function} may be written as $\widetilde{\mathbf{A}}_\text{sym}^+ = f(\widetilde{\mathbf{A}}_\text{sym})$, where $f$ is the rational function 
 \begin{equation}
@@ -631,7 +631,7 @@ f(\lambda_\text{max}) &= \lambda_\text{max}, \label{eq:desired_property_4}
 where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$, respectively. We also require $\mu > |\lambda_\text{min}|$, so that the pole of $f$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. Note that $\lambda_\text{min} < 0$ since $\widetilde{\mathbf{A}}_\text{sym}$ is indefinite. 
 We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}, a matrix-free Krylov method. This is fast because computing matrix-vector products with an H-matrix is fast, and because the eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ do not cluster near $\lambda_\text{min}$ or $\lambda_\text{max}$ (though the eigenvalues may cluster at zero). 
 
-Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $f(0)=0$ is the unique minimum of $f$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $f$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $f(\widetilde{\mathbf{A}}_\text{sym}) = \widetilde{\mathbf{A}}_\text{sym}^+$ is positive semi-definite. The equation $f(0)=0$ implies that the null space of $\widetilde{\mathbf{A}}_\text{sym}^+$ contains the null-space of $\widetilde{\mathbf{A}}_\text{sym}$. This is important when the operator $\mathcal{A}$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. The equation $f(\lambda_\text{max})=\lambda_\text{max}$ forces the moderate and large positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}^+$ to be close to the corresponding moderate and large positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$. I.e., $f$ modifies the ``important'' part of the spectrum of $\widetilde{\mathbf{A}}_\text{sym}$ as little as possible. The equation $f(\lambda_\text{min})=|\lambda_\text{min}|$ ensures that the negative eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $f$. There is a tradeoff: if we choose a larger value for $f(\lambda_\text{min})$, then the positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}^+$ will be closer to the corresponding positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ (good), but the erroneous negative eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ will be amplified more in magnitude (bad). We find that $f(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
+Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $f(0)=0$ is the unique minimum of $f$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $f$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $f(\widetilde{\mathbf{A}}_\text{sym}) = \widetilde{\mathbf{A}}_\text{sym}^+$ is positive semi-definite. The equation $f(0)=0$ implies that the null space of $\widetilde{\mathbf{A}}_\text{sym}^+$ contains the null-space of $\widetilde{\mathbf{A}}_\text{sym}$. This is important when the operator $\mathcal{A}$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. The equation $f(\lambda_\text{max})=\lambda_\text{max}$ forces the moderate and large positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}^+$ to be close to the corresponding moderate and large positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$. I.e., $f$ modifies the ``important'' part of the spectrum of $\widetilde{\mathbf{A}}_\text{sym}$ as little as possible. The equation $f(\lambda_\text{min})=|\lambda_\text{min}|$ ensures that the negative eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $f$. There is a tradeoff: if we choose a larger value for $f(\lambda_\text{min})$, then the positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}^+$ will be closer to the corresponding positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ (good), but the erroneous negative eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ will be amplified more in magnitude (bad). This is shown in Figure FIG. We find that $f(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
 
 Using the definition of $f$ in \eqref{eq:rational_function_scalar}, and basic calculus and linear algebra, we may write Equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, and \eqref{eq:desired_property_4} in the following matrix form:
 \begin{equation}
