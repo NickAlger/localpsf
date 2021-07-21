@@ -604,7 +604,7 @@ We convert $\widetilde{\mathbf{A}}$ into H1 matrix format using the standard geo
 \subsection{Rational positive semi-definite modification}
 
 In many problems of practical interest (e.g., Hessian approximation) $\mathcal{A}$ is symmetric positive semi-definite. However, $\widetilde{\mathbf{A}}$ is generally non-symmetric and indefinite because of errors in the product-convolution approximation. 
-This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved by the approximation, if possible. Also, a lack of symmetry and/or positive semi-definiteness in $\widetilde{\mathbf{A}}$ may prevent one from using popular and highly effective algorithms, such as the conjugate gradient method, to perform further useful operations involving $\widetilde{\mathbf{A}}$.
+This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using popular and highly effective algorithms, such as the conjugate gradient method, to perform further useful operations involving $\widetilde{\mathbf{A}}$.
 In this section we describe a method for modifying $\widetilde{\mathbf{A}}$ to make it symmetric positive semi-definite.
 
 First, we use fast H-matrix addition to symmetrize $\widetilde{\mathbf{A}}$:
@@ -614,14 +614,14 @@ Then we modify $\widetilde{\mathbf{A}}_\text{sym}$ to make it positive semi-defi
 \label{eq:rational_matrix_function}
 \widetilde{\mathbf{A}}_\text{sym}^+ := c_0 \mathbf{I} + c_1 \widetilde{\mathbf{A}}_\text{sym} + c_2 \left(\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}\right)^{-1},
 \end{equation}
-where $\mathbf{I}$ is the identity matrix which has the same shape as $\widetilde{\mathbf{A}}_\text{sym}$. The scalars $c_0$, $c_1$, $c_2$, and $\mu$ are chosen so that the spectrum of $\widetilde{\mathbf{A}}_\text{sym}^+$ has certain desirable properties. Later in this section we will describe how $c_0$, $c_1$, $c_2$, and $\mu$ are chosen and how our choice of these scalars affects the spectral properties of $\widetilde{\mathbf{A}}_\text{sym}^+$. Forming $\widetilde{\mathbf{A}}_\text{sym}^+$ requires computing an H-matrix inverse, $\left(\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is fine to compute the inverse because $\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}$ is an H-matrix. There exist fast, stable, scalable, and widely used algorithms for inverting H-matrices \cite{Hmatrixinverse}.
+where $\mathbf{I}$ is the identity matrix which has the same shape as $\widetilde{\mathbf{A}}_\text{sym}$. The scalars $c_0$, $c_1$, $c_2$, and $\mu$ are chosen so that the moderate and large positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}^+$ approximately equal the corresponding moderate and large positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$, while the negative and small positive eigenvalues of $\widetilde{\mathbf{A}}_\text{sym}$ are modified so that $\widetilde{\mathbf{A}}_\text{sym}^+$ is positive semi-definite. Later in this section we will explain how $c_0$, $c_1$, $c_2$, and $\mu$ are chosen and how our choice of these scalars affects the spectral properties of $\widetilde{\mathbf{A}}_\text{sym}^+$. Forming $\widetilde{\mathbf{A}}_\text{sym}^+$ requires computing an H-matrix inverse, $\left(\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is fine to compute the inverse because $\widetilde{\mathbf{A}}_\text{sym} + \mu \mathbf{I}$ is an H-matrix. There exist fast, stable, scalable, and widely used algorithms for inverting H-matrices \cite{Hmatrixinverse}.
 
-The rational matrix approximation \eqref{eq:rational_matrix_function} may be written as $\widetilde{\mathbf{A}}_\text{sym}^+ = f(\widetilde{\mathbf{A}}_\text{sym})$, where $f$ is the rational function 
+Approximation \eqref{eq:rational_matrix_function} may be written as $\widetilde{\mathbf{A}}_\text{sym}^+ = f(\widetilde{\mathbf{A}}_\text{sym})$, where
 \begin{equation}
 \label{eq:rational_function_scalar}
 f(\lambda) := c_0 + c_1 \lambda + \frac{c_2}{\lambda+\mu}.
 \end{equation}
-We choose the four unknown constants, $c_0, c_1, c_2$, and $\mu$, to be the solution to the following system of four equations:
+We choose $c_0, c_1, c_2$, and $\mu$, to be the solution to the following system of equations:
 \begin{align}
 f(0) &= 0 \label{eq:desired_property_1} \\
 f'(0) &= 0 \label{eq:desired_property_2} \\
@@ -641,9 +641,9 @@ Using the definition of $f$ in \eqref{eq:rational_function_scalar}, and basic ca
 and we may write Equation \eqref{eq:desired_property_3} as follows: 
 \begin{equation}
 \label{eq:rational_extra_eq}
-c_0 + c_1 \lambda_\text{min} + \frac{c_2}{\lambda_\text{min}+\mu} - |\lambda_\text{min}| = 0.
+\underbrace{c_0 + c_1 \lambda_\text{min} + \frac{c_2}{\lambda_\text{min}+\mu} - |\lambda_\text{min}|}_{g(\mu)} = 0.
 \end{equation}
-Let $g(\mu)$ denote the left hand side of \eqref{eq:rational_extra_eq}, but with $c_0$, $c_1$, and $c_2$ now solving \eqref{eq:rational_3_linear_system} for the given value of $\mu$. I.e., within $g(\mu)$ the quantities $c_0$, $c_1$, and $c_2$ are no longer free variables; they now depend on $\mu$ implicitly. We solve the combined system, \eqref{eq:rational_3_linear_system} and $\eqref{eq:rational_extra_eq}$, by solving the one-dimensional nonlinear root finding problem
+Let $g(\mu)$ denote the left hand side of \eqref{eq:rational_extra_eq}, but with $c_0$, $c_1$, and $c_2$ being the solution of \eqref{eq:rational_3_linear_system} for the given value of $\mu$. I.e., within $g(\mu)$ the quantities $c_0$, $c_1$, and $c_2$ are no longer free variables; they now depend on $\mu$ implicitly through the solution of a linear system. We solve the combined system, \eqref{eq:rational_3_linear_system} and $\eqref{eq:rational_extra_eq}$, by solving the one-dimensional nonlinear root finding problem
 \begin{equation}
 \label{eq:g_mu_zero}
 g(\mu)=0
