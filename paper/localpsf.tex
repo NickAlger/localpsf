@@ -610,11 +610,12 @@ We now define a further approximation, $\AkerPcMesh \approx \AkerPc$,
 \end{equation}
 which is the interpolation of $\AkerPc$ onto $V_h \otimes V_h$. Error in the combined approximation, $\AkerPcMesh \approx \Aker$, arises both because of error in the product-convolution approximation, and because of finite element discretization error incurred from interpolation onto $V_h \otimes V_h$. 
 
-Replacing $\Aker$ with $\AkerPcMesh$ within the definition of $\Aop$ in \eqref{eq:kernel_representation} yields the following operator approximation:
-\begin{equation*}
-\left(\AopPcMesh u \right)(v) := \int_\Omega \int_\Omega v(y) \AkerPcMesh(y,x) u(x) dx dy.
-\end{equation*}
-The operator $\AopPcMesh$ maps $L^2(\Omega) \rightarrow L^2(\Omega)'$, but we are interested in the restriction of this operator to functions in the finite element space (i.e., $\AopPcMesh : V_h \rightarrow V_h'$).
+Replacing $\Aker$ with $\AkerPcMesh$ within the definition of $\Aop$ in \eqref{eq:kernel_representation} yields the following operator approximation, $\AopPcMesh$:
+\begin{equation}
+\label{eq:kernel_representation_pcmesh}
+(\AopPcMesh u)(v) := \int_\Omega \int_\Omega v(y) \AkerPcMesh(y,x) u(x) dx dy,
+\end{equation}
+Although $\AopPcMesh$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\AopPcMesh$ to functions in the finite element space (i.e., $\AopPcMesh : V_h \rightarrow V_h'$).
 %Error in the approximation $\Aop \approx \AopPcMesh$ is a combination of error in the product-convolution approximation, and error due to finite element discretization.
 Let $u_h \in V_h$ and $v_h \in V_h$, and let $\mathbf{u}$ and $\mathbf{v}$ be the coefficient vectors for $u_h$ and $v_h$, respectively, with respect to the finite element basis $f_1, \dots, f_N$. I.e., $u_h(x) = \sum_{i=1}^N \mathbf{u}_i f_i(x)$, and similar for $v_h$. By using the definition of $\AkerPcMesh$ in \eqref{eq:defn_of_Akerpcmesh} and performing algebraic manipulations, it is straightforward but tedious to show that
 \begin{equation*}
@@ -629,9 +630,9 @@ Let $u_h \in V_h$ and $v_h \in V_h$, and let $\mathbf{u}$ and $\mathbf{v}$ be th
 %\end{align*}
 where $\mathbf{M} \in \mathbb{R}^{N \times N}$ is the finite element mass matrix, which has entries
 \begin{equation*}
-\mathbf{M}_{ij} := \int_\Omega f_i(x) f_j(x) dx
+\mathbf{M}_{ij} := \int_\Omega f_i(x) f_j(x) dx,
 \end{equation*}
-and $\AkerPcMat \in \mathbb{R}^{N \times N}$ is the evaluation of $\AkerPcMesh$ at all pairs of finite element Lagrange nodes, which has entries 
+and $\AkerPcMat \in \mathbb{R}^{N \times N}$ is the matrix with entries
 \begin{equation*}
 \left(\AkerPcMat\right)_{ij} := \AkerPcMesh(p_j, p_k).
 \end{equation*}
@@ -640,7 +641,8 @@ The finite element matrix representation of $\AopPcMesh$, which we denote by $\A
 \label{eq:Amatpc_defn}
 \AmatPc := \mathbf{M} \AkerPcMat \mathbf{M}.
 \end{equation}
-We convert $\mathbf{M}$ and $\AkerPcMat$ to H-matrix format, then multiply these matrices in \eqref{eq:Amatpc_defn} using fast H-matrix methods to form an H-matrix representation of $\AmatPc$. Once in H-matrix format, useful matrix operations such as matrix factorization and inversion may be performed quickly using fast H-matrix methods. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. 
+
+We form an H-matrix representation of $\AmatPc$ by converting $\mathbf{M}$ and $\AkerPcMat$ to H-matrix format, then using fast H-matrix methods to multiply these matrices according to the formula in \eqref{eq:Amatpc_defn}. Once $\AmatPc$ is in H-matrix format, useful matrix operations such as matrix factorization and inversion may be performed quickly using fast H-matrix methods. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. 
 
 The basic ideas behind H-matrices are as follows:
 \begin{itemize} 
@@ -649,7 +651,7 @@ The basic ideas behind H-matrices are as follows:
 \end{itemize}
 For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
-The mass matrix, $\mathbf{M}$, is sparse, and may therefore be converted to H-matrix format using standard H-matrix methods for sparse matrices. We convert $\AkerPcMat$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{HLIBPRO}. Briefly, this method uses geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix (here, these locations are finite element the Lagrange nodes $p_i$, $i=1,\dots,N$) to construct a recursive block partitioning of $\AmatPc$, such that all blocks at the finest level of the partitioning are either low rank, or are small. Then, the method forms low rank approximations of the blocks that are expected to be low rank by sampling specially chosen rows and columns of those blocks. The small high rank blocks are formed directly by evaluating their entries. We describe the H-matrix construction in detail in Appendix \ref{app:h_matrix}. Although $\AkerPcMat$ is dense, constructing the H-matrix approximation via this process only requires evaluation of $O(N \log N)$ entries of $\AkerPc$, and these entries are computed via the formula in Equation \eqref{eq:eval_y_x}.
+The mass matrix, $\mathbf{M}$, is sparse, and may therefore be converted to H-matrix format using standard H-matrix methods for sparse matrices. We convert $\AkerPcMat$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{HLIBPRO}. Briefly, this method uses geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix (here, these locations are the finite element Lagrange nodes $p_i$, $i=1,\dots,N$) to construct a recursive block partitioning of $\AkerPcMat$, such that all blocks at the finest level of the partitioning are either low rank, or are small. Then, the method forms low rank approximations of the blocks that are expected to be low rank by sampling specially chosen rows and columns of those blocks. The small high rank blocks are formed directly by evaluating their entries. We describe the H-matrix construction in detail in Appendix \ref{app:h_matrix}. Although $\AkerPcMat$ is dense, constructing the H-matrix approximation via this process only requires evaluation of $O(N \log N)$ entries of $\AkerPc$, and these entries are computed via the formula in Equation \eqref{eq:eval_y_x}.
 
 
 \subsection{Rational positive semi-definite modification}
