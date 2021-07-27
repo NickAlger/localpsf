@@ -596,14 +596,14 @@ where $b(i)$ denotes the batch index such that $x_i \in S^{b(i)}$. To compute $z
 \subsection{Hierarchical matrix construction}
 \label{sec:H_matrix_conversion}
 
-In this section we show how to construct an H-matrix representation of our product-convolution approximation, after discretizing the product-convolution approximation with finite elements. Let $f_1, f_2, \dots, f_N$ be a set of finite element basis functions used to discretize the problem, and let $V_h := \Span\left(f_1, f_2, \dots, f_N\right)$ be the corresponding finite element space. Here $h$ is the mesh size parameter for the finite element mesh used to discretize the problem. Further, let $p_i \in \mathbb{R}^d$, $i=1,\dots, N$ be the Lagrange nodes associated with the functions $f_i$. That is, the points such that $f_i(p_j)$ equals one if $i=j$, and zero otherwise.
+In this section we show how to construct an H-matrix representation of our product-convolution approximation, after discretizing the problem with finite elements. Let $f_1, f_2, \dots, f_N$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, and let $V_h := \Span\left(f_1, f_2, \dots, f_N\right)$ be the corresponding finite element space. Further, let $p_i \in \mathbb{R}^d$, $i=1,\dots, N$ be the Lagrange nodes associated with the functions $f_i$. That is, the points such that $f_i(p_j)$ equals one if $i=j$, and zero otherwise.
 
 In Section \ref{sec:intro} we noted that the original integral kernel, $\Aker$, is inaccessible, while in Equation \eqref{eq:kernel_entries}  we saw that the integral kernel for our product-convolution approximation, $\AkerPc \approx \Aker$, is accessible, and may be cheaply evaluated at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$ via the following formula:
 \begin{equation}
 \label{eq:eval_y_x}
 \AkerPc(y,x) = \sum_{i=1}^r w_i(x) \varphi_{x_i}(y-x).
 \end{equation}
-We now define a further approximation, $\AkerPcMesh \approx \AkerPc$,, as follows:
+We now define a further approximation, $\AkerPcMesh \approx \AkerPc$, as follows:
 \begin{equation}
 \label{eq:defn_of_Akerpcmesh}
 \AkerPcMesh(y,x) := \sum_{i=1}^N \sum_{j=1}^N \AkerPc(p_i,p_j) f_i(y) f_j(x)
@@ -615,7 +615,7 @@ Replacing $\Aker$ with $\AkerPcMesh$ within the definition of $\Aop$ in \eqref{e
 \label{eq:kernel_representation_pcmesh}
 (\AopPcMesh u)(v) := \int_\Omega \int_\Omega v(y) \AkerPcMesh(y,x) u(x) dx dy,
 \end{equation}
-Although $\AopPcMesh$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\AopPcMesh$ to functions in the finite element space (i.e., $\AopPcMesh : V_h \rightarrow V_h'$).
+While $\AopPcMesh$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\AopPcMesh$ to functions in the finite element space. That is, $\AopPcMesh : V_h \rightarrow V_h'$.
 %Error in the approximation $\Aop \approx \AopPcMesh$ is a combination of error in the product-convolution approximation, and error due to finite element discretization.
 Let $u_h \in V_h$ and $v_h \in V_h$, and let $\mathbf{u}$ and $\mathbf{v}$ be the coefficient vectors for $u_h$ and $v_h$, respectively, with respect to the finite element basis $f_1, \dots, f_N$. I.e., 
 \begin{equation}
@@ -627,14 +627,14 @@ and similar for $v_h$. Further, let $\mathbf{M} \in \mathbb{R}^{N \times N}$ be 
 \label{eq:mass_matrix_defn}
 \mathbf{M}_{ij} := \int_\Omega f_i(x) f_j(x) dx,
 \end{equation}
-and let $\AkerPcMat \in \mathbb{R}^{N \times N}$ be the matrix with entries
+and let $\AkerPcMat \in \mathbb{R}^{N \times N}$ be following matrix of approximate kernel entries:
 \begin{equation}
 \label{eq:Akerpcmat_entries}
-\left(\AkerPcMat\right)_{ij} := \AkerPcMesh(p_j, p_k).
+\left(\AkerPcMat\right)_{ij} := \AkerPcMesh(p_i, p_j).
 \end{equation}
 Using \eqref{eq:defn_of_Akerpcmesh}, \eqref{eq:kernel_representation_pcmesh}, \eqref{eq:fem_coeff_basis}, \eqref{eq:mass_matrix_defn}, and \eqref{eq:Akerpcmat_entries}, and performing algebraic manipulations, it is straightforward but tedious to show that
 \begin{equation*}
-\left(\AopPcMesh u_h \right)(v_h) = \mathbf{v}^T \mathbf{M} \AkerPcMat \mathbf{M} \mathbf{u},
+\left(\AopPcMesh u_h \right)(v_h) = \mathbf{v}^T \mathbf{M} \AkerPcMat \mathbf{M} \mathbf{u}.
 \end{equation*}
 %\begin{align*}
 %\left(\AopPcMesh u_h \right)(v_h) =& \int_\Omega \int_\Omega v_h(y) \AkerPcMesh(y,x) u_h(x) dx dy \\
@@ -649,16 +649,16 @@ The finite element matrix representation of $\AopPcMesh$, which we denote by $\A
 \AmatPc := \mathbf{M} \AkerPcMat \mathbf{M}.
 \end{equation}
 
-We form an H-matrix representation of $\AmatPc$ by converting $\mathbf{M}$ and $\AkerPcMat$ to H-matrix format, then using fast H-matrix methods to multiply these matrices according \eqref{eq:Amatpc_defn}. Once $\AmatPc$ is in H-matrix format, useful matrix operations such as matrix inversion may be performed quickly using fast H-matrix methods. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. 
+We form an H-matrix representation of $\AmatPc$ by converting $\AkerPcMat$ and $\mathbf{M}$ to H-matrix format, then using fast H-matrix methods to multiply these matrices according \eqref{eq:Amatpc_defn}. Once $\AmatPc$ is in H-matrix format, useful matrix operations such as matrix inversion may be performed quickly using fast H-matrix methods. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. 
 
 The basic ideas behind H-matrices are as follows:
 \begin{itemize} 
 	\item Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank.
-	\item Recursive algorithms can take advantage of this low rank block structure to perform matrix arithmetic fast. Conventional algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix addition require either $O(N^2)$ or $O(N^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log^a N)$ time and memory for hierarchical matrices. Here $N$ is the number of degrees of freedom for the discretized version of the problem, and $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix.
+	\item Recursive algorithms can take advantage of this low rank block structure to perform matrix arithmetic fast. Conventional algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix addition require either $O(N^2)$ or $O(N^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log^a N)$ time and memory for H-matrices. Here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix.
 \end{itemize}
 For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
-We convert $\AkerPcMat$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within HLIBpro. Briefly, this method uses geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix (here, these locations are the finite element Lagrange nodes $p_i$, $i=1,\dots,N$) to construct a recursive block partitioning of $\AkerPcMat$, such that all blocks at the finest level of the partitioning are either low rank, or small. Then, the method forms low rank approximations of the blocks that are expected to be low rank by sampling specially chosen rows and columns of those blocks. The small high rank blocks are formed directly by evaluating their entries. We describe the H-matrix construction in detail in Appendix \ref{app:h_matrix}. Although $\AkerPcMat$ is dense, constructing the H-matrix approximation via this process only requires evaluation of $O(N \log N)$ entries of $\AkerPc$, and these entries are computed via the formula in Equation \eqref{eq:eval_y_x}. We convert $\mathbf{M}$ to H-matrix format using standard H-matrix methods for sparse matrices implemented within the HLIBpro software package, using the same recursive block partitioning structure as was used for $\AkerPcMat$.
+We convert $\AkerPcMat$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{HLIBPRO}. Briefly, this method uses geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix (here, these locations are the finite element Lagrange nodes $p_i$, $i=1,\dots,N$) to construct a recursive block partitioning of $\AkerPcMat$, such that all blocks at the finest level of the partitioning are either expected to be low rank, or are small. Then, the method forms low rank approximations of the blocks that are expected to be low rank by sampling specially chosen rows and columns of those blocks. The small high rank blocks are formed directly by evaluating their entries. We describe the H-matrix construction in detail in Appendix \ref{app:h_matrix}. Although $\AkerPcMat$ is dense, constructing the H-matrix approximation via this process only requires evaluation of $O(N \log N)$ entries of $\AkerPc$, and these entries are computed via the formula in Equation \eqref{eq:eval_y_x}. We convert $\mathbf{M}$ to H-matrix format using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\AkerPcMat$.
 
 
 \subsection{Rational positive semi-definite modification}
@@ -677,29 +677,29 @@ Then we modify $\AmatPcSym$ to make it positive semi-definite by forming a ratio
 \label{eq:rational_matrix_function}
 \AmatPcSymPlus := c_0 \mathbf{I} + c_1 \AmatPcSym + c_2 \left(\AmatPcSym + \mu \mathbf{I}\right)^{-1},
 \end{equation}
-where $\mathbf{I}$ is the identity matrix which has the same shape as $\AmatPcSym$. The scalars $c_0$, $c_1$, $c_2$, and $\mu$ are chosen so that the moderate and large positive eigenvalues of $\AmatPcSymPlus$ approximately equal the corresponding moderate and large positive eigenvalues of $\AmatPcSym$, while the negative and small positive eigenvalues of $\AmatPcSym$ are modified so that $\AmatPcSymPlus$ is positive semi-definite. Later in this section we will explain how $c_0$, $c_1$, $c_2$, and $\mu$ are chosen and how our choice of these scalars affects the spectral properties of $\AmatPcSymPlus$. In Figure FIG we compare the spectrum of $\AmatPcSym$ to that of $\AmatPcSymPlus$ for different choices of these scalars. Forming $\AmatPcSymPlus$ requires computing an H-matrix inverse, $\left(\AmatPcSym + \mu \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is computationally acceptable because $\AmatPcSym + \mu \mathbf{I}$ is an H-matrix. Inversion of H-matrices is a routine procedure which only requires $O(N k^2 \log(N)^2)$ work, where $k$ is the H-matrix rank \cite{Hmatrixinverse}.
-
-Approximation \eqref{eq:rational_matrix_function} may be written as $\AmatPcSymPlus = f(\AmatPcSym)$, where
+where $\mathbf{I}$ is the identity matrix which has the same shape as $\AmatPcSym$. Approximation \eqref{eq:rational_matrix_function} may be written as $\AmatPcSymPlus = \ratfct(\AmatPcSym)$, where $\ratfct$ is the following rational function:
 \begin{equation}
 \label{eq:rational_function_scalar}
-f(\lambda) := c_0 + c_1 \lambda + \frac{c_2}{\lambda+\mu}.
+\ratfct(\lambda) := c_0 + c_1 \lambda + \frac{c_2}{\lambda+\mu}.
 \end{equation}
+The scalars $c_0$, $c_1$, $c_2$, and $\mu$ are chosen so that the moderate and large positive eigenvalues of $\AmatPcSymPlus$ approximately equal the corresponding moderate and large positive eigenvalues of $\AmatPcSym$, while the negative and small positive eigenvalues of $\AmatPcSym$ are modified so that $\AmatPcSymPlus$ is positive semi-definite. Later in this section we will explain how $c_0$, $c_1$, $c_2$, and $\mu$ are chosen and how our choice of these scalars affects the spectral properties of $\AmatPcSymPlus$. In Figure FIG we illustrate $\ratfct(\lambda)$. Forming $\AmatPcSymPlus$ requires computing an H-matrix inverse, $\left(\AmatPcSym + \mu \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is computationally acceptable because $\AmatPcSym + \mu \mathbf{I}$ is an H-matrix. Inversion of H-matrices is a routine procedure which only requires $O(N \log(N)^2)$ work \cite{Hmatrixinverse}.
+
 We choose $c_0, c_1, c_2$, and $\mu$, to be the solution to the following system of equations:
 \begin{subequations}
 	\label{eq:four_eq_system}
 \begin{align}
-f(0) &= 0 \label{eq:desired_property_1} \\
-f'(0) &= 0 \label{eq:desired_property_2} \\
-f(\lambda_\text{min}) &= |\lambda_\text{min}| \label{eq:desired_property_3} \\
-f(\lambda_\text{max}) &= \lambda_\text{max}, \label{eq:desired_property_4}
+\ratfct(0) &= 0 \label{eq:desired_property_1} \\
+\ratfct'(0) &= 0 \label{eq:desired_property_2} \\
+\ratfct(\lambda_\text{min}) &= |\lambda_\text{min}| \label{eq:desired_property_3} \\
+\ratfct(\lambda_\text{max}) &= \lambda_\text{max}, \label{eq:desired_property_4}
 \end{align}
 \end{subequations}
-where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\AmatPcSym$, respectively. We also require $\mu > |\lambda_\text{min}|$, so that the pole of $f$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. Note that $\lambda_\text{min} < 0$ since $\AmatPcSym$ is indefinite. 
+where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\AmatPcSym$, respectively. We also require $\mu > |\lambda_\text{min}|$, so that the pole of $\ratfct$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. Note that $\lambda_\text{min} < 0$ since $\AmatPcSym$ is indefinite. 
 We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. 
 
-Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $f(0)=0$ is the unique minimum of $f$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $f$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\mathcal{A}$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $f$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $f$. There is a tradeoff: if we choose a larger value for $f(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $f(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
+Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\mathcal{A}$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $f(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
 
-Solving system \eqref{eq:four_eq_system} is computationally trivial. Using the definition of $f$ in \eqref{eq:rational_function_scalar}, and basic calculus and linear algebra, we may write Equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, and \eqref{eq:desired_property_4} in the following matrix form:
+Solving system \eqref{eq:four_eq_system} is computationally trivial. Using the definition of $\ratfct$ in \eqref{eq:rational_function_scalar}, and basic calculus and linear algebra, we may write Equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, and \eqref{eq:desired_property_4} in the following matrix form:
 \begin{equation}
 \label{eq:rational_3_linear_system}
 \begin{bmatrix} 1 & 0 & 1/\mu \\ 0 & 1 & -1/\mu^2 \\ 1 & \lambda_\text{max} & 1/(\lambda_\text{max}+\mu) \end{bmatrix} \begin{bmatrix} c_0 \\ c_1 \\ c_2 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \\ \lambda_\text{max} \end{bmatrix},
