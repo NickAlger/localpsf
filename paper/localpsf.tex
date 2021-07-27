@@ -207,7 +207,7 @@ Product-convolution type approximations of Hessians have been used in a seismic 
 \label{sec:method}
 This section describes how we compute the convolution kernels, $\varphi_i$, and weighting functions, $w_i$, for the product-convolution approximation, $\mathcal{A}_\text{pc} \approx \mathcal{A}$, given in \eqref{eq:product_convolution}. We also describe how we evaluate kernel entries of the approximation, $\Phi_\text{pc}(y,x)$, how we convert $\mathcal{A}_\text{pc}$ to H-matrix format, and (optionally) how we modify $\mathcal{A}_\text{pc}$ to force it to be symmetric positive semi-definite.
 
-We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). 
+To briefly summarize, we extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). 
 %To reduce memory usage, all kernels $\varphi_i$ associated with a given batch, $b$, are stored in a single function, $\eta^b$, rather than as distinct functions. 
 A greedy algorithm is used to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$ (Section \ref{sec:greedy_point_selection}). We ensure that the points $x_i$ are well separated from each other by forming a-priori estimates of the supports of the functions $\phi_x$ (Section \ref{eq:mean_and_covariance_estimation}). For the weighting functions, we use the smoothest functions (in a least-squares sense) that interpolate the points $x_i$; constructing the weighting functions requires solving two Poisson PDEs per point $x_i$ (Section \ref{sec:weighting_functions}).
 %\begin{itemize}
@@ -246,45 +246,64 @@ The complete algorithm for constructing $\mathcal{A}_\text{pc}$ is shown in Algo
 \subsection{Estimating impulse response supports}
 \label{eq:mean_and_covariance_estimation}
 
-Since $\phi_x$ is nonnegative, it is a scaled probability distribution. Let $\widehat{\phi}_x$ denote the normalized version of $\phi_x$, and let $\mu(x)$ and $\Sigma(x)$ denote the mean and covariance of $\widehat{\phi}_x$, respectively (see Definition \ref{defn:alpha_rho_mu_sigma}). We make the approximation that the support of $\phi_x$ is contained within the ellipsoid
+Because of the non-negative kernel property, for each $x \in \Omega$, the impulse response $\phi_x$ is a non-negative function $y \mapsto \phi_x(y)$. Hence, $\phi_x$ is a scaled probability distribution. Let $\alpha$ denote the scaling factor, let $\widehat{\phi}_x := \phi_x / \alpha(x)$ denote the normalized version of $\phi_x$, and let $\mu(x)$ and $\Sigma(x)$ denote the mean and covariance of $\widehat{\phi}_x$, respectively. We make the approximation that the support of $\phi_x$ is contained within the ellipsoid
 \begin{equation}
 \label{eq:support_ellipsoid}
 E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
 \end{equation}
 where $\tau$ is a fixed constant. 
 %The ellipsoid $E_{x}$ is the set of points within $\tau$ standard deviations of the mean of the Gaussian approximation of the normalized version of $\langle \mathcal{A}, \delta_{x}\rangle^{*}$ which has the same mean and covariance. 
-The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\mu(x)$ and covariance $\Sigma(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\phi}_x$ (see Figure FIG). The bigger $\tau$ is, the smaller the overlap between impulse responses within a batch will be, while the smaller $\tau$ is, the more impulse responses we can fit within each batch. In practice we find that $\tau=3$ provides a good balance between these competing goals. 
-The fraction of the ``mass'' of $\phi_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
+The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\mu(x)$ and covariance $\Sigma(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\phi}_x$ (see Figure FIG). The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\phi_x$. However, the cost of our algorithm will depend on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\phi_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
+% a good balance between these competing goals. 
+%The bigger $\tau$ is, the smaller the overlap between impulse responses within a batch will be, while the smaller $\tau$ is, the more impulse responses we can fit within each batch.
 
-In Algorithm \ref{alg:varhpi_mean_cov} we show how to compute $\alpha(x)$, $\mu(x)$, and $\Sigma(x)$ for all points $x$ simultaneously, by applying $\mathcal{A}^T$ to a constant function and a small number of linear and quadratic functions. Definitions required for Algorithm \ref{alg:varhpi_mean_cov} are given in Definition \ref{defn:alpha_rho_mu_sigma}, Definition \ref{defn:C_L_Q}, and Definition \ref{defn:pointwise}. The theoretical basis for Algorithm \ref{alg:varhpi_mean_cov} is shown in Theorem \ref{thm:vol_mean_cov}.
+The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first compute the scalar $\alpha(x)$, the length-$d$ vector $\mu(x)$, and the $d \times d$ matrix $\Sigma(x)$ (recall $d \in \{1,2,3\}$ is the spatial dimension of $\Omega$). The direct approach to compute these quantities is to apply $\Aop$ to a delta distribution centered at point $x$ to get $\phi_x$ (as per \eqref{eq:impulse_response_delta_action}), then post-process $\phi_x$ to compute these quantities. But this direct approach is computationally infeasible because and it requires applying $\Aop$ to one vector per point $x$ that we wish to evaluate $E_x$ at, and we will need to evaluate $E_x$ at a large number of points. Fortunately, it is possible to compute $\alpha(x)$, $\mu(x)$, and $\Sigma(x)$, \emph{for all points $x$ simultaneously}, by applying $\mathcal{A}^T$ to one constant function, $d$ linear functions, and $d(d+1)/2$ quadratic functions. We present this efficient method of computing $\alpha$, $\mu$, and $\Sigma$ in Theorem \ref{thm:vol_mean_cov} and summarize the method in Algorithm \ref{alg:varhpi_mean_cov}.
+
+%In Algorithm \ref{alg:varhpi_mean_cov} we show how to compute  Definitions required for Algorithm \ref{alg:varhpi_mean_cov} are given in Definition \ref{defn:alpha_rho_mu_sigma}, Definition \ref{defn:C_L_Q}, and Definition \ref{defn:pointwise}. The theoretical basis for Algorithm \ref{alg:varhpi_mean_cov} is shown in Theorem \ref{thm:vol_mean_cov}.
 
 %We compute the scaling factor, denoted $\alpha(x)$, for all $x$ simultaneously by applying $\mathcal{A}^T$ to a constant function. We compute the spatially varying mean, $\mu(x)$, and covariance, $\Sigma(x)$ of the normalized version of $\phi_x$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. Definitions of $\alpha$, $\mu$, and $\Sigma$ are given in Definition \ref{defn:alpha_rho_mu_sigma}. The procedure for computing these quantities is shown in Algorithm \ref{alg:varhpi_mean_cov}, and the theoretical basis for this procedure is shown in Theorem \ref{thm:vol_mean_cov}. 
 
-\begin{defn}[Moments of $\phi_x$]
-	\label{defn:alpha_rho_mu_sigma}
-	We define the spatially varying scaling factor, $\alpha$, the scaled impulse response, $\widehat{\phi}_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
-	\begin{align*}
-	\alpha:\Omega \rightarrow \mathbb{R}, &\qquad \alpha(x) := \int_{\Omega} \phi_x(z) dz, \\
-	\widehat{\phi}_x:\Omega \rightarrow \mathbb{R}, &\qquad \widehat{\phi}_x := \phi_x \big/ \alpha(x), \\
-	\mu:\Omega \rightarrow \mathbb{R}^d, &\qquad \mu(x) := \int_\Omega z \widehat{\phi}_x(z) dz, \\
-	\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \widehat{\phi}_x(z) dz.
-	\end{align*}
-\end{defn}
 
-\begin{defn}[Constant, linear, and quadratic functions]	
-	\label{defn:C_L_Q}
-	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$. We define $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions, respectively:
+\begin{theorem}[Impulse response moments]
+	\label{thm:vol_mean_cov}
+	Let $\alpha:\Omega \rightarrow \mathbb{R}$, $\mu:\Omega \rightarrow \mathbb{R}^d$, and $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}$, be the following functions:
+	\begin{equation*}
+	\alpha(x) := \int_{\Omega} \phi_x(y) dy, \qquad
+	\mu(x) := \mathbb{E}(\widehat{\phi}_x), \qquad
+	\Sigma(x) := \mathbb{V}(\widehat{\phi}_x),
+	\end{equation*}
+	where $\mathbb{E}(\widehat{\phi}_x)$ denotes the mean of $\widehat{\phi}_x$, and $\mathbb{V}(\widehat{\phi}_x)$ denotes the variance of $\widehat{\phi}_x$.	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$. Let $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions:
 	\begin{equation*}
 	C(x) := 1, \qquad
 	L^i(x) := x^i, \qquad
 	Q^{ij}(x) = x^i x^j.
 	\end{equation*}
-\end{defn}
+	Let $f/g$ to denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ to denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The following results hold:
+	\begin{align*}
+	\alpha =& \left(\mathcal{A}^T C\right)^* \\
+	\mu^i =& \left(\mathcal{A}^T L^i\right)^* / \alpha \\
+	\Sigma^{ij} =& \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot \mu^j
+	\end{align*}
+	 for $i=1,\dots, d$, $j=1,\dots,d$.
+\end{theorem}
 
-\begin{defn}[Pointwise operations]
-	\label{defn:pointwise}
-	We write $f/g$ to denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ to denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
-\end{defn}
+The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}. The proof is straightforward, and follows directly from the definitions.
+
+%
+%\begin{defn}[Constant, linear, and quadratic functions]	
+%	\label{defn:C_L_Q}
+%	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$. We define $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions, respectively:
+%	\begin{equation*}
+%	C(x) := 1, \qquad
+%	L^i(x) := x^i, \qquad
+%	Q^{ij}(x) = x^i x^j.
+%	\end{equation*}
+%\end{defn}
+%
+%\begin{defn}[Pointwise operations]
+%	\label{defn:pointwise}
+%	We write $f/g$ to denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ to denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
+%\end{defn}
 
 %\begin{theorem}
 %	\label{thm:vol_mean_cov}
@@ -344,12 +363,6 @@ In Algorithm \ref{alg:varhpi_mean_cov} we show how to compute $\alpha(x)$, $\mu(
 \end{algorithm2e}
 
 
-\begin{theorem}[Correctness of Algorithm \ref{alg:varhpi_mean_cov}]
-	\label{thm:vol_mean_cov}
-	Algorithm \ref{alg:varhpi_mean_cov} correctly computes $\alpha$, $\mu$, and $\Sigma$.
-\end{theorem}
-
-The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}.
 
 
 
@@ -357,11 +370,11 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \subsection{Greedy sample point selection}
 \label{sec:greedy_point_selection}
 
-Now that we have estimates of the supports of the functions $\phi_x$, we use these estimates, combined with a greedy algorithm to choose sets of sample points, $S_b$. These sample points will be used in Section \ref{sec:get_impulse_response} to form Dirac combs, which are then used to compute impulse responses of $\mathcal{A}$. Starting from a finite set of candidate points $P$, we select batches of sample points, $S_b$, using a greedy algorithm. To build a batch $S_b$, first we initialize $S_b$ as an empty set. Then we select a candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
+Now that we have estimates of the supports of the functions $\phi_x$, we use these estimates, combined with a greedy ellipsoid packing algorithm to choose sets of sample points, $S_b$. These sample points will be used in Section \ref{sec:get_impulse_response} to form Dirac combs, which are then used to compute impulse responses of $\mathcal{A}$. We start with a finite set of candidate points $P$. To build a batch of sample points, $S_b$, first we initialize $S_b$ as an empty set. Then we select the point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
 \begin{equation*}
 \max_{p \in P} \min_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|.
 \end{equation*}
-Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. Recall that $E_p$ and $E_q$ are ellipsoids defined in \eqref{eq:support_ellipsoid}. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
+Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. Recall that $E_p$ and $E_q$ are ellipsoids associated with points $p$ and $q$, respectively, as defined in \eqref{eq:support_ellipsoid}. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
 
 We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches.
 
@@ -898,6 +911,17 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 
 \section{Proofs}
 \label{app:proofs}
+
+\begin{defn}[Moments of $\phi_x$]
+	\label{defn:alpha_rho_mu_sigma}
+	We define the spatially varying scaling factor, $\alpha$, the scaled impulse response, $\widehat{\phi}_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
+	\begin{align*}
+	\alpha:\Omega \rightarrow \mathbb{R}, &\qquad \alpha(x) := \int_{\Omega} \phi_x(z) dz, \\
+	\widehat{\phi}_x:\Omega \rightarrow \mathbb{R}, &\qquad \widehat{\phi}_x := \phi_x \big/ \alpha(x), \\
+	\mu:\Omega \rightarrow \mathbb{R}^d, &\qquad \mu(x) := \int_\Omega z \widehat{\phi}_x(z) dz, \\
+	\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \widehat{\phi}_x(z) dz.
+	\end{align*}
+\end{defn}
 
 %These results rely on straightforward prerequisites that we present in Lemma \ref{lem:T_is_linear}. We prove correctness of Algorithm \ref{alg:weighting_functions_incremental} in Theorem \ref{thm:wi_alg_is_correct}. Theorem \ref{thm:wi_alg_is_correct} relies on a prerequisite result which we present in Lemma \ref{lem:psi_delta_eval}.
 
