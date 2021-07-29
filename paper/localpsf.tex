@@ -432,20 +432,24 @@ By linearity, the resulting function $\eta^b$ may be written as
 \label{eq:phi_b}
 	\eta^b = \left\langle\mathcal{A},\sum_{x_i \in S_b} \delta_{x_i}\right\rangle^* = \sum_{x_i \in S_b} \langle\mathcal{A}, \delta_{x_i}\rangle^* = \sum_{x_i \in S_b} \phi_x.
 \end{equation}
-Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\phi_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\phi_j$ do not overlap when $i \neq j$, from \eqref{eq:convolution_kernel} and \eqref{eq:phi_b} we have
+Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\phi_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\phi_j$ do not overlap when $i \neq j$, from \eqref{eq:convolution_kernel} and \eqref{eq:phi_b} we have (approximately)
 \begin{equation}
 \label{eq:varphi_eval}
 	\varphi_{x_i}(z) = \phi_i(z+x_i) = \begin{cases}
 		\eta^b(z+x_i), & z+x_i \in E_{x_i} \\
-		0, & \text{otherwise}.
+		0, & \text{otherwise}
 		\end{cases}
 \end{equation}
-for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the functions $\varphi_{x_i}$ for every point $x_i \in S_b$. 
+for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the convolution kernels $\varphi_{x_i}$ associated with every point $x_i \in S_b$. 
 
-To convert $\AopPc$ to H-matrix format, we will need to evaluate the function $z \mapsto \varphi_{x_i}(z)$ for a large number of points $z$. Using \eqref{eq:varphi_eval} to evaluate $\varphi_{x_i}(z)$ requires evaluating the function $\eta_b(z+x_i)$. However, in computations the function $\eta^b$ will be a finite element function formed on an irregular mesh, and the point $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating a finite element function at an arbitrary point requires finding which cell in the mesh the point is in, then evaluating several polynomial functions. This procedure is asymptotically scalable, but slow in practice \cite{FEMEVALSLOW}. To speed up evaluation of $\varphi_{x_i}$, we interpolate $\varphi_{x_i}$ onto a regular rectilinear grid on a coordinate axis aligned box that just barely contains the ellipsoid $E_{x_i}$. We transfer the function $\varphi_{x_i}$ from the irregular mesh to the regular grid by evaluating $\varphi_{x_i}$ at all gridpoints in the regular grid, using \eqref{eq:varphi_eval} and the slow finite element point evaluation process described previously. Once $\varphi_{x_i}$ has been transferred to the regular grid, we use fast regular grid interpolation to perform further evaluations of $\varphi_{x_i}$. We incur interpolation error when transferring $\varphi_{x_i}$ from the irregular mesh to the regular grid. To limit this interpolation error, the density of the regular grid should be denser than the local density of the finite element mesh. In our numerical results, the distance between neighboring points in the regular grid is chosen to be half the minimum distance between any pair of finite element Lagrange nodes that are contained in $E_{x_i}$. This grid transfer procedure is illustrated in Figure FIG.
+To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\varphi_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\varphi_{x_i}(z)$ requires evaluating $\eta_b(z+x_i)$. This is not ideal. In computations, $\eta^b$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\eta_b(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. To speed up evaluation of $\varphi_{x_i}$, we interpolate $\varphi_{x_i}$ onto a regular rectilinear grid on a coordinate axis aligned box that just barely contains the ellipsoid $E_{x_i}$. We transfer the function $\varphi_{x_i}$ from the irregular mesh to the regular grid by evaluating $\varphi_{x_i}$ at all gridpoints in the regular grid, using the slow process just described.  This is an upfront cost which is done ``offline.'' After $\varphi_{x_i}$ has been transferred to the regular grid, we use fast regular grid interpolation to perform all subsequent ``online'' evaluations of $\varphi_{x_i}$. This yields a substantial overall speedup because the number of gridpoints in the regular grid for $\varphi_{x_i}$ is typically much smaller than the number of evaluations of $\varphi_{x_i}$ required to convert $\AopPc$ to H-matrix format. Having $\varphi_{x_i}$ on a regular grid also simplifies the implementation of the boundary impulse response extension procedure that we describe in Section \ref{sec:boundary_extension}.
+
+We incur interpolation error when transferring $\varphi_{x_i}$ from the irregular mesh to the regular grid. To limit this interpolation error, the density of the regular grid should be as dense or denser than the local density of the finite element mesh. In our numerical results, the distance between neighboring points in the regular grid is chosen to be half the minimum distance between any pair of finite element Lagrange nodes that are contained in $E_{x_i}$. The grid transfer procedure is illustrated in Figure FIG.
 
 %To minimize memory usage, the functions $\varphi_i$ are not stored individually. Instead, we store the functions $\eta^b$, and use formula \eqref{eq:varphi_eval} to perform function evaluations $z \mapsto \varphi_i(z)$ as needed.
 
+\subsection{Boundary impulse response extension}
+\label{sec:boundary_extension}
 
 \subsection{Poisson interpolation weighting functions}
 \label{sec:weighting_functions}
@@ -458,14 +462,15 @@ We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to 
 \text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,r.
 \end{aligned}
 \end{equation}
-Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}). 
+Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}). Proofs for results in this section are given in Appendix \ref{app:proofs}.
 
-In Algorithm \ref{alg:weighting_functions_incremental}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$.  Constructing all $r$ of the functions $w_i$ requires solving the Poisson equation $2r$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All of the weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. However, the dominant computational cost in constructing the weighting functions is the solution of the Poisson PDEs, and these Poisson PDE solves can be performed incrementally---we only need to perform two new Poisson PDE solves when a new point is added, rather than $2(r+1)$ new PDE solves.
+In Algorithm \ref{alg:weighting_functions_incremental}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$.  Constructing all $r$ of the functions $w_i$ requires solving the Poisson equation $2r$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All of the weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. However, the dominant computational cost in constructing the weighting functions is the solution of the Poisson PDEs, and these Poisson PDE solves can be performed incrementally---we only need to perform two new Poisson PDE solves when a new point is added.
+%, rather than $2(r+1)$ new PDE solves.
 
-It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. Proofs for results in this section are given in Appendix \ref{app:proofs}.
+It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. 
 
 
-\begin{thm}[Optimal interpolation]
+\begin{thm}[Poisson weighting functions are optimal]
 	\label{thm:smoothest_interpolant}
 Let $y \in \mathbb{R}^d$, and let $\gamma_y$ be the function
 \begin{equation}
@@ -482,7 +487,7 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 \end{equation}
 \end{thm}
 
-\begin{prop}[Weighting functions sum to one]
+\begin{prop}[Poisson weighting functions sum to one]
 	\label{thm:wi_sum_to_one}
 	We have
 	\begin{equation*}
@@ -670,7 +675,7 @@ The finite element matrix representation of $\AopPcMesh$, which we denote by $\A
 \AmatPc := \mathbf{M} \AkerPcMat \mathbf{M}.
 \end{equation}
 
-We form an H-matrix representation of $\AmatPc$ by converting $\AkerPcMat$ and $\mathbf{M}$ to H-matrix format, then using fast H-matrix methods to multiply these matrices according \eqref{eq:Amatpc_defn}. Once $\AmatPc$ is in H-matrix format, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. We discuss H-matrices in greater detail in Appendix \ref{app:h_matrix}
+We form an H-matrix representation of $\AmatPc$ by converting $\AkerPcMat$ and $\mathbf{M}$ to H-matrix format, then using fast H-matrix methods to multiply these matrices according \eqref{eq:Amatpc_defn}. Once $\AmatPc$ is in H-matrix format, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. We discuss H-matrices in greater detail in Appendix \ref{app:h_matrix}.
 
 We convert $\AkerPcMat$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBPro software package \cite{HLIBPRO}. Briefly, this method uses geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix (here, these locations are the finite element Lagrange nodes $p_i$, $i=1,\dots,N$) to construct a recursive block partitioning of $\AkerPcMat$, such that all blocks at the finest level of the partitioning are either expected to be low rank, or are small. Then, the method forms low rank approximations of the blocks that are expected to be low rank by sampling specially chosen rows and columns of those blocks. The small high rank blocks are formed directly by evaluating their entries. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. Although $\AkerPcMat$ is a dense $N \times N$ matrix, constructing the H-matrix approximation of $\AkerPcMat$ only requires evaluation of $O(N \log N)$ entries of $\AkerPc$, and these entries are computed via the formula in Equation \eqref{eq:eval_y_x}. A dense representation of $\AkerPcMat$ is never formed. We convert $\mathbf{M}$ to H-matrix format using standard H-matrix methods for sparse matrices implemented within HLIBPro, using the same recursive block partitioning structure as was used for $\AkerPcMat$.
 
