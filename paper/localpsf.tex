@@ -413,7 +413,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 \end{algorithm2e}
 
 
-\subsection{Computation, evaluation, and storage of impulse responses}
+\subsection{Computation and storage of convolution kernels}
 \label{sec:get_impulse_response}
 
 We compute impulse responses of $\mathcal{A}$ in batches by applying $\mathcal{A}$ to a small number Dirac combs. Each Dirac comb yields one batch of impulse responses.
@@ -448,8 +448,12 @@ We incur interpolation error when transferring $\varphi_{x_i}$ from the irregula
 
 %To minimize memory usage, the functions $\varphi_i$ are not stored individually. Instead, we store the functions $\eta^b$, and use formula \eqref{eq:varphi_eval} to perform function evaluations $z \mapsto \varphi_i(z)$ as needed.
 
-\subsection{Boundary impulse response extension}
+\subsection{Addressing convolution kernel boundary artifacts}
 \label{sec:boundary_extension}
+
+Evaluating the kernel for our product-convolution approximation requires evaluating $\varphi_{x_i}(y-x)$. But this may be undefined, because $y-x$ may reside outside the support of $\varphi_{x_i}$, even if $x \in \Omega$ and $y \in \Omega$. The default approach to deal with this problem is to extend $\varphi_{x_i}$ by zero wherever it is undefined. But this leads to substantial errors, known as boundary artifacts, when the sample point $x_i$ is near the boundary of the domain. In this case, the impulse response is artificially chopped off by the domain boundary. See Figure FIG for an illustration, and see \cite{ADAPTIVECONVMYPAPER} for a more detailed discussion of boundary artifacts in. 
+
+To address boundary artifacts, we fill in missing/undefined portions of convolution kernels using values from convolution kernels for nearby sample points. This is similar to the approach used in \cite{ADAPTIVECONVMYPAPER}, except 
 
 \subsection{Poisson interpolation weighting functions}
 \label{sec:weighting_functions}
@@ -800,16 +804,15 @@ Some conclusions here.
 \section{Hierarchical matrix details}
 \label{app:h_matrix}
 
-The basic ideas behind H-matrices are as follows:
-\begin{itemize} 
-	\item Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank.
-	\item Recursive algorithms can take advantage of this low rank block structure to perform matrix arithmetic fast. Conventional algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix addition require either $O(N^2)$ or $O(N^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log^a N)$ time and memory for H-matrices. Here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix.
-\end{itemize}
-For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
+Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank. Such matrices are known as hierarchical matrices (H-matrices). Many classes of H-matrices exist (H1, H2, HSS, HBS, and more), and all of these types of H-matrices could be used in conjunction with our product-convolution approximation. Here we use classical H1 matrices. For this section, when we say H-matrix, we are referring to H1 matrices. 
 
-The H-matrix construction process that we use to form the matrix $\AkerPcMat$ proceeds as follows. First, we construct hierarchical partitionings of the degrees of freedom for the columns and rows of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(N \log N)$ specially-chosen entries of $\widetilde{A}$, and we evaluate these entries using the method described in Section \ref{sec:eval_matrix_entries}. 
+While a dense $N \times N$ matrix traditionally requires $O(N^2)$ memory to store, H-matrices may be stored using $O(N \log N)$ memory, by storing only the low rank factors for the low rank blocks. Recursive algorithms can take advantage of the H-matrix low rank block structure to perform matrix arithmetic fast. Conventional dense matrix algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix-matrix addition require either $O(N^2)$ or $O(N^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log^a N)$ time and memory for H-matrices. Here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
-\subsection{Cluster trees}
+\subsection{H-matrix construction}
+
+The H-matrix construction process that we use to form the H-matrix representation of $\AkerPcMat$ proceeds as follows. First, we construct hierarchical partitionings of the degrees of freedom for the columns and rows of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(N \log N)$ specially-chosen entries of $\AkerPcMat$, and we evaluate these entries using \eqref{eq:Akerpcmat_entries}. 
+
+\subsubsection{Cluster trees}
 \label{sec:cluster_trees}
 
 We use recursive hyperplane splitting to hierarchically cluster the degrees of freedom associated with the columns and rows of the matrix into a \emph{column cluster tree} and a \emph{row cluster tree}, respectively. Here we describe construction of the column cluster tree; the row cluster tree is constructed similarly. 
@@ -820,7 +823,7 @@ A depth-first search ordering of the column cluster tree leaves is then generate
 
 In the same way, the degrees of freedom associated with the rows of the matrix are hierarchically clustered into another cluster tree, and an ordering for the rows is generated. In our examples, the degrees of freedom for the columns coincide with the degrees of freedom for the rows, so the cluster trees for the rows and columns are the same, but this is not required in general.
 
-\subsection{Block cluster tree} 
+\subsubsection{Block cluster tree} 
 \label{sec:block_cluster_tree}
 
 We partition the matrix into a recursive hierarchy of mostly low rank blocks called the \emph{block cluster tree}. The idea is that a block of the matrix is likely to be low rank if the point cloud associated with the rows of the block is far away from the point cloud associated with the columns of the block. This is reasonable to expect here because of the locality property of $\mathcal{A}$. Indeed, locality implies that many blocks of the matrix corresponding to far away point cloud clusters will be rank zero.
@@ -844,7 +847,7 @@ then we mark $\widetilde{\mathbf{A}}_{12}$ as \emph{admissible} (expected to be 
 Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\mathbf{\widetilde{A}}$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree (quad-tree in $2$D, or oct-tree in $3$D), which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
 
 
-\subsection{Adaptive cross low rank approximation of blocks}
+\subsubsection{Adaptive cross low rank approximation of blocks}
 \label{sec:adaptive_cross}
 
 Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method \cite{ACA}. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\widetilde{\mathbf{A}}$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
