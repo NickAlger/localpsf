@@ -207,7 +207,7 @@ Product-convolution type approximations of Hessians have been used in a seismic 
 
 \section{Constructing the product-convolution H-matrix approximation}
 \label{sec:method}
-This section describes how we compute the convolution kernels, $\varphi_i$, and weighting functions, $w_i$, for the product-convolution approximation, $\AopPc \approx \Aop$, given in \eqref{eq:product_convolution}. We also describe how we evaluate kernel entries of the approximation, $\Phi_\text{pc}(y,x)$, how we convert $\AopPc$ to H-matrix format, and (optionally) how we modify $\AopPc$ to force it to be symmetric positive semi-definite.
+This section describes how we compute the convolution kernels, $\varphi_i$, and weighting functions, $w_i$, for the product-convolution approximation, $\AopPc \approx \Aop$, given in \eqref{eq:product_convolution}. We also describe how we convert $\AopPc$ to H-matrix format, and (optionally) how we modify $\AopPc$ to force it to be symmetric positive semi-definite.
 
 To briefly summarize, we extract $\varphi_{x_i}$ for many points $x_i$ by applying $\Aop$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). 
 %To reduce memory usage, all kernels $\varphi_i$ associated with a given batch, $b$, are stored in a single function, $\eta^b$, rather than as distinct functions. 
@@ -245,7 +245,9 @@ The complete algorithm for constructing $\AopPc$ is shown in Algorithm \ref{alg:
 \end{algorithm2e}
 
 
-\subsection{Estimating impulse response supports}
+\subsection{Sample point selection}
+
+\subsubsection{Estimating impulse response supports}
 \label{eq:mean_and_covariance_estimation}
 
 Because of the non-negative kernel property, for each $x \in \Omega$, the impulse response $\phi_x$ is a non-negative function $y \mapsto \phi_x(y)$. Hence, $\phi_x$ is a scaled probability distribution. Let $\alpha$ denote the scaling factor, let $\widehat{\phi}_x := \phi_x / \alpha(x)$ denote the normalized version of $\phi_x$, and let $\mu(x)$ and $\Sigma(x)$ denote the mean and covariance of $\widehat{\phi}_x$, respectively. We make the approximation that the support of $\phi_x$ is contained within the ellipsoid
@@ -369,7 +371,7 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 
 
 
-\subsection{Greedy sample point selection}
+\subsubsection{Greedy ellipsoid packing algorithm}
 \label{sec:greedy_point_selection}
 
 Now that we have estimates of the supports of the functions $\phi_x$, we use these estimates, combined with a greedy ellipsoid packing algorithm to choose sets of sample points, $S_b$. These sample points will be used in Section \ref{sec:get_impulse_response} to form Dirac combs, which are then used to compute impulse responses of $\mathcal{A}$. We start with a finite set of candidate points $P$. To build a batch of sample points, $S_b$, first we initialize $S_b$ as an empty set. Then we select the point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
@@ -413,7 +415,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 \end{algorithm2e}
 
 
-\subsection{Computation and storage of convolution kernels}
+\subsection{Convolution kernels}
 \label{sec:get_impulse_response}
 
 We compute impulse responses of $\mathcal{A}$ in batches by applying $\mathcal{A}$ to a small number Dirac combs. Each Dirac comb yields one batch of impulse responses.
@@ -442,20 +444,30 @@ Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approxim
 \end{equation}
 for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the convolution kernels $\varphi_{x_i}$ associated with every point $x_i \in S_b$. 
 
-To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\varphi_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\varphi_{x_i}(z)$ requires evaluating $\eta_b(z+x_i)$. This is not ideal. In computations, $\eta^b$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\eta_b(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. To speed up evaluation of $\varphi_{x_i}$, we interpolate $\varphi_{x_i}$ onto a regular rectilinear grid on a coordinate axis aligned box that just barely contains the ellipsoid $E_{x_i}$. We transfer the function $\varphi_{x_i}$ from the irregular mesh to the regular grid by evaluating $\varphi_{x_i}$ at all gridpoints in the regular grid, using the slow process just described.  This is an upfront cost which is done ``offline.'' After $\varphi_{x_i}$ has been transferred to the regular grid, we use fast regular grid interpolation to perform all subsequent ``online'' evaluations of $\varphi_{x_i}$. This yields a substantial overall speedup because the number of gridpoints in the regular grid for $\varphi_{x_i}$ is typically much smaller than the number of evaluations of $\varphi_{x_i}$ required to convert $\AopPc$ to H-matrix format. Having $\varphi_{x_i}$ on a regular grid also simplifies the implementation of the boundary impulse response extension procedure that we describe in Section \ref{sec:boundary_extension}.
+\subsubsection{Interpolation onto local regular grids}
 
-We incur interpolation error when transferring $\varphi_{x_i}$ from the irregular mesh to the regular grid. To limit this interpolation error, the density of the regular grid should be as dense or denser than the local density of the finite element mesh. In our numerical results, the distance between neighboring points in the regular grid is chosen to be half the minimum distance between any pair of finite element Lagrange nodes that are contained in $E_{x_i}$. The grid transfer procedure is illustrated in Figure FIG.
+To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\varphi_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\varphi_{x_i}(z)$ requires evaluating $\eta_b(z+x_i)$. This is not ideal. In computations, $\eta^b$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\eta_b(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. 
+
+To speed up evaluation of $\varphi_{x_i}$, we interpolate $\varphi_{x_i}$ onto a regular rectilinear grid on a coordinate axis aligned box that just barely contains the ellipsoid $E_{x_i}$. We transfer the function $\varphi_{x_i}$ from the irregular mesh to the regular grid by evaluating $\varphi_{x_i}$ at all gridpoints in the regular grid, using the slow process described in the previous paragraph. This is an upfront cost which is done ``offline.'' After $\varphi_{x_i}$ has been transferred to the regular grid, we use fast regular grid interpolation to perform all subsequent ``online'' evaluations of $\varphi_{x_i}$. This yields a substantial overall speedup because the number of gridpoints in the regular grid for $\varphi_{x_i}$ is typically much smaller than the number of evaluations of $\varphi_{x_i}$ required to convert $\AopPc$ to H-matrix format. 
+%Having $\varphi_{x_i}$ stored on a regular grid also simplifies the implementation of the method that we use to deal with boundary artifacts, which will be described in Section \ref{sec:boundary_extension}.
+
+We incur interpolation error when transferring $\varphi_{x_i}$ from the irregular mesh to the regular grid. To limit this interpolation error, the density of the regular grid should be as dense or denser than the local density of the finite element mesh. In our numerical results, the distance between neighboring points in the regular grid is chosen to be half the minimum distance between any pair of finite element Lagrange nodes that are contained in $E_{x_i}$. The grid transfer procedure is illustrated in Figure FIG. 
+
+When $x_i$ is near a boundary, it may occur that some gridpoints for the regular grid are in locations where $\varphi_{x_i}$ is undefined. In this case, we store a placeholder value for $\varphi_{x_i}$ at those gridpoints. We use the IEEE standard value of ``NaN'' (not a number) for this placeholder. These NaN values are later replaced with more appropriate values, as we will discuss in Section \ref{sec:boundary_extension}.
 
 %To minimize memory usage, the functions $\varphi_i$ are not stored individually. Instead, we store the functions $\eta^b$, and use formula \eqref{eq:varphi_eval} to perform function evaluations $z \mapsto \varphi_i(z)$ as needed.
 
-\subsection{Addressing convolution kernel boundary artifacts}
+\subsubsection{Addressing boundary artifacts}
 \label{sec:boundary_extension}
 
-Evaluating the kernel for our product-convolution approximation requires evaluating $\varphi_{x_i}(y-x)$. But this may be undefined, because $y-x$ may reside outside the support of $\varphi_{x_i}$, even if $x \in \Omega$ and $y \in \Omega$. The default approach to deal with this problem is to extend $\varphi_{x_i}$ by zero wherever it is undefined. But this leads to substantial errors, known as boundary artifacts, when the sample point $x_i$ is near the boundary of the domain. In this case, the impulse response is artificially chopped off by the domain boundary. See Figure FIG for an illustration, and see \cite{ADAPTIVECONVMYPAPER} for a more detailed discussion of boundary artifacts in. 
+Evaluating the kernel for our product-convolution approximation, $\AkerPc(y,x)$, requires evaluating $\varphi_{x_i}(y-x)$. But $\varphi_{x_i}(y-x)$ is undefined  when $y - x + x_i$ is outside $\Omega$, which may occur even if $x \in \Omega$ and $y \in \Omega$. The default approach to deal with this problem is to extend $\varphi_{x_i}$ by zero wherever it is undefined. But this leads to substantial errors, known as boundary artifacts, which are especially significant when the sample point $x_i$ is near the boundary of the domain. In this case, the impulse response is artificially chopped off by the domain boundary. See Figure FIG for an illustration, and see \cite{ADAPTIVECONVMYPAPER} for more detailed discussion of boundary artifacts. 
 
-To address boundary artifacts, we fill in missing/undefined portions of convolution kernels using values from convolution kernels for nearby sample points. This is similar to the approach used in \cite{ADAPTIVECONVMYPAPER}, except 
+While $\varphi_{x_i}$ may be undefined at a point $z$, often there is a sample point $x_j$ that is near $x_i$, but further away from the boundary than $x_i$, such that $\varphi_{x_j}$ is well defined at $z$. To address boundary artifacts, we fill in missing/undefined portions of convolution kernels using information from other convolution kernels associated with the $k$ nearest sample points. Kernels associated with nearer sample points are given precedence over kernels associated with farther away sample points. After the convolution kernel has been extended using information from neighboring convolution kernels, it is then further extended by zero as needed. 
 
-\subsection{Poisson interpolation weighting functions}
+Let $x_{n_1}, x_{n_2}, \dots, x_{n_k}$ be the $k$ nearest sample points to $x_i$, ordered by nearness, including $x_i$ itself. That is, $x_{n_1}=x_i$ (the point itself), $x_{n_2}$ is the nearest sample point to $x_i$ other than $x_i$ itself, $x_{n_3}$ is the second nearest sample point to $x_i$ other than $x_i$ itself, and so on. Also, recall that in computations that the functions $\varphi_{x_i}$ are stored on regular rectilinear grids. To extend $\varphi_{x_i}$, first we form an expanded regular rectilinear grid that has the same grid spacing as the grid used for $\varphi_{x_i}$, but is large enough to contain the boxes associated with all of the neighbor kernels $\varphi_{x_{n_1}}, \varphi_{x_{n_2}}, \dots, \varphi_{x_{n_k}}$. We initialize an extended convolution kernel, $\varphi_{x_i}^E$, to zero on this expanded grid. Then we interpolate the functions $\varphi_{x_{n_j}}$ onto this expanded grid one at a time in reverse order. That is, first we interpolate the kernel, $\varphi_{x_{n_k}}$, associated with the furthest point from $x_i$ onto the grid, then the kernel, $\varphi_{x_{n_{k-1}}}$, associated with the second furthest point, and so on until we reach the original kernel $\varphi_{x_{n_1}} = \varphi_{x_i}$. At each step, we overwrite existing values of $\varphi_{x_i}^E$ with new values from the kernel currently being interpolated, except when the new value of $\varphi_{x_{n_j}}$ is undefined (``NaN''). At gridpoints where the kernel being interpolated is undefined, we leave $\varphi_{x_i}^E$ unchanged. In this way, we fill in undefined values of $\varphi_{x_i}$ with values from successively further and further away kernels. This process is illustrated in Figure FIG. To avoid notational clutter, and since we will henceforth only work with the extended kernel, $\varphi_{x_i}^E$, in the remainder of this paper the symbol $\varphi_{x_i}$ refers to $\varphi_{x_i}^E$.
+
+
+\subsection{Poisson weighting functions}
 \label{sec:weighting_functions}
 
 We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to the following optimization problem:
@@ -622,8 +634,9 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 %	\label{alg:eval_y_x}
 %\end{algorithm2e}
 
+\subsection{Postprocessing the product-convolution approximation}
 
-\subsection{Hierarchical matrix construction}
+\subsubsection{Hierarchical matrix construction}
 \label{sec:H_matrix_conversion}
 
 In this section we discuss how we construct an H-matrix representation of our product-convolution approximation, after discretizing the problem with finite elements. Let $f_1, f_2, \dots, f_N$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, and let $V_h := \Span\left(f_1, f_2, \dots, f_N\right)$ be the corresponding finite element space. Further, let $p_i \in \mathbb{R}^d$, $i=1,\dots, N$ be the Lagrange nodes associated with the functions $f_i$. That is, the points such that $f_i(p_j)$ equals one if $i=j$, and zero otherwise.
@@ -684,7 +697,7 @@ We form an H-matrix representation of $\AmatPc$ by converting $\AkerPcMat$ and $
 We convert $\AkerPcMat$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBPro software package \cite{HLIBPRO}. Briefly, this method uses geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix (here, these locations are the finite element Lagrange nodes $p_i$, $i=1,\dots,N$) to construct a recursive block partitioning of $\AkerPcMat$, such that all blocks at the finest level of the partitioning are either expected to be low rank, or are small. Then, the method forms low rank approximations of the blocks that are expected to be low rank by sampling specially chosen rows and columns of those blocks. The small high rank blocks are formed directly by evaluating their entries. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. Although $\AkerPcMat$ is a dense $N \times N$ matrix, constructing the H-matrix approximation of $\AkerPcMat$ only requires evaluation of $O(N \log N)$ entries of $\AkerPc$, and these entries are computed via the formula in Equation \eqref{eq:eval_y_x}. A dense representation of $\AkerPcMat$ is never formed. We convert $\mathbf{M}$ to H-matrix format using standard H-matrix methods for sparse matrices implemented within HLIBPro, using the same recursive block partitioning structure as was used for $\AkerPcMat$.
 
 
-\subsection{Rational positive semi-definite modification}
+\subsubsection{Rational positive semi-definite modification}
 \label{sec:make_spd}
 
 In many problems of practical interest (e.g., Hessian approximation) $\Amat$ is symmetric positive semi-definite. However, $\AmatPc$ is generally non-symmetric and indefinite because of errors in the product-convolution approximation. 
