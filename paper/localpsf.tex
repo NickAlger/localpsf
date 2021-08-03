@@ -65,10 +65,11 @@ Let $\Omega \subset \mathbb{R}^d$ be a bounded domain in dimension $d=1$, $2$, o
 \end{equation}
 with integral kernel $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$. Here $\Aop u \in L^2(\Omega)'$ is the linear functional that results from applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. We focus on operators of this form which have the following properties:
 \begin{description}
-\item[Matrix-free:] One cannot easily access kernel entries $\Phi(y,x)$. Access to $\Aop$ is available only through application of $\Aop$ and $\Aop^T$ to arbitrary functions (i.e., operator actions). That is, evaluation of the maps
+\item[Matrix-free:] One cannot easily access kernel entries $\Phi(y,x)$. Access to $\Aop$ is available only through ``operator actions.'' That is, evaluation of the maps
 \begin{equation*}
-	u \mapsto\Aop u \quad \text{and} \quad v \mapsto\Aop^Tv.
+	u \mapsto\Aop u \quad \text{and} \quad v \mapsto\Aop^Tv,
 \end{equation*} 
+where $u$ and $v$ are arbitrary functions.
 \item[Non-negative kernel:] For all $(y,x) \in \Omega \times \Omega$, we have
 \begin{equation*}
 	\Phi(y,x) \ge 0.
@@ -86,7 +87,7 @@ We say that $\Aop$ has local support if, for all $x\in \Omega$, the support of $
 \end{equation}
 \end{description}
 
-After discretization (see Appendix \ref{app:discretized_operations}), the operator $\Aop$ becomes a dense matrix, $\mathbf{A}$, that is typically too large to be built and stored. The first property is called ``matrix-free'' because at the discrete level it means that one can perform matrix-vector products of $\mathbf{A}$ and $\mathbf{A}^T$ with arbitrary vectors, but one cannot easily access matrix entries $\mathbf{A}_{ij}$. In the matrix-free regime, to compute $\mathbf{A}_{ij}$ one could compute $\mathbf{v} = \mathbf{A}\mathbf{e}_j$, then extract $\mathbf{A}_{ij} = \mathbf{v}_i$. However, this process is wasteful because one computes the entire vector $\mathbf{v}$, then discards all but one component. Here $\mathbf{e}_j=(0,\dots,0,1,0,\dots,0)$ is the unit vector which has $j^\text{th}$ component equal to one and all other components equal to zero. In general, $\mathbf{A}$ is matrix-free if $\mathbf{A}$ is defined implicitly via its action on vectors, and the process of applying $\mathbf{A}$ to a vector requires performing a nontrivial computational procedure, such as solving a large linear system, or timestepping. For example, in reduced space approaches to PDE-constrained optimization and inverse problems, Hessians information is available only through the application of the Hessian to vectors, and one such Hessian application requires solving two PDEs \cite{HESSIANADJOINT}. 
+After discretization (see Appendix \ref{app:discretized_operations}), the operator $\Aop$ becomes a dense matrix, $\mathbf{A}$, that is typically too large to be built and stored. The first property is called ``matrix-free'' because at the discrete level it means that one can perform matrix-vector products of $\mathbf{A}$ and $\mathbf{A}^T$ with arbitrary vectors, but one cannot easily access matrix entries $\mathbf{A}_{ij}$. One could compute $\mathbf{v} = \mathbf{A}\mathbf{e}_j$, then extract $\mathbf{A}_{ij} = \mathbf{v}_i$, but this process is wasteful because one computes the entire vector $\mathbf{v}$, then discards all but one component. Here $\mathbf{e}_j=(0,\dots,0,1,0,\dots,0)$ is the unit vector which has $j^\text{th}$ component equal to one and all other components equal to zero. In general, $\mathbf{A}$ is matrix-free if $\mathbf{A}$ is defined implicitly via its action on vectors, and the process of applying $\mathbf{A}$ to a vector requires performing a nontrivial computational procedure, such as solving a large linear system, or timestepping. In reduced space approaches to PDE-constrained optimization and inverse problems, Hessian information is available only through the application of the Hessian to vectors, and one such Hessian application requires solving two PDEs \cite{HESSIANADJOINT}. 
 
 Let $\delta_x$ denote the point source (delta distribution) centered at $x$. The function $\phi_x$ is called the impulse response because straightforward analysis shows that it may be expressed as follows:
 \begin{equation}
@@ -195,7 +196,7 @@ In our previous work, we reduced the computational cost by starting with a coars
 
 %We do this by taking advantage of the fact that the functions $\varphi_i$ are locally supported; existing methods typically do not require this local support property.
 
-Our method of estimating the support of the functions $\varphi_i$ was inspired by resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\varphi_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\varphi_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\varphi_p$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\Aop^T$ with random noise functions, we use specific constant, linear, and quadratic functions. We observe that our method estimates the support of $\varphi_p$ more accurately and reliably than resolution analysis, but our method requires that $\Aop$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
+Our method of estimating the support of the functions $\varphi_i$ was inspired by resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\varphi_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\varphi_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\varphi_p$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\Aop^T$ with random noise functions, we use specific constant, linear, and quadratic functions. Our method estimates the support of $\varphi_p$ more accurately and reliably than resolution analysis, but our method requires that $\Aop$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
 
 Matrix-vector products with product-convolution approximations can be performed using the fast Fourier transform if the problem is discretized on a regular grid \cite{PRODCONVFFT}. The product-convolution approximation can then replace the original operator when using Krylov methods to solve linear systems with the original operator as the coefficient operator \cite{PRODCONVKRYLOV}. However, for complex geometries, problems are rarely discretized using regular grids, so we cannot easily use the fast Fourier transform. Furthermore, in big-data inverse problems the required number of Krylov iterations is large \cite{MYDISSERTATION,OTHERS}. Thus, after constructing the product-convolution approximation, it is desirable to convert the product-convolution approximation to other matrix formats that are amenable to fast linear algebra operations. Wavelet compression methods have been used for this purpose \cite{PRODCONVWAVELETS}. Here we follow our previous work \cite{PRODCONVMYPAPER}, in which we convert the product-convolution approximation to H-matrix format. 
 
@@ -207,7 +208,7 @@ Product-convolution type approximations of Hessians have been used in a seismic 
 
 \section{Constructing the product-convolution H-matrix approximation}
 \label{sec:method}
-Here we describe how we choose the sample points, $x_i$ (Section \ref{sec:sample_point_selection}), how we form the convolution kernels, $\varphi_i$ (Section \ref{sec:get_impulse_response}), and how we form the weighting functions, $w_i$ (Section \ref{sec:weighting_functions}), for the product-convolution approximation, $\AopPc \approx \Aop$, given in \eqref{eq:product_convolution}. We also describe how we convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), and (optionally) how we modify the resulting H-matrix, $\AmatPc$, to force it to be symmetric positive semi-definite (Section \ref{sec:make_spd}). The complete algorithm for constructing $\AmatPc$ is shown in Algorithm \ref{alg:construct_Atilde}. 
+In this section we describe how we choose the sample points, $x_i$ (Section \ref{sec:sample_point_selection}), how we form the convolution kernels, $\varphi_i$ (Section \ref{sec:get_impulse_response}), and how we form the weighting functions, $w_i$ (Section \ref{sec:weighting_functions}), for the product-convolution approximation, $\AopPc \approx \Aop$, given in \eqref{eq:product_convolution}. We also describe how we convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), and (optionally) how we modify the resulting H-matrix, $\AmatPc$, to force it to be symmetric positive semi-definite (Section \ref{sec:make_spd}). The complete algorithm for constructing $\AmatPc$ is shown in Algorithm \ref{alg:construct_Atilde}. 
 %The method for evaluating kernel entries of $\Phi_\text{pc}$ is shown in Section \ref{sec:eval_matrix_entries}.
 
 
@@ -269,7 +270,7 @@ E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\
 \end{equation}
 where $\tau$ is a fixed constant. 
 %The ellipsoid $E_{x}$ is the set of points within $\tau$ standard deviations of the mean of the Gaussian approximation of the normalized version of $\langle \mathcal{A}, \delta_{x}\rangle^{*}$ which has the same mean and covariance. 
-The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\mu(x)$ and covariance $\Sigma(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\phi}_x$ (see Figure FIG). The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, the more conservative the estimate is for the support of $\phi_x$. However, the cost of our algorithm will depend on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\phi_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
+The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\mu(x)$ and covariance $\Sigma(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\phi}_x$ (see Figure FIG). The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\phi_x$. However, the cost of our algorithm will depend on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\phi_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
 % a good balance between these competing goals. 
 %The bigger $\tau$ is, the smaller the overlap between impulse responses within a batch will be, while the smaller $\tau$ is, the more impulse responses we can fit within each batch.
 
@@ -389,7 +390,7 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \subsubsection{Greedy ellipsoid packing}
 \label{sec:greedy_point_selection}
 
-We use a greedy ellipsoid packing algorithm to choose sets of sample points, $S_b$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\phi_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\mathcal{A}$ to the Dirac comb associated with all points in a batch, we will recover the impulse responses for all sample points in that batch.
+We use a greedy ellipsoid packing algorithm to choose sets of sample points, $S_b$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\phi_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\mathcal{A}$ to the Dirac comb associated with all sample points in a batch, we will recover the impulse responses for all sample points in that batch.
 
 We start with a finite set of candidate points $P$. To build a batch of sample points, $S_b$, first we initialize $S_b$ as an empty set. Then we select the point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
 \begin{equation*}
@@ -440,7 +441,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 \subsection{Convolution kernels}
 \label{sec:get_impulse_response}
 
-We compute impulse responses of $\mathcal{A}$ in batches by applying $\mathcal{A}$ to a small number Dirac combs. Each Dirac comb yields one batch of impulse responses.
+We compute convolution kernels $\varphi_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. Each application of $\Aop$ to a Dirac comb yields one batch of impulse responses, $\phi_{x_i}$, which yields one batch of convolution kernels, $\varphi_{x_i}$.
 %The batches of impulse responses, $\eta^b$, will ultimately be interpolated with weighting functions described in Section \ref{sec:weighting_functions} to form the desired approximation $\widetilde{\mathcal{A}}\approx \mathcal{A}$.  
 The Dirac comb, $\xi_b$, associated with a batch of sample points, $S_b$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
 \begin{equation*}
@@ -454,7 +455,7 @@ For each batch $S_b$, we compute the action of $\mathcal{A}$ on the associated D
 By linearity, the resulting function $\eta^b$ may be written as
 \begin{equation}
 \label{eq:phi_b}
-	\eta^b = \left\langle\mathcal{A},\sum_{x_i \in S_b} \delta_{x_i}\right\rangle^* = \sum_{x_i \in S_b} \langle\mathcal{A}, \delta_{x_i}\rangle^* = \sum_{x_i \in S_b} \phi_x.
+	\eta^b = \left\langle\mathcal{A},\sum_{x_i \in S_b} \delta_{x_i}\right\rangle^* = \sum_{x_i \in S_b} \langle\mathcal{A}, \delta_{x_i}\rangle^* = \sum_{x_i \in S_b} \phi_{x_i}.
 \end{equation}
 Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\phi_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\phi_j$ do not overlap when $i \neq j$, from \eqref{eq:convolution_kernel} and \eqref{eq:phi_b} we have (approximately)
 \begin{equation}
@@ -476,7 +477,7 @@ To speed up evaluation of $\varphi_{x_i}$, we interpolate $\varphi_{x_i}$ onto a
 
 We incur interpolation error when transferring $\varphi_{x_i}$ from the irregular mesh to the regular grid. To limit this interpolation error, the density of the regular grid should be as dense or denser than the local density of the finite element mesh. In our numerical results, the distance between neighboring points in the regular grid is chosen to be half the minimum distance between any pair of finite element Lagrange nodes that are contained in $E_{x_i}$. The grid transfer procedure is illustrated in Figure FIG. 
 
-When $x_i$ is near a boundary, it may occur that some gridpoints for the regular grid are in locations where $\varphi_{x_i}$ is undefined. In this case, we store a placeholder value for $\varphi_{x_i}$ at those gridpoints. We use the IEEE standard value of ``NaN'' (not a number) for this placeholder. Later we replace these NaN values with more appropriate values (Section \ref{sec:boundary_extension}).
+When $x_i$ is near a boundary, it may occur that some gridpoints for the regular grid are in locations where $\varphi_{x_i}$ is undefined. In this case, we store a placeholder value for $\varphi_{x_i}$ at those gridpoints. We use the IEEE standard value of ``NaN'' (not a number) for this placeholder. In the next section (Section \ref{sec:boundary_extension}) we replace these NaN values with more appropriate values.
 
 %To minimize memory usage, the functions $\varphi_i$ are not stored individually. Instead, we store the functions $\eta^b$, and use formula \eqref{eq:varphi_eval} to perform function evaluations $z \mapsto \varphi_i(z)$ as needed.
 
@@ -488,7 +489,7 @@ Evaluating the kernel for our product-convolution approximation, $\AkerPc(y,x)$,
 While $\varphi_{x_i}$ may be undefined at a point $z$, often there is a sample point $x_j$ that is near $x_i$, but further away from the boundary than $x_i$, such that $\varphi_{x_j}$ is well defined at $z$. To address boundary artifacts, we fill in missing/undefined portions of convolution kernels using information from other convolution kernels associated with the $k$ nearest sample points (we use $k=8$ in our numerical results). Kernels associated with nearer sample points are given precedence over kernels associated with farther away sample points. 
 %After the convolution kernel has been extended using information from neighboring convolution kernels, it is then further extended by zero. 
 
-In detail, let $p_1, p_2, \dots, p_k$ be the $k$ nearest sample points to $x_i$, ordered by nearness, including $x_i$ itself. That is, $p_1=x_i$, $p_2$ is the nearest neighbor to $x_i$, $p_3$ is the second nearest neighbor to $x_i$, and so on. Also, recall that in computations that the functions $\varphi_{x_i}$ are stored on regular rectilinear grids. To extend $\varphi_{x_i}$, we form an expanded regular rectilinear grid that has the same grid spacing as the grid used for $\varphi_{x_i}$, and contains that grid as a subgrid, but is large enough to contain the boxes associated with all of the neighbor kernels, $\varphi_{p_1}, \varphi_{p_2}, \dots, \varphi_{p_k}$. We initialize an extended convolution kernel, $\varphi_{x_i}^E$, to zero on this expanded grid. Then we interpolate the functions $\varphi_{p_j}$ onto this expanded grid in reverse order. First we interpolate $\varphi_{p_k}$ onto the grid, then $\varphi_{p_{k-1}}$, and so on until the last step in which we interpolate the original kernel $\varphi_{p_1} = \varphi_{x_i}$. At each step, we overwrite existing values of $\varphi_{x_i}^E$ with new values from the kernel currently being interpolated, except when the new value of $\varphi_{p_j}$ is undefined (``NaN''). At gridpoints where the kernel being interpolated is undefined, we leave $\varphi_{x_i}^E$ unchanged. In this way, we fill in undefined values of $\varphi_{x_i}$ with values from successively further and further away kernels. This process is illustrated in Figure FIG. To avoid notational clutter, and since we will henceforth only work with the extended kernel, $\varphi_{x_i}^E$, in the remainder of this paper the symbol $\varphi_{x_i}$ refers to $\varphi_{x_i}^E$.
+In detail, let $p_1, p_2, \dots, p_k$ be the $k$ nearest sample points to $x_i$, ordered by nearness, including $x_i$ itself. That is, $p_1=x_i$, $p_2$ is the nearest neighbor to $x_i$, $p_3$ is the second nearest neighbor to $x_i$, and so on. Also, recall from the previous section (Section \ref{sec:convolution_kernel_regular_grid}) that the functions $\varphi_{x_i}$ are stored on regular rectilinear grids. To extend $\varphi_{x_i}$, we form an expanded regular rectilinear grid that has the same grid spacing as the grid used for $\varphi_{x_i}$, and contains that grid as a subgrid, but is large enough to contain the boxes associated with all of the neighbor kernels, $\varphi_{p_1}, \varphi_{p_2}, \dots, \varphi_{p_k}$. We initialize an extended convolution kernel, $\varphi_{x_i}^E$, to zero on this expanded grid. Then we interpolate the functions $\varphi_{p_j}$ onto this expanded grid in reverse order. First we interpolate $\varphi_{p_k}$ onto the grid, then $\varphi_{p_{k-1}}$, and so on until the last step in which we interpolate the original kernel $\varphi_{p_1} = \varphi_{x_i}$. At each step, we overwrite existing values of $\varphi_{x_i}^E$ with new values from the kernel currently being interpolated, except when the new value of $\varphi_{p_j}$ is undefined (``NaN''). At gridpoints where the kernel being interpolated is undefined, we leave $\varphi_{x_i}^E$ unchanged. In this way, we fill in undefined values of $\varphi_{x_i}$ with values from successively further and further away kernels. This process is illustrated in Figure FIG. To avoid notational clutter, and since we will henceforth only work with the extended kernel, $\varphi_{x_i}^E$, in the remainder of this paper the symbol $\varphi_{x_i}$ refers to $\varphi_{x_i}^E$.
 
 
 \subsection{Poisson weighting functions}
@@ -664,9 +665,9 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 \subsection{Discretization and hierarchical matrix construction}
 \label{sec:H_matrix_conversion}
 
-In this section we discuss how we construct an H-matrix representation of our product-convolution approximation, after discretizing the problem with finite elements. 
+Here we discuss how we construct an H-matrix representation of our product-convolution approximation, after discretizing the problem with finite elements. 
 
-\subsubsection{Finite element discretization}
+\subsubsection{Finite element discretization of the integral kernel}
 
 Let $f_1, f_2, \dots, f_N$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, and let $V_h := \Span\left(f_1, f_2, \dots, f_N\right)$ be the corresponding finite element space. Further, let $p_i \in \mathbb{R}^d$, $i=1,\dots, N$ be the Lagrange nodes associated with the functions $f_i$. That is, the points such that $f_i(p_j)$ equals one if $i=j$, and zero otherwise.
 
@@ -762,32 +763,11 @@ We choose $c_0, c_1, c_2$, and $\mu$, to be the solution to the following system
 \end{align}
 \end{subequations}
 where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\AmatPcSym$, respectively. We also require $\mu > |\lambda_\text{min}|$, so that the pole of $\ratfct$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. Note that $\lambda_\text{min} < 0$ since $\AmatPcSym$ is indefinite. 
-We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. 
+We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. We describe how we solve system \eqref{eq:four_eq_system} in Appendix \ref{app:solve_rational_system}. Solving \eqref{eq:four_eq_system} reduces to solving a smooth one-dimensional optimization problem, which is computationally trivial. 
 
 Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\mathcal{A}$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $f(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
 
-\subsubsection{Solving for rational function scalars}
 
-Solving system \eqref{eq:four_eq_system} is computationally trivial. Using the definition of $\ratfct$ in \eqref{eq:rational_function_scalar}, and basic calculus and linear algebra, we may write Equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, and \eqref{eq:desired_property_4} in the following matrix form:
-\begin{equation}
-\label{eq:rational_3_linear_system}
-\begin{bmatrix} 1 & 0 & 1/\mu \\ 0 & 1 & -1/\mu^2 \\ 1 & \lambda_\text{max} & 1/(\lambda_\text{max}+\mu) \end{bmatrix} \begin{bmatrix} c_0 \\ c_1 \\ c_2 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \\ \lambda_\text{max} \end{bmatrix},
-\end{equation}
-and we may write Equation \eqref{eq:desired_property_3} as follows: 
-\begin{equation}
-\label{eq:rational_extra_eq}
-c_0 + c_1 \lambda_\text{min} + \frac{c_2}{\lambda_\text{min}+\mu} - |\lambda_\text{min}| = 0.
-\end{equation}
-Let 
-\begin{equation*}
-g(\mu) := c_0(\mu) + c_1(\mu) \lambda_\text{min} + \frac{c_2(\mu)}{\lambda_\text{min}+\mu} - |\lambda_\text{min}|
-\end{equation*}
-denote the left hand side of \eqref{eq:rational_extra_eq}, but with $c_0(\mu)$, $c_1(\mu)$, and $c_2(\mu)$ being the solution of \eqref{eq:rational_3_linear_system} for the given value of $\mu$. I.e., within $g(\mu)$ the quantities $c_0$, $c_1$, and $c_2$ are no longer free variables; they now depend on $\mu$ implicitly through the solution of a linear system. We solve the combined system, \eqref{eq:rational_3_linear_system} and $\eqref{eq:rational_extra_eq}$, by solving the one-dimensional nonlinear root finding problem
-\begin{equation}
-\label{eq:g_mu_zero}
-g(\mu)=0
-\end{equation}
-with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\text{min}|$. Each evaluation of $g$ requires solving the $3 \times 3$ linear system \eqref{eq:rational_3_linear_system}, and once the solution $\mu$ is found, we solve \eqref{eq:rational_3_linear_system} one more time to get the final values of $c_0$, $c_1$, and $c_2$.
 
 
 \subsection{Computational cost}
@@ -852,7 +832,7 @@ Some conclusions here.
 
 Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank. Such matrices are known as hierarchical matrices (H-matrices). Many classes of H-matrices exist (H1, H2, HSS, HBS, and more), and all of these types of H-matrices could be used in conjunction with our product-convolution approximation. Here we use classical H1 matrices. For this section, when we say H-matrix, we are referring to H1 matrices. 
 
-While a dense $N \times N$ matrix traditionally requires $O(N^2)$ memory to store, H-matrices may be stored using $O(N \log N)$ memory, by storing only the low rank factors for the low rank blocks. Recursive algorithms can take advantage of the H-matrix low rank block structure to perform matrix arithmetic fast. Conventional dense matrix algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix-matrix addition require either $O(N^2)$ or $O(N^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log^a N)$ time and memory for H-matrices. Here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
+While a dense $N \times N$ matrix traditionally requires $O(N^2)$ memory to store, H-matrices may be stored using $O(N \log N)$ memory, by storing only the low rank factors for the low rank blocks. Recursive algorithms can take advantage of the H-matrix low rank block structure to perform matrix arithmetic fast. Conventional dense matrix algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix-matrix addition require either $O(N^2)$ or $O(N^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log(N)^a)$ time and memory for H-matrices. Here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
 \subsection{H-matrix construction}
 
@@ -863,11 +843,11 @@ The H-matrix construction process that we use to form the H-matrix representatio
 
 We use recursive hyperplane splitting to hierarchically cluster the degrees of freedom associated with the columns and rows of the matrix into a \emph{column cluster tree} and a \emph{row cluster tree}, respectively. Here we describe construction of the column cluster tree; the row cluster tree is constructed similarly. 
 
-Since we use finite elements to discretize the problem, the $i^\text{th}$ column of $\widetilde{\mathbf{A}}$ corresponds to the nodal point in $\mathbb{R}^d$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^d$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which we call the column cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
+Since we use finite elements to discretize the problem, the $i^\text{th}$ column of $\widetilde{\mathbf{A}}$ corresponds to the nodal point in $\mathbb{R}^d$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^d$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which is called the column cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
 
 A depth-first search ordering of the column cluster tree leaves is then generated. When the columns of the matrix are permuted into this depth-first ordering, the columns associated with each cluster in the cluster tree are contiguous.
 
-In the same way, the degrees of freedom associated with the rows of the matrix are hierarchically clustered into another cluster tree, and an ordering for the rows is generated. In our examples, the degrees of freedom for the columns coincide with the degrees of freedom for the rows, so the cluster trees for the rows and columns are the same, but this is not required in general.
+In the same way, the degrees of freedom associated with the rows of the matrix are hierarchically clustered into another cluster tree, and a depth-first search ordering for the rows is generated. In our examples, the degrees of freedom for the columns coincide with the degrees of freedom for the rows, so the cluster trees for the rows and columns are the same, but this is not required in general.
 
 \subsubsection{Block cluster tree} 
 \label{sec:block_cluster_tree}
@@ -890,7 +870,7 @@ We now loop through the four blocks, $\widetilde{\mathbf{A}}_{11}$, $\widetilde{
 \end{equation}
 then we mark $\widetilde{\mathbf{A}}_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, c_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $c_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(c_2\right)$ is the analogous diameter associated with the column cluster $c_2$. The quantity $\eta$ is a scalar constant; we use $\eta=2.0$. Basically, if the point clouds associated with $r_1$ and $c_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\widetilde{\mathbf{A}}_{11}$ and $\widetilde{\mathbf{A}}_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
 
-Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\mathbf{\widetilde{A}}$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree (quad-tree in $2$D, or oct-tree in $3$D), which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
+Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\mathbf{\widetilde{A}}$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree, which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
 
 
 \subsubsection{Adaptive cross low rank approximation of blocks}
@@ -970,6 +950,33 @@ where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenv
 	\caption{Determining whether two ellipsoids intersect}
 	\label{alg:ellipsoid_intersection_test}
 \end{algorithm2e}
+
+
+\section{Solving for rational function scalars}
+\label{app:solve_rational_system}
+
+Using the definition of $\ratfct$ in \eqref{eq:rational_function_scalar}, and basic calculus and linear algebra, we may write Equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, and \eqref{eq:desired_property_4} in the following matrix form:
+\begin{equation}
+\label{eq:rational_3_linear_system}
+\begin{bmatrix} 1 & 0 & 1/\mu \\ 0 & 1 & -1/\mu^2 \\ 1 & \lambda_\text{max} & 1/(\lambda_\text{max}+\mu) \end{bmatrix} \begin{bmatrix} c_0 \\ c_1 \\ c_2 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \\ \lambda_\text{max} \end{bmatrix},
+\end{equation}
+and we may write Equation \eqref{eq:desired_property_3} as follows: 
+\begin{equation}
+\label{eq:rational_extra_eq}
+c_0 + c_1 \lambda_\text{min} + \frac{c_2}{\lambda_\text{min}+\mu} - |\lambda_\text{min}| = 0.
+\end{equation}
+Let 
+\begin{equation*}
+g(\mu) := c_0(\mu) + c_1(\mu) \lambda_\text{min} + \frac{c_2(\mu)}{\lambda_\text{min}+\mu} - |\lambda_\text{min}|
+\end{equation*}
+denote the left hand side of \eqref{eq:rational_extra_eq}, but with $c_0(\mu)$, $c_1(\mu)$, and $c_2(\mu)$ being the solution of \eqref{eq:rational_3_linear_system} for the given value of $\mu$. I.e., within $g(\mu)$ the quantities $c_0$, $c_1$, and $c_2$ are no longer free variables; they now depend on $\mu$ implicitly through the solution of a linear system. We solve the combined system, \eqref{eq:rational_3_linear_system} and $\eqref{eq:rational_extra_eq}$, by solving the one-dimensional nonlinear root finding problem
+\begin{equation}
+\label{eq:g_mu_zero}
+g(\mu)=0
+\end{equation}
+with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\text{min}|$. Each evaluation of $g$ requires solving the $3 \times 3$ linear system \eqref{eq:rational_3_linear_system}, and once the solution $\mu$ is found, we solve \eqref{eq:rational_3_linear_system} one more time to get the final values of $c_0$, $c_1$, and $c_2$.
+
+
 
 \section{Proofs}
 \label{app:proofs}
