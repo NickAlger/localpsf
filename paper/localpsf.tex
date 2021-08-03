@@ -225,21 +225,30 @@ Here we describe how we choose the sample points, $x_i$ (Section \ref{sec:sample
 	\SetKwInOut{Output}{Output}
 	{	
 		\Input{Linear operator $\Aop$, parameter $\text{max\_batches}$}
-		\Output{Dirac comb responses $\{\eta^b\}_{b=1}^{\text{max\_batches}}$, \\
-			weighting functions $\{w_i\}_{i=1}^r$}
+		\Output{H-matrix $\AmatPc$ (optionally, $\AmatPcSymPlus$)}
 		
-		Compute spatially varying mean, $\mu$, and covariance, $\Sigma$, using Algorithm \ref{alg:varhpi_mean_cov}.
+		Compute $\alpha$, $\mu$, and $\Sigma$ using Algorithm \ref{alg:varhpi_mean_cov}.
 		
 		\For{$b=1,2,\dots,\text{max\_batches}$}{
 			Choose a batch of sample points, $S_b$, using Algorithm \ref{alg:point_choice}
 			
-			Compute $\eta^b$ by applying $\Aop$ to the dirac comb associated with $S_b$ (Section \ref{sec:get_impulse_response})
+			Compute $\eta^b$ by applying $\Aop$ to the dirac comb for $S_b$ (Section \ref{sec:get_impulse_response})
 			
-			Compute weighting functions $w_i$ using Algorithm \ref{alg:weighting_functions_incremental}. In lines 2 and 3 of Algorithm \ref{alg:weighting_functions_incremental}, only solve for $\psi_i$ and $\theta_i$ associated with new points $x_i$ in $S_b$. The functions $\psi_i$ and $\theta_i$ associated with points in previous batches have already been computed in previous iterations of this for loop.
 		}
+
+		Form convolution kernels, $\varphi_{x_i}$, on regular grids (Section \ref{sec:convolution_kernel_regular_grid})
+	
+		Modify convolution kernels to address boundary artifacts (Section \ref{sec:boundary_extension})
+	
+		Compute all weighting functions $w_i$ using Algorithm \ref{alg:weighting_functions_incremental}
+%		In lines 2 and 3 of Algorithm \ref{alg:weighting_functions_incremental}, only solve for $\psi_i$ and $\theta_i$ associated with new points $x_i$ in $S_b$. The functions $\psi_i$ and $\theta_i$ associated with points in previous batches have already been computed in previous iterations of this for loop.
+
+		Form H-matrix $\AmatPc$ (Section \ref{sec:H_matrix_conversion})
+		
+		(optional) Modify $\AmatPc$ to make $\AmatPcSymPlus$ (Section \ref{sec:make_spd})
 		
 	}
-	\caption{Construct product-convolution approximation $\AopPc$}
+	\caption{Construct product-convolution H-matrix}
 	\label{alg:construct_Atilde}
 \end{algorithm2e}
 
@@ -286,11 +295,14 @@ The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first co
 	Q^{ij}(x) = x^i x^j.
 	\end{equation*}
 	Let $f/g$ to denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ to denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The following results hold:
-	\begin{align*}
+	\begin{subequations}
+		\label{eq:vol_mean_var}
+	\begin{align}
 	\alpha =& \left(\Aop^T C\right)^* \\
 	\mu^i =& \left(\Aop^T L^i\right)^* / \alpha \\
 	\Sigma^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \alpha - \mu^i\cdot \mu^j
-	\end{align*}
+	\end{align}
+	\end{subequations}
 	 for $i=1,\dots, d$, $j=1,\dots,d$.
 \end{theorem}
 
@@ -344,22 +356,22 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 		
 		Form constant function $C(x)=1$
 
-		$\alpha = \left(\mathcal{A}^T C\right)^*$
+		Compute $\alpha = \left(\mathcal{A}^T C\right)^*$
 		
 		\tcp{Compute mean $\mu$}
 		\For{$i=1,2,\dots,d$}{
 			Form linear function $L^i(x) = x^i$
 			
-			$\mu^i = \left(\mathcal{A}^T L^i\right)^* / \alpha$
+			Compute $\mu^i = \left(\mathcal{A}^T L^i\right)^* / \alpha$
 		}
 		\tcp{Compute covariance $\Sigma$}
 		\For{$i=1,2,\dots,d$}{
 			\For{$j=1,\dots,i$}{
-				Form quadratic function $Q^{ij} = x^i x^j$
+				Form quadratic function $Q^{ij}(x) = x^i x^j$
 				
-				$\Sigma^{ij} = \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot \mu^j$
+				Compute $\Sigma^{ij} = \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot \mu^j$
 				
-				$\Sigma^{ij} = \Sigma^{ji}$
+				Set $\Sigma^{ji} = \Sigma^{ij}$
 			
 			}
 		}
@@ -377,13 +389,18 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \subsubsection{Greedy ellipsoid packing}
 \label{sec:greedy_point_selection}
 
-Now that we have estimates of the supports of the functions $\phi_x$, we use these estimates, combined with a greedy ellipsoid packing algorithm, to choose sets of sample points, $S_b$. These sample points will be used in Section \ref{sec:get_impulse_response} to form Dirac combs, which are then used to compute impulse responses of $\mathcal{A}$. We start with a finite set of candidate points $P$. To build a batch of sample points, $S_b$, first we initialize $S_b$ as an empty set. Then we select the point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
+We use a greedy ellipsoid packing algorithm to choose sets of sample points, $S_b$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\phi_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\mathcal{A}$ to the Dirac comb associated with all points in a batch, we will recover the impulse responses for all sample points in that batch.
+
+We start with a finite set of candidate points $P$. To build a batch of sample points, $S_b$, first we initialize $S_b$ as an empty set. Then we select the point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
 \begin{equation*}
 \max_{p \in P} \min_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|.
 \end{equation*}
+Candidate points for the first batch are chosen arbitrarily from $P$.
 Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$,
 %and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, 
-then we add $p$ to $S_b$. Otherwise we discard $p$. Recall that $E_p$ and $E_q$ are ellipsoids associated with points $p$ and $q$, respectively, as defined in \eqref{eq:support_ellipsoid}. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
+then we add $p$ to $S_b$. Otherwise we discard $p$. 
+%Recall that $E_p$ and $E_q$ are ellipsoids associated with points $p$ and $q$, respectively, as defined in \eqref{eq:support_ellipsoid}. 
+This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
 
 We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches.
 
@@ -450,6 +467,7 @@ Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approxim
 for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the convolution kernels $\varphi_{x_i}$ associated with every point $x_i \in S_b$. 
 
 \subsubsection{Interpolation onto local regular grids}
+\label{sec:convolution_kernel_regular_grid}
 
 To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\varphi_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\varphi_{x_i}(z)$ requires evaluating $\eta_b(z+x_i)$. In computations, $\eta^b$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\eta_b(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. 
 
@@ -476,7 +494,7 @@ In detail, let $p_1, p_2, \dots, p_k$ be the $k$ nearest sample points to $x_i$,
 \subsection{Poisson weighting functions}
 \label{sec:weighting_functions}
 
-For the weighting functions, we use the smoothest functions (in a least-squares sense) that interpolate the points $x_i$. Constructing the weighting functions requires solving two Poisson PDEs per sample point $x_i$.
+%For the weighting functions, we use the smoothest functions (in a least-squares sense) that interpolate the points $x_i$. Constructing the weighting functions requires solving two Poisson PDEs per sample point $x_i$.
 
 We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to the following optimization problem:
 \begin{equation}
