@@ -96,11 +96,13 @@ when $h$ is not too large. One can imagine the kernel entry $\Phi(y,x)$ as repre
 \end{equation*}
 \end{description}
 
-Our overall strategy is to form a product-convolution approximation, $\AopPc$, of $\Aop$ using only operator actions, then convert $\AopPc$ into an H-matrix, which we denote by $\AmatPc$. Schematically,
+Our overall strategy is to form a product-convolution approximation, $\AopPc$, of $\Aop$ using only operator actions, then convert $\AopPc$ into a hierarchical matrix (H-matrix), which we denote by $\AmatPc$. Schematically,
 \begin{equation*}
 \Aop \longrightarrow \underbrace{\AopPc}_{\substack{\text{product}\\ \text{convolution}}} \longrightarrow \underbrace{\AmatPc}_{\text{H-matrix}}.
 \end{equation*}
-We will define product-convolution approximations and H-matrices, and discuss them in greater detail, throughout the paper. The novel contributions of our method are in the way that we form the product-convolution approximation ($\Aop \rightarrow \AopPc$). This is the part of the method where we use the four properties of $\Aop$ described above. Fast conversion of $\AopPc$ to H-matrix format ($\AopPc \rightarrow \AmatPc$) is possible because integral kernel entries for $\AopPc$ are easily accessible (unlike integral kernel entries for $\Aop$). Once in H-matrix format, we use fast H-matrix methods to perform further linear algebra operations. 
+We will define product-convolution approximations in Section \ref{sec:prodconv_intro}. H-matrices are discussed in Appendix \ref{app:h_matrix}. Our method is summarized in Section \ref{sec:overview_intro}, and described in detail in Section \ref{sec:method}. 
+
+The novel contributions of our method are in the way that we form the product-convolution approximation ($\Aop \rightarrow \AopPc$). This is the part of the method where we use the four properties of $\Aop$ described above. Fast conversion of $\AopPc$ to H-matrix format ($\AopPc \rightarrow \AmatPc$) is possible because integral kernel entries for $\AopPc$ are easily accessible (unlike integral kernel entries for $\Aop$). Once in H-matrix format, one may use H-matrix methods to perform further useful linear algebra operations involving $\AmatPc$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems.
 
 \subsection{Motivation: PDE constrained inverse problems with highly informative data}
 \label{sec:PDE_hessian_motivation}
