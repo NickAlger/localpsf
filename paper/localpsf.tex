@@ -56,50 +56,73 @@
 \section{Introduction}
 \label{sec:intro}
 
-We present a fast matrix free method for approximating locally translation-invariant operators, $\Aop$, that have locally supported non-negative integral kernels. Such operators arise, for example, in Schur complements methods for solving partial differential equations (PDEs) \cite{TOBYPAPER}, as Poincare-Steklov operators, as covariance operators, as blurring operators in imaging problems, and as Hessians in distributed parameter PDE-constrained inverse problems.
+We present a fast matrix free method for approximating locally translation-invariant operators, $\Aop$, that have locally supported non-negative integral kernels. Such operators arise throughout computational science. Examples include Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{TOBYPAPER}, Poincare-Steklov operators (e.g., Dirichlet-to-Neumann maps), covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained optimization and inverse problems.
 
-Let $\Omega \subset \mathbb{R}^d$ be a bounded domain in dimension $d=1$, $2$, or $3$, and let $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ be an integral operator of the form
+Let $\Omega \subset \mathbb{R}^d$ be a bounded domain in dimension $d=1$, $2$, or $3$. We consider integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ of the form
 \begin{equation}
 \label{eq:kernel_representation}
 (\Aop u)(v) := \int_\Omega \int_\Omega v(y) \Aker(y,x) u(x) dx dy,
 \end{equation}
-with integral kernel $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$. Here $\Aop u \in L^2(\Omega)'$ is the linear functional that results from applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. We focus on operators of this form which have the following properties:
+where $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel. Here $\Aop u \in L^2(\Omega)'$ is the linear functional that results from applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. We further narrow our focus to operators which possess the following four properties:
 \begin{description}
-\item[Matrix-free:] One cannot easily access kernel entries $\Phi(y,x)$. Access to $\Aop$ is available only through ``operator actions.'' That is, evaluation of the maps
+\item[1) Matrix-free:] One cannot easily evaluate kernel entries $\Phi(y,x)$. Instead, access to $\Aop$ is available through ``operator actions.'' That is, we have a black-box computational procedure (which is typically expensive) through which we may evaluate the maps
 \begin{equation*}
-	u \mapsto\Aop u \quad \text{and} \quad v \mapsto\Aop^Tv,
+	u \mapsto\Aop u \quad \text{and} \quad v \mapsto\Aop^Tv
 \end{equation*} 
-where $u$ and $v$ are arbitrary functions.
-\item[Non-negative kernel:] For all $(y,x) \in \Omega \times \Omega$, we have
-\begin{equation*}
-	\Phi(y,x) \ge 0.
-\end{equation*}
-\item[Local support:] Let $\phi_x$ be the following \emph{impulse response}:
+for arbitrary functions $u$ and $v$. After discretization (see Appendix \ref{app:discretized_operations}), $\Aop$ becomes a dense matrix, $\mathbf{A}$, that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means that one can perform matrix-vector products of $\mathbf{A}$ and $\mathbf{A}^T$ with arbitrary vectors, but one cannot easily access matrix entries $\mathbf{A}_{ij}$. One could compute $\mathbf{v} = \mathbf{A}\mathbf{e}_j$, where $\mathbf{e}_j=(0,\dots,0,1,0,\dots,0)$ is the unit vector which has $j^\text{th}$ component equal to one and all other components equal to zero, then extract $\mathbf{A}_{ij} = \mathbf{v}_i$. However, this process is wasteful because one computes the entire vector $\mathbf{v}$, then discards all but one component. In applications, applying $\mathbf{A}$ to a vector may involve iteratively solving a large linear system, or timestepping, or performing some other nontrivial computational procedure. For example, in reduced space approaches to PDE-constrained optimization and inverse problems, Hessian information is available only through the application of the Hessian to vectors, and one such Hessian application requires solving two PDEs \cite{HESSIANADJOINT}. 
+\item[2) Local support:] Let $\phi_x$ be the following \emph{impulse response}:
 \begin{equation}
 \label{eq:impulse_response_defn}
 \phi_x(y) := \Phi(y, x).
 \end{equation} 
-We say that $\Aop$ has local support if, for all $x\in \Omega$, the support of $\phi_x$ is contained (or approximately contained) in a neighborhood of $x$. The smaller these supports are, the better our algorithm will perform.
-\item[Local translation invariance:] If $h$ is not too large, then
-\begin{equation}
-	\label{eq:local_translation_invariance}
-	\Phi(y+h, x+h) \approx \Phi(y,x).
-\end{equation}
-\end{description}
-
-After discretization (see Appendix \ref{app:discretized_operations}), the operator $\Aop$ becomes a dense matrix, $\mathbf{A}$, that is typically too large to be built and stored. The first property is called ``matrix-free'' because at the discrete level it means that one can perform matrix-vector products of $\mathbf{A}$ and $\mathbf{A}^T$ with arbitrary vectors, but one cannot easily access matrix entries $\mathbf{A}_{ij}$. One could compute $\mathbf{v} = \mathbf{A}\mathbf{e}_j$, then extract $\mathbf{A}_{ij} = \mathbf{v}_i$, but this process is wasteful because one computes the entire vector $\mathbf{v}$, then discards all but one component. Here $\mathbf{e}_j=(0,\dots,0,1,0,\dots,0)$ is the unit vector which has $j^\text{th}$ component equal to one and all other components equal to zero. In general, $\mathbf{A}$ is matrix-free if $\mathbf{A}$ is defined implicitly via its action on vectors, and the process of applying $\mathbf{A}$ to a vector requires performing a nontrivial computational procedure, such as solving a large linear system, or timestepping. In reduced space approaches to PDE-constrained optimization and inverse problems, Hessian information is available only through the application of the Hessian to vectors, and one such Hessian application requires solving two PDEs \cite{HESSIANADJOINT}. 
-
-Let $\delta_x$ denote the point source (delta distribution) centered at $x$. The function $\phi_x$ is called the impulse response because straightforward analysis shows that it may be expressed as follows:
+We say that $\Aop$ has local support if, for all $x\in \Omega$, the support of $\phi_x$ is contained (or approximately contained) in a neighborhood of $x$. The smaller these supports are, the better our algorithm will perform.  Let $\delta_x$ denote the point source (delta distribution) centered at $x$. The function $\phi_x$ is called the impulse response because straightforward analysis shows that it may be expressed as follows:
 \begin{equation}
 \label{eq:impulse_response_delta_action}
-	\phi_x = \left\langle \Aop, \delta_x \right\rangle^*,
+\phi_x = \left\langle \Aop, \delta_x \right\rangle^*,
 \end{equation}
 where $\left\langle \Aop, \delta_x \right\rangle \in L^2(\Omega)'$ denotes the result of applying the operator $\Aop$ to the distribution $\delta_x$, and $\left\langle \Aop, \delta_x \right\rangle^* \in L^2(\Omega)$ denotes the Riesz representation of $\langle\Aop, \delta_x\rangle$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\psi \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\psi^* \in L^2(\Omega)$ such that $\psi(v) = \left(\psi^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, the action of $\Aop$ may be extended to distributions in a natural way, as described in Appendix \ref{app:distributions}. 
 %The action of $\mathcal{A}$ on a distribution $\mu$ is written as $\langle \mathcal{A}, \mu \rangle$. We use this angle bracket notation to distinguish the action of $\mathcal{A}$ on distributions from the action of $\mathcal{A}$ on functions.
 %We take the Riesz representative of the linear functional $\left\langle \mathcal{A}, \delta_x \right\rangle \in L^2(\Omega)'$ to convert it into a function $\left\langle \mathcal{A}, \delta_x \right\rangle^* \in L^2(\Omega)$. 
-After discretization, the process of applying $\Aop$ to the distribution $\delta_x$, then forming the Riesz representative of the resulting linear functional, amounts to computing $\boldsymbol{\phi}_x = \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_x$, where $\boldsymbol{\phi}_x$, $\mathbf{A}$, and $\boldsymbol{\delta}_x$ are discretized versions of $\phi_x$, $A$ and $\delta_x$, respectively, and $\mathbf{M}$ is a discretization of the $L^2$ inner product bilinear form (e.g., a mass matrix in the finite element context). From \eqref{eq:impulse_response_delta_action}, we see that the local support property means that the response of $\Aop$ to a point source at $x$ is zero (or small) at points $y$ that are far from $x$.
+After discretization, the process of applying $\Aop$ to the distribution $\delta_x$, then forming the Riesz representative of the resulting linear functional, amounts to computing $\boldsymbol{\phi}_x = \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_x$, where $\boldsymbol{\phi}_x$, $\mathbf{A}$, and $\boldsymbol{\delta}_x$ are discretized versions of $\phi_x$, $A$ and $\delta_x$, respectively, and $\mathbf{M}$ is a discretization of the $L^2$ inner product bilinear form (e.g., a mass matrix in the finite element context). From \eqref{eq:impulse_response_delta_action}, we see that this local support property means that the response of $\Aop$ to a point source at $x$ is zero (or small) at points $y$ that are far from $x$.
+\item[3) Local translation invariance:] We say that $\Aop$ is locally translation invariant if
+\begin{equation}
+	\label{eq:local_translation_invariance}
+	\Phi(y+h, x+h) \approx \Phi(y,x)
+\end{equation}
+when $h$ is not too large. One can imagine the kernel entry $\Phi(y,x)$ as representing the strength of an interaction between a source at point $x$ and a target at point $y$. Local translation invariance means that the interaction strength remains roughly the same if the source and target points are both translated by the same vector. This is illustrated in Figure FIG.
+\item[4) Non-negative kernel:] For all $(y,x) \in \Omega \times \Omega$, we have
+\begin{equation*}
+\Phi(y,x) \ge 0.
+\end{equation*}
+\end{description}
 
-Local translation invariance is illustrated in Figure FIG. If $\Aop$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then it is straightforward to show that $\Aop$ would be a convolution operator, and the convolution kernel, $\varphi_x$, would be given by
+In this paper we present a computationally efficient method to form product-convolution approximations of operators possessing these four properties. Once the product-convolution approximation is formed, we convert it to hierarchical matrix (H-matrix) format, and use fast H-matrix methods to perform further useful linear algebra operations.
+
+\subsection{Motivation: PDE constrained inverse problems with highly informative data}
+\label{sec:PDE_hessian_motivation}
+
+Our motivation for this work is approximation of Hessians in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field, $m$, from noisy observations, 
+\begin{equation*}
+y=f(m,u(m)) + \text{noise},
+\end{equation*}
+which depend on  a state variable $u$. In turn, $u$ depends on $m$ implicitly through the solution of a PDE, which we write generically as follows:
+\begin{equation}
+\label{eq:state_pde}
+0=g(m,u).
+\end{equation}
+Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function of $m$. In the deterministic approach to inverse problems, one typically finds $m$ as the solution to the minimization problem 
+\begin{equation}
+\label{eq:minimization_problem}
+\min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + R(m),
+\end{equation}
+where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $R(m)$ is a regularization term. Approximation of the Hessian of the objective function, $\mathcal{H}$, allows for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
+%We only have access to $\mathcal{H}$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary linear PDEs.
+
+The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because our method can form high-rank approximations of an operator using a small number of matrix-vector products.
+
+\subsection{Product-convolution approximation}
+
+If $\Aop$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then it is straightforward to show that $\Aop$ would be the convolution operator $u \mapsto \left(\varphi_x \ast u\right)^*$, where the convolution kernel is given by
 \begin{equation}
 \label{eq:convolution_kernel}
 	\varphi_x(y) := \phi_x(y+x).
@@ -161,28 +184,6 @@ Formula~\eqref{eq:kernel_entries} allows us to construct a H-matrix representati
 
 Often we are interested in approximating operators $\Aop$ that are symmetric positive semi-definite. Unfortunately, $\AopPc$ is, in general, non-symmetric and indefinite due to errors in the product convolution approximation. In this case, we modify the H-matrix representation of $\AopPc$ to make it positive definite, by symmetrizing it, then applying a specially chosen rational matrix function to the symmetrized H-matrix.
 
-
-\subsection{Motivation: PDE constrained inverse problems with highly informative data}
-\label{sec:PDE_hessian_motivation}
-
-Our motivation for this work is approximation of Hessians in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field, $m$, from noisy observations, 
-\begin{equation*}
-y=f(m,u(m)) + \text{noise},
-\end{equation*}
-which depend on  a state variable $u$. In turn, $u$ depends on $m$ implicitly through the solution of a PDE, 
-\begin{equation}
-\label{eq:state_pde}
-0=g(m,u).
-\end{equation}
-Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function of $m$. In the deterministic approach to inverse problems, one typically finds $m$ as the solution to the minimization problem 
-\begin{equation}
-\label{eq:minimization_problem}
-\min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + R(m),
-\end{equation}
-where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $R(m)$ is a regularization term. Approximation of the Hessian of the objective function, $\mathcal{H}$, allows for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
-%We only have access to $\mathcal{H}$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary linear PDEs.
-
-The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because high-rank approximations of an operator can be formed using a small number of matrix-vector products.
 
 
 \subsection{Existing work}
@@ -706,7 +707,7 @@ and let $\AkerPcMat \in \mathbb{R}^{N \times N}$ be following matrix of approxim
 \label{eq:Akerpcmat_entries}
 \left(\AkerPcMat\right)_{ij} := \AkerPcMesh(p_i, p_j).
 \end{equation}
-Using \eqref{eq:defn_of_Akerpcmesh}, \eqref{eq:kernel_representation_pcmesh}, \eqref{eq:fem_coeff_basis}, \eqref{eq:mass_matrix_defn}, and \eqref{eq:Akerpcmat_entries}, and performing algebraic manipulations, it is straightforward but tedious to show that
+Using \eqref{eq:defn_of_Akerpcmesh}, \eqref{eq:kernel_representation_pcmesh}, \eqref{eq:fem_coeff_basis}, and \eqref{eq:Akerpcmat_entries}, the definition of the mass matrix, and performing algebraic manipulations, it is straightforward but tedious to show that
 \begin{equation*}
 \left(\AopPcMesh u_h \right)(v_h) = \mathbf{v}^T \mathbf{M} \AkerPcMat \mathbf{M} \mathbf{u}.
 \end{equation*}
@@ -1022,7 +1023,7 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 	\end{enumerate}
 \end{lem}
 \begin{proof}
-	By the Rellich-Kondrachov theorem (see, e.g., Theorem 7.20 in \cite{ARBOGAST}), $H^2_N(\Omega)$ is compactly embedded in $C^0(\Omega)$. WORK IN PROGRESS
+	By the Sobolev Imbedding Theorem (see, e.g., Theorem 7.20 in \cite{ARBOGAST}), $H^2_N(\Omega)$ is embedded in $C^0(\Omega)$. WORK IN PROGRESS
 \end{proof}
 
 
