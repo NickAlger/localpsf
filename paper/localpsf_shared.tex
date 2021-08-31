@@ -58,16 +58,36 @@
 \and Omar Ghattas\thanks{Oden Institute, The University of Texas at Austin, Austin, TX 
 	(\email{omar@oden.utexas.edu}).}}
 
+\newcommand{\Aop}{\mathcal{A}}
+\newcommand{\AopPc}{\mathcal{A}_\text{pc}}
+\newcommand{\AopPcMesh}{\mathcal{A}_\text{pc}^h}
+
+\newcommand{\Aker}{\Phi}
+\newcommand{\AkerPc}{\Phi_\text{pc}}
+\newcommand{\AkerPcMesh}{\Phi_\text{pc}^h}
+
+\newcommand{\AkerPcMat}{\mathbf{\Phi}_\text{pc}}
+
+\newcommand{\Amat}{\mathbf{A}}
+\newcommand{\AmatPc}{\mathbf{A}_\text{pc}}
+\newcommand{\AmatPcSym}{\mathbf{A}_\text{pc}^\text{sym}}
+\newcommand{\AmatPcSymPlus}{\mathbf{A}_\text{pc}^{\text{sym}+}}
+
+\newcommand{\ratfct}{s}
+
+
 \usepackage{amsopn}
 \DeclareMathOperator{\diag}{diag}
 \DeclareMathOperator{\interpolate}{Interpolate}
-\DeclareMathOperator{\Span}{Span}
+\DeclareMathOperator{\Span}{span}
+\DeclareMathOperator{\Var}{Var}
 \DeclareMathOperator{\vol}{vol}
 \DeclareMathOperator{\avg}{avg}
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator{\dist}{dist}
 \DeclareMathOperator{\diam}{diam}
+\DeclareMathOperator{\nbrs}{nbrs}
 
 \newcommand{\computediracresponse}[1]{\text{compute\_dirac\_comb\_response}\left( #1 \right)}
 \newcommand{\ellipsoidsintersect}[2]{\text{ellipsoids\_intersect}\left( #1, #2 \right)}
