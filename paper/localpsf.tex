@@ -514,12 +514,38 @@ We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to 
 \text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,r.
 \end{aligned}
 \end{equation}
-Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}). Proofs for results in this section are given in Appendix \ref{app:proofs}.
+Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}).
 
-In Algorithm \ref{alg:weighting_functions_incremental}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$.  Constructing all $r$ of the functions $w_i$ requires solving the Poisson equation $2r$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All of the weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. However, the dominant computational cost in constructing the weighting functions is the solution of the Poisson PDEs, and these Poisson PDE solves can be performed incrementally---we only need to perform two new Poisson PDE solves when a new point is added.
+In Algorithm \ref{alg:weighting_functions_incremental}, we show how to efficiently compute the functions $w_i$. Briefly:
+\begin{enumerate}
+\item For each sample point $x_i$, we compute a function $\psi_i$ by solving the following Neumann Poisson problem:
+\begin{equation}
+\label{eq:psi_eq}
+\begin{cases}
+\Delta \psi_i = \delta_{x_i} - 1/|\Omega|, & \text{in }\Omega, \\
+\nu \cdot \nabla \psi_i = 0 & \text{on } \partial \Omega,
+\end{cases}
+\end{equation}
+with condition $\int_\Omega \psi_i(x) dx = 0$. Here $\delta_{x_i}$ is the point source centered at $x_i$, $|\Omega|$ is the measure of the domain $\Omega$, and $\nu$ is the normal vector to $\partial \Omega$.
+\item For each function $\psi_i$, we compute a function $\theta_i$ by solving another Neumann Poisson problem:
+\begin{equation}
+\label{eq:theta_eq}
+\begin{cases}
+\Delta \theta_i = \psi_i, & \text{in }\Omega, \\
+\nu \cdot \nabla \theta_i = 0 & \text{on } \partial \Omega,
+\end{cases}
+\end{equation}
+with condition $\int_\Omega \theta_i(x) dx = 0$.
+%\item For each sample point $x_i$, we solve the Poisson equation with pure Neumann boundary conditions, using $\delta_{x_i}$ (a point source centered at $x_i$) as the right hand side source. We call the solution to this first Poisson problem $\psi_i$.
+%\item For each function $\psi_i$, we solve the Poisson equation with pure Neumann boundary conditions, using $\psi_i$ as the right hand side source. We call the solution to this second Poisson problem $\theta_i$.
+\item We form $w_i$ as a linear combination of the functions $\theta_i$, and the constant function $C(x)=1$. Details for this linear combination are given in Algorithm \ref{alg:weighting_functions_incremental}. 
+\end{enumerate}
+In Theorem \ref{thm:wi_alg_is_correct}, we prove that the functions $w_i$ produced by this process indeed solve optimization problem \eqref{eq:wi_optimization_problem}.
+
+Constructing all $r$ of the functions $w_i$ requires solving the Poisson equation $2r$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All of the weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. However, the dominant computational cost in constructing the weighting functions is the solution of the Poisson PDEs, and these Poisson PDE solves can be performed incrementally---by storing the functions $\psi_i$ and $\theta_i$, we only need to perform two new Poisson PDE solves when a new point is added.
 %, rather than $2(r+1)$ new PDE solves.
 
-It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. 
+It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension of the domain is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-posed in three spatial dimensions or fewer. In four or higher spatial dimensions, one could construct appropriate weighting functions using radial basis functions, though we do not discuss this here.
 
 
 \begin{thm}[Poisson weighting functions are optimal]
@@ -558,35 +584,38 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 		\Input{Sample points $\{x_i\}_{i=1}^r$, domain geometry $\Omega$}
 		\Output{Weighting functions $\{w_i\}_{i=1}^r$}
 		
-		Initialize constant function $C(x) = 1$
+%		Initialize constant function $C(x) = 1$
 		
-		Compute Lebesgue measure of the domain, $|\Omega|$
+%		Compute Lebesgue measure of the domain, $|\Omega|$
 		
-		\tcp{Compute Poisson impulse responses $\{\psi_i\}_{i=1}^r$ and Poisson squared impulse responses $\{\theta_i\}_{i=1}^r$}
+%		\tcp{Compute Poisson impulse responses $\{\psi_i\}_{i=1}^r$ and Poisson squared impulse responses $\{\theta_i\}_{i=1}^r$}
 		
 		\For{$i=1,2, \dots, r$}{
-			Initialize $\delta_{x_i}$ as the point source (delta distribution) centered at $x_i$.
+%			Initialize $\delta_{x_i}$ as the point source (delta distribution) centered at $x_i$.
 			
-			Compute $\psi_i$ by solving the Neumann Poisson problem
-			\begin{equation}
-			\label{eq:psi_eq}
-			\begin{cases}
-			\Delta \psi_i = \delta_{x_i} - 1/|\Omega|, & \text{in }\Omega, \\
-			\nu \cdot \nabla \psi_i = 0 & \text{on } \partial \Omega,
-			\end{cases}
-			\end{equation}
-			with condition $\int_\Omega \psi_i(x) dx = 0$, where $\nu$ is the normal vector to $\partial \Omega$.
+			Solve the Neumann Poisson problem \eqref{eq:psi_eq} for $\psi_i$.
+			
+%			Compute $\psi_i$ by solving the Neumann Poisson problem
+%			\begin{equation}
+%			\label{eq:psi_eq}
+%			\begin{cases}
+%			\Delta \psi_i = \delta_{x_i} - 1/|\Omega|, & \text{in }\Omega, \\
+%			\nu \cdot \nabla \psi_i = 0 & \text{on } \partial \Omega,
+%			\end{cases}
+%			\end{equation}
+%			with condition $\int_\Omega \psi_i(x) dx = 0$, where $\nu$ is the normal vector to $\partial \Omega$.
 
+			Solve the Neumann Poisson problem \eqref{eq:theta_eq} for $\theta_i$.
 			
-			Compute $\theta_i$ by solving the Neumann Poisson problem
-			\begin{equation}
-			\label{eq:theta_eq}
-						\begin{cases}
-			\Delta \theta_i = \psi_i, & \text{in }\Omega, \\
-			\nu \cdot \nabla \theta_i = 0 & \text{on } \partial \Omega,
-			\end{cases}
-			\end{equation}
-			with condition $\int_\Omega \theta_i(x) dx = 0$, where $\nu$ is the normal vector to $\partial \Omega$.
+%			Compute $\theta_i$ by solving the Neumann Poisson problem
+%			\begin{equation}
+%			\label{eq:theta_eq}
+%						\begin{cases}
+%			\Delta \theta_i = \psi_i, & \text{in }\Omega, \\
+%			\nu \cdot \nabla \theta_i = 0 & \text{on } \partial \Omega,
+%			\end{cases}
+%			\end{equation}
+%			with condition $\int_\Omega \theta_i(x) dx = 0$, where $\nu$ is the normal vector to $\partial \Omega$.
 			
 		}
 		
@@ -596,7 +625,7 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 		S_{ij} = \left(\psi_i, \psi_j\right)_{L^2(\Omega)}.
 		\end{equation}
 		
-		\tcp{Compute weighting functions $\{w_i\}_{i=1}^r$}
+%		\tcp{Compute weighting functions $\{w_i\}_{i=1}^r$}
 		
 		\For{$i=1,2,\dots,r$}{
 			Compute
@@ -777,14 +806,14 @@ We choose $c_0, c_1, c_2$, and $\mu$, to be the solution to the following system
 where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\AmatPcSym$, respectively. We also require $\mu > |\lambda_\text{min}|$, so that the pole of $\ratfct$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. Note that $\lambda_\text{min} < 0$ since $\AmatPcSym$ is indefinite. 
 We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. We describe how we solve system \eqref{eq:four_eq_system} in Appendix \ref{app:solve_rational_system}. Solving \eqref{eq:four_eq_system} reduces to solving a smooth one-dimensional optimization problem, which is computationally trivial. 
 
-Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\mathcal{A}$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $f(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
+Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\mathcal{A}$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $s(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
 
 
 
 
 \subsection{Computational cost}
 
-\begin{itemize}
+c\begin{itemize}
 	\item computational complexity in terms of PDE solves:
 	\item cost of global low rank approximation (data scalability)
 	\item cost to build approximation
@@ -1031,7 +1060,23 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 	\end{enumerate}
 \end{lem}
 \begin{proof}
-	By the Sobolev Imbedding Theorem (see, e.g., Theorem 7.20 in \cite{ARBOGAST}), $H^2_N(\Omega)$ is embedded in $C^0(\Omega)$. WORK IN PROGRESS
+	By the Sobolev Imbedding Theorem (see, e.g., Theorem 7.20 in \cite{ARBOGAST}), $H^2_N(\Omega)$ is continuously imbedded in $C^0(\Omega)$, so pointwise evaluation $u \mapsto u(x_i)$ of functions at a point $x_i \in \Omega$ is a continuous linear functional on $H^2_N$. The set 
+	\begin{equation}
+	\label{eq:inverse_image_of_point}
+	\{u \in H^2_N : u(x_i)=f_i\}
+	\end{equation}
+	is therefore a closed affine set in $H^2_N$, because it is the inverse image of a point under a continuous linear functional. Hence the feasible set for optimization problem \eqref{eq:generic_optimization_initial},
+	\begin{equation}
+	\label{eq:wi_feasible_set}
+	X := \{u \in H^2_N : u(x_i)=f_i~\text{for}~ i=1,\dots,r\},
+	\end{equation}
+	is a closed affine set in $H^2_N$, because it is the intersection of the sets in \eqref{eq:inverse_image_of_point} for $i=1,\dots,r$. The feasible set $X$ is convex because it is affine, and it is non-empty because interpolating the data pairs $\{(x_i, f_i)\}_{i=1}^r$ using any smooth interpolation method yields an element of $X$. The objective function, $\gamma \mapsto \frac{1}{2}||\Delta \gamma||^2$, is convex because it 
+	
+	We now show that the objective function is strongly convex on the tangent space to $X$,
+	\begin{equation*}
+	X_0 := \{u \in H^2_N : u(x_i)=0~\text{for}~ i=1,\dots,r\}.
+	\end{equation*}
+
 \end{proof}
 
 
@@ -1613,7 +1658,7 @@ The columns of $\Psi$ are the responses of $A^+$ to point sources (delta distrib
 
 
 \section*{Acknowledgments}
-We thank J.J. Alger and Longfei Gao for helpful discussions.
+We thank J.J. Alger, Longfei Gao, and Rami Nammour for helpful discussions.
 
 \bibliographystyle{siamplain}
 \bibliography{references}
