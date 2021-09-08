@@ -1024,22 +1024,10 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 \section{Proofs}
 \label{app:proofs}
 
-\begin{defn}[Moments of $\phi_x$]
-	\label{defn:alpha_rho_mu_sigma}
-	We define the spatially varying scaling factor, $\alpha$, the scaled impulse response, $\widehat{\phi}_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
-	\begin{align*}
-	\alpha:\Omega \rightarrow \mathbb{R}, &\qquad \alpha(x) := \int_{\Omega} \phi_x(z) dz, \\
-	\widehat{\phi}_x:\Omega \rightarrow \mathbb{R}, &\qquad \widehat{\phi}_x := \phi_x \big/ \alpha(x), \\
-	\mu:\Omega \rightarrow \mathbb{R}^d, &\qquad \mu(x) := \int_\Omega z \widehat{\phi}_x(z) dz, \\
-	\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \widehat{\phi}_x(z) dz.
-	\end{align*}
-\end{defn}
-
 %These results rely on straightforward prerequisites that we present in Lemma \ref{lem:T_is_linear}. We prove correctness of Algorithm \ref{alg:weighting_functions_incremental} in Theorem \ref{thm:wi_alg_is_correct}. Theorem \ref{thm:wi_alg_is_correct} relies on a prerequisite result which we present in Lemma \ref{lem:psi_delta_eval}.
 
-\begin{lem}[Preparation for Theorem \ref{thm:smoothest_interpolant}]
-	\label{lem:T_is_linear}
-	Let $\Omega \subset \mathbb{R}^d$, $d\in\{1,2,3\}$, be an open bounded domain with a bounded extension operator, let $x_i \in \Omega$ for $i=1,\dots,r$, and let $f \in \mathbb{R}^r$. Consider the optimization problem
+\begin{defn}[Weighting function optimization problem]
+	Let $\Omega \subset \mathbb{R}^d$, $d\in\{1,2,3\}$, be an open bounded domain with, let $x_i \in \Omega$ for $i=1,\dots,r$, and let $f \in \mathbb{R}^r$. We consider the optimization problem
 	\begin{equation}
 	\label{eq:generic_optimization_initial}
 	\begin{aligned}
@@ -1047,36 +1035,120 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 	\text{such that} &\quad \gamma(x_i) = f_i, \quad i=1,\dots,r.
 	\end{aligned}
 	\end{equation}
-	A minimizer, $\gamma^*$, of \eqref{eq:generic_optimization_initial} is a function defined on $\Omega$ that interpolates the data pairs $(x_i,f_i)$, and is as flat as possible in a least squares sense.
-	The following statements hold.
-	\begin{enumerate}
-		\item[(a)] There exists a unique solution to \eqref{eq:generic_optimization_initial}.
-		\item[(b)] 	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
-		\begin{equation}
-		\label{eq:opt_soln_operator}
-		\mathcal{T}(f) := \gamma^*,
-		\end{equation}
-		where $\gamma^*$ is the minimizer of \eqref{eq:generic_optimization_initial}. The operator $\mathcal{T}$ is a linear operator.
-	\end{enumerate}
+	A minimizer, $\gamma^*$, of \eqref{eq:generic_optimization_initial} is a function defined on $\Omega$ that interpolates the data pairs $(x_i,f_i)$, and is as flat as possible in a least squares sense. 
+	We denote the objective function for optimization problem \eqref{eq:generic_optimization_initial} by 
+	\begin{equation}
+	\label{eq:wi_objective}
+	J(\gamma) := \frac{1}{2}||\Delta \gamma||^2_{L^2(\Omega)}.
+	\end{equation}
+	We denote the feasible set for optimization problem \eqref{eq:generic_optimization_initial} by 
+	\begin{equation}
+	\label{eq:wi_feasible_set}
+		X := \{u \in H^2_N : u(x_i)=f_i~\text{for}~ i=1,\dots,r\}.
+	\end{equation}
+	We denote the tangent space to the feasible set by
+	\begin{equation}
+	\label{eq:wi_tangent_space}
+	X_0 := \{u \in H^2_N : u(x_i)=0~\text{for}~ i=1,\dots,r\}.
+	\end{equation}
+\end{defn}
+
+\begin{lem}[Elliptic regularity on $X_0$]
+	\label{lem:elliptic_regularity_x0}
+	If $\partial \Omega$ is $C^{1,1}$, then there exists a constant $C > 0$ such that
+	\begin{equation*}
+		||u||_{H^2(\Omega)} \le C ||\Delta u||_{L^2(\Omega)}
+	\end{equation*}
+	for all $u \in X_0$.
 \end{lem}
+
+
+\begin{proof}
+	Let $\widetilde{u}$ be version of $u$ that has been shifted up or down by a constant such that $\int_\Omega \overline{u} = 0$. We have
+	\begin{align*}
+		||D^1 u||_{\left(L^2(\Omega)\right)^d}^2 + ||D^2 u||_{\left(L^2(\Omega)\right)^{d \times d}}^2 &= ||D^1 \widetilde{u}||_{\left(L^2(\Omega)\right)^d}^2 + ||D^2 \widetilde{u}||_{\left(L^2(\Omega)\right)^{d \times d}}^2\\
+		&\le ||\widetilde{u}||_{H^2(\Omega)}^2 \\
+		&\le C_1 ||\Delta \widetilde{u}||_{L^2(\Omega)}^2 \\
+		&= C_1 ||\Delta u||_{L^2(\Omega)}^2
+	\end{align*}
+	for some constant $C_1$. In the first and fourth lines we used the fact that the derivative of a constant is zero, in the second line we used the definition of the $H^2$ norm, and in the third line we used the standard elliptic regularity result for pure Neumann problems (see, e.g., Theorem 8.13 (b) in \cite{Arbogast}).
+	
+	To complete the proof, we will now show that there exists a constant $C_2$ such that $||u||_{L^2(\Omega)}^2 \le C_2 ||\Delta u||_{L^2(\Omega)}^2$ for all $u \in X_0$. For this, we use a standard compactness argument, which closely follows the proof of Theorem 8.12 in \cite{ARBOGAST}. Suppose for the sake of contradiction that this result does not hold. Then there exists a sequence $\{u_k\}_{k=1}^\infty \subset X_0$ such that
+	$||u_k||_{L^2(\Omega)}=1$ and $||\Delta u_k||_{L^2(\Omega)} \le 1/k$.
+	By the result already proven, the sequence $u_k$ is bounded in $H^2(\Omega)$ as follows:
+	\begin{align*}
+	||u_k||_{H^2(\Omega)}^2 &= ||u_k||_{L^2(\Omega)}^2 + ||D^1 u||_{\left(L^2(\Omega)\right)^d}^2 + ||D^2 u||_{\left(L^2(\Omega)\right)^{d \times d}}^2 \\
+	&\le ||u_k||_{L^2(\Omega)}^2 + C_1 ||\Delta u||_{L^2(\Omega)}^2 \le 1 + C_1.
+	\end{align*}
+	Therefore, by the Banach-Alaoglu theorem, there exists a subsequence $u_{k_j}$ and function $u \in X_0$ such that
+	\begin{equation*}
+		u_{k_j} \overset{w}{\rightharpoonup} u \quad \text{weakly in }H^2(\Omega).
+	\end{equation*}
+	Let $f \in L^2(\Omega)$. By the Cauchy-Schwarz inequality, the linear functional $v \mapsto \int_\Omega f(x) \Delta v(x) dx$ is bounded in $H^2(\Omega)$, and is therefore an element of $\left(H^2(\Omega)\right)^*$. Weak convergence therefore implies
+	\begin{equation*}
+		\int_\Omega f(x) \Delta u_k(x) dx \rightarrow \int_\Omega f(x) \Delta u(x) dx.
+	\end{equation*}
+	By the assumption $||\Delta u_k||_{L^2(\Omega)} \le 1/k$ and Cauchy-Schwarz, we also have 
+	\begin{equation*}
+	\int_\Omega f(x) \Delta u_k(x) dx \rightarrow 0,
+	\end{equation*}
+	so we must have
+	\begin{equation*}
+		\int_\Omega f(x) \Delta u(x) dx = 0.
+	\end{equation*}
+	Since this holds for all $f \in L^2(\Omega)$, by the fundamental lemma of the calculus of variations, $\Delta u(x) = 0$ almost everywhere in $\Omega$. This, combined with the fact that $u$ has Neumann zero boundary conditions, implies that $u$ is a constant function. Since $u$ has value zero at least one point in each connected component of $\Omega$, we have $u=0$. Note that pointwise values of $u$ are well-defined since the Sobolev embedding theorem imples that $H^2(\Omega)$ is continuously imbedded in the space of continuous functions $C^0(\Omega)$ when $d < 4$, and we are considering $d \in \{1,2,3\}$ (see, e.g., Theorem 7.19 in \cite{Arbogast}). 
+
+	On the other hand, by the Rellich-Kondrachov theorem, $H^2(\Omega)$ is compactly imbedded in $L^2(\Omega)$, so there must exist a sub-sub-sequence, $u_{k_{j_i}}$ such that 
+	\begin{equation*}
+		u_{k_{j_i}} \rightarrow u
+	\end{equation*}
+	strongly in $L^2(\Omega)$. By assumption $||u_{k_{j_i}}||_{L^2(\Omega)}=1$, so $||u||_{L^2(\Omega)}=1$. This contradicts the result $u=0$ that we previously derived, so we must conclude that there exists a constant $C_2 > 0$ such that
+	\begin{equation*}
+		||u||_{L^2(\Omega)} \le C_2 ||\Delta u||_{L^2(\Omega)}.
+	\end{equation*}
+	for all $u \in X_0$. Combining this with out previous result, we have
+	\begin{equation*}
+	||u||^2_{H^2(\Omega)} \le (C_1 + C_2)||\Delta u||^2
+	\end{equation*}
+	for all $u \in X_0$, which completes the proof.
+\end{proof}
+
+\begin{lem}[Well-posedness of weighting function optimization problem]
+	\label{lem:wi_existence_and_uniqueness}
+	There exists a unique solution to optimization problem \eqref{eq:generic_optimization_initial}.
+\end{lem}
+
 \begin{proof}
 	By the Sobolev Imbedding Theorem (see, e.g., Theorem 7.20 in \cite{ARBOGAST}), $H^2_N(\Omega)$ is continuously imbedded in $C^0(\Omega)$, so pointwise evaluation $u \mapsto u(x_i)$ of functions at a point $x_i \in \Omega$ is a continuous linear functional on $H^2_N$. The set 
 	\begin{equation}
 	\label{eq:inverse_image_of_point}
 	\{u \in H^2_N : u(x_i)=f_i\}
 	\end{equation}
-	is therefore a closed affine set in $H^2_N$, because it is the inverse image of a point under a continuous linear functional. Hence the feasible set for optimization problem \eqref{eq:generic_optimization_initial},
-	\begin{equation}
-	\label{eq:wi_feasible_set}
-	X := \{u \in H^2_N : u(x_i)=f_i~\text{for}~ i=1,\dots,r\},
-	\end{equation}
-	is a closed affine set in $H^2_N$, because it is the intersection of the sets in \eqref{eq:inverse_image_of_point} for $i=1,\dots,r$. The feasible set $X$ is convex because it is affine, and it is non-empty because interpolating the data pairs $\{(x_i, f_i)\}_{i=1}^r$ using any smooth interpolation method yields an element of $X$. The objective function, $\gamma \mapsto \frac{1}{2}||\Delta \gamma||^2$, is convex because it 
+	is therefore a closed affine set in $H^2_N$, because it is the inverse image of a point under a continuous linear functional. Hence the feasible set $X$, defined in \eqref{eq:wi_feasible_set}, is a closed affine set in $H^2_N$, because it is the intersection of the sets in \eqref{eq:inverse_image_of_point} for $i=1,\dots,r$. 
 	
-	We now show that the objective function is strongly convex on the tangent space to $X$,
+	The feasible set $X$ is convex because it is affine, and it is non-empty because interpolating the data pairs $\{(x_i, f_i)\}_{i=1}^r$ using any smooth interpolation method yields an element of $X$. Furthermore, the objective function, 
+	\begin{equation}
+	J(\gamma) := \frac{1}{2}||\Delta \gamma||^2_{L^2(\Omega)},
+	\end{equation}
+	is convex because it is the composition of a convex function with a linear map. Furthermore, the elliptic regularity result in Lemma \ref{lem:elliptic_regularity_x0} implies
 	\begin{equation*}
-	X_0 := \{u \in H^2_N : u(x_i)=0~\text{for}~ i=1,\dots,r\}.
+		J''(\gamma)v^2 = ||\Delta v||^2_{L^2(\Omega)} \ge C ||v||_{H^2(\Omega)}^2
 	\end{equation*}
+	for all $v \in X_0$, which implies that $J$ is strongly convex on $X$.
+\end{proof}
 
+\begin{lem}[Linearity of weighting function solution operator]
+	\label{lem:T_is_linear}
+	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
+		\begin{equation}
+		\label{eq:opt_soln_operator}
+		\mathcal{T}(f) := \gamma^*,
+		\end{equation}
+		where $\gamma^*$ is the minimizer of \eqref{eq:generic_optimization_initial}. The operator $\mathcal{T}$ is a linear operator.
+\end{lem}
+
+\begin{proof}
+	asdf
 \end{proof}
 
 
@@ -1161,6 +1233,17 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 	which implies that the second term in \eqref{eq:L_w_38} is zero. Thus $\nabla_w \mathcal{L}(w, \lambda) = 0$, so Algorithm \ref{alg:weighting_functions_incremental} produces the solution to optimization problem \ref{eq:wi_optimization_problem}.
 \end{proof}
 
+
+\begin{defn}[Moments of $\phi_x$]
+	\label{defn:alpha_rho_mu_sigma}
+	We define the spatially varying scaling factor, $\alpha$, the scaled impulse response, $\widehat{\phi}_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
+	\begin{align*}
+	\alpha:\Omega \rightarrow \mathbb{R}, &\qquad \alpha(x) := \int_{\Omega} \phi_x(z) dz, \\
+	\widehat{\phi}_x:\Omega \rightarrow \mathbb{R}, &\qquad \widehat{\phi}_x := \phi_x \big/ \alpha(x), \\
+	\mu:\Omega \rightarrow \mathbb{R}^d, &\qquad \mu(x) := \int_\Omega z \widehat{\phi}_x(z) dz, \\
+	\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \widehat{\phi}_x(z) dz.
+	\end{align*}
+\end{defn}
 
 
 \begin{proof}[Proof of Theorem \ref{thm:vol_mean_cov}]
