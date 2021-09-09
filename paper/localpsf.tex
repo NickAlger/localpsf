@@ -524,7 +524,7 @@ For each $i=1,\dots,r$, optimization problem \eqref{eq:wi_optimization_problem} 
 \text{such that} &\quad v(x_j) = v_j, \quad j=1,\dots,r,
 \end{aligned}
 \end{equation}
-where $v_j \in \mathbb{R}$, $j=1,\dots,r$ are now arbitrary function values that $v$ must take at the points $x_j$. We solve \eqref{eq:wi_optimization_problem_generic} efficiently via the following procedure:
+where $v_j \in \mathbb{R}$, $j=1,\dots,r$ are now arbitrary function values that $v$ must take at the points $x_j$. We may efficiently solve optimization problem \eqref{eq:wi_optimization_problem_generic} via the following procedure:
 \begin{enumerate}
 \item For each sample point $x_i$, we compute a function $\psi_i$ by solving the following Neumann Poisson problem:
 \begin{equation}
@@ -546,11 +546,12 @@ with condition $\int_\Omega \psi_i(x) dx = 0$. Here $\delta_{x_i}$ is the point 
 with condition $\int_\Omega \theta_i(x) dx = 0$.
 %\item For each sample point $x_i$, we solve the Poisson equation with pure Neumann boundary conditions, using $\delta_{x_i}$ (a point source centered at $x_i$) as the right hand side source. We call the solution to this first Poisson problem $\psi_i$.
 %\item For each function $\psi_i$, we solve the Poisson equation with pure Neumann boundary conditions, using $\psi_i$ as the right hand side source. We call the solution to this second Poisson problem $\theta_i$.
-\item We form $f$ as follows:
-\begin{equation*}
-v(x) := \beta + \sum_{i=1}^r c_i \theta_i(x),
-\end{equation*}
-where the constants $c_i \in \mathbb{R}$, $i=1,\dots,r$, and $\beta \in \mathbb{R}$ are computed by solving the following linear system:
+\item The solution to optimization problem \eqref{eq:wi_optimization_problem_generic}, which we denote by $v_*$, is formed as follows:
+\begin{equation}
+\label{eq:optimal_v}
+v_*(x) := \beta + \sum_{i=1}^r c_i \theta_i(x),
+\end{equation}
+where the constants $c_i \in \mathbb{R}$, $i=1,\dots,r$, and $\beta \in \mathbb{R}$ are the solution to the following linear system:
 \begin{equation}
 	\label{eq:interpolation_linear_system}
 	\begin{bmatrix}
@@ -565,16 +566,36 @@ where the constants $c_i \in \mathbb{R}$, $i=1,\dots,r$, and $\beta \in \mathbb{
 	\end{bmatrix}.
 \end{equation}
 Here $\mathbf{c} \in \mathbb{R}^r$ is the vector with $i$th component $c_i$, $\mathbf{1} \in \mathbf{R}^r$ is the column vector of all ones, $\mathbf{v} \in \mathbb{R}^r$ is the vector with $i$th component $v_i$, and $S \in \mathbb{R}^{r \times r}$ is the matrix with entries given by
-\begin{equation*}
+\begin{equation}
+\label{eq:S_matrix}
 S_{ij} := \int_\Omega \psi_i(x) \psi_j(x) dx.
-\end{equation*}
+\end{equation}
 \end{enumerate}
 In Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v$ produced by this process indeed solves optimization problem \eqref{eq:wi_optimization_problem_generic}.
 
-Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson equation $2r$ times with different right hand side sources to form the functions $\psi_i$ and $\theta_i$, and these Poisson PDE solves can be performed cheaply with multigrid. All of the weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. However, the dominant computational cost in constructing the weighting functions is the solution of the Poisson PDEs, and these Poisson PDE solves can be performed incrementally---we only need to compute functions $\psi_i$ and $\theta_i$ associated with the new points. 
+Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson equation $2r$ times with different right hand side sources to form the functions $\psi_i$ and $\theta_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, while the most expensive part of this procedure, can be performed cheaply with multigrid. 
+
+%All of the weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. However, the dominant computational cost in constructing the weighting functions is the solution of the Poisson PDEs, and these Poisson PDE solves can be performed incrementally---we only need to compute functions $\psi_i$ and $\theta_i$ associated with the new points. 
 %, rather than $2(r+1)$ new PDE solves.
 
 It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension of the domain is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-posed in three spatial dimensions or fewer. In four or higher spatial dimensions, one could construct appropriate weighting functions using radial basis functions, though we do not discuss this here.
+
+\begin{thm}[Solution of optimization problem \ref{eq:wi_optimization_problem_generic}]
+	\label{thm:wi_alg_is_correct}
+	The function $v_*$ given in \eqref{eq:optimal_v} is the unique solution to optimization problem \ref{eq:wi_optimization_problem_generic}.
+\end{thm}
+
+\begin{proof}
+	Let
+	\begin{equation*}
+		X := \{v \in H^2_N(\Omega) : v(x_i) = v_i \text{ for }i=1,\dots,r\}
+	\end{equation*}
+	denote the feasible set for optimization problem \ref{eq:wi_optimization_problem_generic}, and let 
+	\begin{equation*}
+	X_0 := \{v \in H^2_N(\Omega) : v(x_i) = 0 \text{ for }i=1,\dots,r\}
+	\end{equation*}	
+	denote the tangent space to $X$. Note that pointwise evaluation of functions in $H^2_N(\Omega)$ is well-defined because the Sobolev impedding theorem implies that $H^2_N(\Omega)$ is continuously imbedded in the spacde of continuous functions $C^0(\Omega)$ whenever the spatial dimension satisfies $d < 4$, and here we consider $d \in \{1,2,3\}$. Hence the optimization problem, the feasible set $X$ and the tangent space $X_0$ are well-defined.
+\end{proof}
 
 
 \begin{thm}[Poisson weighting functions are optimal]
@@ -619,10 +640,10 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 		
 %		\tcp{Compute Poisson impulse responses $\{\psi_i\}_{i=1}^r$ and Poisson squared impulse responses $\{\theta_i\}_{i=1}^r$}
 		
-		\For{$i=1,2, \dots, r$}{
+		\For{$k=1,2, \dots, r$}{
 %			Initialize $\delta_{x_i}$ as the point source (delta distribution) centered at $x_i$.
 			
-			Solve the Neumann Poisson problem \eqref{eq:psi_eq} for $\psi_i$.
+			Solve the Neumann Poisson problem \eqref{eq:psi_eq} for $\psi_k$.
 			
 %			Compute $\psi_i$ by solving the Neumann Poisson problem
 %			\begin{equation}
@@ -634,7 +655,7 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 %			\end{equation}
 %			with condition $\int_\Omega \psi_i(x) dx = 0$, where $\nu$ is the normal vector to $\partial \Omega$.
 
-			Solve the Neumann Poisson problem \eqref{eq:theta_eq} for $\theta_i$.
+			Solve the Neumann Poisson problem \eqref{eq:theta_eq} for $\theta_k$.
 			
 %			Compute $\theta_i$ by solving the Neumann Poisson problem
 %			\begin{equation}
@@ -648,44 +669,37 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 			
 		}
 		
-		Form the $r \times r$ matrix $S$ with entries
-		\begin{equation}
-		\label{eq:defn_of_S_alg}
-		S_{ij} = \left(\psi_i, \psi_j\right)_{L^2(\Omega)}.
-		\end{equation}
+		Form the $r \times r$ matrix $S$ given in \eqref{eq:S_matrix}.
 		
 %		\tcp{Compute weighting functions $\{w_i\}_{i=1}^r$}
 		
 		\For{$i=1,2,\dots,r$}{
-			Compute
-			\begin{equation}
-			\label{eq:definition_of_alpha_alg}
-			\beta = \frac{\mathbf{1}^T S^{-1} e_i}{\mathbf{1}^T S^{-1} \mathbf{1}},
-			\end{equation}
-			where $\mathbf{1} = (1,1,\dots,1) \in \mathbb{R}^r$, and $e_i = (0,\dots,0,1,0,\dots,0)\in \mathbb{R}^r$ is unit vector with $i^\text{th}$ component equal to one.
-			
-			Compute 
-			\begin{equation}
-			\label{eq:definition_of_mu_alg}
-			\lambda = -S^{-1} \left(e_i - \beta \mathbf{1} \right).
-			\end{equation}
+			Solve the linear system
+			\begin{equation*}
+			\begin{bmatrix}
+			S & \mathbf{1} \\ \mathbf{1}^T & 0
+			\end{bmatrix}
+			\begin{bmatrix}
+			\mathbf{c}^{(i)} \\ \beta^{(i)}
+			\end{bmatrix}
+			=
+			\begin{bmatrix}
+			\mathbf{e}^{(i)} \\ 0
+			\end{bmatrix}.
+			\end{equation*}
+			for $\mathbf{c}^{(i)}=(c_1^{(i)}, c_2^{(i)}, \dots, c_r^{(i)})$ and $\beta^{(i)}$. Here $\mathbf{1} = (1,1,\dots,1) \in \mathbb{R}^r$, and $\mathbf{e}^{(i)} = (0,\dots,0,1,0,\dots,0)\in \mathbb{R}^r$ is the unit vector with $i^\text{th}$ component equal to one and all other components equal to zero.
 			
 			Form the weighting function $w_i$ given by
-			\begin{equation}
-			\label{eq:definition_of_wi_alg}
-				w_i(x) = \beta - \sum_{k=1}^r \lambda_k \theta_k(x).
-			\end{equation}
+			\begin{equation*}
+			w_i(x) = \beta^{(i)} + \sum_{k=1}^r c_k^{(i)} \theta_k(x).
+			\end{equation*}
+			
 		}
 	}
 	\caption{Compute weighting functions $w_i$, $i=1,\dots,r$.}
 	\label{alg:weighting_functions_incremental}
 \end{algorithm2e}
 
-
-\begin{thm}[Correctness of Algorithm \ref{alg:weighting_functions_incremental}]
-\label{thm:wi_alg_is_correct}
-	The weighting functions $w_i$ computed by Algorithm \ref{alg:weighting_functions_incremental} solve optimization problem \ref{eq:wi_optimization_problem}.
-\end{thm}
 
 
 %\subsection{Evaluating kernel entries of the approximation}
