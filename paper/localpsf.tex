@@ -521,10 +521,10 @@ For each $i=1,\dots,r$, optimization problem \eqref{eq:wi_optimization_problem} 
 \label{eq:wi_optimization_problem_generic}
 \begin{aligned}
 \min_{v \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta v}_{L^2(\Omega)}^2 \\
-\text{such that} &\quad v(x_j) = v_j, \quad j=1,\dots,r,
+\text{such that} &\quad v(x_j) = f_j, \quad j=1,\dots,r,
 \end{aligned}
 \end{equation}
-where $v_j \in \mathbb{R}$, $j=1,\dots,r$ are now arbitrary function values that $v$ must take at the points $x_j$. We may efficiently solve optimization problem \eqref{eq:wi_optimization_problem_generic} via the following procedure:
+where $f_j \in \mathbb{R}$, $j=1,\dots,r$ are now arbitrary function values that $v$ must take at the points $x_j$. We may efficiently solve optimization problem \eqref{eq:wi_optimization_problem_generic} via the following procedure:
 \begin{enumerate}
 \item For each sample point $x_i$, we compute a function $\psi_i$ by solving the following Neumann Poisson problem:
 \begin{equation}
@@ -562,18 +562,18 @@ where the constants $c_i \in \mathbb{R}$, $i=1,\dots,r$, and $\beta \in \mathbb{
 	\end{bmatrix}
 	=
 	\begin{bmatrix}
-	\mathbf{v} \\ 0
+	\mathbf{f} \\ 0
 	\end{bmatrix}.
 \end{equation}
-Here $\mathbf{c} \in \mathbb{R}^r$ is the vector with $i$th component $c_i$, $\mathbf{1} \in \mathbf{R}^r$ is the column vector of all ones, $\mathbf{v} \in \mathbb{R}^r$ is the vector with $i$th component $v_i$, and $S \in \mathbb{R}^{r \times r}$ is the matrix with entries given by
+Here $\mathbf{c} \in \mathbb{R}^r$ is the vector with $i$th component $c_i$, $\mathbf{1} \in \mathbf{R}^r$ is the column vector of all ones, $\mathbf{f} \in \mathbb{R}^r$ is the vector with $i$th component $f_i$, and $S \in \mathbb{R}^{r \times r}$ is the matrix with entries given by
 \begin{equation}
 \label{eq:S_matrix}
 S_{ij} := \int_\Omega \psi_i(x) \psi_j(x) dx.
 \end{equation}
 \end{enumerate}
-In Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v$ produced by this process indeed solves optimization problem \eqref{eq:wi_optimization_problem_generic}.
+In Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this process indeed solves optimization problem \eqref{eq:wi_optimization_problem_generic}.
 
-Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson equation $2r$ times with different right hand side sources to form the functions $\psi_i$ and $\theta_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, while the most expensive part of this procedure, can be performed cheaply with multigrid. 
+Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson equation $2r$ times with different right hand side sources to form the functions $\psi_i$ and $\theta_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, which are the most expensive part of this procedure, can be performed cheaply with multigrid. 
 
 %All of the weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. However, the dominant computational cost in constructing the weighting functions is the solution of the Poisson PDEs, and these Poisson PDE solves can be performed incrementally---we only need to compute functions $\psi_i$ and $\theta_i$ associated with the new points. 
 %, rather than $2(r+1)$ new PDE solves.
@@ -594,7 +594,63 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	\begin{equation*}
 	X_0 := \{v \in H^2_N(\Omega) : v(x_i) = 0 \text{ for }i=1,\dots,r\}
 	\end{equation*}	
-	denote the tangent space to $X$. Note that pointwise evaluation of functions in $H^2_N(\Omega)$ is well-defined because the Sobolev impedding theorem implies that $H^2_N(\Omega)$ is continuously imbedded in the spacde of continuous functions $C^0(\Omega)$ whenever the spatial dimension satisfies $d < 4$, and here we consider $d \in \{1,2,3\}$. Hence the optimization problem, the feasible set $X$ and the tangent space $X_0$ are well-defined.
+	denote the tangent space to $X$. Note that pointwise values of functions in $H_N^2(\Omega)$ are well-defined since the Sobolev imbedding theorem (see, e.g., Theorem 7.19 in \cite{Arbogast}) implies that $H^2(\Omega)$ is continuously imbedded in the space of continuous functions $C^0(\Omega)$ when $d < 4$, and we are considering $d \in \{1,2,3\}$. The feasible set $X$ is therefore a closed affine subspace of $H^2_N(\Omega)$, the tangent space $X_0$ is a closed subspace of $H^2_N(\Omega)$, and optimization problem \ref{eq:wi_optimization_problem_generic} is well-defined.
+	
+	The proof now proceeds in three steps. First, we show that $v_*$ is feasible ($v_* \in X$). Second, we show that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} if it satisfies a certain variational equation. Third, we verify that $v_*$ satisfies this variational equation.
+	
+	\paragraph{Feasibility} To show that $v_*$ is feasible (i.e., $v_* \in X$), we must show that $v_*(x_i) = f_i$ for $i=1,\dots,r$. We have
+	\begin{align*}
+	v_*(x_i) &= \beta + \sum_{j=1}^r c_j \theta_j(x_i) \\
+	&= \beta + \sum_{j=1}^r c_j \left(\psi_i, \Delta \theta_j\right)_{L^2(\Omega)} + \avg\left(\theta_j\right) \\
+	&= \beta + \sum_{j=1}^r c_j \left(\psi_i, \psi_j\right)_{L^2(\Omega)} \\
+	&= \beta + \sum_{j=1}^r c_j S_{ij}
+	\end{align*}
+	In the first line we used the definition of $v_*$ in \eqref{eq:optimal_v}. In the second line we used Lemma LEM. In the third line we used the facts that, by construction, $\Delta \theta_j = \psi_j$ and $\int_\Omega \theta_j(x) dx = 0$. In the fourth line we used the definition of $S$ in \eqref{eq:S_matrix}. Hence the condition $v_*(x_i) = f_i$ for $i=1,\dots,r$ may be written in matrix form as
+	\begin{equation*}
+	S \mathbf{c} + \beta \mathbf{1} = \mathbf{f},
+	\end{equation*}
+	and this must hold because it is the first block row of system \eqref{eq:interpolation_linear_system} which is solved to compute $\mathbf{c}$ and $\beta$. So $v_* \in X$.
+	
+	\paragraph{Optimality} Since $X$ is an affine subspace, and $X_0$ is the tangent space to $X$, any $v \in X$ may be written in the form $v = v_* + p$ for some $p \in X_0$. We may therefore reframe optimization problem \ref{eq:wi_optimization_problem_generic} as 
+	\begin{equation}
+	\label{eq:p_optimization}
+		\min_{p \in X_0} J(p),
+	\end{equation}
+	where
+	\begin{equation*}
+		J(p) := \frac{1}{2}||\Delta (v_* + p)||^2.
+	\end{equation*}
+	Showing that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} is equivalent to showing that $0$ is the unique minimizer of \eqref{eq:p_optimization}. 
+	
+	By direct expansion, we have
+	\begin{equation}
+		\label{eq:Ju_expanded}
+		J(p) = J(0) + \left(\Delta u, \Delta p\right)_{L^2(\Omega)} + \frac{1}{2}||\Delta p||^2.
+	\end{equation}
+	Since $p$ has Neumann zero boundary conditions, if $\Delta p = 0$, then $p$ is constant on each connected component of $\Omega$. Furthermore, since $p(x_i)$ is zero for at least one point $x_i$ per connected component of $\Omega$, if $\Delta p = 0$ then $p=0$. Hence, by contrapositive we have
+	\begin{align*}
+	\label{eq:contrapositive_laplacian_zero}
+		p \neq 0 \quad \implies \quad& 0 < ||\Delta p||_{L^2(\Omega)}\\
+		\implies \quad& J(0) < J(p) + \left(\Delta v_*, \Delta p\right)_{L^2(\Omega)}.
+	\end{align*}
+	If $v_*$ satisfies the following variational equation,
+	\begin{equation}
+	\label{eq:variational_up}
+		(\Delta v_*, \Delta p)_{L^2(\Omega)} = 0 \quad \text{for all~} p \in X_0,
+	\end{equation} 
+	then
+	\begin{equation*}
+		p \neq 0 \quad \implies \quad J(0) < J(p).
+	\end{equation*}
+	Showing that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} therefore reduces to showing that $v_*$ satisfies variational equation \eqref{eq:variational_up}. 
+	
+	\paragraph{Variational equation} To show that $v_*$ satiafies variational equation \eqref{eq:variational_up}, notice that
+	\begin{align*}
+	(\Delta v_*, \Delta p)_{L^2(\Omega)} =& \sum_{i=1}^r c_i(\Delta \theta_i, \Delta p)_{L^2(\Omega)} \\
+	=& \sum_{i=1}^r c_i \left(p(x_i) + \avg\left(p\right)\right) \\
+	=& \avg\left(p\right) \sum_{i=1}^r c_i. 
+	\end{align*}
+	In the first line we used the definition of $\theta_i$ and the fact that the Laplacian of a constant is zero. In the second line we used Lemma LEM. In the third line we used the fact that $p(x_i)=0$ because $p \in X_0$. Hence variational equation \eqref{eq:variational_up} holds if $\sum_{i=1}^r c_i = 0$, which may be written in matrix form as $\mathbf{1}^T \mathbf{c} = 0$. This must hold because it is the second block row in system \eqref{eq:interpolation_linear_system}.
 \end{proof}
 
 
