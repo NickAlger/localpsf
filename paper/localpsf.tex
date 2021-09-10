@@ -580,6 +580,24 @@ Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson eq
 
 It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension of the domain is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-posed in three spatial dimensions or fewer. In four or higher spatial dimensions, one could construct appropriate weighting functions using radial basis functions, though we do not discuss this here.
 
+\begin{lem}[Preparation for Theorem \ref{thm:wi_alg_is_correct}]
+	\label{lem:psi_delta_eval}
+	We have
+	\begin{equation}
+	\label{eq:inline_wi_lemma}
+	h(x_j) = \left(\psi_j, \Delta h\right)_{L^2(\Omega)} + \avg(h)
+	\end{equation}
+	for all $h\in H^2_N(\Omega)$, where
+	\begin{equation*}
+	\avg(h) :=	 \frac{1}{|\Omega|} \int_\Omega h ~dx,
+	\end{equation*}
+	and $|\Omega| = \int_\Omega 1 ~dx$ is the Lebesgue measure of $\Omega$.
+\end{lem}
+
+\begin{proof}
+	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\psi_j$ onto $h$, and using the Neumann zero boundary conditions for $\psi_j$ and $h$ to eliminate boundary integral terms.
+\end{proof}
+
 \begin{thm}[Solution of optimization problem \ref{eq:wi_optimization_problem_generic}]
 	\label{thm:wi_alg_is_correct}
 	The function $v_*$ given in \eqref{eq:optimal_v} is the unique solution to optimization problem \ref{eq:wi_optimization_problem_generic}.
@@ -594,7 +612,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	\begin{equation*}
 	X_0 := \{v \in H^2_N(\Omega) : v(x_i) = 0 \text{ for }i=1,\dots,r\}
 	\end{equation*}	
-	denote the tangent space to $X$. Note that pointwise values of functions in $H_N^2(\Omega)$ are well-defined since the Sobolev imbedding theorem (see, e.g., Theorem 7.19 in \cite{Arbogast}) implies that $H^2(\Omega)$ is continuously imbedded in the space of continuous functions $C^0(\Omega)$ when $d < 4$, and we are considering $d \in \{1,2,3\}$. The feasible set $X$ is therefore a closed affine subspace of $H^2_N(\Omega)$, the tangent space $X_0$ is a closed subspace of $H^2_N(\Omega)$, and optimization problem \ref{eq:wi_optimization_problem_generic} is well-defined.
+	denote the tangent space to $X$. Note that pointwise values of functions in $H_N^2(\Omega)$ are well-defined since the Sobolev imbedding theorem (see, e.g., Theorem 7.19 in \cite{Arbogast}) implies that $H^2(\Omega)$ is continuously imbedded in the space of continuous functions $C^0(\Omega)$ when $d < 4$, and we are considering $d \in \{1,2,3\}$. The feasible set $X$ is therefore a closed affine subspace of $H^2_N(\Omega)$, the tangent space $X_0$ is a closed subspace of $H^2_N(\Omega)$, and optimization problem \eqref{eq:wi_optimization_problem_generic} is well-defined.
 	
 	The proof now proceeds in three steps. First, we show that $v_*$ is feasible ($v_* \in X$). Second, we show that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} if it satisfies a certain variational equation. Third, we verify that $v_*$ satisfies this variational equation.
 	
@@ -605,7 +623,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	&= \beta + \sum_{j=1}^r c_j \left(\psi_i, \psi_j\right)_{L^2(\Omega)} \\
 	&= \beta + \sum_{j=1}^r c_j S_{ij}
 	\end{align*}
-	In the first line we used the definition of $v_*$ in \eqref{eq:optimal_v}. In the second line we used Lemma LEM. In the third line we used the facts that, by construction, $\Delta \theta_j = \psi_j$ and $\int_\Omega \theta_j(x) dx = 0$. In the fourth line we used the definition of $S$ in \eqref{eq:S_matrix}. Hence the condition $v_*(x_i) = f_i$ for $i=1,\dots,r$ may be written in matrix form as
+	In the first line we used the definition of $v_*$ in \eqref{eq:optimal_v}. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the facts that, by construction, $\Delta \theta_j = \psi_j$ and $\int_\Omega \theta_j(x) dx = 0$. In the fourth line we used the definition of $S$ in \eqref{eq:S_matrix}. Hence the condition $v_*(x_i) = f_i$ for $i=1,\dots,r$ may be written in matrix form as
 	\begin{equation*}
 	S \mathbf{c} + \beta \mathbf{1} = \mathbf{f},
 	\end{equation*}
@@ -647,10 +665,10 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	\paragraph{Variational equation} To show that $v_*$ satiafies variational equation \eqref{eq:variational_up}, notice that
 	\begin{align*}
 	(\Delta v_*, \Delta p)_{L^2(\Omega)} =& \sum_{i=1}^r c_i(\Delta \theta_i, \Delta p)_{L^2(\Omega)} \\
-	=& \sum_{i=1}^r c_i \left(p(x_i) + \avg\left(p\right)\right) \\
-	=& \avg\left(p\right) \sum_{i=1}^r c_i. 
+	=& \sum_{i=1}^r c_i \left(p(x_i) - \avg\left(p\right)\right) \\
+	=& -\avg\left(p\right) \sum_{i=1}^r c_i. 
 	\end{align*}
-	In the first line we used the definition of $\theta_i$ and the fact that the Laplacian of a constant is zero. In the second line we used Lemma LEM. In the third line we used the fact that $p(x_i)=0$ because $p \in X_0$. Hence variational equation \eqref{eq:variational_up} holds if $\sum_{i=1}^r c_i = 0$, which may be written in matrix form as $\mathbf{1}^T \mathbf{c} = 0$. This must hold because it is the second block row in system \eqref{eq:interpolation_linear_system}.
+	In the first line we used the definition of $\theta_i$ and the fact that the Laplacian of a constant is zero. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the fact that $p(x_i)=0$ because $p \in X_0$. Hence variational equation \eqref{eq:variational_up} holds if $\sum_{i=1}^r c_i = 0$, which may be written in matrix form as $\mathbf{1}^T \mathbf{c} = 0$. This must hold because it is the second block row in system \eqref{eq:interpolation_linear_system}.
 \end{proof}
 
 
@@ -1269,23 +1287,6 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality ($\mathcal{T}(\mathbf{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \mathbf{1}$, and yields the minimum possible value of zero for the objective function.
 \end{proof}
 
-\begin{lem}[Preparation for Theorem \ref{thm:wi_alg_is_correct}]
-	\label{lem:psi_delta_eval}
-	We have
-	\begin{equation}
-	\label{eq:inline_wi_lemma}
-	h(x_j) = \left(\psi_j, \Delta h\right)_{L^2(\Omega)} + \avg(h)
-	\end{equation}
-	for all $h\in H^2_N(\Omega)$, where
-	\begin{equation*}
-	\avg(h) :=	 \frac{1}{|\Omega|} \int_\Omega h ~dx,
-	\end{equation*}
-	and $|\Omega| = \int_\Omega 1 ~dx$ is the Lebesgue measure of $\Omega$.
-\end{lem}
-
-\begin{proof}
-	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\psi_j$ onto $h$, and using the Neumann zero boundary conditions for $\psi_j$ and $h$ to eliminate boundary integral terms.
-\end{proof}
 
 \begin{proof}[Proof of Theorem \ref{alg:weighting_functions_incremental}]
 	For notational convenience, in this proof we write $w$, $\lambda$, and $e$ instead of $w_i$, $\lambda_i$, and $e_i$, respectively. Here subscripts for $\lambda$, and $e$ instead denote components of those vectors. For example, here $\lambda_j$ denotes the $j^\text{th}$ component of the vector $\lambda$, which corresponds to the $j^\text{th}$ component of the vector $\lambda_i$ in Algorithm \ref{alg:weighting_functions_incremental}.
