@@ -571,7 +571,7 @@ Here $\mathbf{c} \in \mathbb{R}^r$ is the vector with $i$th component $c_i$, $\m
 S_{ij} := \int_\Omega \psi_i(x) \psi_j(x) dx.
 \end{equation}
 \end{enumerate}
-In Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this process indeed solves optimization problem \eqref{eq:wi_optimization_problem_generic}.
+In Theorem \ref{thm:wi_no_breakdown}, we prove that this procedure does not break down, so long as there is no repetition in the points $x_i$. Linear system \eqref{eq:interpolation_linear_system} is the KKT system that arises if one solves optimization problem \eqref{eq:wi_optimization_problem_generic} on the $r+1$-dimensional subspace spanned by the functions $\psi_i$, $i=1,\dots,r$, and the constant function $C(x)=1$, rather than solving the optimization problem on the infinite dimensional space $H^2_N(\Omega)$. In Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this process solves optimization problem \eqref{eq:wi_optimization_problem_generic} on $H^2_N(\Omega)$.
 
 Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson equation $2r$ times with different right hand side sources to form the functions $\psi_i$ and $\theta_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, which are the most expensive part of this procedure, can be performed cheaply with multigrid. 
 
@@ -579,6 +579,26 @@ Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson eq
 %, rather than $2(r+1)$ new PDE solves.
 
 It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension of the domain is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-posed in three spatial dimensions or fewer. In four or higher spatial dimensions, one could construct appropriate weighting functions using radial basis functions, though we do not discuss this here.
+
+\begin{thm}[Procedure for computing $v_*$ does not break down]
+	If all the sample points $x_i$, $i=1,\dots,r$, are distinct, then PDE \eqref{eq:psi_eq} is uniquely solvable for $\psi_i$, PDE \eqref{eq:theta_eq} is uniquely solvable for $\theta_i$, and linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\mathbf{c}$ and $\beta$. That is, the procedure for computing $v_*$ does not break down. Furthermore, $v_* \in H^2_N(\Omega)$.
+\end{thm}
+
+\begin{proof}
+	Existence and uniqueness for the solutions to PDEs \eqref{eq:psi_eq} and \eqref{eq:theta_eq} follow from the standard elliptic PDE theory. By standard elliptic regularity theory, $\psi_i \in H^1(\Omega)$, so $\psi_i \in L^2(\Omega)$, and so all matrix entries $S_{ij}$ are finite. 
+	
+	Using the definition of $S$ and basic linear algebra, it is straightforward to show that if $S$ were singular, there would exist constants $a_1, a_2, \dots a_r$, which are not all zero, such that
+	\begin{equation*}
+		0 = a_1 \psi_1 + a_2 \psi_2 + \dots a_r \psi_r.
+	\end{equation*}
+	Applying the Laplacian to this equation yields
+	\begin{equation*}
+		0 = a_1 \delta_{x_1} + a_2 \delta_{x_2} + \dots a_r \delta_{x_r} - \left(\sum_{i=1}^r a_i\right)/|\Omega|,
+	\end{equation*}
+	which is impossible because a nonzero linear combination of delta distributions at different points cannot equal a constant function. Thus we must conclude that $S$ is non-singular. By block matrix factorization, non-singularity of $S$ implies that linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\mathbf{c}$ and $\beta$.
+	
+	By standard elliptic regularity theory, the functions $\theta_i$ are in $H^3(\Omega)$, and therefore they are in $H^2(\Omega)$. By construction the functions $\theta_i$ have Neumann zero boundary conditions, so $\theta_i \in H^2_N(\Omega)$. Since $v_*$ is a linear combination of the functions $\theta_i$ and the constant function $C(x)=1$, $v_* \in H^2_N(\Omega)$.
+\end{proof}
 
 \begin{lem}[Preparation for Theorem \ref{thm:wi_alg_is_correct}]
 	\label{lem:psi_delta_eval}
