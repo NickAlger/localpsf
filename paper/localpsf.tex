@@ -40,7 +40,7 @@
 
 % REQUIRED
 \begin{abstract}
-  We present an efficient matrix-free method for approximating locally translation invariant operators that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in Schur complements methods for solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained optimization and inverse problems. The method computes impulse responses of the operator at a collection of scattered points, then interpolates these computed impulse responses to form a product-convolution approximation of the operator. The product-convolution approximation is converted to hierarchical matrix format in order to solve linear systems and perform other matrix operations efficiently. Impulse responses are computed by applying the operator to a small number of Dirac comb ``batches'' of point sources. The key innovation of our method is a matrix-free procedure for choosing as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problem with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. Our method is able to form high quality approximations of high rank Hessians using only a small number of Hessian matrix-vector products.
+  We present an efficient matrix-free method for approximating locally translation invariant operators that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in Schur complements methods for solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained optimization and inverse problems. The method computes impulse responses of the operator at a collection of scattered points, then interpolates these computed impulse responses to form a product-convolution approximation of the operator. The product-convolution approximation is converted to hierarchical matrix format in order to solve linear systems and perform other matrix operations efficiently. Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. The key innovation of our method is a matrix-free procedure for choosing as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problems with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. Our method is able to form high quality approximations of high rank Hessians using only a small number of Hessian matrix-vector products.
 \end{abstract}
 
 % REQUIRED
@@ -75,12 +75,12 @@ for arbitrary functions $u$ and $v$. After discretization (see Appendix \ref{app
 \label{eq:impulse_response_defn}
 \phi_x(y) := \Phi(y, x).
 \end{equation} 
-We say that $\Aop$ has local support if, for all $x\in \Omega$, the support of $\phi_x$ is contained (or approximately contained) in a neighborhood of $x$. The smaller these supports are, the better our algorithm will perform.  Let $\delta_x$ denote the point source (delta distribution) centered at $x$. The function $\phi_x$ is called the impulse response because straightforward analysis shows that it may be expressed as follows:
+We say that $\Aop$ has local support if, for all $x\in \Omega$, the support of $\phi_x$ is contained (or approximately contained) in a neighborhood of $x$. The smaller these supports are, the better our algorithm will perform.  Let $\delta_x$ denote the delta distribution (point source) centered at $x$. The function $\phi_x$ is called the impulse response because straightforward analysis shows that it may be expressed as follows:
 \begin{equation}
 \label{eq:impulse_response_delta_action}
-\phi_x = \left\langle \Aop, \delta_x \right\rangle^*,
+\phi_x = \left( \Aop \delta_x^* \right)^*,
 \end{equation}
-where $\left\langle \Aop, \delta_x \right\rangle \in L^2(\Omega)'$ denotes the result of applying the operator $\Aop$ to the distribution $\delta_x$, and $\left\langle \Aop, \delta_x \right\rangle^* \in L^2(\Omega)$ denotes the Riesz representation of $\langle\Aop, \delta_x\rangle$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\psi \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\psi^* \in L^2(\Omega)$ such that $\psi(v) = \left(\psi^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, the action of $\Aop$ may be extended to distributions in a natural way, as described in Appendix \ref{app:distributions}. 
+where $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying the operator $\Aop$ to the distribution $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\psi \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\psi^* \in L^2(\Omega)$ such that $\psi(v) = \left(\psi^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Phi$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}. 
 %The action of $\mathcal{A}$ on a distribution $\mu$ is written as $\langle \mathcal{A}, \mu \rangle$. We use this angle bracket notation to distinguish the action of $\mathcal{A}$ on distributions from the action of $\mathcal{A}$ on functions.
 %We take the Riesz representative of the linear functional $\left\langle \mathcal{A}, \delta_x \right\rangle \in L^2(\Omega)'$ to convert it into a function $\left\langle \mathcal{A}, \delta_x \right\rangle^* \in L^2(\Omega)$. 
 %After discretization, the process of applying $\Aop$ to the distribution $\delta_x$, then forming the Riesz representative of the resulting linear functional, amounts to computing $\boldsymbol{\phi}_x = \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_x$, where $\boldsymbol{\phi}_x$, $\mathbf{A}$, and $\boldsymbol{\delta}_x$ are discretized versions of $\phi_x$, $A$ and $\delta_x$, respectively, and $\mathbf{M}$ is a discretization of the $L^2$ inner product bilinear form (e.g., a mass matrix in the finite element context). 
@@ -242,7 +242,7 @@ In this section we describe how we choose the sample points, $x_i$ (Section \ref
 		\For{$b=1,2,\dots,\text{max\_batches}$}{
 			Choose a batch of sample points, $S_b$, using Algorithm \ref{alg:point_choice}
 			
-			Compute $\eta^b$ by applying $\Aop$ to the dirac comb for $S_b$ (Section \ref{sec:get_impulse_response})
+			Compute $\combresponse_b$ by applying $\Aop$ to the dirac comb for $S_b$ (Section \ref{sec:get_impulse_response})
 			
 		}
 
@@ -452,25 +452,25 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 
 We compute convolution kernels $\varphi_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. Each application of $\Aop$ to a Dirac comb yields one batch of impulse responses, $\phi_{x_i}$, which yields one batch of convolution kernels, $\varphi_{x_i}$.
 %The batches of impulse responses, $\eta^b$, will ultimately be interpolated with weighting functions described in Section \ref{sec:weighting_functions} to form the desired approximation $\widetilde{\mathcal{A}}\approx \mathcal{A}$.  
-The Dirac comb, $\xi_b$, associated with a batch of sample points, $S_b$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
+The Dirac comb, $\dcomb_b$, associated with a batch of sample points, $S_b$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
 \begin{equation*}
-	\xi^b := \sum_{x_i \in S_b} \delta_{x_i}.
+	\dcomb_b := \sum_{x_i \in S_b} \delta_{x_i}.
 \end{equation*}
 For each batch $S_b$, we compute the action of $\mathcal{A}$ on the associated Dirac comb:
 \begin{equation}
 \label{eq:dirac_comb_H_action}
-	\eta^b := \langle\mathcal{A}, \xi^b\rangle^*.
+	\combresponse_b := \left(\mathcal{A} \dcomb_b^*\right)^*.
 \end{equation}
-By linearity, the resulting function $\eta^b$ may be written as
+By linearity, the resulting function $\combresponse_b$ may be written as
 \begin{equation}
 \label{eq:phi_b}
-	\eta^b = \left\langle\mathcal{A},\sum_{x_i \in S_b} \delta_{x_i}\right\rangle^* = \sum_{x_i \in S_b} \langle\mathcal{A}, \delta_{x_i}\rangle^* = \sum_{x_i \in S_b} \phi_{x_i}.
+	\combresponse_b = \left\langle\mathcal{A},\sum_{x_i \in S_b} \delta_{x_i}\right\rangle^* = \sum_{x_i \in S_b} \langle\mathcal{A}, \delta_{x_i}\rangle^* = \sum_{x_i \in S_b} \phi_{x_i}.
 \end{equation}
 Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\phi_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\phi_j$ do not overlap when $i \neq j$, from \eqref{eq:convolution_kernel} and \eqref{eq:phi_b} we have (approximately)
 \begin{equation}
 \label{eq:varphi_eval}
 	\varphi_{x_i}(z) = \phi_i(z+x_i) = \begin{cases}
-		\eta^b(z+x_i), & z+x_i \in E_{x_i} \\
+		\combresponse_b(z+x_i), & z+x_i \in E_{x_i} \\
 		0, & \text{otherwise}
 		\end{cases}
 \end{equation}
@@ -479,7 +479,7 @@ for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_
 \subsubsection{Interpolation onto local regular grids}
 \label{sec:convolution_kernel_regular_grid}
 
-To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\varphi_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\varphi_{x_i}(z)$ requires evaluating $\eta_b(z+x_i)$. In computations, $\eta^b$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\eta^b(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. 
+To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\varphi_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\varphi_{x_i}(z)$ requires evaluating $\combresponse_b(z+x_i)$. In computations, $\combresponse_b$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\combresponse_b(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. 
 
 To speed up evaluation of $\varphi_{x_i}$, we interpolate $\varphi_{x_i}$ onto a regular rectilinear grid on a coordinate axis aligned box that just barely contains the ellipsoid $E_{x_i}$. We transfer the function $\varphi_{x_i}$ from the irregular mesh to the regular grid by evaluating $\varphi_{x_i}$ at all gridpoints in the regular grid, using the slow process described in the previous paragraph. This is an upfront cost which is done ``offline.'' After $\varphi_{x_i}$ has been transferred to the regular grid, we use fast regular grid interpolation to perform all subsequent ``online'' evaluations of $\varphi_{x_i}$. This yields a substantial overall speedup because the number of finite element function evaluations required to transfer the functions $\varphi_{x_i}$ to the regular grid is $O(N)$, while the number of kernel evaluations required to convert $\AopPc$ to H-matrix format is $O(k N \log N)$. Here $N$ is the number of finite element degrees of freedom, and $k$ is the H-matrix rank. Furthermore, transferring $\varphi_{x_i}$ to a regular grid requires evaluating $\varphi_{x_i}$ at a predetermined and highly structured collection of points. This structure allows for faster determination of which mesh cells that points are in, and allows one to evaluate the finite element function at all regular gridpoints in parallel. In contrast, constructing the H-matrix requires evaluating $\varphi_{x_i}$ at an unpredictable sequence of scattered of points, which is an expensive task for finite element function evaluation, but a cheap task for regular grid interpolation. 
 Having $\varphi_{x_i}$ stored on a regular grid also simplifies the implementation of the method that we use to deal with boundary artifacts, which will be described in Section \ref{sec:boundary_extension}.
@@ -521,10 +521,10 @@ For each $i=1,\dots,r$, optimization problem \eqref{eq:wi_optimization_problem} 
 \label{eq:wi_optimization_problem_generic}
 \begin{aligned}
 \min_{v \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta v}_{L^2(\Omega)}^2 \\
-\text{such that} &\quad v(x_j) = f_j, \quad j=1,\dots,r,
+\text{such that} &\quad v(x_j) = \interpolatedvalues_j, \quad j=1,\dots,r,
 \end{aligned}
 \end{equation}
-where $f_j \in \mathbb{R}$, $j=1,\dots,r$ are now arbitrary function values that $v$ must take at the points $x_j$. We may efficiently solve optimization problem \eqref{eq:wi_optimization_problem_generic} via the following procedure:
+where $\interpolatedvalues_j \in \mathbb{R}$, $j=1,\dots,r$ are now arbitrary function values that $v$ must take at the points $x_j$. We may efficiently solve optimization problem \eqref{eq:wi_optimization_problem_generic} via the following procedure:
 \begin{enumerate}
 \item For each sample point $x_i$, we compute a function $\psi_i$ by solving the following Neumann Poisson problem:
 \begin{equation}
@@ -535,21 +535,21 @@ where $f_j \in \mathbb{R}$, $j=1,\dots,r$ are now arbitrary function values that
 \end{cases}
 \end{equation}
 with condition $\int_\Omega \psi_i(x) dx = 0$. Here $\delta_{x_i}$ is the point source centered at $x_i$, $|\Omega|$ is the measure of the domain $\Omega$, and $\nu$ is the normal vector to $\partial \Omega$.
-\item For each function $\psi_i$, we compute a function $\theta_i$ by solving another Neumann Poisson problem:
+\item For each function $\psi_i$, we compute a function $\secondgreens_i$ by solving another Neumann Poisson problem:
 \begin{equation}
 \label{eq:theta_eq}
 \begin{cases}
-\Delta \theta_i = \psi_i, & \text{in }\Omega, \\
-\nu \cdot \nabla \theta_i = 0 & \text{on } \partial \Omega,
+\Delta \secondgreens_i = \psi_i, & \text{in }\Omega, \\
+\nu \cdot \nabla \secondgreens_i = 0 & \text{on } \partial \Omega,
 \end{cases}
 \end{equation}
-with condition $\int_\Omega \theta_i(x) dx = 0$.
+with condition $\int_\Omega \secondgreens_i(x) dx = 0$.
 %\item For each sample point $x_i$, we solve the Poisson equation with pure Neumann boundary conditions, using $\delta_{x_i}$ (a point source centered at $x_i$) as the right hand side source. We call the solution to this first Poisson problem $\psi_i$.
 %\item For each function $\psi_i$, we solve the Poisson equation with pure Neumann boundary conditions, using $\psi_i$ as the right hand side source. We call the solution to this second Poisson problem $\theta_i$.
 \item The solution to optimization problem \eqref{eq:wi_optimization_problem_generic}, which we denote by $v_*$, is formed as follows:
 \begin{equation}
 \label{eq:optimal_v}
-v_*(x) := \beta + \sum_{i=1}^r c_i \theta_i(x),
+v_*(x) := \beta + \sum_{i=1}^r c_i \secondgreens_i(x),
 \end{equation}
 where the constants $c_i \in \mathbb{R}$, $i=1,\dots,r$, and $\beta \in \mathbb{R}$ are the solution to the following linear system:
 \begin{equation}
@@ -562,18 +562,18 @@ where the constants $c_i \in \mathbb{R}$, $i=1,\dots,r$, and $\beta \in \mathbb{
 	\end{bmatrix}
 	=
 	\begin{bmatrix}
-	\mathbf{f} \\ 0
+	\mathbf{\interpolatedvalues} \\ 0
 	\end{bmatrix}.
 \end{equation}
-Here $\mathbf{c} \in \mathbb{R}^r$ is the vector with $i$th component $c_i$, $\mathbf{1} \in \mathbf{R}^r$ is the column vector of all ones, $\mathbf{f} \in \mathbb{R}^r$ is the vector with $i$th component $f_i$, and $S \in \mathbb{R}^{r \times r}$ is the matrix with entries given by
+Here $\mathbf{c} \in \mathbb{R}^r$ is the vector with $i$th component $c_i$, $\mathbf{1} \in \mathbf{R}^r$ is the column vector of all ones, $\mathbf{\interpolatedvalues} \in \mathbb{R}^r$ is the vector with $i$th component $\interpolatedvalues_i$, and $S \in \mathbb{R}^{r \times r}$ is the matrix with entries given by
 \begin{equation}
 \label{eq:S_matrix}
-S_{ij} := \int_\Omega \psi_i(x) \psi_j(x) dx.
+S_{ij} := \int_\Omega \firstgreens_i(x) \firstgreens_j(x) dx.
 \end{equation}
 \end{enumerate}
-In Theorem \ref{thm:wi_no_breakdown}, we prove that this procedure does not break down, so long as there is no repetition in the points $x_i$. Linear system \eqref{eq:interpolation_linear_system} is the KKT system that arises if one solves optimization problem \eqref{eq:wi_optimization_problem_generic} on the $r+1$-dimensional subspace spanned by the functions $\psi_i$, $i=1,\dots,r$, and the constant function $C(x)=1$, rather than solving the optimization problem on the infinite dimensional space $H^2_N(\Omega)$. In Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this process solves optimization problem \eqref{eq:wi_optimization_problem_generic} on $H^2_N(\Omega)$.
+In Theorem \ref{thm:wi_no_breakdown}, we prove that this procedure does not break down, so long as there is no repetition in the points $x_i$. Linear system \eqref{eq:interpolation_linear_system} is the KKT system that arises if one solves optimization problem \eqref{eq:wi_optimization_problem_generic} on the $r+1$-dimensional subspace spanned by the functions $\firstgreens_i$, $i=1,\dots,r$, and the constant function $C(x)=1$, rather than solving the optimization problem on the infinite dimensional space $H^2_N(\Omega)$. In Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this process solves optimization problem \eqref{eq:wi_optimization_problem_generic} on $H^2_N(\Omega)$.
 
-Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson equation $2r$ times with different right hand side sources to form the functions $\psi_i$ and $\theta_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, which are the most expensive part of this procedure, can be performed cheaply with multigrid. 
+Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson equation $2r$ times with different right hand side sources to form the functions $\firstgreens_i$ and $\secondgreens_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, which are the most expensive part of this procedure, can be performed cheaply with multigrid. 
 
 %All of the weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. However, the dominant computational cost in constructing the weighting functions is the solution of the Poisson PDEs, and these Poisson PDE solves can be performed incrementally---we only need to compute functions $\psi_i$ and $\theta_i$ associated with the new points. 
 %, rather than $2(r+1)$ new PDE solves.
@@ -581,23 +581,24 @@ Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson eq
 It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension of the domain is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-posed in three spatial dimensions or fewer. In four or higher spatial dimensions, one could construct appropriate weighting functions using radial basis functions, though we do not discuss this here.
 
 \begin{thm}[Procedure for computing $v_*$ does not break down]
-	If all the sample points $x_i$, $i=1,\dots,r$, are distinct, then PDE \eqref{eq:psi_eq} is uniquely solvable for $\psi_i$, PDE \eqref{eq:theta_eq} is uniquely solvable for $\theta_i$, and linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\mathbf{c}$ and $\beta$. That is, the procedure for computing $v_*$ does not break down. Furthermore, $v_* \in H^2_N(\Omega)$.
+	\label{thm:wi_no_breakdown}
+	If all the sample points $x_i$, $i=1,\dots,r$, are distinct, then PDE \eqref{eq:psi_eq} is uniquely solvable for $\firstgreens_i$, PDE \eqref{eq:theta_eq} is uniquely solvable for $\secondgreens_i$, and linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\mathbf{c}$ and $\beta$. That is, the procedure for computing $v_*$ does not break down. Furthermore, $v_* \in H^2_N(\Omega)$.
 \end{thm}
 
 \begin{proof}
-	Existence and uniqueness for the solutions to PDEs \eqref{eq:psi_eq} and \eqref{eq:theta_eq} follow from the standard elliptic PDE theory. By standard elliptic regularity theory, $\psi_i \in H^1(\Omega)$, so $\psi_i \in L^2(\Omega)$, and so all matrix entries $S_{ij}$ are finite. 
+	Existence and uniqueness for the solutions to PDEs \eqref{eq:psi_eq} and \eqref{eq:theta_eq} follow from the standard elliptic PDE theory. By standard elliptic regularity theory, $\firstgreens_i \in H^1(\Omega)$, so $\firstgreens_i \in L^2(\Omega)$, and so all matrix entries $S_{ij}$ are finite. 
 	
 	Using the definition of $S$ and basic linear algebra, it is straightforward to show that if $S$ were singular, there would exist constants $a_1, a_2, \dots a_r$, which are not all zero, such that
 	\begin{equation*}
-		0 = a_1 \psi_1 + a_2 \psi_2 + \dots a_r \psi_r.
+		0 = a_1 \firstgreens_1 + a_2 \firstgreens_2 + \dots a_r \firstgreens_r.
 	\end{equation*}
 	Applying the Laplacian to this equation yields
 	\begin{equation*}
-		0 = a_1 \delta_{x_1} + a_2 \delta_{x_2} + \dots a_r \delta_{x_r} - \left(\sum_{i=1}^r a_i\right)/|\Omega|,
+		0 = a_1 \delta_{x_1} + a_2 \delta_{x_2} + \dots a_r \delta_{x_r} - \left(\sum_{i=1}^r a_i\right)\bigg/|\Omega|,
 	\end{equation*}
 	which is impossible because a nonzero linear combination of delta distributions at different points cannot equal a constant function. Thus we must conclude that $S$ is non-singular. By block matrix factorization, non-singularity of $S$ implies that linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\mathbf{c}$ and $\beta$.
 	
-	By standard elliptic regularity theory, the functions $\theta_i$ are in $H^3(\Omega)$, and therefore they are in $H^2(\Omega)$. By construction the functions $\theta_i$ have Neumann zero boundary conditions, so $\theta_i \in H^2_N(\Omega)$. Since $v_*$ is a linear combination of the functions $\theta_i$ and the constant function $C(x)=1$, $v_* \in H^2_N(\Omega)$.
+	By standard elliptic regularity theory, the functions $\secondgreens_i$ are in $H^3(\Omega)$, and therefore they are in $H^2(\Omega)$. By construction the functions $\secondgreens_i$ have Neumann zero boundary conditions, so $\secondgreens_i \in H^2_N(\Omega)$. Since $v_*$ is a linear combination of the functions $\secondgreens_i$ and the constant function $C(x)=1$, $v_* \in H^2_N(\Omega)$.
 \end{proof}
 
 \begin{lem}[Preparation for Theorem \ref{thm:wi_alg_is_correct}]
@@ -605,7 +606,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	We have
 	\begin{equation}
 	\label{eq:inline_wi_lemma}
-	h(x_j) = \left(\psi_j, \Delta h\right)_{L^2(\Omega)} + \avg(h)
+	h(x_j) = \left(\firstgreens_j, \Delta h\right)_{L^2(\Omega)} + \avg(h)
 	\end{equation}
 	for all $h\in H^2_N(\Omega)$, where
 	\begin{equation*}
@@ -615,7 +616,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 \end{lem}
 
 \begin{proof}
-	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\psi_j$ onto $h$, and using the Neumann zero boundary conditions for $\psi_j$ and $h$ to eliminate boundary integral terms.
+	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\firstgreens_j$ onto $h$, and using the Neumann zero boundary conditions for $\firstgreens_j$ and $h$ to eliminate boundary integral terms.
 \end{proof}
 
 \begin{thm}[Solution of optimization problem \ref{eq:wi_optimization_problem_generic}]
@@ -626,7 +627,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 \begin{proof}
 	Let
 	\begin{equation*}
-		X := \{v \in H^2_N(\Omega) : v(x_i) = v_i \text{ for }i=1,\dots,r\}
+		X := \{v \in H^2_N(\Omega) : v(x_i) = \interpolatedvalues_i \text{ for }i=1,\dots,r\}
 	\end{equation*}
 	denote the feasible set for optimization problem \ref{eq:wi_optimization_problem_generic}, and let 
 	\begin{equation*}
@@ -636,16 +637,16 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	
 	The proof now proceeds in three steps. First, we show that $v_*$ is feasible ($v_* \in X$). Second, we show that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} if it satisfies a certain variational equation. Third, we verify that $v_*$ satisfies this variational equation.
 	
-	\paragraph{Feasibility} To show that $v_*$ is feasible (i.e., $v_* \in X$), we must show that $v_*(x_i) = f_i$ for $i=1,\dots,r$. We have
+	\paragraph{Feasibility} To show that $v_*$ is feasible (i.e., $v_* \in X$), we must show that $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,r$. We have
 	\begin{align*}
-	v_*(x_i) &= \beta + \sum_{j=1}^r c_j \theta_j(x_i) \\
-	&= \beta + \sum_{j=1}^r c_j \left(\psi_i, \Delta \theta_j\right)_{L^2(\Omega)} + \avg\left(\theta_j\right) \\
-	&= \beta + \sum_{j=1}^r c_j \left(\psi_i, \psi_j\right)_{L^2(\Omega)} \\
+	v_*(x_i) &= \beta + \sum_{j=1}^r c_j \secondgreens_j(x_i) \\
+	&= \beta + \sum_{j=1}^r c_j \left(\firstgreens_i, \Delta \secondgreens_j\right)_{L^2(\Omega)} + \avg\left(\secondgreens_j\right) \\
+	&= \beta + \sum_{j=1}^r c_j \left(\firstgreens_i, \firstgreens_j\right)_{L^2(\Omega)} \\
 	&= \beta + \sum_{j=1}^r c_j S_{ij}
 	\end{align*}
-	In the first line we used the definition of $v_*$ in \eqref{eq:optimal_v}. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the facts that, by construction, $\Delta \theta_j = \psi_j$ and $\int_\Omega \theta_j(x) dx = 0$. In the fourth line we used the definition of $S$ in \eqref{eq:S_matrix}. Hence the condition $v_*(x_i) = f_i$ for $i=1,\dots,r$ may be written in matrix form as
+	In the first line we used the definition of $v_*$ in \eqref{eq:optimal_v}. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the facts that, by construction, $\Delta \secondgreens_j = \firstgreens_j$ and $\int_\Omega \secondgreens_j(x) dx = 0$. In the fourth line we used the definition of $S$ in \eqref{eq:S_matrix}. Hence the condition $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,r$ may be written in matrix form as
 	\begin{equation*}
-	S \mathbf{c} + \beta \mathbf{1} = \mathbf{f},
+	S \mathbf{c} + \beta \mathbf{1} = \mathbf{\interpolatedvalues},
 	\end{equation*}
 	and this must hold because it is the first block row of system \eqref{eq:interpolation_linear_system} which is solved to compute $\mathbf{c}$ and $\beta$. So $v_* \in X$.
 	
@@ -684,27 +685,27 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	
 	\paragraph{Variational equation} To show that $v_*$ satiafies variational equation \eqref{eq:variational_up}, notice that
 	\begin{align*}
-	(\Delta v_*, \Delta p)_{L^2(\Omega)} =& \sum_{i=1}^r c_i(\Delta \theta_i, \Delta p)_{L^2(\Omega)} \\
+	(\Delta v_*, \Delta p)_{L^2(\Omega)} =& \sum_{i=1}^r c_i(\Delta \secondgreens_i, \Delta p)_{L^2(\Omega)} \\
 	=& \sum_{i=1}^r c_i \left(p(x_i) - \avg\left(p\right)\right) \\
 	=& -\avg\left(p\right) \sum_{i=1}^r c_i. 
 	\end{align*}
-	In the first line we used the definition of $\theta_i$ and the fact that the Laplacian of a constant is zero. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the fact that $p(x_i)=0$ because $p \in X_0$. Hence variational equation \eqref{eq:variational_up} holds if $\sum_{i=1}^r c_i = 0$, which may be written in matrix form as $\mathbf{1}^T \mathbf{c} = 0$. This must hold because it is the second block row in system \eqref{eq:interpolation_linear_system}.
+	In the first line we used the definition of $\secondgreens_i$ and the fact that the Laplacian of a constant is zero. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the fact that $p(x_i)=0$ because $p \in X_0$. Hence variational equation \eqref{eq:variational_up} holds if $\sum_{i=1}^r c_i = 0$, which may be written in matrix form as $\mathbf{1}^T \mathbf{c} = 0$. This must hold because it is the second block row in system \eqref{eq:interpolation_linear_system}.
 \end{proof}
 
 
 \begin{thm}[Poisson weighting functions are optimal]
 	\label{thm:smoothest_interpolant}
-Let $y \in \mathbb{R}^d$, $d \in \{1,2,3\}$, and let $\gamma_y$ be the function
+Let $y \in \mathbb{R}^d$, $d \in \{1,2,3\}$, and let $\horizinterpolant_y$ be the function
 \begin{equation}
 \label{eq:u_defn_in_thm}
-\gamma_y(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \AkerPc\left(y+x,x\right),
+\horizinterpolant_y(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \AkerPc\left(y+x,x\right),
 \end{equation}
-where the weighting functions $w_i$ are the solutions to optimization problem \eqref{eq:wi_optimization_problem}. Then $\gamma_y$ solves the optimization problem
+where the weighting functions $w_i$ are the solutions to optimization problem \eqref{eq:wi_optimization_problem}. Then for each $y \in \Omega$, the function $\horizinterpolant_y$ solves the optimization problem
 \begin{equation}
 \label{eq:uy_optimization_problem}
 \begin{aligned}
-\min_{\gamma_y \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta \gamma_y}_{L^2(\Omega)}^2 \\
-\text{such that} &\quad \gamma_y(x_i) = \varphi_i(y), \quad i=1,\dots,q.
+\min_{\horizinterpolant_y \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta \horizinterpolant_y}_{L^2(\Omega)}^2 \\
+\text{such that} &\quad \horizinterpolant_y(x_i) = \varphi_i(y), \quad i=1,\dots,q.
 \end{aligned}
 \end{equation}
 \end{thm}
@@ -737,7 +738,7 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 		\For{$k=1,2, \dots, r$}{
 %			Initialize $\delta_{x_i}$ as the point source (delta distribution) centered at $x_i$.
 			
-			Solve the Neumann Poisson problem \eqref{eq:psi_eq} for $\psi_k$.
+			Solve the Neumann Poisson problem \eqref{eq:psi_eq} for $\firstgreens_k$.
 			
 %			Compute $\psi_i$ by solving the Neumann Poisson problem
 %			\begin{equation}
@@ -749,7 +750,7 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 %			\end{equation}
 %			with condition $\int_\Omega \psi_i(x) dx = 0$, where $\nu$ is the normal vector to $\partial \Omega$.
 
-			Solve the Neumann Poisson problem \eqref{eq:theta_eq} for $\theta_k$.
+			Solve the Neumann Poisson problem \eqref{eq:theta_eq} for $\secondgreens_k$.
 			
 %			Compute $\theta_i$ by solving the Neumann Poisson problem
 %			\begin{equation}
@@ -785,7 +786,7 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 			
 			Form the weighting function $w_i$ given by
 			\begin{equation*}
-			w_i(x) = \beta^{(i)} + \sum_{k=1}^r c_k^{(i)} \theta_k(x).
+			w_i(x) = \beta^{(i)} + \sum_{k=1}^r c_k^{(i)} \secondgreens_k(x).
 			\end{equation*}
 			
 		}
@@ -1046,9 +1047,9 @@ where $\left(\AkerPcMat\right)_{11}$ denotes the block of $\AkerPcMat$ with rows
 We now loop through the four blocks, $\left(\AkerPcMat\right)_{11}$, $\left(\AkerPcMat\right)_{12}$, $\left(\AkerPcMat\right)_{21}$, and $\left(\AkerPcMat\right)_{22}$, and decide which blocks should be subdivided further. For the purpose of explanation, consider $\left(\AkerPcMat\right)_{12}$. If
 \begin{equation}
 \label{eq:weak_admissibility_cond}
-\dist\left(r_1, c_2\right) \ge \eta \min\left(\diam\left(r_1\right), \diam\left(c_2\right)\right),
+\dist\left(r_1, c_2\right) \ge \weakadmconst \min\left(\diam\left(r_1\right), \diam\left(c_2\right)\right),
 \end{equation}
-then we mark $\left(\AkerPcMat\right)_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, c_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $c_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(c_2\right)$ is the analogous diameter associated with the column cluster $c_2$. The quantity $\eta$ is a scalar constant; we use $\eta=2.0$. Basically, if the point clouds associated with $r_1$ and $c_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\left(\AkerPcMat\right)_{11}$ and $\left(\AkerPcMat\right)_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
+then we mark $\left(\AkerPcMat\right)_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, c_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $c_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(c_2\right)$ is the analogous diameter associated with the column cluster $c_2$. The quantity $\weakadmconst$ is a scalar constant; we use $\weakadmconst=2.0$. Basically, if the point clouds associated with $r_1$ and $c_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\left(\AkerPcMat\right)_{11}$ and $\left(\AkerPcMat\right)_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
 
 Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\AkerPcMat$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree, which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
 
@@ -1163,125 +1164,16 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 
 %These results rely on straightforward prerequisites that we present in Lemma \ref{lem:T_is_linear}. We prove correctness of Algorithm \ref{alg:weighting_functions_incremental} in Theorem \ref{thm:wi_alg_is_correct}. Theorem \ref{thm:wi_alg_is_correct} relies on a prerequisite result which we present in Lemma \ref{lem:psi_delta_eval}.
 
-\begin{defn}[Weighting function optimization problem]
-	Let $\Omega \subset \mathbb{R}^d$, $d\in\{1,2,3\}$, be an open bounded domain with, let $x_i \in \Omega$ for $i=1,\dots,r$, and let $f \in \mathbb{R}^r$. We consider the optimization problem
-	\begin{equation}
-	\label{eq:generic_optimization_initial}
-	\begin{aligned}
-	\min_{\gamma \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta \gamma}_{L^2(\Omega)}^2 \\
-	\text{such that} &\quad \gamma(x_i) = f_i, \quad i=1,\dots,r.
-	\end{aligned}
-	\end{equation}
-	A minimizer, $\gamma^*$, of \eqref{eq:generic_optimization_initial} is a function defined on $\Omega$ that interpolates the data pairs $(x_i,f_i)$, and is as flat as possible in a least squares sense. 
-	We denote the objective function for optimization problem \eqref{eq:generic_optimization_initial} by 
-	\begin{equation}
-	\label{eq:wi_objective}
-	J(\gamma) := \frac{1}{2}||\Delta \gamma||^2_{L^2(\Omega)}.
-	\end{equation}
-	We denote the feasible set for optimization problem \eqref{eq:generic_optimization_initial} by 
-	\begin{equation}
-	\label{eq:wi_feasible_set}
-		X := \{u \in H^2_N : u(x_i)=f_i~\text{for}~ i=1,\dots,r\}.
-	\end{equation}
-	We denote the tangent space to the feasible set by
-	\begin{equation}
-	\label{eq:wi_tangent_space}
-	X_0 := \{u \in H^2_N : u(x_i)=0~\text{for}~ i=1,\dots,r\}.
-	\end{equation}
-\end{defn}
 
-\begin{lem}[Elliptic regularity on $X_0$]
-	\label{lem:elliptic_regularity_x0}
-	If $\partial \Omega$ is $C^{1,1}$, then there exists a constant $C > 0$ such that
-	\begin{equation*}
-		||u||_{H^2(\Omega)} \le C ||\Delta u||_{L^2(\Omega)}
-	\end{equation*}
-	for all $u \in X_0$.
-\end{lem}
-
-
-\begin{proof}
-	Let $\widetilde{u}$ be version of $u$ that has been shifted up or down by a constant such that $\int_\Omega \overline{u} = 0$. We have
-	\begin{align*}
-		||D^1 u||_{\left(L^2(\Omega)\right)^d}^2 + ||D^2 u||_{\left(L^2(\Omega)\right)^{d \times d}}^2 &= ||D^1 \widetilde{u}||_{\left(L^2(\Omega)\right)^d}^2 + ||D^2 \widetilde{u}||_{\left(L^2(\Omega)\right)^{d \times d}}^2\\
-		&\le ||\widetilde{u}||_{H^2(\Omega)}^2 \\
-		&\le C_1 ||\Delta \widetilde{u}||_{L^2(\Omega)}^2 \\
-		&= C_1 ||\Delta u||_{L^2(\Omega)}^2
-	\end{align*}
-	for some constant $C_1$. In the first and fourth lines we used the fact that the derivative of a constant is zero, in the second line we used the definition of the $H^2$ norm, and in the third line we used the standard elliptic regularity result for pure Neumann problems (see, e.g., Theorem 8.13 (b) in \cite{Arbogast}).
-	
-	To complete the proof, we will now show that there exists a constant $C_2$ such that $||u||_{L^2(\Omega)}^2 \le C_2 ||\Delta u||_{L^2(\Omega)}^2$ for all $u \in X_0$. For this, we use a standard compactness argument, which closely follows the proof of Theorem 8.12 in \cite{ARBOGAST}. Suppose for the sake of contradiction that this result does not hold. Then there exists a sequence $\{u_k\}_{k=1}^\infty \subset X_0$ such that
-	$||u_k||_{L^2(\Omega)}=1$ and $||\Delta u_k||_{L^2(\Omega)} \le 1/k$.
-	By the result already proven, the sequence $u_k$ is bounded in $H^2(\Omega)$ as follows:
-	\begin{align*}
-	||u_k||_{H^2(\Omega)}^2 &= ||u_k||_{L^2(\Omega)}^2 + ||D^1 u||_{\left(L^2(\Omega)\right)^d}^2 + ||D^2 u||_{\left(L^2(\Omega)\right)^{d \times d}}^2 \\
-	&\le ||u_k||_{L^2(\Omega)}^2 + C_1 ||\Delta u||_{L^2(\Omega)}^2 \le 1 + C_1.
-	\end{align*}
-	Therefore, by the Banach-Alaoglu theorem, there exists a subsequence $u_{k_j}$ and function $u \in X_0$ such that
-	\begin{equation*}
-		u_{k_j} \overset{w}{\rightharpoonup} u \quad \text{weakly in }H^2(\Omega).
-	\end{equation*}
-	Let $f \in L^2(\Omega)$. By the Cauchy-Schwarz inequality, the linear functional $v \mapsto \int_\Omega f(x) \Delta v(x) dx$ is bounded in $H^2(\Omega)$, and is therefore an element of $\left(H^2(\Omega)\right)^*$. Weak convergence therefore implies
-	\begin{equation*}
-		\int_\Omega f(x) \Delta u_k(x) dx \rightarrow \int_\Omega f(x) \Delta u(x) dx.
-	\end{equation*}
-	By the assumption $||\Delta u_k||_{L^2(\Omega)} \le 1/k$ and Cauchy-Schwarz, we also have 
-	\begin{equation*}
-	\int_\Omega f(x) \Delta u_k(x) dx \rightarrow 0,
-	\end{equation*}
-	so we must have
-	\begin{equation*}
-		\int_\Omega f(x) \Delta u(x) dx = 0.
-	\end{equation*}
-	Since this holds for all $f \in L^2(\Omega)$, by the fundamental lemma of the calculus of variations, $\Delta u(x) = 0$ almost everywhere in $\Omega$. This, combined with the fact that $u$ has Neumann zero boundary conditions, implies that $u$ is a constant function. Since $u$ has value zero at least one point in each connected component of $\Omega$, we have $u=0$. Note that pointwise values of $u$ are well-defined since the Sobolev embedding theorem imples that $H^2(\Omega)$ is continuously imbedded in the space of continuous functions $C^0(\Omega)$ when $d < 4$, and we are considering $d \in \{1,2,3\}$ (see, e.g., Theorem 7.19 in \cite{Arbogast}). 
-
-	On the other hand, by the Rellich-Kondrachov theorem, $H^2(\Omega)$ is compactly imbedded in $L^2(\Omega)$, so there must exist a sub-sub-sequence, $u_{k_{j_i}}$ such that 
-	\begin{equation*}
-		u_{k_{j_i}} \rightarrow u
-	\end{equation*}
-	strongly in $L^2(\Omega)$. By assumption $||u_{k_{j_i}}||_{L^2(\Omega)}=1$, so $||u||_{L^2(\Omega)}=1$. This contradicts the result $u=0$ that we previously derived, so we must conclude that there exists a constant $C_2 > 0$ such that
-	\begin{equation*}
-		||u||_{L^2(\Omega)} \le C_2 ||\Delta u||_{L^2(\Omega)}.
-	\end{equation*}
-	for all $u \in X_0$. Combining this with out previous result, we have
-	\begin{equation*}
-	||u||^2_{H^2(\Omega)} \le (C_1 + C_2)||\Delta u||^2
-	\end{equation*}
-	for all $u \in X_0$, which completes the proof.
-\end{proof}
-
-\begin{lem}[Well-posedness of weighting function optimization problem]
-	\label{lem:wi_existence_and_uniqueness}
-	There exists a unique solution to optimization problem \eqref{eq:generic_optimization_initial}.
-\end{lem}
-
-\begin{proof}
-	By the Sobolev Imbedding Theorem (see, e.g., Theorem 7.20 in \cite{ARBOGAST}), $H^2_N(\Omega)$ is continuously imbedded in $C^0(\Omega)$, so pointwise evaluation $u \mapsto u(x_i)$ of functions at a point $x_i \in \Omega$ is a continuous linear functional on $H^2_N$. The set 
-	\begin{equation}
-	\label{eq:inverse_image_of_point}
-	\{u \in H^2_N : u(x_i)=f_i\}
-	\end{equation}
-	is therefore a closed affine set in $H^2_N$, because it is the inverse image of a point under a continuous linear functional. Hence the feasible set $X$, defined in \eqref{eq:wi_feasible_set}, is a closed affine set in $H^2_N$, because it is the intersection of the sets in \eqref{eq:inverse_image_of_point} for $i=1,\dots,r$. 
-	
-	The feasible set $X$ is convex because it is affine, and it is non-empty because interpolating the data pairs $\{(x_i, f_i)\}_{i=1}^r$ using any smooth interpolation method yields an element of $X$. Furthermore, the objective function, 
-	\begin{equation}
-	J(\gamma) := \frac{1}{2}||\Delta \gamma||^2_{L^2(\Omega)},
-	\end{equation}
-	is convex because it is the composition of a convex function with a linear map. Furthermore, the elliptic regularity result in Lemma \ref{lem:elliptic_regularity_x0} implies
-	\begin{equation*}
-		J''(\gamma)v^2 = ||\Delta v||^2_{L^2(\Omega)} \ge C ||v||_{H^2(\Omega)}^2
-	\end{equation*}
-	for all $v \in X_0$, which implies that $J$ is strongly convex on $X$.
-\end{proof}
 
 \begin{lem}[Linearity of weighting function solution operator]
 	\label{lem:T_is_linear}
 	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
 		\begin{equation}
 		\label{eq:opt_soln_operator}
-		\mathcal{T}(f) := \gamma^*,
+		\mathcal{T}(f) := \horizinterpolant_*,
 		\end{equation}
-		where $\gamma^*$ is the minimizer of \eqref{eq:generic_optimization_initial}. The operator $\mathcal{T}$ is a linear operator.
+		where $\horizinterpolant_*$ is the minimizer of \eqref{eq:generic_optimization_initial}. The operator $\mathcal{T}$ is a linear operator.
 \end{lem}
 
 \begin{proof}
@@ -1294,9 +1186,9 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 	\begin{align*}
 	\mathcal{T}(f) &= \varphi_1(y) \mathcal{T}(e_1) + \varphi_2(y) \mathcal{T}(e_2) + \dots +\varphi_r(y) \mathcal{T}(e_r) \\
 	&= \varphi_1(y) w_1 + \varphi_2(y) w_2 + \dots +\varphi_r(y) w_r \\
-	&= \gamma_y.
+	&= \horizinterpolant_y.
 	\end{align*}
-	In the first line we used linearity of the solution map, $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), in the second line we used the fact that $w_i = \mathcal{T}(e_i)$, and in the third line we used the definition of $\gamma_y$ in \eqref{eq:u_defn_in_thm}.
+	In the first line we used linearity of the solution map, $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), in the second line we used the fact that $w_i = \mathcal{T}(e_i)$, and in the third line we used the definition of $\horizinterpolant_y$ in \eqref{eq:u_defn_in_thm}.
 \end{proof}
 
 \begin{proof}[Proof of Proposition \ref{thm:wi_sum_to_one}]
@@ -1307,51 +1199,6 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality ($\mathcal{T}(\mathbf{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \mathbf{1}$, and yields the minimum possible value of zero for the objective function.
 \end{proof}
 
-
-\begin{proof}[Proof of Theorem \ref{alg:weighting_functions_incremental}]
-	For notational convenience, in this proof we write $w$, $\lambda$, and $e$ instead of $w_i$, $\lambda_i$, and $e_i$, respectively. Here subscripts for $\lambda$, and $e$ instead denote components of those vectors. For example, here $\lambda_j$ denotes the $j^\text{th}$ component of the vector $\lambda$, which corresponds to the $j^\text{th}$ component of the vector $\lambda_i$ in Algorithm \ref{alg:weighting_functions_incremental}.
-	
-	From standard optimization theory, the solution to optimization problem \ref{eq:wi_optimization_problem} is the stationary point of the Lagrangian,
-	\begin{equation*}
-	\mathcal{L}(w,\lambda) = \frac{1}{2}\|\Delta w\|^2 + \sum_{j=1}^r \lambda_j\left(w(x_j) - e_j\right).
-	\end{equation*}
-	The plan of this proof is to show that $\nabla \mathcal{L}(w,\lambda)=0$, which will verify that $w$ solves optimization problem \ref{eq:wi_optimization_problem}.
-	
-	Using the definition of $w_i$ in \eqref{eq:definition_of_wi_alg}, we may write the gradient of $\mathcal{L}$ with respect to $\lambda_j$ as
-	\begin{equation*}
-	\nabla_{\lambda_j} \mathcal{L}(w, \lambda) = w(x_j) - e_j
-	= \beta - \sum_{k=1}^r \lambda_k \theta_k(x_j) - e_j.
-	\end{equation*}
-	Using Lemma \ref{lem:psi_delta_eval} with $h=\theta_k$, the equation for $\theta_k$ in \eqref{eq:theta_eq}, and the definition of $S$ in \eqref{eq:defn_of_S_alg}, we have
-	\begin{align*}
-	\sum_{k=1}^r \lambda_k \theta_k(x_j) &= \sum_{k=1}^r \lambda_k \left(\psi_j, \Delta \theta_k\right)_{L^2(\Omega)}\\
-	&= \sum_{k=1}^r \lambda_k \left(\psi_j, \psi_k\right)_{L^2(\Omega)} = \left(S \lambda\right)_j.
-	\end{align*}
-	Combining all of these components of $\nabla_\lambda \mathcal{L}$ into a single vector and using the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} yields
-	\begin{align*}
-	\nabla_\lambda \mathcal{L}(w, \lambda) &= \beta \mathbf{1} - e - S \lambda \\
-	&= \beta \mathbf{1} - e - S \left(-S^{-1}\left(e - \beta \mathbf{1}\right)\right) = 0.
-	\end{align*}
-	
-	Taking the directional derivative of $\mathcal{L}$ with respect to $w$ in direction $h$ and using Lemma \ref{lem:psi_delta_eval} yields
-	\begin{align}
-	\nabla_w \mathcal{L}(w, \lambda)h &= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} + \sum_{j=1}^r \lambda_j h(x_j) \nonumber \\
-	&= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} + \sum_{j=1}^r \lambda_j \left(\psi_j, \Delta h\right)_{L^2(\Omega)} + \lambda_j \avg(h) \nonumber \\
-	&= \left(\Delta w + \sum_{j=1}^r \lambda_j \psi_j,~ \Delta h\right)_{L^2(\Omega)} + \avg(h) \mathbf{1}^T \lambda. \label{eq:L_w_38}
-	\end{align}
-	Using the definition of $w$ in Algorithm \ref{alg:weighting_functions_incremental}, and the fact that the Laplacian of a constant function is zero, we have
-	\begin{equation*}
-	\Delta w = -\sum_{j=1}^r \lambda_j \Delta \theta_j 
-	= -\sum_{j=1}^r \lambda_j \psi_j,
-	\end{equation*}
-	which implies that the first term in \eqref{eq:L_w_38} is zero. By the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} and $\beta$ in \eqref{eq:definition_of_alpha_alg}, we have
-	\begin{align*}
-	\mathbf{1}^T \lambda &= -\mathbf{1}^T S^{-1} \left(e - \beta \mathbf{1}\right) \\
-	&= -\mathbf{1}^T S^{-1} e + \beta \mathbf{1}^T S^{-1} \mathbf{1} \\
-	&= -\mathbf{1}^T S^{-1} e + \frac{\mathbf{1}^T S^{-1} e}{\mathbf{1}^T S^{-1} \mathbf{1}} \mathbf{1}^T S^{-1} \mathbf{1} = 0,
-	\end{align*}
-	which implies that the second term in \eqref{eq:L_w_38} is zero. Thus $\nabla_w \mathcal{L}(w, \lambda) = 0$, so Algorithm \ref{alg:weighting_functions_incremental} produces the solution to optimization problem \ref{eq:wi_optimization_problem}.
-\end{proof}
 
 
 \begin{defn}[Moments of $\phi_x$]
@@ -1583,13 +1430,13 @@ respectively. Here $\mathbf{f} \cdot \mathbf{g}$ and $\mathbf{f} / \mathbf{g}$ d
 
 
 \subsection{Discretized sampling of impulse responses}
-In computations, the Dirac comb coefficient dual vector for $\xi_h^b$ is the vector $\boldsymbol{\xi}^b \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ which has entries
+In computations, the Dirac comb coefficient dual vector for $\dcomb_h^b$ is the vector $\boldsymbol{\dcomb}^b \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ which has entries
 \begin{equation*}
-\boldsymbol{\xi}^b_i = \sum_{x_j \in S_b} f_i(x_j), \quad i=1,\dots,N.
+\boldsymbol{\dcomb}^b_i = \sum_{x_j \in S_b} f_i(x_j), \quad i=1,\dots,N.
 \end{equation*}
-The Dirac comb impulse response coefficient vector for $\eta_h^b$ is the vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ given by
+The Dirac comb impulse response coefficient vector for $\combresponse^h_b$ is the vector $\boldsymbol{\combresponse}_b \in \mathbb{R}^N_\mathbf{M}$ given by
 \begin{equation*}
-\boldsymbol{\eta}^b = \mathbf{M}^{-1} \mathbf{A}^T \mathbf{M}^{-1}\boldsymbol{\xi}^b.
+\boldsymbol{\combresponse}_b = \mathbf{M}^{-1} \mathbf{A}^T \mathbf{M}^{-1}\boldsymbol{\dcomb}^b.
 \end{equation*}
 
 
@@ -1597,6 +1444,161 @@ The Dirac comb impulse response coefficient vector for $\eta_h^b$ is the vector 
 
 
 
+\begin{proof}[Proof of Theorem \ref{alg:weighting_functions_incremental}]
+	For notational convenience, in this proof we write $w$, $\lambda$, and $e$ instead of $w_i$, $\lambda_i$, and $e_i$, respectively. Here subscripts for $\lambda$, and $e$ instead denote components of those vectors. For example, here $\lambda_j$ denotes the $j^\text{th}$ component of the vector $\lambda$, which corresponds to the $j^\text{th}$ component of the vector $\lambda_i$ in Algorithm \ref{alg:weighting_functions_incremental}.
+	
+	From standard optimization theory, the solution to optimization problem \ref{eq:wi_optimization_problem} is the stationary point of the Lagrangian,
+	\begin{equation*}
+	\mathcal{L}(w,\lambda) = \frac{1}{2}\|\Delta w\|^2 + \sum_{j=1}^r \lambda_j\left(w(x_j) - e_j\right).
+	\end{equation*}
+	The plan of this proof is to show that $\nabla \mathcal{L}(w,\lambda)=0$, which will verify that $w$ solves optimization problem \ref{eq:wi_optimization_problem}.
+	
+	Using the definition of $w_i$ in \eqref{eq:definition_of_wi_alg}, we may write the gradient of $\mathcal{L}$ with respect to $\lambda_j$ as
+	\begin{equation*}
+	\nabla_{\lambda_j} \mathcal{L}(w, \lambda) = w(x_j) - e_j
+	= \beta - \sum_{k=1}^r \lambda_k \secondgreens_k(x_j) - e_j.
+	\end{equation*}
+	Using Lemma \ref{lem:psi_delta_eval} with $h=\secondgreens_k$, the equation for $\secondgreens_k$ in \eqref{eq:theta_eq}, and the definition of $S$ in \eqref{eq:defn_of_S_alg}, we have
+	\begin{align*}
+	\sum_{k=1}^r \lambda_k \secondgreens_k(x_j) &= \sum_{k=1}^r \lambda_k \left(\firstgreens_j, \Delta \secondgreens_k\right)_{L^2(\Omega)}\\
+	&= \sum_{k=1}^r \lambda_k \left(\firstgreens_j, \firstgreens_k\right)_{L^2(\Omega)} = \left(S \lambda\right)_j.
+	\end{align*}
+	Combining all of these components of $\nabla_\lambda \mathcal{L}$ into a single vector and using the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} yields
+	\begin{align*}
+	\nabla_\lambda \mathcal{L}(w, \lambda) &= \beta \mathbf{1} - e - S \lambda \\
+	&= \beta \mathbf{1} - e - S \left(-S^{-1}\left(e - \beta \mathbf{1}\right)\right) = 0.
+	\end{align*}
+	
+	Taking the directional derivative of $\mathcal{L}$ with respect to $w$ in direction $h$ and using Lemma \ref{lem:psi_delta_eval} yields
+	\begin{align}
+	\nabla_w \mathcal{L}(w, \lambda)h &= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} + \sum_{j=1}^r \lambda_j h(x_j) \nonumber \\
+	&= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} + \sum_{j=1}^r \lambda_j \left(\firstgreens_j, \Delta h\right)_{L^2(\Omega)} + \lambda_j \avg(h) \nonumber \\
+	&= \left(\Delta w + \sum_{j=1}^r \lambda_j \firstgreens_j,~ \Delta h\right)_{L^2(\Omega)} + \avg(h) \mathbf{1}^T \lambda. \label{eq:L_w_38}
+	\end{align}
+	Using the definition of $w$ in Algorithm \ref{alg:weighting_functions_incremental}, and the fact that the Laplacian of a constant function is zero, we have
+	\begin{equation*}
+	\Delta w = -\sum_{j=1}^r \lambda_j \Delta \secondgreens_j 
+	= -\sum_{j=1}^r \lambda_j \firstgreens_j,
+	\end{equation*}
+	which implies that the first term in \eqref{eq:L_w_38} is zero. By the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} and $\beta$ in \eqref{eq:definition_of_alpha_alg}, we have
+	\begin{align*}
+	\mathbf{1}^T \lambda &= -\mathbf{1}^T S^{-1} \left(e - \beta \mathbf{1}\right) \\
+	&= -\mathbf{1}^T S^{-1} e + \beta \mathbf{1}^T S^{-1} \mathbf{1} \\
+	&= -\mathbf{1}^T S^{-1} e + \frac{\mathbf{1}^T S^{-1} e}{\mathbf{1}^T S^{-1} \mathbf{1}} \mathbf{1}^T S^{-1} \mathbf{1} = 0,
+	\end{align*}
+	which implies that the second term in \eqref{eq:L_w_38} is zero. Thus $\nabla_w \mathcal{L}(w, \lambda) = 0$, so Algorithm \ref{alg:weighting_functions_incremental} produces the solution to optimization problem \ref{eq:wi_optimization_problem}.
+\end{proof}
+
+\begin{defn}[Weighting function optimization problem]
+	Let $\Omega \subset \mathbb{R}^d$, $d\in\{1,2,3\}$, be an open bounded domain with, let $x_i \in \Omega$ for $i=1,\dots,r$, and let $f \in \mathbb{R}^r$. We consider the optimization problem
+	\begin{equation}
+	\label{eq:generic_optimization_initial}
+	\begin{aligned}
+	\min_{\gamma \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta \gamma}_{L^2(\Omega)}^2 \\
+	\text{such that} &\quad \gamma(x_i) = f_i, \quad i=1,\dots,r.
+	\end{aligned}
+	\end{equation}
+	A minimizer, $\gamma^*$, of \eqref{eq:generic_optimization_initial} is a function defined on $\Omega$ that interpolates the data pairs $(x_i,f_i)$, and is as flat as possible in a least squares sense. 
+	We denote the objective function for optimization problem \eqref{eq:generic_optimization_initial} by 
+	\begin{equation}
+	\label{eq:wi_objective}
+	J(\gamma) := \frac{1}{2}||\Delta \gamma||^2_{L^2(\Omega)}.
+	\end{equation}
+	We denote the feasible set for optimization problem \eqref{eq:generic_optimization_initial} by 
+	\begin{equation}
+	\label{eq:wi_feasible_set}
+	X := \{u \in H^2_N : u(x_i)=f_i~\text{for}~ i=1,\dots,r\}.
+	\end{equation}
+	We denote the tangent space to the feasible set by
+	\begin{equation}
+	\label{eq:wi_tangent_space}
+	X_0 := \{u \in H^2_N : u(x_i)=0~\text{for}~ i=1,\dots,r\}.
+	\end{equation}
+\end{defn}
+
+\begin{lem}[Elliptic regularity on $X_0$]
+	\label{lem:elliptic_regularity_x0}
+	If $\partial \Omega$ is $C^{1,1}$, then there exists a constant $C > 0$ such that
+	\begin{equation*}
+	||u||_{H^2(\Omega)} \le C ||\Delta u||_{L^2(\Omega)}
+	\end{equation*}
+	for all $u \in X_0$.
+\end{lem}
+
+
+\begin{proof}
+	Let $\widetilde{u}$ be version of $u$ that has been shifted up or down by a constant such that $\int_\Omega \overline{u} = 0$. We have
+	\begin{align*}
+	||D^1 u||_{\left(L^2(\Omega)\right)^d}^2 + ||D^2 u||_{\left(L^2(\Omega)\right)^{d \times d}}^2 &= ||D^1 \widetilde{u}||_{\left(L^2(\Omega)\right)^d}^2 + ||D^2 \widetilde{u}||_{\left(L^2(\Omega)\right)^{d \times d}}^2\\
+	&\le ||\widetilde{u}||_{H^2(\Omega)}^2 \\
+	&\le C_1 ||\Delta \widetilde{u}||_{L^2(\Omega)}^2 \\
+	&= C_1 ||\Delta u||_{L^2(\Omega)}^2
+	\end{align*}
+	for some constant $C_1$. In the first and fourth lines we used the fact that the derivative of a constant is zero, in the second line we used the definition of the $H^2$ norm, and in the third line we used the standard elliptic regularity result for pure Neumann problems (see, e.g., Theorem 8.13 (b) in \cite{Arbogast}).
+	
+	To complete the proof, we will now show that there exists a constant $C_2$ such that $||u||_{L^2(\Omega)}^2 \le C_2 ||\Delta u||_{L^2(\Omega)}^2$ for all $u \in X_0$. For this, we use a standard compactness argument, which closely follows the proof of Theorem 8.12 in \cite{ARBOGAST}. Suppose for the sake of contradiction that this result does not hold. Then there exists a sequence $\{u_k\}_{k=1}^\infty \subset X_0$ such that
+	$||u_k||_{L^2(\Omega)}=1$ and $||\Delta u_k||_{L^2(\Omega)} \le 1/k$.
+	By the result already proven, the sequence $u_k$ is bounded in $H^2(\Omega)$ as follows:
+	\begin{align*}
+	||u_k||_{H^2(\Omega)}^2 &= ||u_k||_{L^2(\Omega)}^2 + ||D^1 u||_{\left(L^2(\Omega)\right)^d}^2 + ||D^2 u||_{\left(L^2(\Omega)\right)^{d \times d}}^2 \\
+	&\le ||u_k||_{L^2(\Omega)}^2 + C_1 ||\Delta u||_{L^2(\Omega)}^2 \le 1 + C_1.
+	\end{align*}
+	Therefore, by the Banach-Alaoglu theorem, there exists a subsequence $u_{k_j}$ and function $u \in X_0$ such that
+	\begin{equation*}
+	u_{k_j} \overset{w}{\rightharpoonup} u \quad \text{weakly in }H^2(\Omega).
+	\end{equation*}
+	Let $f \in L^2(\Omega)$. By the Cauchy-Schwarz inequality, the linear functional $v \mapsto \int_\Omega f(x) \Delta v(x) dx$ is bounded in $H^2(\Omega)$, and is therefore an element of $\left(H^2(\Omega)\right)^*$. Weak convergence therefore implies
+	\begin{equation*}
+	\int_\Omega f(x) \Delta u_k(x) dx \rightarrow \int_\Omega f(x) \Delta u(x) dx.
+	\end{equation*}
+	By the assumption $||\Delta u_k||_{L^2(\Omega)} \le 1/k$ and Cauchy-Schwarz, we also have 
+	\begin{equation*}
+	\int_\Omega f(x) \Delta u_k(x) dx \rightarrow 0,
+	\end{equation*}
+	so we must have
+	\begin{equation*}
+	\int_\Omega f(x) \Delta u(x) dx = 0.
+	\end{equation*}
+	Since this holds for all $f \in L^2(\Omega)$, by the fundamental lemma of the calculus of variations, $\Delta u(x) = 0$ almost everywhere in $\Omega$. This, combined with the fact that $u$ has Neumann zero boundary conditions, implies that $u$ is a constant function. Since $u$ has value zero at least one point in each connected component of $\Omega$, we have $u=0$. Note that pointwise values of $u$ are well-defined since the Sobolev embedding theorem imples that $H^2(\Omega)$ is continuously imbedded in the space of continuous functions $C^0(\Omega)$ when $d < 4$, and we are considering $d \in \{1,2,3\}$ (see, e.g., Theorem 7.19 in \cite{Arbogast}). 
+	
+	On the other hand, by the Rellich-Kondrachov theorem, $H^2(\Omega)$ is compactly imbedded in $L^2(\Omega)$, so there must exist a sub-sub-sequence, $u_{k_{j_i}}$ such that 
+	\begin{equation*}
+	u_{k_{j_i}} \rightarrow u
+	\end{equation*}
+	strongly in $L^2(\Omega)$. By assumption $||u_{k_{j_i}}||_{L^2(\Omega)}=1$, so $||u||_{L^2(\Omega)}=1$. This contradicts the result $u=0$ that we previously derived, so we must conclude that there exists a constant $C_2 > 0$ such that
+	\begin{equation*}
+	||u||_{L^2(\Omega)} \le C_2 ||\Delta u||_{L^2(\Omega)}.
+	\end{equation*}
+	for all $u \in X_0$. Combining this with out previous result, we have
+	\begin{equation*}
+	||u||^2_{H^2(\Omega)} \le (C_1 + C_2)||\Delta u||^2
+	\end{equation*}
+	for all $u \in X_0$, which completes the proof.
+\end{proof}
+
+\begin{lem}[Well-posedness of weighting function optimization problem]
+	\label{lem:wi_existence_and_uniqueness}
+	There exists a unique solution to optimization problem \eqref{eq:generic_optimization_initial}.
+\end{lem}
+
+\begin{proof}
+	By the Sobolev Imbedding Theorem (see, e.g., Theorem 7.20 in \cite{ARBOGAST}), $H^2_N(\Omega)$ is continuously imbedded in $C^0(\Omega)$, so pointwise evaluation $u \mapsto u(x_i)$ of functions at a point $x_i \in \Omega$ is a continuous linear functional on $H^2_N$. The set 
+	\begin{equation}
+	\label{eq:inverse_image_of_point}
+	\{u \in H^2_N : u(x_i)=f_i\}
+	\end{equation}
+	is therefore a closed affine set in $H^2_N$, because it is the inverse image of a point under a continuous linear functional. Hence the feasible set $X$, defined in \eqref{eq:wi_feasible_set}, is a closed affine set in $H^2_N$, because it is the intersection of the sets in \eqref{eq:inverse_image_of_point} for $i=1,\dots,r$. 
+	
+	The feasible set $X$ is convex because it is affine, and it is non-empty because interpolating the data pairs $\{(x_i, f_i)\}_{i=1}^r$ using any smooth interpolation method yields an element of $X$. Furthermore, the objective function, 
+	\begin{equation}
+	J(\gamma) := \frac{1}{2}||\Delta \gamma||^2_{L^2(\Omega)},
+	\end{equation}
+	is convex because it is the composition of a convex function with a linear map. Furthermore, the elliptic regularity result in Lemma \ref{lem:elliptic_regularity_x0} implies
+	\begin{equation*}
+	J''(\gamma)v^2 = ||\Delta v||^2_{L^2(\Omega)} \ge C ||v||_{H^2(\Omega)}^2
+	\end{equation*}
+	for all $v \in X_0$, which implies that $J$ is strongly convex on $X$.
+\end{proof}
 
 \begin{defn}
 	\label{def:stiffness_mass}
