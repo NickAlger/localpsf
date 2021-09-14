@@ -80,11 +80,7 @@ We say that $\Aop$ has local support if, for all $x\in \Omega$, the support of $
 \label{eq:impulse_response_delta_action}
 \phi_x = \left( \Aop \delta_x^* \right)^*,
 \end{equation}
-where $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying the operator $\Aop$ to the distribution $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\psi \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\psi^* \in L^2(\Omega)$ such that $\psi(v) = \left(\psi^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Phi$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}. 
-%The action of $\mathcal{A}$ on a distribution $\mu$ is written as $\langle \mathcal{A}, \mu \rangle$. We use this angle bracket notation to distinguish the action of $\mathcal{A}$ on distributions from the action of $\mathcal{A}$ on functions.
-%We take the Riesz representative of the linear functional $\left\langle \mathcal{A}, \delta_x \right\rangle \in L^2(\Omega)'$ to convert it into a function $\left\langle \mathcal{A}, \delta_x \right\rangle^* \in L^2(\Omega)$. 
-%After discretization, the process of applying $\Aop$ to the distribution $\delta_x$, then forming the Riesz representative of the resulting linear functional, amounts to computing $\boldsymbol{\phi}_x = \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_x$, where $\boldsymbol{\phi}_x$, $\mathbf{A}$, and $\boldsymbol{\delta}_x$ are discretized versions of $\phi_x$, $A$ and $\delta_x$, respectively, and $\mathbf{M}$ is a discretization of the $L^2$ inner product bilinear form (e.g., a mass matrix in the finite element context). 
-From \eqref{eq:impulse_response_delta_action}, we see that this local support property means that the response of $\Aop$ to a point source at $x$ is zero (or small) at points $y$ that are far from $x$.
+where $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying the operator $\Aop$ to the distribution $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\psi \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\psi^* \in L^2(\Omega)$ such that $\psi(v) = \left(\psi^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Phi$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}. From \eqref{eq:impulse_response_delta_action}, we see that this local support property means that the response of $\Aop$ to a point source at $x$ is zero (or small) at points $y$ that are far from $x$.
 \item[3) Local translation invariance:] We say that $\Aop$ is locally translation invariant if
 \begin{equation}
 	\label{eq:local_translation_invariance}
@@ -123,7 +119,6 @@ Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function o
 \min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + R(m),
 \end{equation}
 where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $R(m)$ is a regularization term. The objective function in optimization problem \eqref{eq:minimization_problem} is defined indirectly via the implicit function theorem. As a result, the Hessian of the objective function, $\mathcal{H}$, is only accessible matrix-free. In particular, applying $\mathcal{H}$ to a vector requires solving two PDEs \cite{HESSIANACTION}. More accessible approximations of $\mathcal{H}$ are highly desirable, because they allow for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. More accessible Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
-%We only have access to $\mathcal{H}$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary linear PDEs.
 
 The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Conventionally, either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is therefore the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because our method can form high-rank approximations of an operator using a small number of matrix-vector products.
 
@@ -152,23 +147,6 @@ The more locally translation invariant an operator is (i.e., the smaller the dis
 \label{sec:overview_intro}
 
 We compute one ``batch'' of $\varphi_i$'s by applying $\Aop$ to a sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen so that the support of $\phi_i$ and the support of $\phi_j$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\phi_i$, and therefore the functions $\varphi_i$, associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\varphi_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\varphi_i$'s, until a desired number of batches is reached.
-
-%First, we compute
-%\begin{equation}
-%\label{eq:eta_intro}
-%\eta := \left\langle \mathcal{A}, \xi \right\rangle^*
-%\end{equation}
-%where 
-%\begin{equation*}
-%	\xi := \sum_{i=1}^l \delta_{x_i}
-%\end{equation*}
-%is the Dirac comb associated with point sources centered at a collection of scattered points $x_i$. The batch of points $x_i$ are chosen so that the support of $\phi_i$ and the support of $\phi_j$ do not overlap (or do not overlap much) if $i \neq j$. By linearity, and the expression for $\phi_x$ in \eqref{eq:impulse_response_delta_action}, we have
-%\begin{equation*}
-%\eta = \sum_{i=1}^l \phi_i.
-%\end{equation*}
-%We may therefore post-process $\eta$ 
-%
-%to recover $\phi_i$ for all of the points $x_i$ in the batch. Since the functions $\varphi_i$ are translated versions of the functions $\phi_i$, we also recover $\varphi_i$ for all points $x_i$ in the batch. This is illustrated in Figure FIG. The process is repeated to get more batches of $\varphi_i$'s, until a desired number of batches is reached. 
 
 In order to choose the points $x_i$, we need to estimate the support of $\phi_i$ \emph{before} we compute it. The supports of the functions $\phi_x$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of specially chosen functions (three functions if $d=1$, six if $d=2$, ten if $d=3$), then post processing the results (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
 
@@ -199,11 +177,7 @@ Often we are interested in approximating operators $\Aop$ that are symmetric pos
 In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\varphi_i$ and $w_i$ may be arbitrary functions. Product-convolution approximations have been used in a wide variety of fields going back several decades \cite{PRODCONVLIST}.
 For background on product-convolution approximations, we recommend reading the following papers: \cite{PRODCONVGOOD}. 
 
-We build upon the class of product convolution approximations in which the functions, $\varphi_i$, are impulse responses of $\Aop$ to point sources at a collection of points $x_i$ \cite{PRODCONVLIST}. A popular choice for methods in this class is to choose the points $x_i$ to be nodes in a regular grid, and interpolate the functions $\varphi_i$ with piecewise linear interpolation \cite{NAGY}, or splines \cite{PRODCONVSPLINES}. With a regular grid, a large number of points $x_i$ is typically required to achieve an accurate product-convolution approximation.
-%This is computationally prohibitive in our applications, because computing the functions $\varphi_i$ requires one matrix vector product with $\Aop$ for each point $x_i$, and these matrix vector products are computationally costly. 
-In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. But even with adaptive refinement, many matrix vector products with $\Aop$ may be required. In this paper, rather than using adaptive refinement, we instead reduce the computational cost by picking points $x_i$ such that many $\varphi_i$ are computed with each matrix vector product. 
-
-%We do this by taking advantage of the fact that the functions $\varphi_i$ are locally supported; existing methods typically do not require this local support property.
+We build upon the class of product convolution approximations in which the functions, $\varphi_i$, are impulse responses of $\Aop$ to point sources at a collection of points $x_i$ \cite{PRODCONVLIST}. A popular choice for methods in this class is to choose the points $x_i$ to be nodes in a regular grid, and interpolate the functions $\varphi_i$ with piecewise linear interpolation \cite{NAGY}, or splines \cite{PRODCONVSPLINES}. With a regular grid, a large number of points $x_i$ is typically required to achieve an accurate product-convolution approximation. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. But even with adaptive refinement, many matrix vector products with $\Aop$ may be required. In this paper, rather than using adaptive refinement, we instead reduce the computational cost by picking points $x_i$ such that many $\varphi_i$ are computed with each matrix vector product. 
 
 Our method of estimating the support of the functions $\varphi_i$ was inspired by resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\varphi_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\varphi_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\varphi_p$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\Aop^T$ with random noise functions, we use specific constant, linear, and quadratic functions. Our method estimates the support of $\varphi_p$ more accurately and reliably than resolution analysis, but our method requires that $\Aop$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
 
@@ -218,16 +192,6 @@ Product-convolution type approximations of Hessians have been used in a seismic 
 \section{Constructing the product-convolution H-matrix approximation}
 \label{sec:method}
 In this section we describe how we choose the sample points, $x_i$ (Section \ref{sec:sample_point_selection}), how we form the convolution kernels, $\varphi_i$ (Section \ref{sec:get_impulse_response}), and how we form the weighting functions, $w_i$ (Section \ref{sec:weighting_functions}), for the product-convolution approximation, $\AopPc \approx \Aop$, given in \eqref{eq:product_convolution}. We also describe how we convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), and (optionally) how we modify the resulting H-matrix, $\AmatPc$, to force it to be symmetric positive semi-definite (Section \ref{sec:make_spd}). The complete algorithm for constructing $\AmatPc$ is shown in Algorithm \ref{alg:construct_Atilde}. 
-%The method for evaluating kernel entries of $\Phi_\text{pc}$ is shown in Section \ref{sec:eval_matrix_entries}.
-
-
-%\begin{itemize}
-%\item We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). To reduce memory usage, all kernels $\varphi_i$ associated with a given batch, $b$, are stored in a single function, $\eta^b$, rather than as distinct functions.
-%\item We use a greedy algorithm to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$ (Section \ref{sec:greedy_point_selection}). 
-%\item We ensure that the points $x_i$ are well separated from each other by forming a-priori estimates of the supports of the functions $\psi_x$ (Section \ref{eq:mean_and_covariance_estimation}). 
-%\item For the weighting functions, we use the smoothest functions (in a least-squares sense) that interpolate the points $x_i$; constructing the weighting functions requires solving two Poisson PDEs per point $x_i$ (Section \ref{sec:weighting_functions}).
-%\end{itemize}
-%The complete algorithm for constructing $\AopPc$ is shown in Algorithm \ref{alg:construct_Atilde}. The method for evaluating kernel entries of $\Phi_\text{pc}$ is shown in Section \ref{sec:eval_matrix_entries}. The method for converting $\AopPc$ to H-matrix format is shown in Section \ref{sec:H_matrix_conversion}. The method for modifying the resulting H-matrix to make it symmetric positive semi-definite is shown in Section \ref{sec:make_spd}.
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -250,8 +214,7 @@ In this section we describe how we choose the sample points, $x_i$ (Section \ref
 	
 		Modify convolution kernels to address boundary artifacts (Section \ref{sec:boundary_extension})
 	
-		Compute all weighting functions $w_i$ using Algorithm \ref{alg:weighting_functions_incremental}
-%		In lines 2 and 3 of Algorithm \ref{alg:weighting_functions_incremental}, only solve for $\psi_i$ and $\theta_i$ associated with new points $x_i$ in $S_b$. The functions $\psi_i$ and $\theta_i$ associated with points in previous batches have already been computed in previous iterations of this for loop.
+		Compute all weighting functions $w_i$ using Algorithm 
 
 		Form H-matrix $\AmatPc$ (Section \ref{sec:H_matrix_conversion})
 		
@@ -267,7 +230,7 @@ In this section we describe how we choose the sample points, $x_i$ (Section \ref
 \label{sec:sample_point_selection}
 
 We choose sample points, $x_i$, in batches. A greedy algorithm is used to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other. We ensure that the points $x_i$ are well separated from each other by forming a-priori estimates of the supports of the functions $\phi_x$ (Section \ref{eq:mean_and_covariance_estimation}). The support of $\phi_x$ is estimated to be contained within an ellipsoid, so the process of choosing batches of points is an ellipsoid packing problem (Section \ref{sec:greedy_point_selection}). 
-%In the next section (Section \ref{sec:get_impulse_response}), we will extract $\varphi_{x_i}$ for all the points $x_i$ in a given batch by applying $\Aop$ to the Dirac comb associated with that batch.
+
 
 \subsubsection{Estimating impulse response supports}
 \label{eq:mean_and_covariance_estimation}
@@ -277,17 +240,9 @@ Because of the non-negative kernel property, for each $x \in \Omega$, the impuls
 \label{eq:support_ellipsoid}
 E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
 \end{equation}
-where $\tau$ is a fixed constant. 
-%The ellipsoid $E_{x}$ is the set of points within $\tau$ standard deviations of the mean of the Gaussian approximation of the normalized version of $\langle \mathcal{A}, \delta_{x}\rangle^{*}$ which has the same mean and covariance. 
-The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\mu(x)$ and covariance $\Sigma(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\phi}_x$ (see Figure FIG). The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\phi_x$. However, the cost of our algorithm will depend on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\phi_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
-% a good balance between these competing goals. 
-%The bigger $\tau$ is, the smaller the overlap between impulse responses within a batch will be, while the smaller $\tau$ is, the more impulse responses we can fit within each batch.
+where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\mu(x)$ and covariance $\Sigma(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\phi}_x$ (see Figure FIG). The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\phi_x$. However, the cost of our algorithm will depend on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\phi_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
 
 The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first compute the scalar $\alpha(x)$, the length-$d$ vector $\mu(x)$, and the $d \times d$ matrix $\Sigma(x)$ (recall $d \in \{1,2,3\}$ is the spatial dimension of $\Omega$). The direct approach to compute $\alpha(x)$, $\mu(x)$, and $\Sigma(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\phi_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\phi_x$ to determine $\alpha(x)$, $\mu(x)$, and $\Sigma(x)$. But this direct approach is computationally infeasible because and it requires one operator action of $\Aop$ per point $x$ that we wish to evaluate $E_x$ at, and we will need to evaluate $E_x$ at a large number of points. Fortunately, it is possible to compute $\alpha(x)$, $\mu(x)$, and $\Sigma(x)$, \emph{for all points $x$ simultaneously}, by applying $\Aop^T$ to one constant function, $d$ linear functions, and $d(d+1)/2$ quadratic functions. We present this efficient method of computing $\alpha$, $\mu$, and $\Sigma$ in Theorem \ref{thm:vol_mean_cov} and summarize the method in Algorithm \ref{alg:varhpi_mean_cov}.
-
-%In Algorithm \ref{alg:varhpi_mean_cov} we show how to compute  Definitions required for Algorithm \ref{alg:varhpi_mean_cov} are given in Definition \ref{defn:alpha_rho_mu_sigma}, Definition \ref{defn:C_L_Q}, and Definition \ref{defn:pointwise}. The theoretical basis for Algorithm \ref{alg:varhpi_mean_cov} is shown in Theorem \ref{thm:vol_mean_cov}.
-
-%We compute the scaling factor, denoted $\alpha(x)$, for all $x$ simultaneously by applying $\mathcal{A}^T$ to a constant function. We compute the spatially varying mean, $\mu(x)$, and covariance, $\Sigma(x)$ of the normalized version of $\phi_x$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. Definitions of $\alpha$, $\mu$, and $\Sigma$ are given in Definition \ref{defn:alpha_rho_mu_sigma}. The procedure for computing these quantities is shown in Algorithm \ref{alg:varhpi_mean_cov}, and the theoretical basis for this procedure is shown in Theorem \ref{thm:vol_mean_cov}. 
 
 
 \begin{theorem}[Impulse response moments]
@@ -317,42 +272,6 @@ The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first co
 \end{theorem}
 
 The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}. The proof is straightforward, and follows directly from the definitions.
-
-%
-%\begin{defn}[Constant, linear, and quadratic functions]	
-%	\label{defn:C_L_Q}
-%	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$. We define $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions, respectively:
-%	\begin{equation*}
-%	C(x) := 1, \qquad
-%	L^i(x) := x^i, \qquad
-%	Q^{ij}(x) = x^i x^j.
-%	\end{equation*}
-%\end{defn}
-%
-%\begin{defn}[Pointwise operations]
-%	\label{defn:pointwise}
-%	We write $f/g$ to denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ to denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
-%\end{defn}
-
-%\begin{theorem}
-%	\label{thm:vol_mean_cov}
-%	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$, and let $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions, respectively:
-%	\begin{equation*}
-%		C(x) := 1, \qquad
-%		L^i(x) := x^i, \qquad
-%		Q^{ij}(x) = x^i x^j.
-%	\end{equation*}
-%	We have
-%	\begin{align}
-%		\alpha =& \left(\mathcal{A}^TC\right)^*, \label{eq:vol_mean_var_thm1}\\
-%		\mu^i =& \left(\mathcal{A}^T L^i\right)^* / \alpha, \label{eq:vol_mean_var_thm2}\\
-%		\Sigma^{ij} =& \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot\mu^j, \label{eq:vol_mean_var_thm3}
-%	\end{align}
-%	We write $f/g$ to denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ to denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
-%\end{theorem}
-%
-%The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}.
-
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -392,10 +311,6 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \end{algorithm2e}
 
 
-
-
-
-
 \subsubsection{Greedy ellipsoid packing}
 \label{sec:greedy_point_selection}
 
@@ -406,14 +321,9 @@ We start with a finite set of candidate points $P$. To build a batch of sample p
 \max_{p \in P} \min_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|.
 \end{equation*}
 Candidate points for the first batch are chosen arbitrarily from $P$.
-Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$,
-%and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, 
-then we add $p$ to $S_b$. Otherwise we discard $p$. 
-%Recall that $E_p$ and $E_q$ are ellipsoids associated with points $p$ and $q$, respectively, as defined in \eqref{eq:support_ellipsoid}. 
-This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
+Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
 
 We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches.
-
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -450,9 +360,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 \subsection{Convolution kernels}
 \label{sec:get_impulse_response}
 
-We compute convolution kernels $\varphi_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. Each application of $\Aop$ to a Dirac comb yields one batch of impulse responses, $\phi_{x_i}$, which yields one batch of convolution kernels, $\varphi_{x_i}$.
-%The batches of impulse responses, $\eta^b$, will ultimately be interpolated with weighting functions described in Section \ref{sec:weighting_functions} to form the desired approximation $\widetilde{\mathcal{A}}\approx \mathcal{A}$.  
-The Dirac comb, $\dcomb_b$, associated with a batch of sample points, $S_b$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
+We compute convolution kernels $\varphi_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. Each application of $\Aop$ to a Dirac comb yields one batch of impulse responses, $\phi_{x_i}$, which yields one batch of convolution kernels, $\varphi_{x_i}$. The Dirac comb, $\dcomb_b$, associated with a batch of sample points, $S_b$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
 \begin{equation*}
 	\dcomb_b := \sum_{x_i \in S_b} \delta_{x_i}.
 \end{equation*}
@@ -488,7 +396,6 @@ We incur interpolation error when transferring $\varphi_{x_i}$ from the irregula
 
 When $x_i$ is near a boundary, it may occur that some gridpoints for the regular grid are in locations where $\varphi_{x_i}$ is undefined. In this case, we store a placeholder value for $\varphi_{x_i}$ at those gridpoints. We use the IEEE standard value of ``NaN'' (not a number) for this placeholder. In the next section (Section \ref{sec:boundary_extension}) we replace these NaN values with more appropriate values.
 
-%To minimize memory usage, the functions $\varphi_i$ are not stored individually. Instead, we store the functions $\eta^b$, and use formula \eqref{eq:varphi_eval} to perform function evaluations $z \mapsto \varphi_i(z)$ as needed.
 
 \subsubsection{Addressing boundary artifacts}
 \label{sec:boundary_extension}
@@ -496,15 +403,12 @@ When $x_i$ is near a boundary, it may occur that some gridpoints for the regular
 Evaluating the kernel for our product-convolution approximation, $\AkerPc(y,x)$, requires evaluating $\varphi_{x_i}(y-x)$. But $\varphi_{x_i}(y-x)$ is undefined  when $y - x + x_i$ is outside $\Omega$, which may occur even if $x \in \Omega$ and $y \in \Omega$. The default approach to deal with this problem is to extend $\varphi_{x_i}$ by zero wherever it is undefined. But this leads to substantial errors, known as boundary artifacts, which are especially significant when the sample point $x_i$ is near the boundary of the domain. In this case, the impulse response is artificially chopped off by the domain boundary. See Figure FIG for an illustration. 
 
 While $\varphi_{x_i}$ may be undefined at a point $z$, often there is a sample point $x_j$ that is near $x_i$, but further away from the boundary than $x_i$, such that $\varphi_{x_j}$ is well defined at $z$. To address boundary artifacts, we fill in missing/undefined portions of convolution kernels using information from other convolution kernels associated with the $k$ nearest sample points (we use $k=8$ in our numerical results). Kernels associated with nearer sample points are given precedence over kernels associated with farther away sample points. 
-%After the convolution kernel has been extended using information from neighboring convolution kernels, it is then further extended by zero. 
 
 In detail, let $p_1, p_2, \dots, p_k$ be the $k$ nearest sample points to $x_i$, ordered by nearness, including $x_i$ itself. That is, $p_1=x_i$, $p_2$ is the nearest neighbor to $x_i$, $p_3$ is the second nearest neighbor to $x_i$, and so on. Also, recall from the previous section (Section \ref{sec:convolution_kernel_regular_grid}) that the functions $\varphi_{x_i}$ are stored on regular rectilinear grids. To extend $\varphi_{x_i}$, we form an expanded regular rectilinear grid that has the same grid spacing as the grid used for $\varphi_{x_i}$, and contains that grid as a subgrid, but is large enough to contain the boxes associated with all of the neighbor kernels, $\varphi_{p_1}, \varphi_{p_2}, \dots, \varphi_{p_k}$ (recall that the functions $\varphi_{x_i}$ are all centered at zero). We initialize an extended convolution kernel, $\varphi_{x_i}^E$, to zero on this expanded grid. Then we interpolate the functions $\varphi_{p_j}$ onto this expanded grid in reverse order. First we interpolate $\varphi_{p_k}$ onto the grid, then $\varphi_{p_{k-1}}$, and so on until the last step in which we interpolate the original kernel $\varphi_{p_1} = \varphi_{x_i}$. At each step, we overwrite existing values of $\varphi_{x_i}^E$ with new values from the kernel currently being interpolated, except when the new value of $\varphi_{p_j}$ is undefined (``NaN''). At gridpoints where the kernel being interpolated is undefined, we leave $\varphi_{x_i}^E$ unchanged. In this way, we fill in undefined values of $\varphi_{x_i}$ with values from successively further and further away kernels. This process is illustrated in Figure FIG. To avoid notational clutter, and since we will henceforth only work with the extended kernel, $\varphi_{x_i}^E$, in the remainder of this paper the symbol $\varphi_{x_i}$ refers to $\varphi_{x_i}^E$.
 
 
 \subsection{Poisson weighting functions}
 \label{sec:weighting_functions}
-
-%For the weighting functions, we use the smoothest functions (in a least-squares sense) that interpolate the points $x_i$. Constructing the weighting functions requires solving two Poisson PDEs per sample point $x_i$.
 
 We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to the following optimization problem:
 \begin{equation}
@@ -544,8 +448,6 @@ with condition $\int_\Omega \psi_i(x) dx = 0$. Here $\delta_{x_i}$ is the point 
 \end{cases}
 \end{equation}
 with condition $\int_\Omega \secondgreens_i(x) dx = 0$.
-%\item For each sample point $x_i$, we solve the Poisson equation with pure Neumann boundary conditions, using $\delta_{x_i}$ (a point source centered at $x_i$) as the right hand side source. We call the solution to this first Poisson problem $\psi_i$.
-%\item For each function $\psi_i$, we solve the Poisson equation with pure Neumann boundary conditions, using $\psi_i$ as the right hand side source. We call the solution to this second Poisson problem $\theta_i$.
 \item The solution to optimization problem \eqref{eq:wi_optimization_problem_generic}, which we denote by $v_*$, is formed as follows:
 \begin{equation}
 \label{eq:optimal_v}
@@ -574,9 +476,6 @@ S_{ij} := \int_\Omega \firstgreens_i(x) \firstgreens_j(x) dx.
 In Theorem \ref{thm:wi_no_breakdown}, we prove that this procedure does not break down, so long as there is no repetition in the points $x_i$. Linear system \eqref{eq:interpolation_linear_system} is the KKT system that arises if one solves optimization problem \eqref{eq:wi_optimization_problem_generic} on the $r+1$-dimensional subspace spanned by the functions $\firstgreens_i$, $i=1,\dots,r$, and the constant function $C(x)=1$, rather than solving the optimization problem on the infinite dimensional space $H^2_N(\Omega)$. In Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this process solves optimization problem \eqref{eq:wi_optimization_problem_generic} on $H^2_N(\Omega)$.
 
 Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson equation $2r$ times with different right hand side sources to form the functions $\firstgreens_i$ and $\secondgreens_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, which are the most expensive part of this procedure, can be performed cheaply with multigrid. 
-
-%All of the weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. However, the dominant computational cost in constructing the weighting functions is the solution of the Poisson PDEs, and these Poisson PDE solves can be performed incrementally---we only need to compute functions $\psi_i$ and $\theta_i$ associated with the new points. 
-%, rather than $2(r+1)$ new PDE solves.
 
 It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension of the domain is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-posed in three spatial dimensions or fewer. In four or higher spatial dimensions, one could construct appropriate weighting functions using radial basis functions, though we do not discuss this here.
 
@@ -728,39 +627,12 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 	{	
 		\Input{Sample points $\{x_i\}_{i=1}^r$, domain geometry $\Omega$}
 		\Output{Weighting functions $\{w_i\}_{i=1}^r$}
-		
-%		Initialize constant function $C(x) = 1$
-		
-%		Compute Lebesgue measure of the domain, $|\Omega|$
-		
-%		\tcp{Compute Poisson impulse responses $\{\psi_i\}_{i=1}^r$ and Poisson squared impulse responses $\{\theta_i\}_{i=1}^r$}
-		
+
 		\For{$k=1,2, \dots, r$}{
-%			Initialize $\delta_{x_i}$ as the point source (delta distribution) centered at $x_i$.
 			
 			Solve the Neumann Poisson problem \eqref{eq:psi_eq} for $\firstgreens_k$.
-			
-%			Compute $\psi_i$ by solving the Neumann Poisson problem
-%			\begin{equation}
-%			\label{eq:psi_eq}
-%			\begin{cases}
-%			\Delta \psi_i = \delta_{x_i} - 1/|\Omega|, & \text{in }\Omega, \\
-%			\nu \cdot \nabla \psi_i = 0 & \text{on } \partial \Omega,
-%			\end{cases}
-%			\end{equation}
-%			with condition $\int_\Omega \psi_i(x) dx = 0$, where $\nu$ is the normal vector to $\partial \Omega$.
 
 			Solve the Neumann Poisson problem \eqref{eq:theta_eq} for $\secondgreens_k$.
-			
-%			Compute $\theta_i$ by solving the Neumann Poisson problem
-%			\begin{equation}
-%			\label{eq:theta_eq}
-%						\begin{cases}
-%			\Delta \theta_i = \psi_i, & \text{in }\Omega, \\
-%			\nu \cdot \nabla \theta_i = 0 & \text{on } \partial \Omega,
-%			\end{cases}
-%			\end{equation}
-%			with condition $\int_\Omega \theta_i(x) dx = 0$, where $\nu$ is the normal vector to $\partial \Omega$.
 			
 		}
 		
@@ -796,48 +668,6 @@ where the weighting functions $w_i$ are the solutions to optimization problem \e
 \end{algorithm2e}
 
 
-
-%\subsection{Evaluating kernel entries of the approximation}
-%\label{sec:eval_matrix_entries}
-%
-%We now describe how to efficiently evaluate $\widetilde{\Phi}(y,x)$ at an arbitrary point $(x,y) \in \Omega \times \Omega$. From \eqref{eq:kernel_entries}, we have
-%\begin{equation}
-%\label{eq:eval_y_x_000}
-%\AkerPc(y,x) = \sum_{i=1}^r w_i(x) \varphi_{x_i}(y-x),
-%\end{equation}
-%and from \eqref{eq:varphi_eval}, we have
-%\begin{equation}
-%\label{eq:kernel_entry_formua}
-%\varphi_{x_i}(y-x) = \begin{cases}
-%\eta^{b(i)}(y - x + x_i), & y - x + x_i \in E_{x_i} \\
-%0, & \text{otherwise},
-%\end{cases}
-%\end{equation}
-%where $b(i)$ denotes the batch index such that $x_i \in S^{b(i)}$. To compute $z=\AkerPc(y,x)$, we start with $z=0$, then loop through all batches $b$, and all sample points in each batch. For each sample point, we add one term in the sum in \eqref{eq:eval_y_x} to $z$, using \eqref{eq:kernel_entry_formua} as needed to evaluate $\varphi_{x_i}$. This is shown in Algorithm \ref{alg:eval_y_x}.
-%
-%
-%\begin{algorithm2e}
-%	\SetAlgoNoLine
-%	\SetKwInOut{Input}{Input}
-%	\SetKwInOut{Output}{Output}
-%	
-%	\Input{points $x \in \Omega$, $y \in \Omega$, \\sample point batches $S_1, \dots, S_\text{max\_batches}$, \\Dirac comb responses $\{\eta^b\}_{b=1}^{\text{max\_batches}}$, \\weighting functions $\{w_i\}_{i=1}^r$}
-%	\Output{Kernel entry $z = \widetilde{A}(y,x)$}
-%
-%	$z \gets 0$
-%	
-%	\For{$b=1,2,\dots,\text{}max\_batches$}{
-%		\For{$x_i \in S_b$}{
-%			\If{$y - x + x_i \in E_{x_i}$}{
-%				$z \gets z + w_i(x)\eta^b(y-x+x_i)$
-%			}
-%		}
-%	}	
-%	\caption{Compute approximate kernel entry $z = \widetilde{A}(y,x)$}
-%	\label{alg:eval_y_x}
-%\end{algorithm2e}
-
-
 \subsection{Discretization and hierarchical matrix construction}
 \label{sec:H_matrix_conversion}
 
@@ -864,20 +694,12 @@ Replacing $\Aker$ with $\AkerPcMesh$ within the definition of $\Aop$ in \eqref{e
 \label{eq:kernel_representation_pcmesh}
 (\AopPcMesh u)(v) := \int_\Omega \int_\Omega v(y) \AkerPcMesh(y,x) u(x) dx dy.
 \end{equation}
-While $\AopPcMesh$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\AopPcMesh$ to functions in the finite element space. That is, $\AopPcMesh : V_h \rightarrow V_h'$.
-%Error in the approximation $\Aop \approx \AopPcMesh$ is a combination of error in the product-convolution approximation, and error due to finite element discretization.
-Let $u_h \in V_h$ and $v_h \in V_h$, and let $\mathbf{u}$ and $\mathbf{v}$ be the coefficient vectors for $u_h$ and $v_h$, respectively, with respect to the finite element basis $f_1, \dots, f_N$. I.e., 
+While $\AopPcMesh$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\AopPcMesh$ to functions in the finite element space. That is, $\AopPcMesh : V_h \rightarrow V_h'$. Let $u_h \in V_h$ and $v_h \in V_h$, and let $\mathbf{u}$ and $\mathbf{v}$ be the coefficient vectors for $u_h$ and $v_h$, respectively, with respect to the finite element basis $f_1, \dots, f_N$. I.e., 
 \begin{equation}
 \label{eq:fem_coeff_basis}
 u_h(x) = \sum_{i=1}^N \mathbf{u}_i f_i(x),
 \end{equation}
-and similar for $v_h$. Further, let $\mathbf{M} \in \mathbb{R}^{N \times N}$ be the finite element mass matrix,
-% which has entries
-%\begin{equation}
-%\label{eq:mass_matrix_defn}
-%\mathbf{M}_{ij} := \int_\Omega f_i(x) f_j(x) dx,
-%\end{equation}
-and let $\AkerPcMat \in \mathbb{R}^{N \times N}$ be following matrix of approximate kernel entries:
+and similar for $v_h$. Further, let $\mathbf{M} \in \mathbb{R}^{N \times N}$ be the finite element mass matrix, and let $\AkerPcMat \in \mathbb{R}^{N \times N}$ be following matrix of approximate kernel entries:
 \begin{equation}
 \label{eq:Akerpcmat_entries}
 \left(\AkerPcMat\right)_{ij} := \AkerPcMesh(p_i, p_j).
@@ -886,24 +708,16 @@ Using \eqref{eq:defn_of_Akerpcmesh}, \eqref{eq:kernel_representation_pcmesh}, \e
 \begin{equation*}
 \left(\AopPcMesh u_h \right)(v_h) = \mathbf{v}^T \mathbf{M} \AkerPcMat \mathbf{M} \mathbf{u}.
 \end{equation*}
-% PUT INTO APPENDIX!!!!
-%\begin{align*}
-%\left(\AopPcMesh u_h \right)(v_h) =& \int_\Omega \int_\Omega v_h(y) \AkerPcMesh(y,x) u_h(x) dx dy \\
-%=& \int_\Omega \int_\Omega \left(\sum_{i=1}^N \mathbf{v}_i f_i(y)\right) \left(\sum_{j=1}^N \sum_{k=1}^N \AkerPc(p_j,p_k) f_j(y) f_k(x)\right) \left(\sum_{l=1}^N \mathbf{u}_l f_l(x)\right) dx dy \\
-%=& \sum_{i,j,k,l=1}^N \mathbf{v}_i \left(\int_\Omega f_i(y) f_j(y) dy\right) \AkerPcMesh(p_j, p_k) \left(\int_\Omega f_k(x) f_l(x) dx\right) \mathbf{u}_l \\
-%=& \sum_{i,j,k,l=1}^N \mathbf{v}_i \mathbf{M}_{ij} \left(\AkerPcMat\right)_{jk} \mathbf{M}_{kl} \mathbf{u}_l \\
-%=& \mathbf{v}^T \mathbf{M} \AkerPcMat \mathbf{M} \mathbf{u},
-%\end{align*}
 The finite element matrix representation of $\AopPcMesh$, which we denote by $\AmatPc$, is therefore given by
 \begin{equation}
 \label{eq:Amatpc_defn}
 \AmatPc := \mathbf{M} \AkerPcMat \mathbf{M}.
 \end{equation}
 
+
 \subsubsection{Hierarchical matrix construction}
 
 We form an H-matrix representation of $\AmatPc$ by converting $\AkerPcMat$ and $\mathbf{M}$ to H-matrix format, then using fast H-matrix methods to multiply these matrices according to \eqref{eq:Amatpc_defn}. Once $\AmatPc$ is in H-matrix format, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
-%We discuss H-matrices in greater detail in Appendix \ref{app:h_matrix}.
 
 We convert $\AkerPcMat$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBPro software package \cite{HLIBPRO}. Although $\AkerPcMat$ is a dense $N \times N$ matrix, constructing the H-matrix approximation of $\AkerPcMat$ only requires evaluation of $O(k^2 N \log N)$ entries of $\AkerPc$, and these entries are computed via the formula in Equation \eqref{eq:eval_y_x}. Here $k$ is the rank of the highest-rank block in the H-matrix. A dense representation of $\AkerPcMat$ is never formed. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. We convert $\mathbf{M}$ to H-matrix format using standard H-matrix methods for sparse matrices implemented within HLIBPro, using the same recursive block partitioning structure as was used for $\AkerPcMat$. 
 
@@ -947,11 +761,9 @@ We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly r
 Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\mathcal{A}$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $s(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
 
 
-
-
 \subsection{Computational cost}
 
-c\begin{itemize}
+\begin{itemize}
 	\item computational complexity in terms of PDE solves:
 	\item cost of global low rank approximation (data scalability)
 	\item cost to build approximation
@@ -962,10 +774,6 @@ c\begin{itemize}
 	\item H-matrix operations cost for our method solve
 	\item irregular grid
 \end{itemize}
-
-\section{Rational positive definite modification}
-WRITE THIS
-
 
 
 \section{Numerical results}
@@ -995,9 +803,8 @@ WRITE THIS
 	\item turn on preconditioner after number of krylov iterations exceeds 15 in an iteration. Rebuild "as needed". (S)
 \end{itemize}
 
-
-
 Some numerical results here.
+
 
 \section{Conclusions}
 \label{sec:conclusions}
@@ -1006,6 +813,7 @@ Some conclusions here.
 
 \appendix
 
+
 \section{Hierarchical matrix details}
 \label{app:h_matrix}
 
@@ -1013,11 +821,11 @@ Often, large dense matrices of practical interest may be permuted, then partitio
 
 While a dense $N \times N$ matrix traditionally requires $O(N^2)$ memory to store, H-matrices may be stored using $O(N \log N)$ memory, by storing only the low rank factors for the low rank blocks. Recursive algorithms can take advantage of the H-matrix low rank block structure to perform matrix arithmetic fast. Conventional dense matrix algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix-matrix addition require either $O(N^2)$ or $O(N^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log(N)^a)$ time and memory for H-matrices. Here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
+
 \subsection{H-matrix construction}
 
-%The H-matrix construction method uses geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix (here, these locations are the finite element Lagrange nodes $p_i$, $i=1,\dots,N$) to construct a recursive block partitioning of $\AkerPcMat$, such that all blocks at the finest level of the partitioning are either expected to be low rank, or are small. Then, the method forms low rank approximations of the blocks that are expected to be low rank by sampling specially chosen rows and columns of those blocks. The small high rank blocks are formed directly by evaluating their entries. 
-
 In detail, the process of constructing an H-matrix representation of $\AkerPcMat$ proceeds as follows. First, we construct hierarchical partitionings of the degrees of freedom for the columns and rows of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(N \log N)$ specially-chosen entries of $\AkerPcMat$, and we evaluate these entries using \eqref{eq:Akerpcmat_entries}. 
+
 
 \subsubsection{Cluster trees}
 \label{sec:cluster_trees}
@@ -1029,6 +837,7 @@ Since we use finite elements to discretize the problem, the $i^\text{th}$ column
 A depth-first search ordering of the column cluster tree leaves is then generated. When the columns of the matrix are permuted into this depth-first ordering, the columns associated with each cluster in the cluster tree are contiguous.
 
 In the same way, the degrees of freedom associated with the rows of the matrix are hierarchically clustered into another cluster tree, and a depth-first search ordering for the rows is generated. In our examples, the degrees of freedom for the columns coincide with the degrees of freedom for the rows, so the cluster trees for the rows and columns are the same, but this is not required in general.
+
 
 \subsubsection{Block cluster tree} 
 \label{sec:block_cluster_tree}
@@ -1073,7 +882,6 @@ where $U^+$ is the pseudoinverse of $U$ \cite{CUR}. The quality of approximation
 In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible. This may be done via either the maxvol procedure \cite{GOODSUBMATRIX}, or via QR factorization. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $kr$ columns of $X$ and $kr$ rows of $X$, where $k$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. For more details on adaptive cross low rank approximation, see \cite{ACA}. The key point is that the adaptive cross method allows us to form a rank-$r$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(mr)$ entries of that block.
 
 We use the adaptive cross method to form low rank approximations for each admissible block of $\AkerPcMat$. We directly compute all entries of the small dense blocks of $\AkerPcMat$ that are not admissible. This process requires us to compute $O(r^2 N \log N)$ entries of $\AkerPcMat$, which is relatively cheap compared to the operator actions of $\Aop$ that are required to form the product-convolution approximation.
-
 
 
 \section{Fast ellipsoid intersection test}
@@ -1158,13 +966,8 @@ g(\mu)=0
 with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\text{min}|$. Each evaluation of $g$ requires solving the $3 \times 3$ linear system \eqref{eq:rational_3_linear_system}, and once the solution $\mu$ is found, we solve \eqref{eq:rational_3_linear_system} one more time to get the final values of $c_0$, $c_1$, and $c_2$.
 
 
-
 \section{Proofs}
 \label{app:proofs}
-
-%These results rely on straightforward prerequisites that we present in Lemma \ref{lem:T_is_linear}. We prove correctness of Algorithm \ref{alg:weighting_functions_incremental} in Theorem \ref{thm:wi_alg_is_correct}. Theorem \ref{thm:wi_alg_is_correct} relies on a prerequisite result which we present in Lemma \ref{lem:psi_delta_eval}.
-
-
 
 \begin{lem}[Linearity of weighting function solution operator]
 	\label{lem:T_is_linear}
@@ -1242,8 +1045,8 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 		=& \left(\mathcal{A}Q^{ij}\right)(v),
 	\end{align*}
 	which implies $\Sigma^{ij} = \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot\mu^j$.
-	
 \end{proof}
+
 
 \section{Background: distributions}
 \label{app:distributions}
@@ -1290,7 +1093,6 @@ and we write $\mathbb{R}^N_\mathbf{M}$ to denote the space $\mathbb{R}^N$ with t
 Direct calculation shows that $V_h$ is isometrically isomorphic $\mathbb{R}^N_\mathbf{M}$. That is, equation \eqref{eq:finite_bijection} establishes a bijection between functions $u_h \in V_h$ and coefficient vectors $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and this bijection preserves the inner product in the sense that $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u},\mathbf{v}\right)_\mathbf{M}$. Likewise, the dual space, $V_h'$, is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. 
 
 Here vectors in $\mathbf{u} \in \mathbb{R}^N_{\mathbf{M}}$ and $\boldsymbol{\sigma} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ are viewed as column vectors, and $\mathbf{u}^T$ and $\boldsymbol{\sigma}^T$ are the row vectors that result from taking the standard matrix transposes of $\mathbf{u}$ and $\boldsymbol{\sigma}$, respectively. The discrete dual of a vector $\mathbf{v}$ with respect to the $\mathbf{M}$ inner product is written as $\mathbf{v}^*$, and $\mathbf{v}^*$ is viewed as a column vector.
-%These isomorphisms allow us to identify functions $u_h \in V_h$ with their corresponding coefficient arrays $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and linear functionals $\sigma_h \in V_h'$ with their corresponding coefficient arrays $\boldsymbol{\sigma} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$.
 
 
 \subsection{Discretized operations}
@@ -1384,6 +1186,7 @@ Here we list the function space operations on $V_h$ and $V_h'$ that are required
 	\end{equation*}
 \end{description}
 
+
 \subsection{Discretized mean and covariance estimation} 
 
 \begin{algorithm2e}
@@ -1418,7 +1221,6 @@ Here we list the function space operations on $V_h$ and $V_h'$ that are required
 	\caption{Discretized version of Algorithm \ref{alg:varhpi_mean_cov}}
 	\label{alg:varhpi_mean_cov_discrete}
 \end{algorithm2e}
-
 
 In computations, $\alpha$, $\mu^{i}$, and $\Sigma^{ij}$ are replaced with finite element approximations $\alpha_h, \mu_h^i, \Sigma_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\alpha}, \boldsymbol{\mu}^{ij}, \boldsymbol{\Sigma}^{ij}\in\mathbb{R}^N_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with either finite element projections onto $V_h$ (if the finite element basis does not satisfy the Kronecker property), or finite element interpolations onto $V_h$ (if the finite element basis satisfies the Kronecker property). In our numerical examples we use finite element basis functions that satisfy the Kronecker property, and we use finite element interpolations. The coefficient vectors corresponding to either the interpolations or projections are denoted $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
 \begin{align*}
