@@ -151,15 +151,17 @@ We compute one ``batch'' of $\convkernel_i$'s by applying $\Aop$ to a sum of poi
 
 In order to choose the points $x_i$, we need to estimate the support of $\impulseresponse_i$ \emph{before} we compute it. The supports of the functions $\impulseresponse_x$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of specially chosen functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$), then post processing the results (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
 
-We choose the weighting functions, $w_i$, to be the solutions to the following optimization problems:
-\begin{equation}
-	\label{eq:wi_optimization_problem_intro}
-	\begin{aligned}
-		\min_{w_i \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
-		\text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
-	\end{aligned}
-\end{equation}
-Here $\Delta$ is the Laplacian on $\Omega$, $H^2_N(\Omega)$ is the space of all functions in the Sobolev space $H^2(\Omega)$ with Neumann zero boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. Since the Laplacian measures local deviation from flatness \cite{JACOBSEN}, the function $w_i$ is the flattest function, in a least-squares sense, that takes the value one at the sample point $x_i$, and the value zero at the other sample points $x_j$, $i \neq j$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid. We call this interpolation scheme \emph{Poisson interpolation}. The advantage of Poisson interpolation over other interpolation methods, most notably radial basis function interpolation \cite{ESCANDE}, is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. This is illustrated in Figure FIG. 
+%We choose the weighting functions, $w_i$, to be the solutions to the following optimization problems:
+%\begin{equation}
+%	\label{eq:wi_optimization_problem_intro}
+%	\begin{aligned}
+%		\min_{w_i \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
+%		\text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
+%	\end{aligned}
+%\end{equation}
+%Here $\Delta$ is the Laplacian on $\Omega$, $H^2_N(\Omega)$ is the space of all functions in the Sobolev space $H^2(\Omega)$ with Neumann zero boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. Since the Laplacian measures local deviation from flatness \cite{JACOBSEN}, 
+
+We choose the $i$th weighting function, $w_i$, to be the flattest function, in a least-squares sense, that takes the value one at the sample point $x_i$, and the value zero at the other sample points $x_j$, $i \neq j$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid. We call this interpolation scheme \emph{Poisson interpolation}. The advantage of Poisson interpolation over other interpolation methods, most notably radial basis function interpolation \cite{ESCANDE}, is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. This is illustrated in Figure FIG. 
 
 Once the $\convkernel_i$ and $w_i$ are computed, we convert $\AopPc$ to hierarchical matrix (H-matrix) format. Let $\Aker_\text{pc}$ denote the integral kernel associated with $\AopPc$. While $\Aker(y,x)$ is not easily computable, $\Aker_\text{pc}(y,x)$ is given by the formula
 \begin{equation}
@@ -428,17 +430,7 @@ in which one seeks a smooth function $v$ that takes the values $\interpolatedval
 		0, & j \neq i.
 	\end{cases}
 \end{equation*}
-Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\convkernel_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}).
-
-%For each $i=1,\dots,\convrank$, optimization problem \eqref{eq:wi_optimization_problem} is an example of the following generic optimization problem:
-%\begin{equation}
-%	\label{eq:wi_optimization_problem_generic}
-%	\begin{aligned}
-%		\min_{v \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta v}_{L^2(\Omega)}^2 \\
-%		\text{such that} &\quad v(x_j) = \interpolatedvalues_j, \quad j=1,\dots,\convrank,
-%	\end{aligned}
-%\end{equation}
-%where $\interpolatedvalues_j \in \mathbb{R}$, $j=1,\dots,\convrank$ are given function values that $v$ must take at the points $x_j$. 
+In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' \cite{JACOBSEN} interpolation of the convolution kernels, $\convkernel_i$, in a least-squares sense. Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}).
 
 We may efficiently solve optimization problem \eqref{eq:wi_optimization_problem_generic} via the following procedure:
 \begin{enumerate}
@@ -485,7 +477,7 @@ We may efficiently solve optimization problem \eqref{eq:wi_optimization_problem_
 		\pointinteractionmatrix_{ij} := \left( \firstgreens_i, \firstgreens_j \right)_{L^2(\Omega)}.
 	\end{equation}
 \end{enumerate}
-In Theorem \ref{thm:wi_no_breakdown}, we prove that this procedure does not break down, so long as there is no repetition in the points $x_i$. Linear system \eqref{eq:interpolation_linear_system} is the KKT system that arises if one solves optimization problem \eqref{eq:wi_optimization_problem_generic} on the $\convrank+1$-dimensional subspace spanned by the functions $\firstgreens_i$, $i=1,\dots,\convrank$, and the constant function $C(x)=1$, rather than solving the optimization problem on the infinite dimensional space $H^2_N(\Omega)$. In Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this process solves optimization problem \eqref{eq:wi_optimization_problem_generic} on $H^2_N(\Omega)$.
+Linear system \eqref{eq:interpolation_linear_system} is the KKT system that arises if one solves optimization problem \eqref{eq:wi_optimization_problem_generic} on the $\convrank+1$-dimensional subspace of $H^2_N(\Omega)$ spanned by the functions $\secondgreens_i$, $i=1,\dots,\convrank$, and the constant function $C(x)=1$. In Theorem \ref{thm:wi_no_breakdown}, we prove that this procedure does not break down, and in Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this procedure is the solution to optimization problem \eqref{eq:wi_optimization_problem_generic} on $H^2_N(\Omega)$.
 
 Constructing all $\convrank$ of the functions $w_i$ thus requires solving the Poisson equation $2\convrank$ times with different right hand side sources to form the functions $\firstgreens_i$ and $\secondgreens_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, which are the most expensive part of this procedure, can be performed cheaply with multigrid. 
 
