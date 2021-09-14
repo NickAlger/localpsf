@@ -58,7 +58,7 @@
 
 We present a fast matrix free method for approximating locally translation-invariant operators, $\Aop$, that have locally supported non-negative integral kernels. Such operators arise throughout computational science. Examples include Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps), covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained optimization and inverse problems.
 
-Let $\Omega \subset \mathbb{R}^d$ be a bounded domain in dimension $d=1$, $2$, or $3$. We consider integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ of the form
+Let $\Omega \subset \mathbb{R}^d$ be a bounded domain in dimension $\gdim=1$, $2$, or $3$. We consider integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ of the form
 \begin{equation}
 	\label{eq:kernel_representation}
 	(\Aop u)(v) := \int_\Omega \int_\Omega v(y) \Aker(y,x) u(x) dx dy,
@@ -134,13 +134,13 @@ If $\Aop$ were perfectly translation invariant (i.e., if equality held in \eqref
 The convolution kernel $\convkernel_x$ is the result of translating the impulse response $\impulseresponse_x$ to re-center it at zero instead of $x$. Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\convkernel_x$, varies as $x$ changes. We therefore approximate $\Aop$ by a spatially varying weighted sum of convolution operators, $\AopPc \approx \Aop$, of the form
 \begin{equation}
 \label{eq:product_convolution}
-	\left(\AopPc~u\right)(v) := \left( v,~ \sum_{i=1}^r \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
+	\left(\AopPc~u\right)(v) := \left( v,~ \sum_{i=1}^\convrank \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
 \end{equation}
 where $f \cdot g$ denotes pointwise multiplication, $f \ast g$ denotes convolution, and $\left(f, g\right)_{L^2(\Omega)}$ denotes the $L^2$ inner product on $\Omega$, for functions $f,g \in L^2(\Omega)$. Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. To avoid nested subscripts, we write 
 \begin{equation*}
 	\convkernel_i := \convkernel_{x_i} \quad \text{and} \quad \impulseresponse_i := \impulseresponse_{x_i},
 \end{equation*}
-with $\convkernel_{x_i}$ defined in \eqref{eq:convolution_kernel} and $\impulseresponse_{x_i}$ defined in \eqref{eq:impulse_response_defn}, to denote local convolution kernels and impulse responses corresponding to a collection of points $\{x_i\}_{i=1}^r \subset \Omega$ scattered throughout the domain. The functions $w_i$ are spatially varying weighting functions that are used to interpolate the convolution kernels $\convkernel_i$. Our operator approximation method is defined by how we compute the convolution kernels, $\convkernel_i$, how we choose the points, $x_i$, and what weighting functions, $w_i$, that we use. In Section \ref{sec:overview_intro} we summarize the answers to these questions; we will provide detailed answers to these questions in Section \ref{sec:method}.
+with $\convkernel_{x_i}$ defined in \eqref{eq:convolution_kernel} and $\impulseresponse_{x_i}$ defined in \eqref{eq:impulse_response_defn}, to denote local convolution kernels and impulse responses corresponding to a collection of points $\{x_i\}_{i=1}^\convrank \subset \Omega$ scattered throughout the domain. The functions $w_i$ are spatially varying weighting functions that are used to interpolate the convolution kernels $\convkernel_i$. Our operator approximation method is defined by how we compute the convolution kernels, $\convkernel_i$, how we choose the points, $x_i$, and what weighting functions, $w_i$, that we use. In Section \ref{sec:overview_intro} we summarize the answers to these questions; we will provide detailed answers to these questions in Section \ref{sec:method}.
 
 The more locally translation invariant an operator is (i.e., the smaller the discrepancy between the left hand side and right hand side in \eqref{eq:local_translation_invariance}), the smaller the number of terms that are required in \eqref{eq:product_convolution} to achieve an accurate product-convolution approximation. 
 
@@ -149,7 +149,7 @@ The more locally translation invariant an operator is (i.e., the smaller the dis
 
 We compute one ``batch'' of $\convkernel_i$'s by applying $\Aop$ to a sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen so that the support of $\impulseresponse_i$ and the support of $\impulseresponse_j$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_i$, and therefore the functions $\convkernel_i$, associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\convkernel_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\convkernel_i$'s, until a desired number of batches is reached.
 
-In order to choose the points $x_i$, we need to estimate the support of $\impulseresponse_i$ \emph{before} we compute it. The supports of the functions $\impulseresponse_x$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of specially chosen functions (three functions if $d=1$, six if $d=2$, ten if $d=3$), then post processing the results (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
+In order to choose the points $x_i$, we need to estimate the support of $\impulseresponse_i$ \emph{before} we compute it. The supports of the functions $\impulseresponse_x$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of specially chosen functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$), then post processing the results (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
 
 We choose the weighting functions, $w_i$, to be the solutions to the following optimization problems:
 \begin{equation}
@@ -164,7 +164,7 @@ Here $\Delta$ is the Laplacian on $\Omega$, $H^2_N(\Omega)$ is the space of all 
 Once the $\convkernel_i$ and $w_i$ are computed, we convert $\AopPc$ to hierarchical matrix (H-matrix) format. Let $\Aker_\text{pc}$ denote the integral kernel associated with $\AopPc$. While $\Aker(y,x)$ is not easily computable, $\Aker_\text{pc}(y,x)$ is given by the formula
 \begin{equation}
 	\label{eq:kernel_entries}
-	\AkerPc(y,x) = \sum_{i=1}^r \convkernel_i(y-x) w_i(x).
+	\AkerPc(y,x) = \sum_{i=1}^\convrank \convkernel_i(y-x) w_i(x).
 \end{equation}
 This follows from~\eqref{eq:product_convolution} and the fact that the convolution operator $u \mapsto \convkernel_i \ast u$ has $(y,x)$ kernel entry given by $\convkernel(y-x)$.
 Formula~\eqref{eq:kernel_entries} allows us to construct a H-matrix representation of $\AopPc$ using the conventional adaptive cross H-matrix construction method, in which one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. Once in H-matrix format, fast H-matrix arithmetic is used to invert $\AopPc$, or perform other useful matrix operations.
@@ -203,10 +203,10 @@ In this section we describe how we choose the sample points, $x_i$ (Section \ref
 		
 		Compute $\spatialvol$, $\spatialmean$, and $\spatialcov$ using Algorithm \ref{alg:varhpi_mean_cov}.
 		
-		\For{$b=1,2,\dots,\text{max\_batches}$}{
-			Choose a batch of sample points, $\pointbatch_b$, using Algorithm \ref{alg:point_choice}
+		\For{$k=1,2,\dots,\text{max\_batches}$}{
+			Choose a batch of sample points, $\pointbatch_k$, using Algorithm \ref{alg:point_choice}
 			
-			Compute $\combresponse_b$ by applying $\Aop$ to the dirac comb for $\pointbatch_b$ (Section \ref{sec:get_impulse_response})
+			Compute $\combresponse_k$ by applying $\Aop$ to the dirac comb for $\pointbatch_k$ (Section \ref{sec:get_impulse_response})
 			
 		}
 
@@ -242,18 +242,18 @@ Because of the non-negative kernel property, for each $x \in \Omega$, the impuls
 \end{equation}
 where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\impulseresponse}_x$ (see Figure FIG). The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, the cost of our algorithm will depend on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
 
-The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first compute the scalar $\spatialvol(x)$, the length-$d$ vector $\spatialmean(x)$, and the $d \times d$ matrix $\spatialcov(x)$ (recall $d \in \{1,2,3\}$ is the spatial dimension of $\Omega$). The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because and it requires one operator action of $\Aop$ per point $x$ that we wish to evaluate $E_x$ at, and we will need to evaluate $E_x$ at a large number of points. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x$ simultaneously}, by applying $\Aop^T$ to one constant function, $d$ linear functions, and $d(d+1)/2$ quadratic functions. We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Theorem \ref{thm:vol_mean_cov} and summarize the method in Algorithm \ref{alg:varhpi_mean_cov}.
+The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first compute the scalar $\spatialvol(x)$, the length-$\gdim$ vector $\spatialmean(x)$, and the $\gdim \times \gdim$ matrix $\spatialcov(x)$ (recall $\gdim \in \{1,2,3\}$ is the spatial dimension of $\Omega$). The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because and it requires one operator action of $\Aop$ per point $x$ that we wish to evaluate $E_x$ at, and we will need to evaluate $E_x$ at a large number of points. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Theorem \ref{thm:vol_mean_cov} and summarize the method in Algorithm \ref{alg:varhpi_mean_cov}.
 
 
 \begin{theorem}[Impulse response moments]
 	\label{thm:vol_mean_cov}
-	Let $\spatialvol:\Omega \rightarrow \mathbb{R}$, $\spatialmean:\Omega \rightarrow \mathbb{R}^d$, and $\spatialcov:\Omega \rightarrow \mathbb{R}^{d \times d}$, be the following functions:
+	Let $\spatialvol:\Omega \rightarrow \mathbb{R}$, $\spatialmean:\Omega \rightarrow \mathbb{R}^\gdim$, and $\spatialcov:\Omega \rightarrow \mathbb{R}^{\gdim \times \gdim}$, be the following functions:
 	\begin{equation*}
 		\spatialvol(x) := \int_{\Omega} \impulseresponse_x(y) dy, \qquad
 		\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
 		\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
 	\end{equation*}
-	where $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denotes the normalized version of $\impulseresponse_x$, $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$. Let $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions:
+	where $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denotes the normalized version of $\impulseresponse_x$, $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$. Let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
 	\begin{equation*}
 		C(x) := 1, \qquad
 		L^i(x) := x^i, \qquad
@@ -268,7 +268,7 @@ The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first co
 			\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
 		\end{align}
 	\end{subequations}
-	 for $i=1,\dots, d$, $j=1,\dots,d$.
+	 for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$.
 \end{theorem}
 
 The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}. The proof is straightforward, and follows directly from the definitions.
@@ -288,13 +288,13 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 		Compute $\spatialvol = \left(\Aop^T C\right)^*$
 		
 		\tcp{Compute mean $\spatialmean$}
-		\For{$i=1,2,\dots,d$}{
+		\For{$i=1,2,\dots,\gdim$}{
 			Form linear function $L^i(x) = x^i$
 			
 			Compute $\spatialmean^i = \left(\Aop^T L^i\right)^* / \spatialvol$
 		}
 		\tcp{Compute covariance $\spatialcov$}
-		\For{$i=1,2,\dots,d$}{
+		\For{$i=1,2,\dots,\gdim$}{
 			\For{$j=1,\dots,i$}{
 				Form quadratic function $Q^{ij}(x) = x^i x^j$
 				
@@ -314,16 +314,16 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \subsubsection{Greedy ellipsoid packing}
 \label{sec:greedy_point_selection}
 
-We use a greedy ellipsoid packing algorithm to choose sets of sample points, $\pointbatch_b$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\impulseresponse_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\Aop$ to the Dirac comb associated with all sample points in a batch, we will recover the impulse responses for all sample points in that batch.
+We use a greedy ellipsoid packing algorithm to choose batches of sample points, $\pointbatch_k$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\impulseresponse_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\Aop$ to the Dirac comb associated with all sample points in a batch, we will recover the impulse responses for all sample points in that batch.
 
-We start with a finite set of candidate points $P$. To build a batch of sample points, $\pointbatch_b$, first we initialize $\pointbatch_b$ as an empty set. Then we select the point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
+We start with a finite set of candidate points $P$. To build $\pointbatch_k$, first we initialize $\pointbatch_k$ as an empty set. Then we select a candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
 \begin{equation*}
-\max_{p \in P} \min_{x \in \pointbatch_1 \cup \dots \cup \pointbatch_{b-1}} \|p - x\|.
+\max_{p \in P} \min_{x \in \pointbatch_1 \cup \dots \cup \pointbatch_{k-1}} \|p - x\|.
 \end{equation*}
 Candidate points for the first batch are chosen arbitrarily from $P$.
-Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in \pointbatch_b$, then we add $p$ to $\pointbatch_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
+Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in \pointbatch_k$, then we add $p$ to $\pointbatch_k$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
 
-We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches.
+We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, except those points in previously chosen batches.
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -331,28 +331,28 @@ We repeat the process to construct several batches of points $\pointbatch_1, \po
 	\SetKwInOut{Output}{Output}
 	\SetKwProg{Fn}{Function}{}{}
 	
-	\Input{Finite set of candidate points $P\subset \Omega$, \\spatialmean $\spatialmean(x)$ and covariance $\spatialcov(x)$, \\domain boundary information $\partial \Omega$, \\previous sample point batches $\pointbatch_1, \dots, \pointbatch_{b-1}$}
-	\Output{Batch of new sample points $\pointbatch_b$}
+	\Input{Finite set of candidate points $P\subset \Omega$, \\spatialmean $\spatialmean(x)$ and covariance $\spatialcov(x)$, \\domain boundary information $\partial \Omega$, \\previous sample point batches $\pointbatch_1, \dots, \pointbatch_{k-1}$}
+	\Output{Batch of new sample points $\pointbatch_k$}
 	
-	Initialize empty new batch of sample points, $\pointbatch_b = \{\}$
+	Initialize empty new batch of sample points, $\pointbatch_k = \{\}$
 	
 	\While{$P$ is not empty}{
-		Determine the point $p \in P$ that is farthest from all points in the previous sample point batches $\pointbatch_1,\dots,\pointbatch_{b-1}$
+		Determine the point $p \in P$ that is farthest from all points in the previous sample point batches $\pointbatch_1,\dots,\pointbatch_{k-1}$
 		
 		Remove $p$ from $P$
 
 	
-		\If{$E_p \cap E_q \neq \{\}$ for all $q \in \pointbatch_b$ and $E_p \cap \partial \Omega = \{\}$}{
+		\If{$E_p \cap E_q \neq \{\}$ for all $q \in \pointbatch_k$ and $E_p \cap \partial \Omega = \{\}$}{
 			\tcp{$E_p$ and $E_q$ are the ellipsoids defined in \eqref{eq:support_ellipsoid}}
 			
-			Add $p$ to $\pointbatch_b$
+			Add $p$ to $\pointbatch_k$
 			
 			Remove all points $p'$ satisfying $\spatialmean(p') \in E_p$ from $P$
 		}
 	}
 
     \SetKwFunction{FMain}{point\_is\_acceptable}
-	\caption{Choosing one batch of sample points, $\pointbatch_b$}
+	\caption{Choosing one batch of sample points, $\pointbatch_k$}
 	\label{alg:point_choice}
 \end{algorithm2e}
 
@@ -360,38 +360,38 @@ We repeat the process to construct several batches of points $\pointbatch_1, \po
 \subsection{Convolution kernels}
 \label{sec:get_impulse_response}
 
-We compute convolution kernels $\convkernel_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. Each application of $\Aop$ to a Dirac comb yields one batch of impulse responses, $\impulseresponse_{x_i}$, which yields one batch of convolution kernels, $\convkernel_{x_i}$. The Dirac comb, $\dcomb_b$, associated with a batch of sample points, $\pointbatch_b$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_b$. That is,
+We compute convolution kernels $\convkernel_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. Each application of $\Aop$ to a Dirac comb yields one batch of impulse responses, $\impulseresponse_{x_i}$, which yields one batch of convolution kernels, $\convkernel_{x_i}$. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$. That is,
 \begin{equation*}
-	\dcomb_b := \sum_{x_i \in \pointbatch_b} \delta_{x_i}.
+	\diraccomb_k := \sum_{x_i \in \pointbatch_k} \delta_{x_i}.
 \end{equation*}
-For each batch $\pointbatch_b$, we compute the action of $\Aop$ on the associated Dirac comb:
+For each batch $\pointbatch_k$, we compute the action of $\Aop$ on the associated Dirac comb:
 \begin{equation}
 	\label{eq:dirac_comb_H_action}
-	\combresponse_b := \left(\Aop \dcomb_b^*\right)^*.
+	\combresponse_k := \left(\Aop \diraccomb_k^*\right)^*.
 \end{equation}
-By linearity, the resulting function $\combresponse_b$ may be written as
+By linearity, the resulting function $\combresponse_k$ may be written as
 \begin{equation}
 	\label{eq:phi_b}
-	\combresponse_b = \left(\Aop \left(\sum_{x_i \in \pointbatch_b} \delta_{x_i}\right)^*\right)^* = \sum_{x_i \in \pointbatch_b} \left(\Aop \delta_{x_i}^*\right)^* = \sum_{x_i \in \pointbatch_b} \impulseresponse_{x_i}.
+	\combresponse_k = \left(\Aop \left(\sum_{x_i \in \pointbatch_k} \delta_{x_i}\right)^*\right)^* = \sum_{x_i \in \pointbatch_k} \left(\Aop \delta_{x_i}^*\right)^* = \sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i}.
 \end{equation}
 Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\impulseresponse_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\impulseresponse_j$ do not overlap when $i \neq j$, from \eqref{eq:convolution_kernel} and \eqref{eq:phi_b} we have (approximately)
 \begin{equation}
 \label{eq:varphi_eval}
 	\convkernel_{x_i}(z) = \impulseresponse_i(z+x_i) = 
 	\begin{cases}
-		\combresponse_b(z+x_i), & z+x_i \in E_{x_i} \\
+		\combresponse_k(z+x_i), & z+x_i \in E_{x_i} \\
 		0, & \text{otherwise}
 	\end{cases}
 \end{equation}
-for all $x_i \in \pointbatch_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the convolution kernels $\convkernel_{x_i}$ associated with every point $x_i \in \pointbatch_b$. 
+for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the convolution kernels $\convkernel_{x_i}$ associated with every point $x_i \in \pointbatch_k$. 
 
 
 \subsubsection{Interpolation onto local regular grids}
 \label{sec:convolution_kernel_regular_grid}
 
-To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\convkernel_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\convkernel_{x_i}(z)$ requires evaluating $\combresponse_b(z+x_i)$. In computations, $\combresponse_b$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\combresponse_b(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. 
+To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\convkernel_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\convkernel_{x_i}(z)$ requires evaluating $\combresponse_k(z+x_i)$. In computations, $\combresponse_k$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\combresponse_k(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. 
 
-To speed up evaluation of $\convkernel_{x_i}$, we interpolate $\convkernel_{x_i}$ onto a regular rectilinear grid on a coordinate axis aligned box that just barely contains the ellipsoid $E_{x_i}$. We transfer the function $\convkernel_{x_i}$ from the irregular mesh to the regular grid by evaluating $\convkernel_{x_i}$ at all gridpoints in the regular grid, using the slow process described in the previous paragraph. This is an upfront cost which is done ``offline.'' After $\convkernel_{x_i}$ has been transferred to the regular grid, we use fast regular grid interpolation to perform all subsequent ``online'' evaluations of $\convkernel_{x_i}$. This yields a substantial overall speedup because the number of finite element function evaluations required to transfer the functions $\convkernel_{x_i}$ to the regular grid is $O(N)$, while the number of kernel evaluations required to convert $\AopPc$ to H-matrix format is $O(k N \log N)$. Here $N$ is the number of finite element degrees of freedom, and $k$ is the H-matrix rank. Furthermore, transferring $\convkernel_{x_i}$ to a regular grid requires evaluating $\convkernel_{x_i}$ at a predetermined and highly structured collection of points. This structure allows for faster determination of which mesh cells that points are in, and allows one to evaluate the finite element function at all regular gridpoints in parallel. In contrast, constructing the H-matrix requires evaluating $\convkernel_{x_i}$ at an unpredictable sequence of scattered of points, which is an expensive task for finite element function evaluation, but a cheap task for regular grid interpolation. 
+To speed up evaluation of $\convkernel_{x_i}$, we interpolate $\convkernel_{x_i}$ onto a regular rectilinear grid on a coordinate axis aligned box that just barely contains the ellipsoid $E_{x_i}$. We transfer the function $\convkernel_{x_i}$ from the irregular mesh to the regular grid by evaluating $\convkernel_{x_i}$ at all gridpoints in the regular grid, using the slow process described in the previous paragraph. This is an upfront cost which is done ``offline.'' After $\convkernel_{x_i}$ has been transferred to the regular grid, we use fast regular grid interpolation to perform all subsequent ``online'' evaluations of $\convkernel_{x_i}$. This yields a substantial overall speedup because the number of finite element function evaluations required to transfer the functions $\convkernel_{x_i}$ to the regular grid is $O(\fedim)$, while the number of kernel evaluations required to convert $\AopPc$ to H-matrix format is $O(k \fedim \log \fedim)$. Here $\fedim$ is the number of finite element degrees of freedom, and $k$ is the H-matrix rank. Furthermore, transferring $\convkernel_{x_i}$ to a regular grid requires evaluating $\convkernel_{x_i}$ at a predetermined and highly structured collection of points. This structure allows for faster determination of which mesh cells that points are in, and allows one to evaluate the finite element function at all regular gridpoints in parallel. In contrast, constructing the H-matrix requires evaluating $\convkernel_{x_i}$ at an unpredictable sequence of scattered of points, which is an expensive task for finite element function evaluation, but a cheap task for regular grid interpolation. 
 Having $\convkernel_{x_i}$ stored on a regular grid also simplifies the implementation of the method that we use to deal with boundary artifacts, which will be described in Section \ref{sec:boundary_extension}.
 
 We incur interpolation error when transferring $\convkernel_{x_i}$ from the irregular mesh to the regular grid. To limit this interpolation error, the density of the regular grid should be as dense or denser than the local density of the finite element mesh. In our numerical results, the distance between neighboring points in the regular grid is chosen to be half the minimum distance between any pair of finite element Lagrange nodes that are contained in $E_{x_i}$. The grid transfer procedure is illustrated in Figure FIG. 
@@ -412,25 +412,35 @@ In detail, let $p_1, p_2, \dots, p_k$ be the $k$ nearest sample points to $x_i$,
 \subsection{Poisson weighting functions}
 \label{sec:weighting_functions}
 
-We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to the following optimization problem:
-\begin{equation}
-	\label{eq:wi_optimization_problem}
-	\begin{aligned}
-		\min_{w_i \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
-		\text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,r.
-	\end{aligned}
-\end{equation}
-Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\convkernel_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}).
-
-For each $i=1,\dots,r$, optimization problem \eqref{eq:wi_optimization_problem} is an example of the following generic optimization problem:
+Consider the following optimization problem,
 \begin{equation}
 	\label{eq:wi_optimization_problem_generic}
 	\begin{aligned}
-		\min_{v \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta v}_{L^2(\Omega)}^2 \\
-		\text{such that} &\quad v(x_j) = \interpolatedvalues_j, \quad j=1,\dots,r,
+	\min_{v \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta v}_{L^2(\Omega)}^2 \\
+	\text{such that} &\quad v(x_j) = \interpolatedvalues_j, \quad j=1,\dots,\convrank,
 	\end{aligned}
 \end{equation}
-where $\interpolatedvalues_j \in \mathbb{R}$, $j=1,\dots,r$ are now arbitrary function values that $v$ must take at the points $x_j$. We may efficiently solve optimization problem \eqref{eq:wi_optimization_problem_generic} via the following procedure:
+in which one seeks a smooth function $v$ that takes the values $\interpolatedvalues_j \in \mathbb{R}$ at the points $x_j$. Here $\Delta$ is the Laplacian on $\Omega$ and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to optimization problem \eqref{eq:wi_optimization_problem_generic}, with 
+\begin{equation*}
+	b_j = w_i(x_j) = 
+	\begin{cases}
+		1, & j=i\\
+		0, & j \neq i.
+	\end{cases}
+\end{equation*}
+Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\convkernel_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}).
+
+%For each $i=1,\dots,\convrank$, optimization problem \eqref{eq:wi_optimization_problem} is an example of the following generic optimization problem:
+%\begin{equation}
+%	\label{eq:wi_optimization_problem_generic}
+%	\begin{aligned}
+%		\min_{v \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta v}_{L^2(\Omega)}^2 \\
+%		\text{such that} &\quad v(x_j) = \interpolatedvalues_j, \quad j=1,\dots,\convrank,
+%	\end{aligned}
+%\end{equation}
+%where $\interpolatedvalues_j \in \mathbb{R}$, $j=1,\dots,\convrank$ are given function values that $v$ must take at the points $x_j$. 
+
+We may efficiently solve optimization problem \eqref{eq:wi_optimization_problem_generic} via the following procedure:
 \begin{enumerate}
 	\item For each sample point $x_i$, we compute a function $\firstgreens_i$ by solving the following Neumann Poisson problem:
 	\begin{equation}
@@ -453,13 +463,13 @@ where $\interpolatedvalues_j \in \mathbb{R}$, $j=1,\dots,r$ are now arbitrary fu
 	\item The solution to optimization problem \eqref{eq:wi_optimization_problem_generic}, which we denote by $v_*$, is formed as follows:
 	\begin{equation}
 		\label{eq:optimal_v}
-		v_*(x) := \beta + \sum_{i=1}^r c_i \secondgreens_i(x),
+		v_*(x) := \beta + \sum_{i=1}^\convrank c_i \secondgreens_i(x),
 	\end{equation}
-	where the constants $c_i \in \mathbb{R}$, $i=1,\dots,r$, and $\beta \in \mathbb{R}$ are the solution to the following linear system:
+	where the constants $c_i \in \mathbb{R}$, $i=1,\dots,\convrank$, and $\beta \in \mathbb{R}$ are the solution to the following linear system:
 	\begin{equation}
 		\label{eq:interpolation_linear_system}
 		\begin{bmatrix}
-			S & \mathbf{1} \\ \mathbf{1}^T & 0
+			\pointinteractionmatrix & \mathbf{1} \\ \mathbf{1}^T & 0
 		\end{bmatrix}
 		\begin{bmatrix}
 			\mathbf{c} \\ \beta
@@ -469,35 +479,35 @@ where $\interpolatedvalues_j \in \mathbb{R}$, $j=1,\dots,r$ are now arbitrary fu
 			\mathbf{\interpolatedvalues} \\ 0
 		\end{bmatrix}.
 	\end{equation}
-	Here $\mathbf{c} \in \mathbb{R}^r$ is the vector with $i$th component $c_i$, $\mathbf{1} \in \mathbf{R}^r$ is the column vector of all ones, $\mathbf{\interpolatedvalues} \in \mathbb{R}^r$ is the vector with $i$th component $\interpolatedvalues_i$, and $S \in \mathbb{R}^{r \times r}$ is the matrix with entries given by
+	Here $\mathbf{c} \in \mathbb{R}^\convrank$ is the vector with $i$th component $c_i$, $\mathbf{1} \in \mathbf{R}^\convrank$ is the column vector of all ones, $\mathbf{\interpolatedvalues} \in \mathbb{R}^\convrank$ is the vector with $i$th component $\interpolatedvalues_i$, and $\pointinteractionmatrix \in \mathbb{R}^{\convrank \times \convrank}$ is the matrix with entries given by
 	\begin{equation}
 		\label{eq:S_matrix}
-		S_{ij} := \left( \firstgreens_i, \firstgreens_j \right)_{L^2(\Omega)}.
+		\pointinteractionmatrix_{ij} := \left( \firstgreens_i, \firstgreens_j \right)_{L^2(\Omega)}.
 	\end{equation}
 \end{enumerate}
-In Theorem \ref{thm:wi_no_breakdown}, we prove that this procedure does not break down, so long as there is no repetition in the points $x_i$. Linear system \eqref{eq:interpolation_linear_system} is the KKT system that arises if one solves optimization problem \eqref{eq:wi_optimization_problem_generic} on the $r+1$-dimensional subspace spanned by the functions $\firstgreens_i$, $i=1,\dots,r$, and the constant function $C(x)=1$, rather than solving the optimization problem on the infinite dimensional space $H^2_N(\Omega)$. In Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this process solves optimization problem \eqref{eq:wi_optimization_problem_generic} on $H^2_N(\Omega)$.
+In Theorem \ref{thm:wi_no_breakdown}, we prove that this procedure does not break down, so long as there is no repetition in the points $x_i$. Linear system \eqref{eq:interpolation_linear_system} is the KKT system that arises if one solves optimization problem \eqref{eq:wi_optimization_problem_generic} on the $\convrank+1$-dimensional subspace spanned by the functions $\firstgreens_i$, $i=1,\dots,\convrank$, and the constant function $C(x)=1$, rather than solving the optimization problem on the infinite dimensional space $H^2_N(\Omega)$. In Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this process solves optimization problem \eqref{eq:wi_optimization_problem_generic} on $H^2_N(\Omega)$.
 
-Constructing all $r$ of the functions $w_i$ thus requires solving the Poisson equation $2r$ times with different right hand side sources to form the functions $\firstgreens_i$ and $\secondgreens_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, which are the most expensive part of this procedure, can be performed cheaply with multigrid. 
+Constructing all $\convrank$ of the functions $w_i$ thus requires solving the Poisson equation $2\convrank$ times with different right hand side sources to form the functions $\firstgreens_i$ and $\secondgreens_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, which are the most expensive part of this procedure, can be performed cheaply with multigrid. 
 
-It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension of the domain is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-posed in three spatial dimensions or fewer. In four or higher spatial dimensions, one could construct appropriate weighting functions using radial basis functions, though we do not discuss this here.
+It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension of the domain is $\gdim=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-posed in three spatial dimensions or fewer. In four or higher spatial dimensions, one could construct appropriate weighting functions using radial basis functions, though we do not discuss this here.
 
 \begin{thm}[Procedure for computing $v_*$ does not break down]
 	\label{thm:wi_no_breakdown}
-	If all the sample points $x_i$, $i=1,\dots,r$, are distinct, then PDE \eqref{eq:psi_eq} is uniquely solvable for $\firstgreens_i$, PDE \eqref{eq:theta_eq} is uniquely solvable for $\secondgreens_i$, and linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\mathbf{c}$ and $\beta$. That is, the procedure for computing $v_*$ does not break down. Furthermore, $v_* \in H^2_N(\Omega)$.
+	If all the sample points $x_i$, $i=1,\dots,\convrank$, are distinct, then PDE \eqref{eq:psi_eq} is uniquely solvable for $\firstgreens_i$, PDE \eqref{eq:theta_eq} is uniquely solvable for $\secondgreens_i$, and linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\mathbf{c}$ and $\beta$. That is, the procedure for computing $v_*$ does not break down. Furthermore, $v_* \in H^2_N(\Omega)$.
 \end{thm}
 
 \begin{proof}
-	Existence and uniqueness for the solutions to PDEs \eqref{eq:psi_eq} and \eqref{eq:theta_eq} follow from the standard elliptic PDE theory. By standard elliptic regularity theory, $\firstgreens_i \in H^1(\Omega)$, so $\firstgreens_i \in L^2(\Omega)$, and so all matrix entries $S_{ij}$ are finite. 
+	Existence and uniqueness for the solutions to PDEs \eqref{eq:psi_eq} and \eqref{eq:theta_eq} follow from the standard elliptic PDE theory. By standard elliptic regularity theory, $\firstgreens_i \in H^1(\Omega)$, so $\firstgreens_i \in L^2(\Omega)$, and so all matrix entries $\pointinteractionmatrix_{ij}$ are finite. 
 	
-	Using the definition of $S$ and basic linear algebra, it is straightforward to show that if $S$ were singular, there would exist constants $a_1, a_2, \dots a_r$, which are not all zero, such that
+	Using the definition of $\pointinteractionmatrix$ and basic linear algebra, it is straightforward to show that if $\pointinteractionmatrix$ were singular, there would exist constants $a_1, a_2, \dots a_\convrank$, which are not all zero, such that
 	\begin{equation*}
-		0 = a_1 \firstgreens_1 + a_2 \firstgreens_2 + \dots a_r \firstgreens_r.
+		0 = a_1 \firstgreens_1 + a_2 \firstgreens_2 + \dots a_\convrank \firstgreens_\convrank.
 	\end{equation*}
 	Applying the Laplacian to this equation yields
 	\begin{equation*}
-		0 = a_1 \delta_{x_1} + a_2 \delta_{x_2} + \dots a_r \delta_{x_r} - \left(\sum_{i=1}^r a_i\right)\bigg/|\Omega|,
+		0 = a_1 \delta_{x_1} + a_2 \delta_{x_2} + \dots a_\convrank \delta_{x_\convrank} - \left(\sum_{i=1}^\convrank a_i\right)\bigg/|\Omega|,
 	\end{equation*}
-	which is impossible because a nonzero linear combination of delta distributions at different points cannot equal a constant function. Thus we must conclude that $S$ is non-singular. By block matrix factorization, non-singularity of $S$ implies that linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\mathbf{c}$ and $\beta$.
+	which is impossible because a nonzero linear combination of delta distributions at different points cannot equal a constant function. Thus we must conclude that $\pointinteractionmatrix$ is non-singular. By block matrix factorization, non-singularity of $\pointinteractionmatrix$ implies that linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\mathbf{c}$ and $\beta$.
 	
 	By standard elliptic regularity theory, the functions $\secondgreens_i$ are in $H^3(\Omega)$, and therefore they are in $H^2(\Omega)$. By construction the functions $\secondgreens_i$ have Neumann zero boundary conditions, so $\secondgreens_i \in H^2_N(\Omega)$. Since $v_*$ is a linear combination of the functions $\secondgreens_i$ and the constant function $C(x)=1$, $v_* \in H^2_N(\Omega)$.
 \end{proof}
@@ -520,34 +530,34 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\firstgreens_j$ onto $h$, and using the Neumann zero boundary conditions for $\firstgreens_j$ and $h$ to eliminate boundary integral terms.
 \end{proof}
 
-\begin{thm}[Solution of optimization problem \ref{eq:wi_optimization_problem_generic}]
+\begin{thm}[Solution of optimization problem \eqref{eq:wi_optimization_problem_generic}]
 	\label{thm:wi_alg_is_correct}
-	The function $v_*$ given in \eqref{eq:optimal_v} is the unique solution to optimization problem \ref{eq:wi_optimization_problem_generic}.
+	The function $v_*$ given in \eqref{eq:optimal_v} is the unique solution to optimization problem \eqref{eq:wi_optimization_problem_generic}.
 \end{thm}
 
 \begin{proof}
 	Let
 	\begin{equation*}
-		X := \{v \in H^2_N(\Omega) : v(x_i) = \interpolatedvalues_i \text{ for }i=1,\dots,r\}
+		X := \{v \in H^2_N(\Omega) : v(x_i) = \interpolatedvalues_i \text{ for }i=1,\dots,\convrank\}
 	\end{equation*}
 	denote the feasible set for optimization problem \ref{eq:wi_optimization_problem_generic}, and let 
 	\begin{equation*}
-		X_0 := \{v \in H^2_N(\Omega) : v(x_i) = 0 \text{ for }i=1,\dots,r\}
+		X_0 := \{v \in H^2_N(\Omega) : v(x_i) = 0 \text{ for }i=1,\dots,\convrank\}
 	\end{equation*}	
-	denote the tangent space to $X$. Note that pointwise values of functions in $H_N^2(\Omega)$ are well-defined since the Sobolev imbedding theorem (see, e.g., Theorem 7.19 in \cite{Arbogast}) implies that $H^2(\Omega)$ is continuously imbedded in the space of continuous functions $C^0(\Omega)$ when $d < 4$, and we are considering $d \in \{1,2,3\}$. The feasible set $X$ is therefore a closed affine subspace of $H^2_N(\Omega)$, the tangent space $X_0$ is a closed subspace of $H^2_N(\Omega)$, and optimization problem \eqref{eq:wi_optimization_problem_generic} is well-defined.
+	denote the tangent space to $X$. Note that pointwise values of functions in $H_N^2(\Omega)$ are well-defined since the Sobolev imbedding theorem (see, e.g., Theorem 7.19 in \cite{Arbogast}) implies that $H^2(\Omega)$ is continuously imbedded in the space of continuous functions $C^0(\Omega)$ when $\gdim < 4$, and we are considering $\gdim \in \{1,2,3\}$. The feasible set $X$ is therefore a closed affine subspace of $H^2_N(\Omega)$, the tangent space $X_0$ is a closed subspace of $H^2_N(\Omega)$, and optimization problem \eqref{eq:wi_optimization_problem_generic} is well-defined.
 	
 	The proof now proceeds in three steps. First, we show that $v_*$ is feasible ($v_* \in X$). Second, we show that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} if it satisfies a certain variational equation. Third, we verify that $v_*$ satisfies this variational equation.
 	
-	\paragraph{Feasibility} To show that $v_*$ is feasible (i.e., $v_* \in X$), we must show that $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,r$. We have
+	\paragraph{Feasibility} To show that $v_*$ is feasible (i.e., $v_* \in X$), we must show that $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$. We have
 	\begin{align*}
-		v_*(x_i) &= \beta + \sum_{j=1}^r c_j \secondgreens_j(x_i) \\
-		&= \beta + \sum_{j=1}^r c_j \left(\firstgreens_i, \Delta \secondgreens_j\right)_{L^2(\Omega)} + \avg\left(\secondgreens_j\right) \\
-		&= \beta + \sum_{j=1}^r c_j \left(\firstgreens_i, \firstgreens_j\right)_{L^2(\Omega)} \\
-		&= \beta + \sum_{j=1}^r c_j S_{ij}
+		v_*(x_i) &= \beta + \sum_{j=1}^\convrank c_j \secondgreens_j(x_i) \\
+		&= \beta + \sum_{j=1}^\convrank c_j \left(\firstgreens_i, \Delta \secondgreens_j\right)_{L^2(\Omega)} + \avg\left(\secondgreens_j\right) \\
+		&= \beta + \sum_{j=1}^\convrank c_j \left(\firstgreens_i, \firstgreens_j\right)_{L^2(\Omega)} \\
+		&= \beta + \sum_{j=1}^\convrank c_j \pointinteractionmatrix_{ij}
 	\end{align*}
-	In the first line we used the definition of $v_*$ in \eqref{eq:optimal_v}. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the facts that, by construction, $\Delta \secondgreens_j = \firstgreens_j$ and $\int_\Omega \secondgreens_j(x) dx = 0$. In the fourth line we used the definition of $S$ in \eqref{eq:S_matrix}. Hence the condition $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,r$ may be written in matrix form as
+	In the first line we used the definition of $v_*$ in \eqref{eq:optimal_v}. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the facts that, by construction, $\Delta \secondgreens_j = \firstgreens_j$ and $\int_\Omega \secondgreens_j(x) dx = 0$. In the fourth line we used the definition of $\pointinteractionmatrix$ in \eqref{eq:S_matrix}. Hence the condition $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$ may be written in matrix form as
 	\begin{equation*}
-		S \mathbf{c} + \beta \mathbf{1} = \mathbf{\interpolatedvalues},
+		\pointinteractionmatrix \mathbf{c} + \beta \mathbf{1} = \mathbf{\interpolatedvalues},
 	\end{equation*}
 	and this must hold because it is the first block row of system \eqref{eq:interpolation_linear_system} which is solved to compute $\mathbf{c}$ and $\beta$. So $v_* \in X$.
 	
@@ -586,20 +596,20 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	
 	\paragraph{Variational equation} To show that $v_*$ satiafies variational equation \eqref{eq:variational_up}, notice that
 	\begin{align*}
-		(\Delta v_*, \Delta p)_{L^2(\Omega)} =& \sum_{i=1}^r c_i(\Delta \secondgreens_i, \Delta p)_{L^2(\Omega)} \\
-		=& \sum_{i=1}^r c_i \left(p(x_i) - \avg\left(p\right)\right) \\
-		=& -\avg\left(p\right) \sum_{i=1}^r c_i. 
+		(\Delta v_*, \Delta p)_{L^2(\Omega)} =& \sum_{i=1}^\convrank c_i(\Delta \secondgreens_i, \Delta p)_{L^2(\Omega)} \\
+		=& \sum_{i=1}^\convrank c_i \left(p(x_i) - \avg\left(p\right)\right) \\
+		=& -\avg\left(p\right) \sum_{i=1}^\convrank c_i. 
 	\end{align*}
-	In the first line we used the definition of $\secondgreens_i$ and the fact that the Laplacian of a constant is zero. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the fact that $p(x_i)=0$ because $p \in X_0$. Hence variational equation \eqref{eq:variational_up} holds if $\sum_{i=1}^r c_i = 0$, which may be written in matrix form as $\mathbf{1}^T \mathbf{c} = 0$. This must hold because it is the second block row in system \eqref{eq:interpolation_linear_system}.
+	In the first line we used the definition of $\secondgreens_i$ and the fact that the Laplacian of a constant is zero. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the fact that $p(x_i)=0$ because $p \in X_0$. Hence variational equation \eqref{eq:variational_up} holds if $\sum_{i=1}^\convrank c_i = 0$, which may be written in matrix form as $\mathbf{1}^T \mathbf{c} = 0$. This must hold because it is the second block row in system \eqref{eq:interpolation_linear_system}.
 \end{proof}
 
 
 \begin{thm}[Poisson weighting functions are optimal]
 	\label{thm:smoothest_interpolant}
-	Let $y \in \mathbb{R}^d$, $d \in \{1,2,3\}$, and let $\horizinterpolant_y$ be the function
+	Let $y \in \mathbb{R}^\gdim$, $\gdim \in \{1,2,3\}$, and let $\horizinterpolant_y$ be the function
 	\begin{equation}
 		\label{eq:u_defn_in_thm}
-		\horizinterpolant_y(x) := \sum_{i=1}^r \convkernel_i(y)w_i(x) = \AkerPc\left(y+x,x\right),
+		\horizinterpolant_y(x) := \sum_{i=1}^\convrank \convkernel_i(y)w_i(x) = \AkerPc\left(y+x,x\right),
 	\end{equation}
 	where the weighting functions $w_i$ are the solutions to optimization problem \eqref{eq:wi_optimization_problem}. Then for each $y \in \Omega$, the function $\horizinterpolant_y$ solves the optimization problem
 	\begin{equation}
@@ -615,7 +625,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	\label{thm:wi_sum_to_one}
 	We have
 	\begin{equation*}
-		\sum_{i=1}^r w_i(x) = 1
+		\sum_{i=1}^\convrank w_i(x) = 1
 	\end{equation*}
 	for all $x \in \Omega$.
 \end{prop}
@@ -625,10 +635,10 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	\SetKwInOut{Input}{Input}
 	\SetKwInOut{Output}{Output}
 	{	
-		\Input{Sample points $\{x_i\}_{i=1}^r$, domain geometry $\Omega$}
-		\Output{Weighting functions $\{w_i\}_{i=1}^r$}
+		\Input{Sample points $\{x_i\}_{i=1}^\convrank$, domain geometry $\Omega$}
+		\Output{Weighting functions $\{w_i\}_{i=1}^\convrank$}
 
-		\For{$k=1,2, \dots, r$}{
+		\For{$k=1,2, \dots, \convrank$}{
 			
 			Solve the Neumann Poisson problem \eqref{eq:psi_eq} for $\firstgreens_k$.
 
@@ -636,13 +646,13 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 			
 		}
 		
-		Form the $r \times r$ matrix $S$ given in \eqref{eq:S_matrix}.
+		Form the $\convrank \times \convrank$ matrix $\pointinteractionmatrix$ given in \eqref{eq:S_matrix}.
 		
-		\For{$i=1,2,\dots,r$}{
+		\For{$i=1,2,\dots,\convrank$}{
 			Solve the linear system
 			\begin{equation*}
 			\begin{bmatrix}
-			S & \mathbf{1} \\ \mathbf{1}^T & 0
+			\pointinteractionmatrix & \mathbf{1} \\ \mathbf{1}^T & 0
 			\end{bmatrix}
 			\begin{bmatrix}
 			\mathbf{c}^{(i)} \\ \beta^{(i)}
@@ -652,16 +662,16 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 			\mathbf{e}^{(i)} \\ 0
 			\end{bmatrix}.
 			\end{equation*}
-			for $\mathbf{c}^{(i)}=(c_1^{(i)}, c_2^{(i)}, \dots, c_r^{(i)})$ and $\beta^{(i)}$. Here $\mathbf{1} = (1,1,\dots,1) \in \mathbb{R}^r$, and $\mathbf{e}^{(i)} = (0,\dots,0,1,0,\dots,0)\in \mathbb{R}^r$ is the unit vector with $i^\text{th}$ component equal to one and all other components equal to zero.
+			for $\mathbf{c}^{(i)}=(c_1^{(i)}, c_2^{(i)}, \dots, c_\convrank^{(i)})$ and $\beta^{(i)}$. Here $\mathbf{1} = (1,1,\dots,1) \in \mathbb{R}^\convrank$, and $\mathbf{e}^{(i)} = (0,\dots,0,1,0,\dots,0)\in \mathbb{R}^\convrank$ is the unit vector with $i^\text{th}$ component equal to one and all other components equal to zero.
 			
 			Form the weighting function $w_i$ given by
 			\begin{equation*}
-			w_i(x) = \beta^{(i)} + \sum_{k=1}^r c_k^{(i)} \secondgreens_k(x).
+			w_i(x) = \beta^{(i)} + \sum_{k=1}^\convrank c_k^{(i)} \secondgreens_k(x).
 			\end{equation*}
 			
 		}
 	}
-	\caption{Compute weighting functions $w_i$, $i=1,\dots,r$.}
+	\caption{Compute weighting functions $w_i$, $i=1,\dots,\convrank$.}
 	\label{alg:weighting_functions_incremental}
 \end{algorithm2e}
 
@@ -674,17 +684,17 @@ Here we discuss how we construct an H-matrix representation of our product-convo
 
 \subsubsection{Finite element discretization of the integral kernel}
 
-Let $\febasis_1, \febasis_2, \dots, \febasis_N$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, and let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_N\right)$ be the corresponding finite element space. Further, let $p_i \in \mathbb{R}^d$, $i=1,\dots, N$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise.
+Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, and let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space. Further, let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise.
 
 In Section \ref{sec:intro} we noted that the original integral kernel, $\Aker$, is inaccessible, while in Equation \eqref{eq:kernel_entries}  we saw that the integral kernel for our product-convolution approximation, $\AkerPc \approx \Aker$, is accessible, and may be cheaply evaluated at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$ via the following formula:
 \begin{equation}
 	\label{eq:eval_y_x}
-	\AkerPc(y,x) = \sum_{i=1}^r w_i(x) \convkernel_{x_i}(y-x).
+	\AkerPc(y,x) = \sum_{i=1}^\convrank w_i(x) \convkernel_{x_i}(y-x).
 \end{equation}
 We now define a further approximation, $\AkerPcMesh \approx \AkerPc$, as follows:
 \begin{equation}
 	\label{eq:defn_of_Akerpcmesh}
-	\AkerPcMesh(y,x) := \sum_{i=1}^N \sum_{j=1}^N \AkerPc(p_i,p_j) \febasis_i(y) \febasis_j(x).
+	\AkerPcMesh(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \AkerPc(p_i,p_j) \febasis_i(y) \febasis_j(x).
 \end{equation}
 The kernel $\AkerPcMesh$ is the interpolation of $\AkerPc$ onto $V_h \otimes V_h$. Error in the overall kernel approximation, $\AkerPcMesh \approx \Aker$, arises both because of error in the product-convolution approximation, and because of finite element discretization error incurred from interpolation onto $V_h \otimes V_h$. 
 
@@ -693,12 +703,12 @@ Replacing $\Aker$ with $\AkerPcMesh$ within the definition of $\Aop$ in \eqref{e
 	\label{eq:kernel_representation_pcmesh}
 	(\AopPcMesh u)(v) := \int_\Omega \int_\Omega v(y) \AkerPcMesh(y,x) u(x) dx dy.
 \end{equation}
-While $\AopPcMesh$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\AopPcMesh$ to functions in the finite element space. That is, $\AopPcMesh : V_h \rightarrow V_h'$. Let $u_h \in V_h$ and $v_h \in V_h$, and let $\mathbf{u}$ and $\mathbf{v}$ be the coefficient vectors for $u_h$ and $v_h$, respectively, with respect to the finite element basis $\febasis_1, \dots, \febasis_N$. I.e., 
+While $\AopPcMesh$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\AopPcMesh$ to functions in the finite element space. That is, $\AopPcMesh : V_h \rightarrow V_h'$. Let $u_h \in V_h$ and $v_h \in V_h$, and let $\mathbf{u}$ and $\mathbf{v}$ be the coefficient vectors for $u_h$ and $v_h$, respectively, with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$. I.e., 
 \begin{equation}
 	\label{eq:fem_coeff_basis}
-	u_h(x) = \sum_{i=1}^N \mathbf{u}_i \febasis_i(x),
+	u_h(x) = \sum_{i=1}^\fedim \mathbf{u}_i \febasis_i(x),
 \end{equation}
-and similar for $v_h$. Further, let $\mathbf{M} \in \mathbb{R}^{N \times N}$ be the finite element mass matrix, and let $\AkerPcMat \in \mathbb{R}^{N \times N}$ be following matrix of approximate kernel entries:
+and similar for $v_h$. Further, let $\mathbf{M} \in \mathbb{R}^{\fedim \times \fedim}$ be the finite element mass matrix, and let $\AkerPcMat \in \mathbb{R}^{\fedim \times \fedim}$ be following matrix of approximate kernel entries:
 \begin{equation}
 	\label{eq:Akerpcmat_entries}
 	\left(\AkerPcMat\right)_{ij} := \AkerPcMesh(p_i, p_j).
@@ -718,7 +728,7 @@ The finite element matrix representation of $\AopPcMesh$, which we denote by $\A
 
 We form an H-matrix representation of $\AmatPc$ by converting $\AkerPcMat$ and $\mathbf{M}$ to H-matrix format, then using fast H-matrix methods to multiply these matrices according to \eqref{eq:Amatpc_defn}. Once $\AmatPc$ is in H-matrix format, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
-We convert $\AkerPcMat$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBPro software package \cite{HLIBPRO}. Although $\AkerPcMat$ is a dense $N \times N$ matrix, constructing the H-matrix approximation of $\AkerPcMat$ only requires evaluation of $O(k^2 N \log N)$ entries of $\AkerPc$, and these entries are computed via the formula in Equation \eqref{eq:eval_y_x}. Here $k$ is the rank of the highest-rank block in the H-matrix. A dense representation of $\AkerPcMat$ is never formed. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. We convert $\mathbf{M}$ to H-matrix format using standard H-matrix methods for sparse matrices implemented within HLIBPro, using the same recursive block partitioning structure as was used for $\AkerPcMat$. 
+We convert $\AkerPcMat$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBPro software package \cite{HLIBPRO}. Although $\AkerPcMat$ is a dense $\fedim \times \fedim$ matrix, constructing the H-matrix approximation of $\AkerPcMat$ only requires evaluation of $O(\hmatrixrank^2 \fedim \log \fedim)$ entries of $\AkerPc$, and these entries are computed via the formula in Equation \eqref{eq:eval_y_x}. Here $\hmatrixrank$ is the rank of the highest-rank block in the H-matrix. A dense representation of $\AkerPcMat$ is never formed. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. We convert $\mathbf{M}$ to H-matrix format using standard H-matrix methods for sparse matrices implemented within HLIBPro, using the same recursive block partitioning structure as was used for $\AkerPcMat$. 
 
 
 \subsection{Rational positive semi-definite modification}
@@ -742,7 +752,7 @@ where $\mathbf{I}$ is the identity matrix which has the same shape as $\AmatPcSy
 	\label{eq:rational_function_scalar}
 	\ratfct(\lambda) := c_0 + c_1 \lambda + \frac{c_2}{\lambda+\ratpole}.
 \end{equation}
-The scalars $c_0$, $c_1$, $c_2$, and $\ratpole$ are chosen so that the moderate and large positive eigenvalues of $\AmatPcSymPlus$ approximately equal the corresponding moderate and large positive eigenvalues of $\AmatPcSym$, while the negative and small positive eigenvalues of $\AmatPcSym$ are modified so that $\AmatPcSymPlus$ is positive semi-definite. Later in this section we will explain how $c_0$, $c_1$, $c_2$, and $\ratpole$ are chosen and how our choice of these scalars affects the spectral properties of $\AmatPcSymPlus$. In Figure FIG we illustrate $\ratfct(\lambda)$. Forming $\AmatPcSymPlus$ requires computing an H-matrix inverse, $\left(\AmatPcSym + \ratpole \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is computationally acceptable because $\AmatPcSym + \ratpole \mathbf{I}$ is an H-matrix. Inversion of H-matrices is a routine procedure which only requires $O(N \log(N)^2)$ work \cite{Hmatrixinverse}.
+The scalars $c_0$, $c_1$, $c_2$, and $\ratpole$ are chosen so that the moderate and large positive eigenvalues of $\AmatPcSymPlus$ approximately equal the corresponding moderate and large positive eigenvalues of $\AmatPcSym$, while the negative and small positive eigenvalues of $\AmatPcSym$ are modified so that $\AmatPcSymPlus$ is positive semi-definite. Later in this section we will explain how $c_0$, $c_1$, $c_2$, and $\ratpole$ are chosen and how our choice of these scalars affects the spectral properties of $\AmatPcSymPlus$. In Figure FIG we illustrate $\ratfct(\lambda)$. Forming $\AmatPcSymPlus$ requires computing an H-matrix inverse, $\left(\AmatPcSym + \ratpole \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is computationally acceptable because $\AmatPcSym + \ratpole \mathbf{I}$ is an H-matrix. Inversion of H-matrices is a routine procedure which only requires $O(\fedim \log(\fedim)^2)$ work \cite{Hmatrixinverse}.
 
 We choose $c_0, c_1, c_2$, and $\ratpole$, to be the solution to the following system of equations:
 \begin{subequations}
@@ -756,7 +766,7 @@ We choose $c_0, c_1, c_2$, and $\ratpole$, to be the solution to the following s
 \end{subequations}
 where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\AmatPcSym$, respectively. We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. We assume that $\lambda_\text{min} < 0$; if $\lambda_\text{min} \ge 0$, then $\AmatPcSym$ is already positive semi-definite, so we do not need to modify it with a rational function. We also require $\ratpole > |\lambda_\text{min}|$, so that the pole of $\ratfct$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. We describe how we solve system \eqref{eq:four_eq_system} in Appendix \ref{app:solve_rational_system}. Solving \eqref{eq:four_eq_system} reduces to solving a smooth one-dimensional optimization problem, which is computationally trivial. 
 
-Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\ratpole > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\Aop$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $s(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
+Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\ratpole > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\Aop$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $\ratfct(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
 
 
 \subsection{Computational cost}
@@ -767,7 +777,7 @@ Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}
 	\item cost to build approximation
 	\item cost without compression to do a solve
 	\item cost with compression to do a solve
-	\item computational complexity for H-matrix alone vs. prod-conv + h-matrix $O(C k^2 \log N)$ PDE solves, C is big, k is big. Here $10$
+	\item computational complexity for H-matrix alone vs. prod-conv + h-matrix $O(C k^2 \log \fedim)$ PDE solves, C is big, k is big. Here $10$
 	\item HODLR: C is smaller, but k is bigger, vs. H1 peeling process
 	\item H-matrix operations cost for our method solve
 	\item irregular grid
@@ -817,12 +827,12 @@ Some conclusions here.
 
 Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank. Such matrices are known as hierarchical matrices (H-matrices). Many classes of H-matrices exist (H1, H2, HSS, HBS, and more), and all of these types of H-matrices could be used in conjunction with our product-convolution approximation. Here we use classical H1 matrices. For this section, when we say H-matrix, we are referring to H1 matrices. 
 
-While a dense $N \times N$ matrix traditionally requires $O(N^2)$ memory to store, H-matrices may be stored using $O(N \log N)$ memory, by storing only the low rank factors for the low rank blocks. Recursive algorithms can take advantage of the H-matrix low rank block structure to perform matrix arithmetic fast. Conventional dense matrix algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix-matrix addition require either $O(N^2)$ or $O(N^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(N \log(N)^a)$ time and memory for H-matrices. Here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
+While a dense $\fedim \times \fedim$ matrix traditionally requires $O(\fedim^2)$ memory to store, H-matrices may be stored using $O(\fedim \log \fedim)$ memory, by storing only the low rank factors for the low rank blocks. Recursive algorithms can take advantage of the H-matrix low rank block structure to perform matrix arithmetic fast. Conventional dense matrix algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix-matrix addition require either $O(\fedim^2)$ or $O(\fedim^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(\fedim \log(\fedim)^a)$ time and memory for H-matrices. Here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
 
 \subsection{H-matrix construction}
 
-In detail, the process of constructing an H-matrix representation of $\AkerPcMat$ proceeds as follows. First, we construct hierarchical partitionings of the degrees of freedom for the columns and rows of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(N \log N)$ specially-chosen entries of $\AkerPcMat$, and we evaluate these entries using \eqref{eq:Akerpcmat_entries}. 
+In detail, the process of constructing an H-matrix representation of $\AkerPcMat$ proceeds as follows. First, we construct hierarchical partitionings of the degrees of freedom for the columns and rows of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(\fedim \log \fedim)$ specially-chosen entries of $\AkerPcMat$, and we evaluate these entries using \eqref{eq:Akerpcmat_entries}. 
 
 
 \subsubsection{Cluster trees}
@@ -830,7 +840,7 @@ In detail, the process of constructing an H-matrix representation of $\AkerPcMat
 
 We use recursive hyperplane splitting to hierarchically cluster the degrees of freedom associated with the columns and rows of the matrix into a \emph{column cluster tree} and a \emph{row cluster tree}, respectively. Here we describe construction of the column cluster tree; the row cluster tree is constructed similarly. 
 
-Since we use finite elements to discretize the problem, the $i^\text{th}$ column of $\AkerPcMat$ corresponds to the Lagrange node in $\mathbb{R}^d$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^d$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which is called the column cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
+Since we use finite elements to discretize the problem, the $i^\text{th}$ column of $\AkerPcMat$ corresponds to the Lagrange node in $\mathbb{R}^\gdim$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^\gdim$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which is called the column cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
 
 A depth-first search ordering of the column cluster tree leaves is then generated. When the columns of the matrix are permuted into this depth-first ordering, the columns associated with each cluster in the cluster tree are contiguous.
 
@@ -856,7 +866,7 @@ We now loop through the four blocks, $\left(\AkerPcMat\right)_{11}$, $\left(\Ake
 	\label{eq:weak_admissibility_cond}
 	\dist\left(r_1, c_2\right) \ge \weakadmconst \min\left(\diam\left(r_1\right), \diam\left(c_2\right)\right),
 \end{equation}
-then we mark $\left(\AkerPcMat\right)_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, c_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $c_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(c_2\right)$ is the analogous diameter associated with the column cluster $c_2$. The quantity $\weakadmconst$ is a scalar constant; we use $\weakadmconst=2.0$. Basically, if the point clouds associated with $r_1$ and $c_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\left(\AkerPcMat\right)_{11}$ and $\left(\AkerPcMat\right)_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
+then we mark $\left(\AkerPcMat\right)_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, c_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $c_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(c_2\right)$ is the analogous diameter associated with the column cluster $c_2$. Here the quantity $\weakadmconst$ is a scalar constant; we use $\weakadmconst=2.0$. Basically, if the point clouds associated with $r_1$ and $c_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\left(\AkerPcMat\right)_{11}$ and $\left(\AkerPcMat\right)_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
 
 Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\AkerPcMat$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree, which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
 
@@ -866,9 +876,9 @@ Next, we subdivide all blocks that are not admissible and are larger than a pred
 
 Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method \cite{ACA}. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\AkerPcMat$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
 \begin{itemize}
-	\item Let $C \in \mathbb{R}^{m \times r}$ be a matrix consisting of a subset of $r$ columns of $X$, such that the span of the columns in $C$ approximates the column space of $X$. 
-	\item Let $R\in\mathbb{R}^{r \times m}$ be a subset of the rows of $X$, such that the span of the rows in $R$ approximates the row space of $X$.
-	\item Let $U \in \mathbb{R}^{r \times r}$ be the block of $X$ consisting of the intersection of the rows from $R$ with the columns from $C$.
+	\item Let $C \in \mathbb{R}^{m \times \hmatrixrank}$ be a matrix consisting of a subset of $\hmatrixrank$ columns of $X$, such that the span of the columns in $C$ approximates the column space of $X$. 
+	\item Let $R\in\mathbb{R}^{\hmatrixrank \times m}$ be a subset of the rows of $X$, such that the span of the rows in $R$ approximates the row space of $X$.
+	\item Let $U \in \mathbb{R}^{\hmatrixrank \times \hmatrixrank}$ be the block of $X$ consisting of the intersection of the rows from $R$ with the columns from $C$.
 \end{itemize}
 Then it is well-established that
 \begin{equation}
@@ -877,9 +887,9 @@ Then it is well-established that
 \end{equation}
 where $U^+$ is the pseudoinverse of $U$ \cite{CUR}. The quality of approximation \eqref{eq:CUR} depends on how well the columns of $C$ approximate the column space of $X$, and how well the rows of $R$ approximate the row space of $X$. 
 
-In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible. This may be done via either the maxvol procedure \cite{GOODSUBMATRIX}, or via QR factorization. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $kr$ columns of $X$ and $kr$ rows of $X$, where $k$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. For more details on adaptive cross low rank approximation, see \cite{ACA}. The key point is that the adaptive cross method allows us to form a rank-$r$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(mr)$ entries of that block.
+In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible. This may be done via either the maxvol procedure \cite{GOODSUBMATRIX}, or via QR factorization. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $a \hmatrixrank$ columns of $X$ and $a\hmatrixrank$ rows of $X$, where $a$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. For more details on adaptive cross low rank approximation, see \cite{ACA}. The key point is that the adaptive cross method allows us to form a rank-$\hmatrixrank$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(m\hmatrixrank)$ entries of that block.
 
-We use the adaptive cross method to form low rank approximations for each admissible block of $\AkerPcMat$. We directly compute all entries of the small dense blocks of $\AkerPcMat$ that are not admissible. This process requires us to compute $O(r^2 N \log N)$ entries of $\AkerPcMat$, which is relatively cheap compared to the operator actions of $\Aop$ that are required to form the product-convolution approximation.
+We use the adaptive cross method to form low rank approximations for each admissible block of $\AkerPcMat$. We directly compute all entries of the small dense blocks of $\AkerPcMat$ that are not admissible. This process requires us to compute $O(\hmatrixrank^2 \fedim \log \fedim)$ entries of $\AkerPcMat$, which is relatively cheap compared to the operator actions of $\Aop$ that are required to form the product-convolution approximation.
 
 
 \section{Fast ellipsoid intersection test}
@@ -889,7 +899,7 @@ The procedure for choosing sample points relies on quickly determining whether t
 	E_p :=& \{x : (x - \spatialmean_p)^T \spatialcov_p^{-1} (x - \spatialmean_p) \le \tau^2\} \\
 	E_q :=& \{x : (x - \spatialmean_q)^T \spatialcov_q^{-1} (x - \spatialmean_q) \le \tau^2\}, \\
 \end{align*}
-where $\spatialmean_p, \spatialmean_q \in \mathbb{R}^d$, and $\spatialcov_p, \spatialcov_q \in \mathbb{R}^{d \times d}$ are positive definite. Let $K$ be the following one dimensional convex function:
+where $\spatialmean_p, \spatialmean_q \in \mathbb{R}^\gdim$, and $\spatialcov_p, \spatialcov_q \in \mathbb{R}^{\gdim \times \gdim}$ are positive definite. Let $K$ be the following one dimensional convex function:
 \begin{equation*}
 	K(s) := 1 - \frac{1}{\tau^2} (\spatialmean_p - \spatialmean_q)^T \left(\frac{1}{1-s}\spatialcov_p + \frac{1}{s}\spatialcov_q\right)^{-1}(\spatialmean_p - \spatialmean_q)	
 \end{equation*}
@@ -899,10 +909,10 @@ The function $K(s)$ may be evaluated quickly for many $s$ by pre-computing the s
 \begin{equation*}
 	\spatialcov_p P = \spatialcov_q P \Lambda,
 \end{equation*}
-where $P \in \mathbb{R}^{d \times d}$ is the matrix of generalized eigenvectors (which may be non-orthogonal), and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_d)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. The matrix $P$ simultaneously diagonalizes $\spatialcov_p$ and $\spatialcov_q$, in the sense that $P^T\spatialcov_p P = \Lambda$, and $P^T\spatialcov_q P = I$, where $I$ is the $d \times d$ identity matrix. Using this diagonalization, and some algebraic manipulations, we may write $K(s)$ as
+where $P \in \mathbb{R}^{\gdim \times \gdim}$ is the matrix of generalized eigenvectors (which may be non-orthogonal), and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_\gdim)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. The matrix $P$ simultaneously diagonalizes $\spatialcov_p$ and $\spatialcov_q$, in the sense that $P^T\spatialcov_p P = \Lambda$, and $P^T\spatialcov_q P = I$, where $I$ is the $\gdim \times \gdim$ identity matrix. Using this diagonalization, and some algebraic manipulations, we may write $K(s)$ as
 \begin{equation}
 	\label{eq:Ks_generalized}
-	K(s) = 1 - \frac{1}{\tau^2} \sum_{i=1}^d \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2,
+	K(s) = 1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2,
 \end{equation}
 where $v := \Phi^T\left(\spatialmean_p - \spatialmean_q\right)$. We compute the generalized eigenvalue decomposition of $\spatialcov_p$ and $\spatialcov_q$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's algorithm \cite{BRENT} (any fast 1 dimensional convex optimization routine may be used). The resulting algorithm for checking whether $E_p$ and $E_q$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
 
@@ -922,7 +932,7 @@ where $v := \Phi^T\left(\spatialmean_p - \spatialmean_q\right)$. We compute the 
 		
 	$v \gets \Phi^T\left(\spatialmean_p - \spatialmean_q\right)$
 		
-	$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^d \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
+	$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
 		
 	\If{$K^* < 0$}{
 			
@@ -963,12 +973,12 @@ and we may write Equation \eqref{eq:desired_property_3} as follows:
 \end{equation}
 Let 
 \begin{equation*}
-	g(\ratpole) := c_0(\ratpole) + c_1(\ratpole) \lambda_\text{min} + \frac{c_2(\ratpole)}{\lambda_\text{min}+\ratpole} - |\lambda_\text{min}|
+	f(\ratpole) := c_0(\ratpole) + c_1(\ratpole) \lambda_\text{min} + \frac{c_2(\ratpole)}{\lambda_\text{min}+\ratpole} - |\lambda_\text{min}|
 \end{equation*}
-denote the left hand side of \eqref{eq:rational_extra_eq}, but with $c_0(\ratpole)$, $c_1(\ratpole)$, and $c_2(\ratpole)$ being the solution of \eqref{eq:rational_3_linear_system} for the given value of $\ratpole$. I.e., within $g(\ratpole)$ the quantities $c_0$, $c_1$, and $c_2$ are no longer free variables; they now depend on $\ratpole$ implicitly through the solution of a linear system. We solve the combined system, \eqref{eq:rational_3_linear_system} and $\eqref{eq:rational_extra_eq}$, by solving the one-dimensional nonlinear root finding problem
+denote the left hand side of \eqref{eq:rational_extra_eq}, but with $c_0(\ratpole)$, $c_1(\ratpole)$, and $c_2(\ratpole)$ being the solution of \eqref{eq:rational_3_linear_system} for the given value of $\ratpole$. I.e., within $f(\ratpole)$ the quantities $c_0$, $c_1$, and $c_2$ are no longer free variables; they now depend on $\ratpole$ implicitly through the solution of a linear system. We solve the combined system, \eqref{eq:rational_3_linear_system} and $\eqref{eq:rational_extra_eq}$, by solving the one-dimensional nonlinear root finding problem
 \begin{equation}
 	\label{eq:g_mu_zero}
-	g(\ratpole)=0
+	f(\ratpole)=0
 \end{equation}
 with bound $\ratpole > |\lambda_\text{min}|$ and initial guess $\ratpole_0 = 2 |\lambda_\text{min}|$. Each evaluation of $g$ requires solving the $3 \times 3$ linear system \eqref{eq:rational_3_linear_system}, and once the solution $\ratpole$ is found, we solve \eqref{eq:rational_3_linear_system} one more time to get the final values of $c_0$, $c_1$, and $c_2$.
 
@@ -978,7 +988,7 @@ with bound $\ratpole > |\lambda_\text{min}|$ and initial guess $\ratpole_0 = 2 |
 
 \begin{lem}[Linearity of weighting function solution operator]
 	\label{lem:T_is_linear}
-	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
+	Let $\mathcal{T}:\mathbb{R}^\convrank \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
 	\begin{equation}
 		\label{eq:opt_soln_operator}
 		\mathcal{T}(f) := \horizinterpolant_*,
@@ -992,10 +1002,10 @@ with bound $\ratpole > |\lambda_\text{min}|$ and initial guess $\ratpole_0 = 2 |
 
 
 \begin{proof}[Proof of Theorem \ref{thm:smoothest_interpolant}]
-	Let $f = (\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_r(y))$ and let $e_i = (0,\dots,0,1,0,\dots,0)$ be the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero. The solution to optimization problem \eqref{eq:uy_optimization_problem} is given by
+	Let $f = (\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))$ and let $e_i = (0,\dots,0,1,0,\dots,0)$ be the length $\convrank$ vector with $i^\text{th}$ component equal to one and all other components equal to zero. The solution to optimization problem \eqref{eq:uy_optimization_problem} is given by
 	\begin{align*}
-		\mathcal{T}(f) &= \convkernel_1(y) \mathcal{T}(e_1) + \convkernel_2(y) \mathcal{T}(e_2) + \dots + \convkernel_r(y) \mathcal{T}(e_r) \\
-		&= \convkernel_1(y) w_1 + \convkernel_2(y) w_2 + \dots + \convkernel_r(y) w_r \\
+		\mathcal{T}(f) &= \convkernel_1(y) \mathcal{T}(e_1) + \convkernel_2(y) \mathcal{T}(e_2) + \dots + \convkernel_\convrank(y) \mathcal{T}(e_\convrank) \\
+		&= \convkernel_1(y) w_1 + \convkernel_2(y) w_2 + \dots + \convkernel_\convrank(y) w_\convrank \\
 		&= \horizinterpolant_y.
 	\end{align*}
 	In the first line we used linearity of the solution map, $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), in the second line we used the fact that $w_i = \mathcal{T}(e_i)$, and in the third line we used the definition of $\horizinterpolant_y$ in \eqref{eq:u_defn_in_thm}.
@@ -1004,9 +1014,9 @@ with bound $\ratpole > |\lambda_\text{min}|$ and initial guess $\ratpole_0 = 2 |
 \begin{proof}[Proof of Proposition \ref{thm:wi_sum_to_one}]
 	By linearity of $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), we have
 	\begin{equation*}
-		\sum_{i=1}^r w_i(x) = \sum_{i=1}^r \mathcal{T}(e_i)(x) = \mathcal{T}\left(\sum_{i=1}^r e_i\right)(x) = \mathcal{T}(\mathbf{1})(x) = 1,
+		\sum_{i=1}^\convrank w_i(x) = \sum_{i=1}^\convrank \mathcal{T}(e_i)(x) = \mathcal{T}\left(\sum_{i=1}^\convrank e_i\right)(x) = \mathcal{T}(\mathbf{1})(x) = 1,
 	\end{equation*}
-	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality ($\mathcal{T}(\mathbf{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \mathbf{1}$, and yields the minimum possible value of zero for the objective function.
+	where $\mathbf{1} = (1,1,\dots,1)$ is the length $\convrank$ vector which has all components equal to one. The last equality ($\mathcal{T}(\mathbf{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \mathbf{1}$, and yields the minimum possible value of zero for the objective function.
 \end{proof}
 
 
@@ -1017,8 +1027,8 @@ with bound $\ratpole > |\lambda_\text{min}|$ and initial guess $\ratpole_0 = 2 |
 	\begin{align*}
 		\spatialvol:\Omega \rightarrow \mathbb{R}, &\qquad \spatialvol(x) := \int_{\Omega} \impulseresponse_x(z) dz, \\
 		\widehat{\impulseresponse}_x:\Omega \rightarrow \mathbb{R}, &\qquad \widehat{\impulseresponse}_x := \impulseresponse_x \big/ \spatialvol(x), \\
-		\spatialmean:\Omega \rightarrow \mathbb{R}^d, &\qquad \spatialmean(x) := \int_\Omega z \widehat{\impulseresponse}_x(z) dz, \\
-		\spatialcov:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\spatialcov(x) := \int_\Omega (z - \spatialmean(x))(z - \spatialmean(x))^T \widehat{\impulseresponse}_x(z) dz.
+		\spatialmean:\Omega \rightarrow \mathbb{R}^\gdim, &\qquad \spatialmean(x) := \int_\Omega z \widehat{\impulseresponse}_x(z) dz, \\
+		\spatialcov:\Omega \rightarrow \mathbb{R}^{\gdim \times \gdim}, &\qquad\spatialcov(x) := \int_\Omega (z - \spatialmean(x))(z - \spatialmean(x))^T \widehat{\impulseresponse}_x(z) dz.
 	\end{align*}
 \end{defn}
 
@@ -1079,38 +1089,38 @@ Recall that the impulse response of $\Aop$ to $\delta_x$, denoted $\impulserespo
 \section{Discretization}
 \label{sec:discretization}
 
-Let $\febasis_i$, $i=1,\dots,N$ be a set of finite element basis functions, let $h$ denote the mesh size parameter for the finite element mesh, and let
+Let $\febasis_i$, $i=1,\dots,\fedim$ be a set of finite element basis functions, let $h$ denote the mesh size parameter for the finite element mesh, and let
 \begin{equation*}
-	V_h = \Span\left(\febasis_1, \febasis_2, \dots, \febasis_N\right)
+	V_h = \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)
 \end{equation*}
-be the corresponding  finite element space with the $L^2$ inner product. Functions $u\in L^2(\Omega)$ are approximated by functions $u_h \in V_h$. In turn, functions $u_h\in V_h$ are represented in computations by length $N$ arrays $\mathbf{u}$, such that the array entries of $\mathbf{u}$ are the coordinates of $u_h$ in the finite element basis. That is,
+be the corresponding  finite element space with the $L^2$ inner product. Functions $u\in L^2(\Omega)$ are approximated by functions $u_h \in V_h$. In turn, functions $u_h\in V_h$ are represented in computations by length $\fedim$ arrays $\mathbf{u}$, such that the array entries of $\mathbf{u}$ are the coordinates of $u_h$ in the finite element basis. That is,
 \begin{equation}
 	\label{eq:finite_bijection}
-	u_h(x) = \sum_{i=1}^N \mathbf{u}_i \febasis_i(x).
+	u_h(x) = \sum_{i=1}^\fedim \mathbf{u}_i \febasis_i(x).
 \end{equation}
 
-We write $\mathbf{M} \in \mathbb{R}^{N \times N}$ to denote the finite element \emph{mass matrix}, which has entries
+We write $\mathbf{M} \in \mathbb{R}^{\fedim \times \fedim}$ to denote the finite element \emph{mass matrix}, which has entries
 \begin{equation*}
 	\mathbf{M}_{ij} = \left(\febasis_i, \febasis_j\right)_{L^2(\Omega)} = \int_{\Omega} \febasis_i(x) \febasis_j(x) dx,
 \end{equation*}
-and we write $\mathbb{R}^N_\mathbf{M}$ to denote the space $\mathbb{R}^N$ with the matrix-weighted inner product
+and we write $\mathbb{R}^\fedim_\mathbf{M}$ to denote the space $\mathbb{R}^\fedim$ with the matrix-weighted inner product
 \begin{equation*}
 	\left(\mathbf{u},\mathbf{v}\right)_\mathbf{M} := \mathbf{v}^T\mathbf{M} \mathbf{u}.
 \end{equation*}
-Direct calculation shows that $V_h$ is isometrically isomorphic $\mathbb{R}^N_\mathbf{M}$. That is, equation \eqref{eq:finite_bijection} establishes a bijection between functions $u_h \in V_h$ and coefficient vectors $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and this bijection preserves the inner product in the sense that $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u},\mathbf{v}\right)_\mathbf{M}$. Likewise, the dual space, $V_h'$, is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. 
+Direct calculation shows that $V_h$ is isometrically isomorphic $\mathbb{R}^\fedim_\mathbf{M}$. That is, equation \eqref{eq:finite_bijection} establishes a bijection between functions $u_h \in V_h$ and coefficient vectors $\mathbf{u} \in \mathbb{R}^\fedim_\mathbf{M}$, and this bijection preserves the inner product in the sense that $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u},\mathbf{v}\right)_\mathbf{M}$. Likewise, the dual space, $V_h'$, is isometrically isomorphic to $\mathbb{R}^\fedim_{\mathbf{M}^{-1}}$. 
 
-Here vectors in $\mathbf{u} \in \mathbb{R}^N_{\mathbf{M}}$ and $\boldsymbol{\sigma} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ are viewed as column vectors, and $\mathbf{u}^T$ and $\boldsymbol{\sigma}^T$ are the row vectors that result from taking the standard matrix transposes of $\mathbf{u}$ and $\boldsymbol{\sigma}$, respectively. The discrete dual of a vector $\mathbf{v}$ with respect to the $\mathbf{M}$ inner product is written as $\mathbf{v}^*$, and $\mathbf{v}^*$ is viewed as a column vector.
+Here vectors in $\mathbf{u} \in \mathbb{R}^\fedim_{\mathbf{M}}$ and $\boldsymbol{\sigma} \in \mathbb{R}^\fedim_{\mathbf{M}^{-1}}$ are viewed as column vectors, and $\mathbf{u}^T$ and $\boldsymbol{\sigma}^T$ are the row vectors that result from taking the standard matrix transposes of $\mathbf{u}$ and $\boldsymbol{\sigma}$, respectively. The discrete dual of a vector $\mathbf{v}$ with respect to the $\mathbf{M}$ inner product is written as $\mathbf{v}^*$, and $\mathbf{v}^*$ is viewed as a column vector.
 
 
 \subsection{Discretized operations}
 \label{app:discretized_operations}
 
-Here we list the function space operations on $V_h$ and $V_h'$ that are required for this paper, and show how to perform the corresponding matrix and vector operations on $\mathbb{R}^N_{\mathbf{M}}$ and $\mathbb{R}^N_{\mathbf{M}^{-1}}$.
+Here we list the function space operations on $V_h$ and $V_h'$ that are required for this paper, and show how to perform the corresponding matrix and vector operations on $\mathbb{R}^\fedim_{\mathbf{M}}$ and $\mathbb{R}^\fedim_{\mathbf{M}^{-1}}$.
 
 \begin{description}
-	\item[Coefficients of a functional:] The coefficient dual vector, $\boldsymbol{\sigma} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$, corresponding to a linear functional $\sigma_h \in V_h'$ has components given by
+	\item[Coefficients of a functional:] The coefficient dual vector, $\boldsymbol{\sigma} \in \mathbb{R}^\fedim_{\mathbf{M}^{-1}}$, corresponding to a linear functional $\sigma_h \in V_h'$ has components given by
 	\begin{equation*}
-		\boldsymbol{\sigma}_i = \sigma_h(\febasis_i), \quad i=1,\dots,N.
+		\boldsymbol{\sigma}_i = \sigma_h(\febasis_i), \quad i=1,\dots,\fedim.
 	\end{equation*}
 	\item[Action of a functional:] The action of a linear functional $\sigma_h \in V_h'$ on a function $u_h \in V_h$ may be computed as follows:
 	\begin{equation*}
@@ -1128,21 +1138,21 @@ Here we list the function space operations on $V_h$ and $V_h'$ that are required
 	\begin{equation*}
 		\left(g^\pi_h, v_h\right)_{L^2(\Omega)} = \left(g, v_h\right)_{L^2(\Omega)} \quad\forall v_h \in V_h.
 	\end{equation*}
-	 Let $\left(\mathbf{g}^\pi\right)^* \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ be the vector with components
+	 Let $\left(\mathbf{g}^\pi\right)^* \in \mathbb{R}^\fedim_{\mathbf{M}^{-1}}$ be the vector with components
 	\begin{equation*}
-		\left(\mathbf{g}^\pi\right)^*_i = \int_\Omega g(x) \febasis_i(x) dx, \quad i=1,\dots,N.
+		\left(\mathbf{g}^\pi\right)^*_i = \int_\Omega g(x) \febasis_i(x) dx, \quad i=1,\dots,\fedim.
 	\end{equation*}
-	The coefficient vector $\mathbf{g}^\pi \in \mathbb{R}^N_{\mathbf{M}}$ corresponding to $g^\pi_h$ is given by
+	The coefficient vector $\mathbf{g}^\pi \in \mathbb{R}^\fedim_{\mathbf{M}}$ corresponding to $g^\pi_h$ is given by
 	\begin{equation*}
 		\mathbf{g}^\pi = \mathbf{M}^{-1}\left(\mathbf{g}^\pi\right)^*.
 	\end{equation*}
-	\item[Finite element interpolation:] Let $p_i \in \mathbb{R}^d$, $i=1,\dots,N$, be the Lagrange nodes associated with the finite element basis functions $\febasis_i$. The finite element interpolant of a function $g \in C\left(\overline{\Omega}\right)$ is the function $g^I \in V_h$ given by
+	\item[Finite element interpolation:] Let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots,\fedim$, be the Lagrange nodes associated with the finite element basis functions $\febasis_i$. The finite element interpolant of a function $g \in C\left(\overline{\Omega}\right)$ is the function $g^I \in V_h$ given by
 	\begin{equation*}
-		g_h^I(x) = \sum_{i=1}^N g(p_i) \febasis_i(x).
+		g_h^I(x) = \sum_{i=1}^\fedim g(p_i) \febasis_i(x).
 	\end{equation*}
 	The coefficient vector, $\mathbf{g}$, for $g_h^I$ has components 
 	\begin{equation*}
-	\mathbf{g}_i^I = g(p_i), \quad i=1.,\dots,N.
+	\mathbf{g}_i^I = g(p_i), \quad i=1.,\dots,\fedim.
 	\end{equation*}
 	\item[Projection vs. interpolation:]
 	Typically, $g^\pi$ is a more accurate approximation of $g$ than $g^I$, but $g^I$ is cheaper to compute than $g^\pi$ because computing $g^\pi$ requires solving a linear system, while computing $g^I$ does not. If the finite element basis satisfies the following Kronecker property,
@@ -1150,27 +1160,27 @@ Here we list the function space operations on $V_h$ and $V_h'$ that are required
 		\febasis_i(p_j) = \begin{cases}1 & i=j \\
 		0 & \text{otherwise},\end{cases}
 	\end{equation*}
-	then $g^I(p_i) = g(p_i)$ for $i=1,\dots,N$ (i.e., the interpolant equals the original function at the Lagrange nodes). Interpolation is typically sufficiently accurate for practical purposes if the Kronecker property is satisfied. Projection should be used if the Kronecker property is not satisfied.
-	\item[Matrix representation of an operator:] Let $\mathcal{B}_h : V_h \rightarrow V_h'$ be a linear operator, and let $\mathbf{B} \in \mathbf{R}^{N \times N}$ be the matrix with entries
+	then $g^I(p_i) = g(p_i)$ for $i=1,\dots,\fedim$ (i.e., the interpolant equals the original function at the Lagrange nodes). Interpolation is typically sufficiently accurate for practical purposes if the Kronecker property is satisfied. Projection should be used if the Kronecker property is not satisfied.
+	\item[Matrix representation of an operator:] Let $\mathcal{B}_h : V_h \rightarrow V_h'$ be a linear operator, and let $\mathbf{B} \in \mathbf{R}^{\fedim \times \fedim}$ be the matrix with entries
 	\begin{equation*}
 		\mathbf{B}_{ij} = \left(\mathcal{B}_h \febasis_j\right)(\febasis_i).
 	\end{equation*}
-	The matrix $\mathbf{B}$ maps $\mathbb{R}^N_\mathbf{M} \rightarrow \mathbb{R}^N_{\mathbf{M}^{-1}}$ by matrix multiplication, and
+	The matrix $\mathbf{B}$ maps $\mathbb{R}^\fedim_\mathbf{M} \rightarrow \mathbb{R}^\fedim_{\mathbf{M}^{-1}}$ by matrix multiplication, and
 	\begin{equation*}
 		\sigma_h = \mathcal{B}_h u_h \quad \Leftrightarrow \quad \boldsymbol{\sigma} = \mathbf{B} \mathbf{u}.
 	\end{equation*}
-	\item[Transpose:] The matrix $\mathbf{B}^T$ maps $\mathbb{R}^N_\mathbf{M} \rightarrow \mathbb{R}^N_{\mathbf{M}^{-1}}$ via matrix multiplication, and
+	\item[Transpose:] The matrix $\mathbf{B}^T$ maps $\mathbb{R}^\fedim_\mathbf{M} \rightarrow \mathbb{R}^\fedim_{\mathbf{M}^{-1}}$ via matrix multiplication, and
 	\begin{equation*}
 		\sigma_h = \mathcal{B}_h^T u_h \quad \Leftrightarrow \quad \boldsymbol{\sigma} = \mathbf{B}^T \mathbf{u}.
 	\end{equation*}
 
-	\item[Distributions:] Let $\genericdistribution:C\left(\overline{\Omega}\right)\rightarrow \mathbb{R}$ be a distribution. If $\genericdistribution(\febasis_i)$ is well-defined for $i=1,\dots,N$, then the restriction of $\genericdistribution$ to domain $V_h$ is a linear functional $\genericdistribution_h\in V_h'$. The functional $\genericdistribution_h$ has a coefficient dual vector $\boldsymbol{\genericdistribution} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ with entries 
+	\item[Distributions:] Let $\genericdistribution:C\left(\overline{\Omega}\right)\rightarrow \mathbb{R}$ be a distribution. If $\genericdistribution(\febasis_i)$ is well-defined for $i=1,\dots,\fedim$, then the restriction of $\genericdistribution$ to domain $V_h$ is a linear functional $\genericdistribution_h\in V_h'$. The functional $\genericdistribution_h$ has a coefficient dual vector $\boldsymbol{\genericdistribution} \in \mathbb{R}^\fedim_{\mathbf{M}^{-1}}$ with entries 
 	\begin{equation*}
-		\boldsymbol{\genericdistribution}_i=\genericdistribution(\febasis_i), \quad i=1,\dots,N.
+		\boldsymbol{\genericdistribution}_i=\genericdistribution(\febasis_i), \quad i=1,\dots,\fedim.
 	\end{equation*} 
 	For example, let $\delta_p$ be the Dirac distribution centered at a point $p\in\Omega$. If the finite element basis functions, $\febasis_i$, are continuous at $p$, then restricting the domain of $\delta_p$ to the space $V_h$ yields a linear functional in $V_h'$. The corresponding coefficient dual vector, $\boldsymbol{\delta}_p$, has entries 
 	\begin{equation*}
-		\left(\boldsymbol{\delta}_p\right)_i = \febasis_i(p), \quad i=1,\dots,N.
+		\left(\boldsymbol{\delta}_p\right)_i = \febasis_i(p), \quad i=1,\dots,\fedim.
 	\end{equation*}
 	
 	\item[Action of an operator on a distribution:] Since $V_h$ is finite-dimensional, the restriction, $\genericdistribution_h \in V_h$, of a distribution, $\genericdistribution$, to the space $V_h$ has a a Riesz representation $\genericdistribution_h^* \in V_h$. Let $B_h$ be the integral kernel associated with an operator $\mathcal{B}_h:V_h \rightarrow V_h'$. For $v_h \in V_h$, we have
@@ -1194,18 +1204,18 @@ Here we list the function space operations on $V_h$ and $V_h'$ that are required
 	\SetKwInOut{Output}{Output}
 	{	
 		\Input{Operator $\mathbf{A}$}
-		\Output{$\boldsymbol{\spatialvol}\in \mathbb{R}^N$, $\boldsymbol{\spatialmean}\in \mathbb{R}^{d \times N}$, and $\boldsymbol{\spatialcov} \in \mathbb{R}^{d \times d \times N}$}
+		\Output{$\boldsymbol{\spatialvol}\in \mathbb{R}^\fedim$, $\boldsymbol{\spatialmean}\in \mathbb{R}^{\gdim \times \fedim}$, and $\boldsymbol{\spatialcov} \in \mathbb{R}^{\gdim \times \gdim \times \fedim}$}
 		
-		Form vector $\mathbf{C} \in \mathbb{R}^N_{\mathbf{M}}$ by either projecting or interpolating constant function $C(x)=1$ onto $V_h$
+		Form vector $\mathbf{C} \in \mathbb{R}^\fedim_{\mathbf{M}}$ by either projecting or interpolating constant function $C(x)=1$ onto $V_h$
 		
 		$\boldsymbol{\spatialvol} = \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{C}\right)^*$
 		
-		\For{$i=1,2,\dots,d$}{
-			Form vector $\mathbf{L}^i \in \mathbb{R}^N_{\mathbf{M}}$ by either projecting or interpolating linear function $L^i(x) = x^i$ onto $V_h$
+		\For{$i=1,2,\dots,\gdim$}{
+			Form vector $\mathbf{L}^i \in \mathbb{R}^\fedim_{\mathbf{M}}$ by either projecting or interpolating linear function $L^i(x) = x^i$ onto $V_h$
 			
 			$\mathbf{\spatialmean}^i = \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right)^* / \boldsymbol{\spatialvol}$
 		}
-		\For{$i=1,2,\dots,d$}{
+		\For{$i=1,2,\dots,\gdim$}{
 			\For{$j=1,\dots,i$}{
 				Form quadratic function $\mathbf{Q}^{ij} = x^i x^j$
 				
@@ -1221,7 +1231,7 @@ Here we list the function space operations on $V_h$ and $V_h'$ that are required
 	\label{alg:varhpi_mean_cov_discrete}
 \end{algorithm2e}
 
-In computations, $\spatialvol$, $\spatialmean^{i}$, and $\spatialcov^{ij}$ are replaced with finite element approximations $\spatialvol_h, \spatialmean_h^i, \spatialcov_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\spatialvol}, \boldsymbol{\spatialmean}^{ij}, \boldsymbol{\spatialcov}^{ij}\in\mathbb{R}^N_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with either finite element projections onto $V_h$ (if the finite element basis does not satisfy the Kronecker property), or finite element interpolations onto $V_h$ (if the finite element basis satisfies the Kronecker property). In our numerical examples we use finite element basis functions that satisfy the Kronecker property, and we use finite element interpolations. The coefficient vectors corresponding to either the interpolations or projections are denoted $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
+In computations, $\spatialvol$, $\spatialmean^{i}$, and $\spatialcov^{ij}$ are replaced with finite element approximations $\spatialvol_h, \spatialmean_h^i, \spatialcov_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\spatialvol}, \boldsymbol{\spatialmean}^{ij}, \boldsymbol{\spatialcov}^{ij}\in\mathbb{R}^\fedim_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with either finite element projections onto $V_h$ (if the finite element basis does not satisfy the Kronecker property), or finite element interpolations onto $V_h$ (if the finite element basis satisfies the Kronecker property). In our numerical examples we use finite element basis functions that satisfy the Kronecker property, and we use finite element interpolations. The coefficient vectors corresponding to either the interpolations or projections are denoted $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
 \begin{align*}
 	\boldsymbol{\spatialvol} &= \mathbf{M}^{-1}\mathbf{A}^T\mathbf{C} \\
 	\boldsymbol{\spatialmean}^i &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right) / \boldsymbol{\spatialvol}\\
@@ -1231,13 +1241,13 @@ respectively. Here $\mathbf{f} \cdot \mathbf{g}$ and $\mathbf{f} / \mathbf{g}$ d
 
 
 \subsection{Discretized sampling of impulse responses}
-In computations, the Dirac comb coefficient dual vector for $\dcomb_h^b$ is the vector $\boldsymbol{\dcomb}^b \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ which has entries
+In computations, the Dirac comb coefficient dual vector for $\diraccomb_h^k$ is the vector $\boldsymbol{\diraccomb}^k \in \mathbb{R}^\fedim_{\mathbf{M}^{-1}}$ which has entries
 \begin{equation*}
-	\boldsymbol{\dcomb}^b_i = \sum_{x_j \in \pointbatch_b} \febasis_i(x_j), \quad i=1,\dots,N.
+	\boldsymbol{\diraccomb}^k_i = \sum_{x_j \in \pointbatch_k} \febasis_i(x_j), \quad i=1,\dots,\fedim.
 \end{equation*}
-The Dirac comb impulse response coefficient vector for $\combresponse^h_b$ is the vector $\boldsymbol{\combresponse}_b \in \mathbb{R}^N_\mathbf{M}$ given by
+The Dirac comb impulse response coefficient vector for $\combresponse^h_k$ is the vector $\boldsymbol{\combresponse}_k \in \mathbb{R}^\fedim_\mathbf{M}$ given by
 \begin{equation*}
-	\boldsymbol{\combresponse}_b = \mathbf{M}^{-1} \mathbf{A}^T \mathbf{M}^{-1}\boldsymbol{\dcomb}^b.
+	\boldsymbol{\combresponse}_k = \mathbf{M}^{-1} \mathbf{A}^T \mathbf{M}^{-1}\boldsymbol{\diraccomb}^k.
 \end{equation*}
 
 
