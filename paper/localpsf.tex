@@ -126,28 +126,28 @@ The most popular existing Hessian approximation methods are based on forming a l
 \subsection{Product-convolution approximation}
 \label{sec:prodconv_intro}
 
-If $\Aop$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then it is straightforward to show that $\Aop$ would be the convolution operator $u \mapsto \left(\varphi_x \ast u\right)^*$, where the convolution kernel is given by
+If $\Aop$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then it is straightforward to show that $\Aop$ would be the convolution operator $u \mapsto \left(\convkernel_x \ast u\right)^*$, where the convolution kernel is given by
 \begin{equation}
 	\label{eq:convolution_kernel}
-	\varphi_x(y) := \impulseresponse_x(y+x).
+	\convkernel_x(y) := \impulseresponse_x(y+x).
 \end{equation}
-The convolution kernel $\varphi_x$ is the result of translating the impulse response $\impulseresponse_x$ to re-center it at zero instead of $x$. Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies as $x$ changes. We therefore approximate $\Aop$ by a spatially varying weighted sum of convolution operators, $\AopPc \approx \Aop$, of the form
+The convolution kernel $\convkernel_x$ is the result of translating the impulse response $\impulseresponse_x$ to re-center it at zero instead of $x$. Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\convkernel_x$, varies as $x$ changes. We therefore approximate $\Aop$ by a spatially varying weighted sum of convolution operators, $\AopPc \approx \Aop$, of the form
 \begin{equation}
 \label{eq:product_convolution}
-	\left(\AopPc~u\right)(v) := \left( v,~ \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
+	\left(\AopPc~u\right)(v) := \left( v,~ \sum_{i=1}^r \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
 \end{equation}
 where $f \cdot g$ denotes pointwise multiplication, $f \ast g$ denotes convolution, and $\left(f, g\right)_{L^2(\Omega)}$ denotes the $L^2$ inner product on $\Omega$, for functions $f,g \in L^2(\Omega)$. Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. To avoid nested subscripts, we write 
 \begin{equation*}
-	\varphi_i := \varphi_{x_i} \quad \text{and} \quad \impulseresponse_i := \impulseresponse_{x_i},
+	\convkernel_i := \convkernel_{x_i} \quad \text{and} \quad \impulseresponse_i := \impulseresponse_{x_i},
 \end{equation*}
-with $\varphi_{x_i}$ defined in \eqref{eq:convolution_kernel} and $\impulseresponse_{x_i}$ defined in \eqref{eq:impulse_response_defn}, to denote local convolution kernels and impulse responses corresponding to a collection of points $\{x_i\}_{i=1}^r \subset \Omega$ scattered throughout the domain. The functions $w_i$ are spatially varying weighting functions that are used to interpolate the convolution kernels $\varphi_i$. Our operator approximation method is defined by how we compute the convolution kernels, $\varphi_i$, how we choose the points, $x_i$, and what weighting functions, $w_i$, that we use. In Section \ref{sec:overview_intro} we summarize the answers to these questions; we will provide detailed answers to these questions in Section \ref{sec:method}.
+with $\convkernel_{x_i}$ defined in \eqref{eq:convolution_kernel} and $\impulseresponse_{x_i}$ defined in \eqref{eq:impulse_response_defn}, to denote local convolution kernels and impulse responses corresponding to a collection of points $\{x_i\}_{i=1}^r \subset \Omega$ scattered throughout the domain. The functions $w_i$ are spatially varying weighting functions that are used to interpolate the convolution kernels $\convkernel_i$. Our operator approximation method is defined by how we compute the convolution kernels, $\convkernel_i$, how we choose the points, $x_i$, and what weighting functions, $w_i$, that we use. In Section \ref{sec:overview_intro} we summarize the answers to these questions; we will provide detailed answers to these questions in Section \ref{sec:method}.
 
 The more locally translation invariant an operator is (i.e., the smaller the discrepancy between the left hand side and right hand side in \eqref{eq:local_translation_invariance}), the smaller the number of terms that are required in \eqref{eq:product_convolution} to achieve an accurate product-convolution approximation. 
 
 \subsection{Overview of the method}
 \label{sec:overview_intro}
 
-We compute one ``batch'' of $\varphi_i$'s by applying $\Aop$ to a sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen so that the support of $\impulseresponse_i$ and the support of $\impulseresponse_j$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_i$, and therefore the functions $\varphi_i$, associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\varphi_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\varphi_i$'s, until a desired number of batches is reached.
+We compute one ``batch'' of $\convkernel_i$'s by applying $\Aop$ to a sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen so that the support of $\impulseresponse_i$ and the support of $\impulseresponse_j$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_i$, and therefore the functions $\convkernel_i$, associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\convkernel_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\convkernel_i$'s, until a desired number of batches is reached.
 
 In order to choose the points $x_i$, we need to estimate the support of $\impulseresponse_i$ \emph{before} we compute it. The supports of the functions $\impulseresponse_x$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of specially chosen functions (three functions if $d=1$, six if $d=2$, ten if $d=3$), then post processing the results (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
 
@@ -161,12 +161,12 @@ We choose the weighting functions, $w_i$, to be the solutions to the following o
 \end{equation}
 Here $\Delta$ is the Laplacian on $\Omega$, $H^2_N(\Omega)$ is the space of all functions in the Sobolev space $H^2(\Omega)$ with Neumann zero boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. Since the Laplacian measures local deviation from flatness \cite{JACOBSEN}, the function $w_i$ is the flattest function, in a least-squares sense, that takes the value one at the sample point $x_i$, and the value zero at the other sample points $x_j$, $i \neq j$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid. We call this interpolation scheme \emph{Poisson interpolation}. The advantage of Poisson interpolation over other interpolation methods, most notably radial basis function interpolation \cite{ESCANDE}, is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. This is illustrated in Figure FIG. 
 
-Once the $\varphi_i$ and $w_i$ are computed, we convert $\AopPc$ to hierarchical matrix (H-matrix) format. Let $\Aker_\text{pc}$ denote the integral kernel associated with $\AopPc$. While $\Aker(y,x)$ is not easily computable, $\Aker_\text{pc}(y,x)$ is given by the formula
+Once the $\convkernel_i$ and $w_i$ are computed, we convert $\AopPc$ to hierarchical matrix (H-matrix) format. Let $\Aker_\text{pc}$ denote the integral kernel associated with $\AopPc$. While $\Aker(y,x)$ is not easily computable, $\Aker_\text{pc}(y,x)$ is given by the formula
 \begin{equation}
 	\label{eq:kernel_entries}
-	\AkerPc(y,x) = \sum_{i=1}^r \varphi_i(y-x) w_i(x).
+	\AkerPc(y,x) = \sum_{i=1}^r \convkernel_i(y-x) w_i(x).
 \end{equation}
-This follows from~\eqref{eq:product_convolution} and the fact that the convolution operator $u \mapsto \varphi_i \ast u$ has $(y,x)$ kernel entry given by $\varphi(y-x)$.
+This follows from~\eqref{eq:product_convolution} and the fact that the convolution operator $u \mapsto \convkernel_i \ast u$ has $(y,x)$ kernel entry given by $\convkernel(y-x)$.
 Formula~\eqref{eq:kernel_entries} allows us to construct a H-matrix representation of $\AopPc$ using the conventional adaptive cross H-matrix construction method, in which one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. Once in H-matrix format, fast H-matrix arithmetic is used to invert $\AopPc$, or perform other useful matrix operations.
 
 Often we are interested in approximating operators $\Aop$ that are symmetric positive semi-definite. Unfortunately, $\AopPc$ is, in general, non-symmetric and indefinite due to errors in the product convolution approximation. In this case, we modify the H-matrix representation of $\AopPc$ to make it positive definite, by symmetrizing it, then applying a specially chosen rational matrix function to the symmetrized H-matrix.
@@ -174,12 +174,12 @@ Often we are interested in approximating operators $\Aop$ that are symmetric pos
 
 \subsection{Existing work}
 
-In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\varphi_i$ and $w_i$ may be arbitrary functions. Product-convolution approximations have been used in a wide variety of fields going back several decades \cite{PRODCONVLIST}.
+In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\convkernel_i$ and $w_i$ may be arbitrary functions. Product-convolution approximations have been used in a wide variety of fields going back several decades \cite{PRODCONVLIST}.
 For background on product-convolution approximations, we recommend reading the following papers: \cite{PRODCONVGOOD}. 
 
-We build upon the class of product convolution approximations in which the functions, $\varphi_i$, are impulse responses of $\Aop$ to point sources at a collection of points $x_i$ \cite{PRODCONVLIST}. A popular choice for methods in this class is to choose the points $x_i$ to be nodes in a regular grid, and interpolate the functions $\varphi_i$ with piecewise linear interpolation \cite{NAGY}, or splines \cite{PRODCONVSPLINES}. With a regular grid, a large number of points $x_i$ is typically required to achieve an accurate product-convolution approximation. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. But even with adaptive refinement, many matrix vector products with $\Aop$ may be required. In this paper, rather than using adaptive refinement, we instead reduce the computational cost by picking points $x_i$ such that many $\varphi_i$ are computed with each matrix vector product. 
+We build upon the class of product convolution approximations in which the functions, $\convkernel_i$, are impulse responses of $\Aop$ to point sources at a collection of points $x_i$ \cite{PRODCONVLIST}. A popular choice for methods in this class is to choose the points $x_i$ to be nodes in a regular grid, and interpolate the functions $\convkernel_i$ with piecewise linear interpolation \cite{NAGY}, or splines \cite{PRODCONVSPLINES}. With a regular grid, a large number of points $x_i$ is typically required to achieve an accurate product-convolution approximation. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. But even with adaptive refinement, many matrix vector products with $\Aop$ may be required. In this paper, rather than using adaptive refinement, we instead reduce the computational cost by picking points $x_i$ such that many $\convkernel_i$ are computed with each matrix vector product. 
 
-Our method of estimating the support of the functions $\varphi_i$ was inspired by resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\varphi_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\varphi_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\varphi_p$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\Aop^T$ with random noise functions, we use specific constant, linear, and quadratic functions. Our method estimates the support of $\varphi_p$ more accurately and reliably than resolution analysis, but our method requires that $\Aop$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
+Our method of estimating the support of the functions $\convkernel_i$ was inspired by resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\convkernel_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\convkernel_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\convkernel_p$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\Aop^T$ with random noise functions, we use specific constant, linear, and quadratic functions. Our method estimates the support of $\convkernel_p$ more accurately and reliably than resolution analysis, but our method requires that $\Aop$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
 
 Matrix-vector products with product-convolution approximations can be performed using the fast Fourier transform if the problem is discretized on a regular grid \cite{PRODCONVFFT}. The product-convolution approximation can then replace the original operator when using Krylov methods to solve linear systems with the original operator as the coefficient operator \cite{PRODCONVKRYLOV}. However, for complex geometries, problems are rarely discretized using regular grids, so we cannot easily use the fast Fourier transform. Furthermore, in big-data inverse problems the required number of Krylov iterations is large \cite{MYDISSERTATION,OTHERS}. Thus, after constructing the product-convolution approximation, it is desirable to convert the product-convolution approximation to other matrix formats that are amenable to fast linear algebra operations. Wavelet compression methods have been used for this purpose \cite{PRODCONVWAVELETS}. Here we follow our previous work \cite{PRODCONVMYPAPER}, in which we convert the product-convolution approximation to H-matrix format. 
 
@@ -191,7 +191,7 @@ Product-convolution type approximations of Hessians have been used in a seismic 
 
 \section{Constructing the product-convolution H-matrix approximation}
 \label{sec:method}
-In this section we describe how we choose the sample points, $x_i$ (Section \ref{sec:sample_point_selection}), how we form the convolution kernels, $\varphi_i$ (Section \ref{sec:get_impulse_response}), and how we form the weighting functions, $w_i$ (Section \ref{sec:weighting_functions}), for the product-convolution approximation, $\AopPc \approx \Aop$, given in \eqref{eq:product_convolution}. We also describe how we convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), and (optionally) how we modify the resulting H-matrix, $\AmatPc$, to force it to be symmetric positive semi-definite (Section \ref{sec:make_spd}). The complete algorithm for constructing $\AmatPc$ is shown in Algorithm \ref{alg:construct_Atilde}. 
+In this section we describe how we choose the sample points, $x_i$ (Section \ref{sec:sample_point_selection}), how we form the convolution kernels, $\convkernel_i$ (Section \ref{sec:get_impulse_response}), and how we form the weighting functions, $w_i$ (Section \ref{sec:weighting_functions}), for the product-convolution approximation, $\AopPc \approx \Aop$, given in \eqref{eq:product_convolution}. We also describe how we convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), and (optionally) how we modify the resulting H-matrix, $\AmatPc$, to force it to be symmetric positive semi-definite (Section \ref{sec:make_spd}). The complete algorithm for constructing $\AmatPc$ is shown in Algorithm \ref{alg:construct_Atilde}. 
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -210,7 +210,7 @@ In this section we describe how we choose the sample points, $x_i$ (Section \ref
 			
 		}
 
-		Form convolution kernels, $\varphi_{x_i}$, on regular grids (Section \ref{sec:convolution_kernel_regular_grid})
+		Form convolution kernels, $\convkernel_{x_i}$, on regular grids (Section \ref{sec:convolution_kernel_regular_grid})
 	
 		Modify convolution kernels to address boundary artifacts (Section \ref{sec:boundary_extension})
 	
@@ -360,7 +360,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 \subsection{Convolution kernels}
 \label{sec:get_impulse_response}
 
-We compute convolution kernels $\varphi_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. Each application of $\Aop$ to a Dirac comb yields one batch of impulse responses, $\impulseresponse_{x_i}$, which yields one batch of convolution kernels, $\varphi_{x_i}$. The Dirac comb, $\dcomb_b$, associated with a batch of sample points, $S_b$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
+We compute convolution kernels $\convkernel_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. Each application of $\Aop$ to a Dirac comb yields one batch of impulse responses, $\impulseresponse_{x_i}$, which yields one batch of convolution kernels, $\convkernel_{x_i}$. The Dirac comb, $\dcomb_b$, associated with a batch of sample points, $S_b$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
 \begin{equation*}
 	\dcomb_b := \sum_{x_i \in S_b} \delta_{x_i}.
 \end{equation*}
@@ -377,36 +377,36 @@ By linearity, the resulting function $\combresponse_b$ may be written as
 Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\impulseresponse_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\impulseresponse_j$ do not overlap when $i \neq j$, from \eqref{eq:convolution_kernel} and \eqref{eq:phi_b} we have (approximately)
 \begin{equation}
 \label{eq:varphi_eval}
-	\varphi_{x_i}(z) = \impulseresponse_i(z+x_i) = 
+	\convkernel_{x_i}(z) = \impulseresponse_i(z+x_i) = 
 	\begin{cases}
 		\combresponse_b(z+x_i), & z+x_i \in E_{x_i} \\
 		0, & \text{otherwise}
 	\end{cases}
 \end{equation}
-for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the convolution kernels $\varphi_{x_i}$ associated with every point $x_i \in S_b$. 
+for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the convolution kernels $\convkernel_{x_i}$ associated with every point $x_i \in S_b$. 
 
 
 \subsubsection{Interpolation onto local regular grids}
 \label{sec:convolution_kernel_regular_grid}
 
-To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\varphi_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\varphi_{x_i}(z)$ requires evaluating $\combresponse_b(z+x_i)$. In computations, $\combresponse_b$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\combresponse_b(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. 
+To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\convkernel_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\convkernel_{x_i}(z)$ requires evaluating $\combresponse_b(z+x_i)$. In computations, $\combresponse_b$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\combresponse_b(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. 
 
-To speed up evaluation of $\varphi_{x_i}$, we interpolate $\varphi_{x_i}$ onto a regular rectilinear grid on a coordinate axis aligned box that just barely contains the ellipsoid $E_{x_i}$. We transfer the function $\varphi_{x_i}$ from the irregular mesh to the regular grid by evaluating $\varphi_{x_i}$ at all gridpoints in the regular grid, using the slow process described in the previous paragraph. This is an upfront cost which is done ``offline.'' After $\varphi_{x_i}$ has been transferred to the regular grid, we use fast regular grid interpolation to perform all subsequent ``online'' evaluations of $\varphi_{x_i}$. This yields a substantial overall speedup because the number of finite element function evaluations required to transfer the functions $\varphi_{x_i}$ to the regular grid is $O(N)$, while the number of kernel evaluations required to convert $\AopPc$ to H-matrix format is $O(k N \log N)$. Here $N$ is the number of finite element degrees of freedom, and $k$ is the H-matrix rank. Furthermore, transferring $\varphi_{x_i}$ to a regular grid requires evaluating $\varphi_{x_i}$ at a predetermined and highly structured collection of points. This structure allows for faster determination of which mesh cells that points are in, and allows one to evaluate the finite element function at all regular gridpoints in parallel. In contrast, constructing the H-matrix requires evaluating $\varphi_{x_i}$ at an unpredictable sequence of scattered of points, which is an expensive task for finite element function evaluation, but a cheap task for regular grid interpolation. 
-Having $\varphi_{x_i}$ stored on a regular grid also simplifies the implementation of the method that we use to deal with boundary artifacts, which will be described in Section \ref{sec:boundary_extension}.
+To speed up evaluation of $\convkernel_{x_i}$, we interpolate $\convkernel_{x_i}$ onto a regular rectilinear grid on a coordinate axis aligned box that just barely contains the ellipsoid $E_{x_i}$. We transfer the function $\convkernel_{x_i}$ from the irregular mesh to the regular grid by evaluating $\convkernel_{x_i}$ at all gridpoints in the regular grid, using the slow process described in the previous paragraph. This is an upfront cost which is done ``offline.'' After $\convkernel_{x_i}$ has been transferred to the regular grid, we use fast regular grid interpolation to perform all subsequent ``online'' evaluations of $\convkernel_{x_i}$. This yields a substantial overall speedup because the number of finite element function evaluations required to transfer the functions $\convkernel_{x_i}$ to the regular grid is $O(N)$, while the number of kernel evaluations required to convert $\AopPc$ to H-matrix format is $O(k N \log N)$. Here $N$ is the number of finite element degrees of freedom, and $k$ is the H-matrix rank. Furthermore, transferring $\convkernel_{x_i}$ to a regular grid requires evaluating $\convkernel_{x_i}$ at a predetermined and highly structured collection of points. This structure allows for faster determination of which mesh cells that points are in, and allows one to evaluate the finite element function at all regular gridpoints in parallel. In contrast, constructing the H-matrix requires evaluating $\convkernel_{x_i}$ at an unpredictable sequence of scattered of points, which is an expensive task for finite element function evaluation, but a cheap task for regular grid interpolation. 
+Having $\convkernel_{x_i}$ stored on a regular grid also simplifies the implementation of the method that we use to deal with boundary artifacts, which will be described in Section \ref{sec:boundary_extension}.
 
-We incur interpolation error when transferring $\varphi_{x_i}$ from the irregular mesh to the regular grid. To limit this interpolation error, the density of the regular grid should be as dense or denser than the local density of the finite element mesh. In our numerical results, the distance between neighboring points in the regular grid is chosen to be half the minimum distance between any pair of finite element Lagrange nodes that are contained in $E_{x_i}$. The grid transfer procedure is illustrated in Figure FIG. 
+We incur interpolation error when transferring $\convkernel_{x_i}$ from the irregular mesh to the regular grid. To limit this interpolation error, the density of the regular grid should be as dense or denser than the local density of the finite element mesh. In our numerical results, the distance between neighboring points in the regular grid is chosen to be half the minimum distance between any pair of finite element Lagrange nodes that are contained in $E_{x_i}$. The grid transfer procedure is illustrated in Figure FIG. 
 
-When $x_i$ is near a boundary, it may occur that some gridpoints for the regular grid are in locations where $\varphi_{x_i}$ is undefined. In this case, we store a placeholder value for $\varphi_{x_i}$ at those gridpoints. We use the IEEE standard value of ``NaN'' (not a number) for this placeholder. In the next section (Section \ref{sec:boundary_extension}) we replace these NaN values with more appropriate values.
+When $x_i$ is near a boundary, it may occur that some gridpoints for the regular grid are in locations where $\convkernel_{x_i}$ is undefined. In this case, we store a placeholder value for $\convkernel_{x_i}$ at those gridpoints. We use the IEEE standard value of ``NaN'' (not a number) for this placeholder. In the next section (Section \ref{sec:boundary_extension}) we replace these NaN values with more appropriate values.
 
 
 \subsubsection{Addressing boundary artifacts}
 \label{sec:boundary_extension}
 
-Evaluating the kernel for our product-convolution approximation, $\AkerPc(y,x)$, requires evaluating $\varphi_{x_i}(y-x)$. But $\varphi_{x_i}(y-x)$ is undefined  when $y - x + x_i$ is outside $\Omega$, which may occur even if $x \in \Omega$ and $y \in \Omega$. The default approach to deal with this problem is to extend $\varphi_{x_i}$ by zero wherever it is undefined. But this leads to substantial errors, known as boundary artifacts, which are especially significant when the sample point $x_i$ is near the boundary of the domain. In this case, the impulse response is artificially chopped off by the domain boundary. See Figure FIG for an illustration. 
+Evaluating the kernel for our product-convolution approximation, $\AkerPc(y,x)$, requires evaluating $\convkernel_{x_i}(y-x)$. But $\convkernel_{x_i}(y-x)$ is undefined  when $y - x + x_i$ is outside $\Omega$, which may occur even if $x \in \Omega$ and $y \in \Omega$. The default approach to deal with this problem is to extend $\convkernel_{x_i}$ by zero wherever it is undefined. But this leads to substantial errors, known as boundary artifacts, which are especially significant when the sample point $x_i$ is near the boundary of the domain. In this case, the impulse response is artificially chopped off by the domain boundary. See Figure FIG for an illustration. 
 
-While $\varphi_{x_i}$ may be undefined at a point $z$, often there is a sample point $x_j$ that is near $x_i$, but further away from the boundary than $x_i$, such that $\varphi_{x_j}$ is well defined at $z$. To address boundary artifacts, we fill in missing/undefined portions of convolution kernels using information from other convolution kernels associated with the $k$ nearest sample points (we use $k=8$ in our numerical results). Kernels associated with nearer sample points are given precedence over kernels associated with farther away sample points. 
+While $\convkernel_{x_i}$ may be undefined at a point $z$, often there is a sample point $x_j$ that is near $x_i$, but further away from the boundary than $x_i$, such that $\convkernel_{x_j}$ is well defined at $z$. To address boundary artifacts, we fill in missing/undefined portions of convolution kernels using information from other convolution kernels associated with the $k$ nearest sample points (we use $k=8$ in our numerical results). Kernels associated with nearer sample points are given precedence over kernels associated with farther away sample points. 
 
-In detail, let $p_1, p_2, \dots, p_k$ be the $k$ nearest sample points to $x_i$, ordered by nearness, including $x_i$ itself. That is, $p_1=x_i$, $p_2$ is the nearest neighbor to $x_i$, $p_3$ is the second nearest neighbor to $x_i$, and so on. Also, recall from the previous section (Section \ref{sec:convolution_kernel_regular_grid}) that the functions $\varphi_{x_i}$ are stored on regular rectilinear grids. To extend $\varphi_{x_i}$, we form an expanded regular rectilinear grid that has the same grid spacing as the grid used for $\varphi_{x_i}$, and contains that grid as a subgrid, but is large enough to contain the boxes associated with all of the neighbor kernels, $\varphi_{p_1}, \varphi_{p_2}, \dots, \varphi_{p_k}$ (recall that the functions $\varphi_{x_i}$ are all centered at zero). We initialize an extended convolution kernel, $\varphi_{x_i}^E$, to zero on this expanded grid. Then we interpolate the functions $\varphi_{p_j}$ onto this expanded grid in reverse order. First we interpolate $\varphi_{p_k}$ onto the grid, then $\varphi_{p_{k-1}}$, and so on until the last step in which we interpolate the original kernel $\varphi_{p_1} = \varphi_{x_i}$. At each step, we overwrite existing values of $\varphi_{x_i}^E$ with new values from the kernel currently being interpolated, except when the new value of $\varphi_{p_j}$ is undefined (``NaN''). At gridpoints where the kernel being interpolated is undefined, we leave $\varphi_{x_i}^E$ unchanged. In this way, we fill in undefined values of $\varphi_{x_i}$ with values from successively further and further away kernels. This process is illustrated in Figure FIG. To avoid notational clutter, and since we will henceforth only work with the extended kernel, $\varphi_{x_i}^E$, in the remainder of this paper the symbol $\varphi_{x_i}$ refers to $\varphi_{x_i}^E$.
+In detail, let $p_1, p_2, \dots, p_k$ be the $k$ nearest sample points to $x_i$, ordered by nearness, including $x_i$ itself. That is, $p_1=x_i$, $p_2$ is the nearest neighbor to $x_i$, $p_3$ is the second nearest neighbor to $x_i$, and so on. Also, recall from the previous section (Section \ref{sec:convolution_kernel_regular_grid}) that the functions $\convkernel_{x_i}$ are stored on regular rectilinear grids. To extend $\convkernel_{x_i}$, we form an expanded regular rectilinear grid that has the same grid spacing as the grid used for $\convkernel_{x_i}$, and contains that grid as a subgrid, but is large enough to contain the boxes associated with all of the neighbor kernels, $\convkernel_{p_1}, \convkernel_{p_2}, \dots, \convkernel_{p_k}$ (recall that the functions $\convkernel_{x_i}$ are all centered at zero). We initialize an extended convolution kernel, $\convkernel_{x_i}^E$, to zero on this expanded grid. Then we interpolate the functions $\convkernel_{p_j}$ onto this expanded grid in reverse order. First we interpolate $\convkernel_{p_k}$ onto the grid, then $\convkernel_{p_{k-1}}$, and so on until the last step in which we interpolate the original kernel $\convkernel_{p_1} = \convkernel_{x_i}$. At each step, we overwrite existing values of $\convkernel_{x_i}^E$ with new values from the kernel currently being interpolated, except when the new value of $\convkernel_{p_j}$ is undefined (``NaN''). At gridpoints where the kernel being interpolated is undefined, we leave $\convkernel_{x_i}^E$ unchanged. In this way, we fill in undefined values of $\convkernel_{x_i}$ with values from successively further and further away kernels. This process is illustrated in Figure FIG. To avoid notational clutter, and since we will henceforth only work with the extended kernel, $\convkernel_{x_i}^E$, in the remainder of this paper the symbol $\convkernel_{x_i}$ refers to $\convkernel_{x_i}^E$.
 
 
 \subsection{Poisson weighting functions}
@@ -420,7 +420,7 @@ We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to 
 		\text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,r.
 	\end{aligned}
 \end{equation}
-Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}).
+Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\convkernel_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}).
 
 For each $i=1,\dots,r$, optimization problem \eqref{eq:wi_optimization_problem} is an example of the following generic optimization problem:
 \begin{equation}
@@ -599,14 +599,14 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	Let $y \in \mathbb{R}^d$, $d \in \{1,2,3\}$, and let $\horizinterpolant_y$ be the function
 	\begin{equation}
 		\label{eq:u_defn_in_thm}
-		\horizinterpolant_y(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \AkerPc\left(y+x,x\right),
+		\horizinterpolant_y(x) := \sum_{i=1}^r \convkernel_i(y)w_i(x) = \AkerPc\left(y+x,x\right),
 	\end{equation}
 	where the weighting functions $w_i$ are the solutions to optimization problem \eqref{eq:wi_optimization_problem}. Then for each $y \in \Omega$, the function $\horizinterpolant_y$ solves the optimization problem
 	\begin{equation}
 		\label{eq:uy_optimization_problem}
 		\begin{aligned}
 			\min_{\horizinterpolant_y \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta \horizinterpolant_y}_{L^2(\Omega)}^2 \\
-			\text{such that} &\quad \horizinterpolant_y(x_i) = \varphi_i(y), \quad i=1,\dots,q.
+			\text{such that} &\quad \horizinterpolant_y(x_i) = \convkernel_i(y), \quad i=1,\dots,q.
 		\end{aligned}
 	\end{equation}
 \end{thm}
@@ -619,8 +619,6 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	\end{equation*}
 	for all $x \in \Omega$.
 \end{prop}
-
-
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -681,7 +679,7 @@ Let $f_1, f_2, \dots, f_N$ be a set of finite element basis functions used to di
 In Section \ref{sec:intro} we noted that the original integral kernel, $\Aker$, is inaccessible, while in Equation \eqref{eq:kernel_entries}  we saw that the integral kernel for our product-convolution approximation, $\AkerPc \approx \Aker$, is accessible, and may be cheaply evaluated at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$ via the following formula:
 \begin{equation}
 	\label{eq:eval_y_x}
-	\AkerPc(y,x) = \sum_{i=1}^r w_i(x) \varphi_{x_i}(y-x).
+	\AkerPc(y,x) = \sum_{i=1}^r w_i(x) \convkernel_{x_i}(y-x).
 \end{equation}
 We now define a further approximation, $\AkerPcMesh \approx \AkerPc$, as follows:
 \begin{equation}
@@ -995,10 +993,10 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 
 
 \begin{proof}[Proof of Theorem \ref{thm:smoothest_interpolant}]
-	Let $f = (\varphi_1(y), \varphi_2(y), \dots, \varphi_r(y))$ and let $e_i = (0,\dots,0,1,0,\dots,0)$ be the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero. The solution to optimization problem \eqref{eq:uy_optimization_problem} is given by
+	Let $f = (\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_r(y))$ and let $e_i = (0,\dots,0,1,0,\dots,0)$ be the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero. The solution to optimization problem \eqref{eq:uy_optimization_problem} is given by
 	\begin{align*}
-		\mathcal{T}(f) &= \varphi_1(y) \mathcal{T}(e_1) + \varphi_2(y) \mathcal{T}(e_2) + \dots +\varphi_r(y) \mathcal{T}(e_r) \\
-		&= \varphi_1(y) w_1 + \varphi_2(y) w_2 + \dots +\varphi_r(y) w_r \\
+		\mathcal{T}(f) &= \convkernel_1(y) \mathcal{T}(e_1) + \convkernel_2(y) \mathcal{T}(e_2) + \dots + \convkernel_r(y) \mathcal{T}(e_r) \\
+		&= \convkernel_1(y) w_1 + \convkernel_2(y) w_2 + \dots + \convkernel_r(y) w_r \\
 		&= \horizinterpolant_y.
 	\end{align*}
 	In the first line we used linearity of the solution map, $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), in the second line we used the fact that $w_i = \mathcal{T}(e_i)$, and in the third line we used the definition of $\horizinterpolant_y$ in \eqref{eq:u_defn_in_thm}.
