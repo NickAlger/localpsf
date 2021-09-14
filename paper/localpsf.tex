@@ -278,27 +278,27 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 	\SetKwInOut{Input}{Input}
 	\SetKwInOut{Output}{Output}
 	{	
-		\Input{Operator $\mathcal{A}$}
+		\Input{Operator $\Aop$}
 		\Output{$\alpha$, $\mu$, and $\Sigma$}
 		
 		\tcp{Compute scaling factor $\alpha$}
 		
 		Form constant function $C(x)=1$
 
-		Compute $\alpha = \left(\mathcal{A}^T C\right)^*$
+		Compute $\alpha = \left(\Aop^T C\right)^*$
 		
 		\tcp{Compute mean $\mu$}
 		\For{$i=1,2,\dots,d$}{
 			Form linear function $L^i(x) = x^i$
 			
-			Compute $\mu^i = \left(\mathcal{A}^T L^i\right)^* / \alpha$
+			Compute $\mu^i = \left(\Aop^T L^i\right)^* / \alpha$
 		}
 		\tcp{Compute covariance $\Sigma$}
 		\For{$i=1,2,\dots,d$}{
 			\For{$j=1,\dots,i$}{
 				Form quadratic function $Q^{ij}(x) = x^i x^j$
 				
-				Compute $\Sigma^{ij} = \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot \mu^j$
+				Compute $\Sigma^{ij} = \left(\Aop^T Q^{ij}\right)^* / \alpha - \mu^i\cdot \mu^j$
 				
 				Set $\Sigma^{ji} = \Sigma^{ij}$
 			
@@ -314,7 +314,7 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \subsubsection{Greedy ellipsoid packing}
 \label{sec:greedy_point_selection}
 
-We use a greedy ellipsoid packing algorithm to choose sets of sample points, $S_b$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\impulseresponse_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\mathcal{A}$ to the Dirac comb associated with all sample points in a batch, we will recover the impulse responses for all sample points in that batch.
+We use a greedy ellipsoid packing algorithm to choose sets of sample points, $S_b$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\impulseresponse_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\Aop$ to the Dirac comb associated with all sample points in a batch, we will recover the impulse responses for all sample points in that batch.
 
 We start with a finite set of candidate points $P$. To build a batch of sample points, $S_b$, first we initialize $S_b$ as an empty set. Then we select the point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
 \begin{equation*}
@@ -364,15 +364,15 @@ We compute convolution kernels $\convkernel_{x_i}$ in batches by applying $\Aop$
 \begin{equation*}
 	\dcomb_b := \sum_{x_i \in S_b} \delta_{x_i}.
 \end{equation*}
-For each batch $S_b$, we compute the action of $\mathcal{A}$ on the associated Dirac comb:
+For each batch $S_b$, we compute the action of $\Aop$ on the associated Dirac comb:
 \begin{equation}
 	\label{eq:dirac_comb_H_action}
-	\combresponse_b := \left(\mathcal{A} \dcomb_b^*\right)^*.
+	\combresponse_b := \left(\Aop \dcomb_b^*\right)^*.
 \end{equation}
 By linearity, the resulting function $\combresponse_b$ may be written as
 \begin{equation}
 	\label{eq:phi_b}
-	\combresponse_b = \left\langle\mathcal{A},\sum_{x_i \in S_b} \delta_{x_i}\right\rangle^* = \sum_{x_i \in S_b} \langle\mathcal{A}, \delta_{x_i}\rangle^* = \sum_{x_i \in S_b} \impulseresponse_{x_i}.
+	\combresponse_b = \left(\Aop \left(\sum_{x_i \in S_b} \delta_{x_i}\right)^*\right)^* = \sum_{x_i \in S_b} \left(\Aop \delta_{x_i}^*\right)^* = \sum_{x_i \in S_b} \impulseresponse_{x_i}.
 \end{equation}
 Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\impulseresponse_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\impulseresponse_j$ do not overlap when $i \neq j$, from \eqref{eq:convolution_kernel} and \eqref{eq:phi_b} we have (approximately)
 \begin{equation}
@@ -757,7 +757,7 @@ We choose $c_0, c_1, c_2$, and $\mu$, to be the solution to the following system
 where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\AmatPcSym$, respectively. We also require $\mu > |\lambda_\text{min}|$, so that the pole of $\ratfct$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. Note that $\lambda_\text{min} < 0$ since $\AmatPcSym$ is indefinite. 
 We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. We describe how we solve system \eqref{eq:four_eq_system} in Appendix \ref{app:solve_rational_system}. Solving \eqref{eq:four_eq_system} reduces to solving a smooth one-dimensional optimization problem, which is computationally trivial. 
 
-Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\mathcal{A}$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $s(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
+Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\Aop$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $s(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
 
 
 \subsection{Computational cost}
@@ -841,7 +841,7 @@ In the same way, the degrees of freedom associated with the rows of the matrix a
 \subsubsection{Block cluster tree} 
 \label{sec:block_cluster_tree}
 
-We partition the matrix into a recursive hierarchy of mostly low rank blocks called the \emph{block cluster tree}. The idea is that a block of the matrix is likely to be low rank if the point cloud associated with the rows of the block is far away from the point cloud associated with the columns of the block. This is reasonable to expect here because of the locality property of $\mathcal{A}$. Indeed, locality implies that many blocks of the matrix corresponding to far away point cloud clusters will be rank zero.
+We partition the matrix into a recursive hierarchy of mostly low rank blocks called the \emph{block cluster tree}. The idea is that a block of the matrix is likely to be low rank if the point cloud associated with the rows of the block is far away from the point cloud associated with the columns of the block. This is reasonable to expect here because of the locality property of $\Aop$. Indeed, locality implies that many blocks of the matrix corresponding to far away point cloud clusters will be rank zero.
 
 After reordering the rows and columns of $\AkerPcMat$ via the depth-first ordering described above, we partition the reordered version of $\AkerPcMat$ into a tree of $2 \times 2$ block matrices recursively. We use a geometric admissibility condition (discussed below) to decide which blocks to subdivide, and use the cluster trees for the rows and columns to determine how to subdivide those blocks. For the first stage of subdivision, let $r_1$ and $r_2$ be the children row clusters for the root of the row cluster tree, let $c_1$ and $c_2$ be the children column clusters for the root of the column cluster tree. The matrix $\AkerPcMat$ is partitioned into blocks as follows:
 \begin{equation*}
@@ -1027,20 +1027,20 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 \begin{proof}[Proof of Theorem \ref{thm:vol_mean_cov}]
 	Let $v \in L^2$ be arbitrary. We have
 	\begin{align*}
-		\left(v, \alpha\right)_{L^2(\Omega)} =& \int_\Omega v(x) \int_{\Omega} \langle\mathcal{A},\delta_x\rangle^*(z) dz dx\\
+		\left(v, \alpha\right)_{L^2(\Omega)} =& \int_\Omega v(x) \int_{\Omega} \left(\Aop \delta_x^*\right)^*(z) dz dx\\
 		=& \int_\Omega v(x) \int_{\Omega} A(z,x) dz dx \\
 		=& \int_\Omega \int_\Omega v(x) A(z,x) C(z) dz dx \\
-		=& \left(\mathcal{A}^T C\right)(v),
+		=& \left(\Aop^T C\right)(v),
 	\end{align*}
-	which implies $\alpha = \left(\mathcal{A}^TC\right)^*$.
+	which implies $\alpha = \left(\Aop^T C\right)^*$.
 	
 	Using similar techniques, we have
 	\begin{align*}
-		\left(v, \alpha \cdot \mu^i\right)_{L^2(\Omega)} =& \int_\Omega v(x) \alpha(x) \int_{\Omega} z^i \langle\mathcal{A},\delta_x\rangle^*(z)/\alpha(x) dz dx\\
+		\left(v, \alpha \cdot \mu^i\right)_{L^2(\Omega)} =& \int_\Omega v(x) \alpha(x) \int_{\Omega} z^i \left(\Aop \delta_x^*\right)^*(z)/\alpha(x) dz dx\\
 		=& \int_\Omega \int_\Omega v(x) L^i(z) A(z,x) dz dx \\
-		=& \left(\mathcal{A}^T L^i\right)(v),
+		=& \left(\Aop^T L^i\right)(v),
 	\end{align*}
-	which implies $\mu^i = \left(\mathcal{A}^T L^i\right)^* / \alpha$. 
+	which implies $\mu^i = \left(\Aop^T L^i\right)^* / \alpha$. 
 	
 	Using the identity
 	\begin{equation*}
@@ -1048,33 +1048,33 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 	\end{equation*}
 	we have
 	\begin{align*}
-		\left(v, \alpha \cdot \left(\Sigma^{ij}+\mu^i \cdot \mu^j\right)\right)_{L^2(\Omega)} =& \int_\Omega v(x) \alpha(x) \int_\Omega z^i z^j \langle\mathcal{A},\delta_x\rangle^*(z) / \alpha(x) dz dx \\
+		\left(v, \alpha \cdot \left(\Sigma^{ij}+\mu^i \cdot \mu^j\right)\right)_{L^2(\Omega)} =& \int_\Omega v(x) \alpha(x) \int_\Omega z^i z^j \left(\Aop \delta_x^*\right)^*(z) / \alpha(x) dz dx \\
 		=& \int_\Omega \int_\Omega v(x) Q^{ij}(z) A(z,x) dz dx \\
-		=& \left(\mathcal{A}Q^{ij}\right)(v),
+		=& \left(\Aop Q^{ij}\right)(v),
 	\end{align*}
-	which implies $\Sigma^{ij} = \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot\mu^j$.
+	which implies $\Sigma^{ij} = \left(\Aop^T Q^{ij}\right)^* / \alpha - \mu^i\cdot\mu^j$.
 \end{proof}
 
 
 \section{Background: distributions}
 \label{app:distributions}
 
-Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\mathcal{A}$ is extended to distributions $\mu:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
+Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\Aop$ is extended to distributions $\mu:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
 \begin{equation*}
-	\langle\mathcal{A},\mu\rangle(v) := \int_\Omega v(y) \mu\left(A(y, \cdot)\right) dy, 
+	\left(\Aop \mu^*\right)(v) := \int_\Omega v(y) \mu\left(A(y, \cdot)\right) dy, 
 \end{equation*}
 where $A(y,\cdot)$ is the function $x \mapsto A(y,x)$. This is derived formally as follows:
 \begin{align*}
-	\langle\mathcal{A},\mu\rangle(v) &= \int_\Omega \int_\Omega v(y) A(y,x) \textrm{``} \mu(x) \textrm{''} dx dy \\
+	\left(\Aop \mu^*\right)(v) &= \int_\Omega \int_\Omega v(y) A(y,x) \textrm{``} \mu(x) \textrm{''} dx dy \\
 	&= \int_\Omega v(y) \int_\Omega A(y,x) \textrm{``} \mu(x) \textrm{''} dx \\
 	&= \int_\Omega v(y) \mu\left(A(y,\cdot)\right) dx.
 \end{align*}
-For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, and the action of $\mathcal{A}$ on $\delta_x$ is given by
+For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, and the action of $\Aop$ on $\delta_x$ is given by
 \begin{equation}
 	\label{eq:appendix_impulse_response}
-	\langle\mathcal{A},\delta_x\rangle(v)	= \int_\Omega v(y) A(y,x) dy.
+	\left(\Aop \delta_x^*\right)(v)	= \int_\Omega v(y) A(y,x) dy.
 \end{equation}
-Recall that the impulse response of $\mathcal{A}$ to $\delta_x$, denoted $\impulseresponse_x$, is the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$. From \eqref{eq:appendix_impulse_response} and the definition of the Riesz representation, we have $\impulseresponse_x = \langle\mathcal{A},\delta_x\rangle^* = A(~\cdot~,x)$. That is, $\impulseresponse_x$ is the function $y \mapsto A(y,x)$.
+Recall that the impulse response of $\Aop$ to $\delta_x$, denoted $\impulseresponse_x$, is the Riesz representation of $\Aop \delta_x^*$. From \eqref{eq:appendix_impulse_response} and the definition of the Riesz representation, we have $\impulseresponse_x = A(~\cdot~,x)$. That is, $\impulseresponse_x$ is the function $y \mapsto A(y,x)$.
 
 
 \section{Discretization}
