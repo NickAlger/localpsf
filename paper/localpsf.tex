@@ -80,7 +80,7 @@ We say that $\Aop$ has local support if, for all $x\in \Omega$, the support of $
 	\label{eq:impulse_response_delta_action}
 	\impulseresponse_x = \left( \Aop \delta_x^* \right)^*,
 \end{equation}
-where $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying the operator $\Aop$ to the distribution $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\psi \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\psi^* \in L^2(\Omega)$ such that $\psi(v) = \left(\psi^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Aker$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}. From \eqref{eq:impulse_response_delta_action}, we see that this local support property means that the response of $\Aop$ to a point source at $x$ is zero (or small) at points $y$ that are far from $x$.
+where $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying the operator $\Aop$ to the distribution $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\sigma \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\sigma^* \in L^2(\Omega)$ such that $\sigma(v) = \left(\sigma^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Aker$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}. From \eqref{eq:impulse_response_delta_action}, we see that this local support property means that the response of $\Aop$ to a point source at $x$ is zero (or small) at points $y$ that are far from $x$.
 \item[3) Local translation invariance:] We say that $\Aop$ is locally translation invariant if
 \begin{equation}
 	\label{eq:local_translation_invariance}
@@ -204,9 +204,9 @@ In this section we describe how we choose the sample points, $x_i$ (Section \ref
 		Compute $\spatialvol$, $\spatialmean$, and $\spatialcov$ using Algorithm \ref{alg:varhpi_mean_cov}.
 		
 		\For{$b=1,2,\dots,\text{max\_batches}$}{
-			Choose a batch of sample points, $S_b$, using Algorithm \ref{alg:point_choice}
+			Choose a batch of sample points, $\pointbatch_b$, using Algorithm \ref{alg:point_choice}
 			
-			Compute $\combresponse_b$ by applying $\Aop$ to the dirac comb for $S_b$ (Section \ref{sec:get_impulse_response})
+			Compute $\combresponse_b$ by applying $\Aop$ to the dirac comb for $\pointbatch_b$ (Section \ref{sec:get_impulse_response})
 			
 		}
 
@@ -253,13 +253,13 @@ The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first co
 		\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
 		\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
 	\end{equation*}
-	where $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$. Let $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions:
+	where $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denotes the normalized version of $\impulseresponse_x$, $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$. Let $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions:
 	\begin{equation*}
 		C(x) := 1, \qquad
 		L^i(x) := x^i, \qquad
 		Q^{ij}(x) = x^i x^j.
 	\end{equation*}
-	Let $f/g$ to denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ to denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The following results hold:
+	Let $f/g$ denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The following results hold:
 	\begin{subequations}
 		\label{eq:vol_mean_var}
 		\begin{align}
@@ -314,16 +314,16 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \subsubsection{Greedy ellipsoid packing}
 \label{sec:greedy_point_selection}
 
-We use a greedy ellipsoid packing algorithm to choose sets of sample points, $S_b$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\impulseresponse_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\Aop$ to the Dirac comb associated with all sample points in a batch, we will recover the impulse responses for all sample points in that batch.
+We use a greedy ellipsoid packing algorithm to choose sets of sample points, $\pointbatch_b$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\impulseresponse_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\Aop$ to the Dirac comb associated with all sample points in a batch, we will recover the impulse responses for all sample points in that batch.
 
-We start with a finite set of candidate points $P$. To build a batch of sample points, $S_b$, first we initialize $S_b$ as an empty set. Then we select the point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
+We start with a finite set of candidate points $P$. To build a batch of sample points, $\pointbatch_b$, first we initialize $\pointbatch_b$ as an empty set. Then we select the point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
 \begin{equation*}
-\max_{p \in P} \min_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|.
+\max_{p \in P} \min_{x \in \pointbatch_1 \cup \dots \cup \pointbatch_{b-1}} \|p - x\|.
 \end{equation*}
 Candidate points for the first batch are chosen arbitrarily from $P$.
-Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
+Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in \pointbatch_b$, then we add $p$ to $\pointbatch_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
 
-We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches.
+We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches.
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -331,28 +331,28 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 	\SetKwInOut{Output}{Output}
 	\SetKwProg{Fn}{Function}{}{}
 	
-	\Input{Finite set of candidate points $P\subset \Omega$, \\spatialmean $\spatialmean(x)$ and covariance $\spatialcov(x)$, \\domain boundary information $\partial \Omega$, \\previous sample point batches $S_1, \dots, S_{b-1}$}
-	\Output{Batch of new sample points $S_b$}
+	\Input{Finite set of candidate points $P\subset \Omega$, \\spatialmean $\spatialmean(x)$ and covariance $\spatialcov(x)$, \\domain boundary information $\partial \Omega$, \\previous sample point batches $\pointbatch_1, \dots, \pointbatch_{b-1}$}
+	\Output{Batch of new sample points $\pointbatch_b$}
 	
-	Initialize empty new batch of sample points, $S_b = \{\}$
+	Initialize empty new batch of sample points, $\pointbatch_b = \{\}$
 	
 	\While{$P$ is not empty}{
-		Determine the point $p \in P$ that is farthest from all points in the previous sample point batches $S_1,\dots,S_{b-1}$
+		Determine the point $p \in P$ that is farthest from all points in the previous sample point batches $\pointbatch_1,\dots,\pointbatch_{b-1}$
 		
 		Remove $p$ from $P$
 
 	
-		\If{$E_p \cap E_q \neq \{\}$ for all $q \in S_b$ and $E_p \cap \partial \Omega = \{\}$}{
+		\If{$E_p \cap E_q \neq \{\}$ for all $q \in \pointbatch_b$ and $E_p \cap \partial \Omega = \{\}$}{
 			\tcp{$E_p$ and $E_q$ are the ellipsoids defined in \eqref{eq:support_ellipsoid}}
 			
-			Add $p$ to $S_b$
+			Add $p$ to $\pointbatch_b$
 			
 			Remove all points $p'$ satisfying $\spatialmean(p') \in E_p$ from $P$
 		}
 	}
 
     \SetKwFunction{FMain}{point\_is\_acceptable}
-	\caption{Choosing one batch of sample points, $S_b$}
+	\caption{Choosing one batch of sample points, $\pointbatch_b$}
 	\label{alg:point_choice}
 \end{algorithm2e}
 
@@ -360,11 +360,11 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 \subsection{Convolution kernels}
 \label{sec:get_impulse_response}
 
-We compute convolution kernels $\convkernel_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. Each application of $\Aop$ to a Dirac comb yields one batch of impulse responses, $\impulseresponse_{x_i}$, which yields one batch of convolution kernels, $\convkernel_{x_i}$. The Dirac comb, $\dcomb_b$, associated with a batch of sample points, $S_b$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
+We compute convolution kernels $\convkernel_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. Each application of $\Aop$ to a Dirac comb yields one batch of impulse responses, $\impulseresponse_{x_i}$, which yields one batch of convolution kernels, $\convkernel_{x_i}$. The Dirac comb, $\dcomb_b$, associated with a batch of sample points, $\pointbatch_b$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_b$. That is,
 \begin{equation*}
-	\dcomb_b := \sum_{x_i \in S_b} \delta_{x_i}.
+	\dcomb_b := \sum_{x_i \in \pointbatch_b} \delta_{x_i}.
 \end{equation*}
-For each batch $S_b$, we compute the action of $\Aop$ on the associated Dirac comb:
+For each batch $\pointbatch_b$, we compute the action of $\Aop$ on the associated Dirac comb:
 \begin{equation}
 	\label{eq:dirac_comb_H_action}
 	\combresponse_b := \left(\Aop \dcomb_b^*\right)^*.
@@ -372,7 +372,7 @@ For each batch $S_b$, we compute the action of $\Aop$ on the associated Dirac co
 By linearity, the resulting function $\combresponse_b$ may be written as
 \begin{equation}
 	\label{eq:phi_b}
-	\combresponse_b = \left(\Aop \left(\sum_{x_i \in S_b} \delta_{x_i}\right)^*\right)^* = \sum_{x_i \in S_b} \left(\Aop \delta_{x_i}^*\right)^* = \sum_{x_i \in S_b} \impulseresponse_{x_i}.
+	\combresponse_b = \left(\Aop \left(\sum_{x_i \in \pointbatch_b} \delta_{x_i}\right)^*\right)^* = \sum_{x_i \in \pointbatch_b} \left(\Aop \delta_{x_i}^*\right)^* = \sum_{x_i \in \pointbatch_b} \impulseresponse_{x_i}.
 \end{equation}
 Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\impulseresponse_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\impulseresponse_j$ do not overlap when $i \neq j$, from \eqref{eq:convolution_kernel} and \eqref{eq:phi_b} we have (approximately)
 \begin{equation}
@@ -383,7 +383,7 @@ Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approxim
 		0, & \text{otherwise}
 	\end{cases}
 \end{equation}
-for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the convolution kernels $\convkernel_{x_i}$ associated with every point $x_i \in S_b$. 
+for all $x_i \in \pointbatch_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the convolution kernels $\convkernel_{x_i}$ associated with every point $x_i \in \pointbatch_b$. 
 
 
 \subsubsection{Interpolation onto local regular grids}
@@ -674,7 +674,7 @@ Here we discuss how we construct an H-matrix representation of our product-convo
 
 \subsubsection{Finite element discretization of the integral kernel}
 
-Let $\febasis_1, \febasis_2, \dots, febasis_N$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, and let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_N\right)$ be the corresponding finite element space. Further, let $p_i \in \mathbb{R}^d$, $i=1,\dots, N$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise.
+Let $\febasis_1, \febasis_2, \dots, \febasis_N$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, and let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_N\right)$ be the corresponding finite element space. Further, let $p_i \in \mathbb{R}^d$, $i=1,\dots, N$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise.
 
 In Section \ref{sec:intro} we noted that the original integral kernel, $\Aker$, is inaccessible, while in Equation \eqref{eq:kernel_entries}  we saw that the integral kernel for our product-convolution approximation, $\AkerPc \approx \Aker$, is accessible, and may be cheaply evaluated at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$ via the following formula:
 \begin{equation}
@@ -1233,7 +1233,7 @@ respectively. Here $\mathbf{f} \cdot \mathbf{g}$ and $\mathbf{f} / \mathbf{g}$ d
 \subsection{Discretized sampling of impulse responses}
 In computations, the Dirac comb coefficient dual vector for $\dcomb_h^b$ is the vector $\boldsymbol{\dcomb}^b \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ which has entries
 \begin{equation*}
-	\boldsymbol{\dcomb}^b_i = \sum_{x_j \in S_b} \febasis_i(x_j), \quad i=1,\dots,N.
+	\boldsymbol{\dcomb}^b_i = \sum_{x_j \in \pointbatch_b} \febasis_i(x_j), \quad i=1,\dots,N.
 \end{equation*}
 The Dirac comb impulse response coefficient vector for $\combresponse^h_b$ is the vector $\boldsymbol{\combresponse}_b \in \mathbb{R}^N_\mathbf{M}$ given by
 \begin{equation*}
