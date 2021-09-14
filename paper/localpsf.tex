@@ -151,17 +151,7 @@ We compute one ``batch'' of $\convkernel_i$'s by applying $\Aop$ to a sum of poi
 
 In order to choose the points $x_i$, we need to estimate the support of $\impulseresponse_i$ \emph{before} we compute it. The supports of the functions $\impulseresponse_x$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of specially chosen functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$), then post processing the results (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
 
-%We choose the weighting functions, $w_i$, to be the solutions to the following optimization problems:
-%\begin{equation}
-%	\label{eq:wi_optimization_problem_intro}
-%	\begin{aligned}
-%		\min_{w_i \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
-%		\text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
-%	\end{aligned}
-%\end{equation}
-%Here $\Delta$ is the Laplacian on $\Omega$, $H^2_N(\Omega)$ is the space of all functions in the Sobolev space $H^2(\Omega)$ with Neumann zero boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. Since the Laplacian measures local deviation from flatness \cite{JACOBSEN}, 
-
-We choose the $i$th weighting function, $w_i$, to be the flattest function, in a least-squares sense, that takes the value one at the sample point $x_i$, and the value zero at the other sample points $x_j$, $i \neq j$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid. We call this interpolation scheme \emph{Poisson interpolation}. The advantage of Poisson interpolation over other interpolation methods, most notably radial basis function interpolation \cite{ESCANDE}, is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. This is illustrated in Figure FIG. 
+We choose the $i$th weighting function, $w_i$, to be the flattest function, in a least-squares sense, that takes the value one at the sample point $x_i$, and the value zero at the other sample points $x_j$, $j \neq i$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid. We call this interpolation scheme \emph{Poisson interpolation}. The advantage of Poisson interpolation over other interpolation methods, most notably radial basis function interpolation \cite{ESCANDE}, is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. This is illustrated in Figure FIG. 
 
 Once the $\convkernel_i$ and $w_i$ are computed, we convert $\AopPc$ to hierarchical matrix (H-matrix) format. Let $\Aker_\text{pc}$ denote the integral kernel associated with $\AopPc$. While $\Aker(y,x)$ is not easily computable, $\Aker_\text{pc}(y,x)$ is given by the formula
 \begin{equation}
@@ -362,7 +352,7 @@ We repeat the process to construct several batches of points $\pointbatch_1, \po
 \subsection{Convolution kernels}
 \label{sec:get_impulse_response}
 
-We compute convolution kernels $\convkernel_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. Each application of $\Aop$ to a Dirac comb yields one batch of impulse responses, $\impulseresponse_{x_i}$, which yields one batch of convolution kernels, $\convkernel_{x_i}$. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$. That is,
+We compute convolution kernels $\convkernel_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$. That is,
 \begin{equation*}
 	\diraccomb_k := \sum_{x_i \in \pointbatch_k} \delta_{x_i}.
 \end{equation*}
@@ -371,7 +361,7 @@ For each batch $\pointbatch_k$, we compute the action of $\Aop$ on the associate
 	\label{eq:dirac_comb_H_action}
 	\combresponse_k := \left(\Aop \diraccomb_k^*\right)^*.
 \end{equation}
-By linearity, the resulting function $\combresponse_k$ may be written as
+By linearity, the resulting function $\combresponse_k$ may be written as follows:
 \begin{equation}
 	\label{eq:phi_b}
 	\combresponse_k = \left(\Aop \left(\sum_{x_i \in \pointbatch_k} \delta_{x_i}\right)^*\right)^* = \sum_{x_i \in \pointbatch_k} \left(\Aop \delta_{x_i}^*\right)^* = \sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i}.
