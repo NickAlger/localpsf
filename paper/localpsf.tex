@@ -201,7 +201,7 @@ In this section we describe how we choose the sample points, $x_i$ (Section \ref
 		\Input{Linear operator $\Aop$, parameter $\text{max\_batches}$}
 		\Output{H-matrix $\AmatPc$ (optionally, $\AmatPcSymPlus$)}
 		
-		Compute $\alpha$, $\mu$, and $\Sigma$ using Algorithm \ref{alg:varhpi_mean_cov}.
+		Compute $\spatialvol$, $\spatialmean$, and $\spatialcov$ using Algorithm \ref{alg:varhpi_mean_cov}.
 		
 		\For{$b=1,2,\dots,\text{max\_batches}$}{
 			Choose a batch of sample points, $S_b$, using Algorithm \ref{alg:point_choice}
@@ -235,23 +235,23 @@ We choose sample points, $x_i$, in batches. A greedy algorithm is used to choose
 \subsubsection{Estimating impulse response supports}
 \label{eq:mean_and_covariance_estimation}
 
-Because of the non-negative kernel property, for each $x \in \Omega$, the impulse response $\impulseresponse_x$ is a non-negative function $y \mapsto \impulseresponse_x(y)$. Hence, $\impulseresponse_x$ is a scaled probability distribution. Let $\alpha$ denote the scaling factor, let $\widehat{\impulseresponse}_x := \impulseresponse_x / \alpha(x)$ denote the normalized version of $\impulseresponse_x$, and let $\mu(x)$ and $\Sigma(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
+Because of the non-negative kernel property, for each $x \in \Omega$, the impulse response $\impulseresponse_x$ is a non-negative function $y \mapsto \impulseresponse_x(y)$. Hence, $\impulseresponse_x$ is a scaled probability distribution. Let $\spatialvol$ denote the scaling factor, let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
 \begin{equation}
 	\label{eq:support_ellipsoid}
-	E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
+	E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
 \end{equation}
-where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\mu(x)$ and covariance $\Sigma(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\impulseresponse}_x$ (see Figure FIG). The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, the cost of our algorithm will depend on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
+where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\impulseresponse}_x$ (see Figure FIG). The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, the cost of our algorithm will depend on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
 
-The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first compute the scalar $\alpha(x)$, the length-$d$ vector $\mu(x)$, and the $d \times d$ matrix $\Sigma(x)$ (recall $d \in \{1,2,3\}$ is the spatial dimension of $\Omega$). The direct approach to compute $\alpha(x)$, $\mu(x)$, and $\Sigma(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\alpha(x)$, $\mu(x)$, and $\Sigma(x)$. But this direct approach is computationally infeasible because and it requires one operator action of $\Aop$ per point $x$ that we wish to evaluate $E_x$ at, and we will need to evaluate $E_x$ at a large number of points. Fortunately, it is possible to compute $\alpha(x)$, $\mu(x)$, and $\Sigma(x)$, \emph{for all points $x$ simultaneously}, by applying $\Aop^T$ to one constant function, $d$ linear functions, and $d(d+1)/2$ quadratic functions. We present this efficient method of computing $\alpha$, $\mu$, and $\Sigma$ in Theorem \ref{thm:vol_mean_cov} and summarize the method in Algorithm \ref{alg:varhpi_mean_cov}.
+The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first compute the scalar $\spatialvol(x)$, the length-$d$ vector $\spatialmean(x)$, and the $d \times d$ matrix $\spatialcov(x)$ (recall $d \in \{1,2,3\}$ is the spatial dimension of $\Omega$). The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because and it requires one operator action of $\Aop$ per point $x$ that we wish to evaluate $E_x$ at, and we will need to evaluate $E_x$ at a large number of points. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x$ simultaneously}, by applying $\Aop^T$ to one constant function, $d$ linear functions, and $d(d+1)/2$ quadratic functions. We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Theorem \ref{thm:vol_mean_cov} and summarize the method in Algorithm \ref{alg:varhpi_mean_cov}.
 
 
 \begin{theorem}[Impulse response moments]
 	\label{thm:vol_mean_cov}
-	Let $\alpha:\Omega \rightarrow \mathbb{R}$, $\mu:\Omega \rightarrow \mathbb{R}^d$, and $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}$, be the following functions:
+	Let $\spatialvol:\Omega \rightarrow \mathbb{R}$, $\spatialmean:\Omega \rightarrow \mathbb{R}^d$, and $\spatialcov:\Omega \rightarrow \mathbb{R}^{d \times d}$, be the following functions:
 	\begin{equation*}
-		\alpha(x) := \int_{\Omega} \impulseresponse_x(y) dy, \qquad
-		\mu(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
-		\Sigma(x) := \Var(\widehat{\impulseresponse}_x),
+		\spatialvol(x) := \int_{\Omega} \impulseresponse_x(y) dy, \qquad
+		\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
+		\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
 	\end{equation*}
 	where $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$. Let $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions:
 	\begin{equation*}
@@ -263,9 +263,9 @@ The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first co
 	\begin{subequations}
 		\label{eq:vol_mean_var}
 		\begin{align}
-			\alpha =& \left(\Aop^T C\right)^* \\
-			\mu^i =& \left(\Aop^T L^i\right)^* / \alpha \\
-			\Sigma^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \alpha - \mu^i\cdot \mu^j
+			\spatialvol =& \left(\Aop^T C\right)^* \\
+			\spatialmean^i =& \left(\Aop^T L^i\right)^* / \spatialvol \\
+			\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
 		\end{align}
 	\end{subequations}
 	 for $i=1,\dots, d$, $j=1,\dots,d$.
@@ -279,34 +279,34 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 	\SetKwInOut{Output}{Output}
 	{	
 		\Input{Operator $\Aop$}
-		\Output{$\alpha$, $\mu$, and $\Sigma$}
+		\Output{$\spatialvol$, $\spatialmean$, and $\spatialcov$}
 		
-		\tcp{Compute scaling factor $\alpha$}
+		\tcp{Compute scaling factor $\spatialvol$}
 		
 		Form constant function $C(x)=1$
 
-		Compute $\alpha = \left(\Aop^T C\right)^*$
+		Compute $\spatialvol = \left(\Aop^T C\right)^*$
 		
-		\tcp{Compute mean $\mu$}
+		\tcp{Compute mean $\spatialmean$}
 		\For{$i=1,2,\dots,d$}{
 			Form linear function $L^i(x) = x^i$
 			
-			Compute $\mu^i = \left(\Aop^T L^i\right)^* / \alpha$
+			Compute $\spatialmean^i = \left(\Aop^T L^i\right)^* / \spatialvol$
 		}
-		\tcp{Compute covariance $\Sigma$}
+		\tcp{Compute covariance $\spatialcov$}
 		\For{$i=1,2,\dots,d$}{
 			\For{$j=1,\dots,i$}{
 				Form quadratic function $Q^{ij}(x) = x^i x^j$
 				
-				Compute $\Sigma^{ij} = \left(\Aop^T Q^{ij}\right)^* / \alpha - \mu^i\cdot \mu^j$
+				Compute $\spatialcov^{ij} = \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j$
 				
-				Set $\Sigma^{ji} = \Sigma^{ij}$
+				Set $\spatialcov^{ji} = \spatialcov^{ij}$
 			
 			}
 		}
 		
 	}
-	\caption{Compute scaling factor $\alpha$, mean $\mu$, and covariance $\Sigma$}
+	\caption{Compute scaling factor $\spatialvol$, mean $\spatialmean$, and covariance $\spatialcov$}
 	\label{alg:varhpi_mean_cov}
 \end{algorithm2e}
 
@@ -331,7 +331,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 	\SetKwInOut{Output}{Output}
 	\SetKwProg{Fn}{Function}{}{}
 	
-	\Input{Finite set of candidate points $P\subset \Omega$, \\mean $\mu(x)$ and covariance $\Sigma(x)$, \\domain boundary information $\partial \Omega$, \\previous sample point batches $S_1, \dots, S_{b-1}$}
+	\Input{Finite set of candidate points $P\subset \Omega$, \\spatialmean $\spatialmean(x)$ and covariance $\spatialcov(x)$, \\domain boundary information $\partial \Omega$, \\previous sample point batches $S_1, \dots, S_{b-1}$}
 	\Output{Batch of new sample points $S_b$}
 	
 	Initialize empty new batch of sample points, $S_b = \{\}$
@@ -347,7 +347,7 @@ We repeat the process to construct several batches of points $S_1, S_2, \dots$, 
 			
 			Add $p$ to $S_b$
 			
-			Remove all points $p'$ satisfying $\mu(p') \in E_p$ from $P$
+			Remove all points $p'$ satisfying $\spatialmean(p') \in E_p$ from $P$
 		}
 	}
 
@@ -735,16 +735,16 @@ First, we use fast H-matrix addition to symmetrize $\AmatPc$:
 Then we modify $\AmatPcSym$ to make it positive semi-definite by forming a rational matrix function of the following form: 
 \begin{equation}
 	\label{eq:rational_matrix_function}
-	\AmatPcSymPlus := c_0 \mathbf{I} + c_1 \AmatPcSym + c_2 \left(\AmatPcSym + \mu \mathbf{I}\right)^{-1},
+	\AmatPcSymPlus := c_0 \mathbf{I} + c_1 \AmatPcSym + c_2 \left(\AmatPcSym + \ratpole \mathbf{I}\right)^{-1},
 \end{equation}
 where $\mathbf{I}$ is the identity matrix which has the same shape as $\AmatPcSym$. Approximation \eqref{eq:rational_matrix_function} may be written as $\AmatPcSymPlus = \ratfct(\AmatPcSym)$, where $\ratfct$ is the following rational function:
 \begin{equation}
 	\label{eq:rational_function_scalar}
-	\ratfct(\lambda) := c_0 + c_1 \lambda + \frac{c_2}{\lambda+\mu}.
+	\ratfct(\lambda) := c_0 + c_1 \lambda + \frac{c_2}{\lambda+\ratpole}.
 \end{equation}
-The scalars $c_0$, $c_1$, $c_2$, and $\mu$ are chosen so that the moderate and large positive eigenvalues of $\AmatPcSymPlus$ approximately equal the corresponding moderate and large positive eigenvalues of $\AmatPcSym$, while the negative and small positive eigenvalues of $\AmatPcSym$ are modified so that $\AmatPcSymPlus$ is positive semi-definite. Later in this section we will explain how $c_0$, $c_1$, $c_2$, and $\mu$ are chosen and how our choice of these scalars affects the spectral properties of $\AmatPcSymPlus$. In Figure FIG we illustrate $\ratfct(\lambda)$. Forming $\AmatPcSymPlus$ requires computing an H-matrix inverse, $\left(\AmatPcSym + \mu \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is computationally acceptable because $\AmatPcSym + \mu \mathbf{I}$ is an H-matrix. Inversion of H-matrices is a routine procedure which only requires $O(N \log(N)^2)$ work \cite{Hmatrixinverse}.
+The scalars $c_0$, $c_1$, $c_2$, and $\ratpole$ are chosen so that the moderate and large positive eigenvalues of $\AmatPcSymPlus$ approximately equal the corresponding moderate and large positive eigenvalues of $\AmatPcSym$, while the negative and small positive eigenvalues of $\AmatPcSym$ are modified so that $\AmatPcSymPlus$ is positive semi-definite. Later in this section we will explain how $c_0$, $c_1$, $c_2$, and $\ratpole$ are chosen and how our choice of these scalars affects the spectral properties of $\AmatPcSymPlus$. In Figure FIG we illustrate $\ratfct(\lambda)$. Forming $\AmatPcSymPlus$ requires computing an H-matrix inverse, $\left(\AmatPcSym + \ratpole \mathbf{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is computationally acceptable because $\AmatPcSym + \ratpole \mathbf{I}$ is an H-matrix. Inversion of H-matrices is a routine procedure which only requires $O(N \log(N)^2)$ work \cite{Hmatrixinverse}.
 
-We choose $c_0, c_1, c_2$, and $\mu$, to be the solution to the following system of equations:
+We choose $c_0, c_1, c_2$, and $\ratpole$, to be the solution to the following system of equations:
 \begin{subequations}
 	\label{eq:four_eq_system}
 	\begin{align}
@@ -754,10 +754,9 @@ We choose $c_0, c_1, c_2$, and $\mu$, to be the solution to the following system
 		\ratfct(\lambda_\text{max}) &= \lambda_\text{max}, \label{eq:desired_property_4}
 	\end{align}
 \end{subequations}
-where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\AmatPcSym$, respectively. We also require $\mu > |\lambda_\text{min}|$, so that the pole of $\ratfct$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. Note that $\lambda_\text{min} < 0$ since $\AmatPcSym$ is indefinite. 
-We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. We describe how we solve system \eqref{eq:four_eq_system} in Appendix \ref{app:solve_rational_system}. Solving \eqref{eq:four_eq_system} reduces to solving a smooth one-dimensional optimization problem, which is computationally trivial. 
+where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\AmatPcSym$, respectively. We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. We assume that $\lambda_\text{min} < 0$; if $\lambda_\text{min} \ge 0$, then $\AmatPcSym$ is already positive semi-definite, so we do not need to modify it with a rational function. We also require $\ratpole > |\lambda_\text{min}|$, so that the pole of $\ratfct$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. We describe how we solve system \eqref{eq:four_eq_system} in Appendix \ref{app:solve_rational_system}. Solving \eqref{eq:four_eq_system} reduces to solving a smooth one-dimensional optimization problem, which is computationally trivial. 
 
-Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\mu > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\Aop$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $s(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
+Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\ratpole > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\Aop$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $s(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
 
 
 \subsection{Computational cost}
@@ -887,41 +886,41 @@ We use the adaptive cross method to form low rank approximations for each admiss
 \label{sec:fast_ellipsoid_intersection_test}
 The procedure for choosing sample points relies on quickly determining whether two ellipsoids intersect. Let $E_p$ and $E_q$ be the ellipsoids defined as
 \begin{align*}
-	E_p :=& \{x : (x - \mu_p)^T \Sigma_p^{-1} (x - \mu_p) \le \tau^2\} \\
-	E_q :=& \{x : (x - \mu_q)^T \Sigma_q^{-1} (x - \mu_q) \le \tau^2\}, \\
+	E_p :=& \{x : (x - \spatialmean_p)^T \spatialcov_p^{-1} (x - \spatialmean_p) \le \tau^2\} \\
+	E_q :=& \{x : (x - \spatialmean_q)^T \spatialcov_q^{-1} (x - \spatialmean_q) \le \tau^2\}, \\
 \end{align*}
-where $\mu_p, \mu_q \in \mathbb{R}^d$, and $\Sigma_p, \Sigma_q \in \mathbb{R}^{d \times d}$ are positive definite. Let $K$ be the following one dimensional convex function:
+where $\spatialmean_p, \spatialmean_q \in \mathbb{R}^d$, and $\spatialcov_p, \spatialcov_q \in \mathbb{R}^{d \times d}$ are positive definite. Let $K$ be the following one dimensional convex function:
 \begin{equation*}
-	K(s) := 1 - \frac{1}{\tau^2} (\mu_p - \mu_q)^T \left(\frac{1}{1-s}\Sigma_p + \frac{1}{s}\Sigma_q\right)^{-1}(\mu_p - \mu_q)	
+	K(s) := 1 - \frac{1}{\tau^2} (\spatialmean_p - \spatialmean_q)^T \left(\frac{1}{1-s}\spatialcov_p + \frac{1}{s}\spatialcov_q\right)^{-1}(\spatialmean_p - \spatialmean_q)	
 \end{equation*}
 In \cite{ELLIPSOIDINTERSECT} it is shown that $E_p \cap E_q = \{\}$ if and only if $K(s) < 0$ for some $s\in (0,1)$. We check whether $E_p$ and $E_q$ intersect by minimizing $K(s)$ on $(0,1)$. If $K(s^*) <0$ at the minimizer $s^*$, then $E_p \cap E_q = \{\}$. Otherwise $E_p \cap E_q \neq \{\}$.
 
 The function $K(s)$ may be evaluated quickly for many $s$ by pre-computing the solution to the generalized eigenvalue problem
 \begin{equation*}
-	\Sigma_p P = \Sigma_q P \Lambda,
+	\spatialcov_p P = \spatialcov_q P \Lambda,
 \end{equation*}
-where $P \in \mathbb{R}^{d \times d}$ is the matrix of generalized eigenvectors (which may be non-orthogonal), and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_d)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. The matrix $P$ simultaneously diagonalizes $\Sigma_p$ and $\Sigma_q$, in the sense that $P^T\Sigma_p P = \Lambda$, and $P^T\Sigma_q P = I$, where $I$ is the $d \times d$ identity matrix. Using this diagonalization, and some algebraic manipulations, we may write $K(s)$ as
+where $P \in \mathbb{R}^{d \times d}$ is the matrix of generalized eigenvectors (which may be non-orthogonal), and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_d)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. The matrix $P$ simultaneously diagonalizes $\spatialcov_p$ and $\spatialcov_q$, in the sense that $P^T\spatialcov_p P = \Lambda$, and $P^T\spatialcov_q P = I$, where $I$ is the $d \times d$ identity matrix. Using this diagonalization, and some algebraic manipulations, we may write $K(s)$ as
 \begin{equation}
 	\label{eq:Ks_generalized}
 	K(s) = 1 - \frac{1}{\tau^2} \sum_{i=1}^d \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2,
 \end{equation}
-where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenvalue decomposition of $\Sigma_p$ and $\Sigma_q$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's algorithm \cite{BRENT} (any fast 1 dimensional convex optimization routine may be used). The resulting algorithm for checking whether $E_p$ and $E_q$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
+where $v := \Phi^T\left(\spatialmean_p - \spatialmean_q\right)$. We compute the generalized eigenvalue decomposition of $\spatialcov_p$ and $\spatialcov_q$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's algorithm \cite{BRENT} (any fast 1 dimensional convex optimization routine may be used). The resulting algorithm for checking whether $E_p$ and $E_q$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
 	\SetKwInOut{Input}{Input}
 	\SetKwInOut{Output}{Output}
 	\SetKwProg{Fn}{Function}{}{}
-	\Input{Ellipsoid $E_p$ with mean $\mu_p$ and covariance $\Sigma_p/\tau^2$\\
-		Ellipsoid $E_q$ with mean $\mu_q$ and covariance $\Sigma_q/\tau^2$ 
+	\Input{Ellipsoid $E_p$ with mean $\spatialmean_p$ and covariance $\spatialcov_p/\tau^2$\\
+		Ellipsoid $E_q$ with mean $\spatialmean_q$ and covariance $\spatialcov_q/\tau^2$ 
 	}
 	
 	\Output{Boolean $\text{ellipsoids\_intersect}$ which is true if $E_p \cap E_q \neq \{\}$ and false otherwise}
 	
 	
-	Solve generalized eigenvalue problem $\Sigma_p \Phi = \Sigma_q \Phi \Lambda$
+	Solve generalized eigenvalue problem $\spatialcov_p \Phi = \spatialcov_q \Phi \Lambda$
 		
-	$v \gets \Phi^T\left(\mu_p - \mu_q\right)$
+	$v \gets \Phi^T\left(\spatialmean_p - \spatialmean_q\right)$
 		
 	$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^d \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
 		
@@ -947,7 +946,7 @@ Using the definition of $\ratfct$ in \eqref{eq:rational_function_scalar}, and ba
 \begin{equation}
 	\label{eq:rational_3_linear_system}
 	\begin{bmatrix} 
-		1 & 0 & 1/\mu \\ 0 & 1 & -1/\mu^2 \\ 1 & \lambda_\text{max} & 1/(\lambda_\text{max}+\mu) 
+		1 & 0 & 1/\ratpole \\ 0 & 1 & -1/\ratpole^2 \\ 1 & \lambda_\text{max} & 1/(\lambda_\text{max}+\ratpole) 
 	\end{bmatrix}
 	\begin{bmatrix} 
 		c_0 \\ c_1 \\ c_2 
@@ -960,18 +959,18 @@ Using the definition of $\ratfct$ in \eqref{eq:rational_function_scalar}, and ba
 and we may write Equation \eqref{eq:desired_property_3} as follows: 
 \begin{equation}
 	\label{eq:rational_extra_eq}
-	c_0 + c_1 \lambda_\text{min} + \frac{c_2}{\lambda_\text{min}+\mu} - |\lambda_\text{min}| = 0.
+	c_0 + c_1 \lambda_\text{min} + \frac{c_2}{\lambda_\text{min}+\ratpole} - |\lambda_\text{min}| = 0.
 \end{equation}
 Let 
 \begin{equation*}
-	g(\mu) := c_0(\mu) + c_1(\mu) \lambda_\text{min} + \frac{c_2(\mu)}{\lambda_\text{min}+\mu} - |\lambda_\text{min}|
+	g(\ratpole) := c_0(\ratpole) + c_1(\ratpole) \lambda_\text{min} + \frac{c_2(\ratpole)}{\lambda_\text{min}+\ratpole} - |\lambda_\text{min}|
 \end{equation*}
-denote the left hand side of \eqref{eq:rational_extra_eq}, but with $c_0(\mu)$, $c_1(\mu)$, and $c_2(\mu)$ being the solution of \eqref{eq:rational_3_linear_system} for the given value of $\mu$. I.e., within $g(\mu)$ the quantities $c_0$, $c_1$, and $c_2$ are no longer free variables; they now depend on $\mu$ implicitly through the solution of a linear system. We solve the combined system, \eqref{eq:rational_3_linear_system} and $\eqref{eq:rational_extra_eq}$, by solving the one-dimensional nonlinear root finding problem
+denote the left hand side of \eqref{eq:rational_extra_eq}, but with $c_0(\ratpole)$, $c_1(\ratpole)$, and $c_2(\ratpole)$ being the solution of \eqref{eq:rational_3_linear_system} for the given value of $\ratpole$. I.e., within $g(\ratpole)$ the quantities $c_0$, $c_1$, and $c_2$ are no longer free variables; they now depend on $\ratpole$ implicitly through the solution of a linear system. We solve the combined system, \eqref{eq:rational_3_linear_system} and $\eqref{eq:rational_extra_eq}$, by solving the one-dimensional nonlinear root finding problem
 \begin{equation}
 	\label{eq:g_mu_zero}
-	g(\mu)=0
+	g(\ratpole)=0
 \end{equation}
-with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\text{min}|$. Each evaluation of $g$ requires solving the $3 \times 3$ linear system \eqref{eq:rational_3_linear_system}, and once the solution $\mu$ is found, we solve \eqref{eq:rational_3_linear_system} one more time to get the final values of $c_0$, $c_1$, and $c_2$.
+with bound $\ratpole > |\lambda_\text{min}|$ and initial guess $\ratpole_0 = 2 |\lambda_\text{min}|$. Each evaluation of $g$ requires solving the $3 \times 3$ linear system \eqref{eq:rational_3_linear_system}, and once the solution $\ratpole$ is found, we solve \eqref{eq:rational_3_linear_system} one more time to get the final values of $c_0$, $c_1$, and $c_2$.
 
 
 \section{Proofs}
@@ -1014,12 +1013,12 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 
 \begin{defn}[Moments of $\impulseresponse_x$]
 	\label{defn:alpha_rho_mu_sigma}
-	We define the spatially varying scaling factor, $\alpha$, the scaled impulse response, $\widehat{\impulseresponse}_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
+	We define the spatially varying scaling factor, $\spatialvol$, the scaled impulse response, $\widehat{\impulseresponse}_x$, the spatially varying mean, $\spatialmean$, and the spatially varying covariance, $\spatialcov$, as follows:
 	\begin{align*}
-		\alpha:\Omega \rightarrow \mathbb{R}, &\qquad \alpha(x) := \int_{\Omega} \impulseresponse_x(z) dz, \\
-		\widehat{\impulseresponse}_x:\Omega \rightarrow \mathbb{R}, &\qquad \widehat{\impulseresponse}_x := \impulseresponse_x \big/ \alpha(x), \\
-		\mu:\Omega \rightarrow \mathbb{R}^d, &\qquad \mu(x) := \int_\Omega z \widehat{\impulseresponse}_x(z) dz, \\
-		\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \widehat{\impulseresponse}_x(z) dz.
+		\spatialvol:\Omega \rightarrow \mathbb{R}, &\qquad \spatialvol(x) := \int_{\Omega} \impulseresponse_x(z) dz, \\
+		\widehat{\impulseresponse}_x:\Omega \rightarrow \mathbb{R}, &\qquad \widehat{\impulseresponse}_x := \impulseresponse_x \big/ \spatialvol(x), \\
+		\spatialmean:\Omega \rightarrow \mathbb{R}^d, &\qquad \spatialmean(x) := \int_\Omega z \widehat{\impulseresponse}_x(z) dz, \\
+		\spatialcov:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\spatialcov(x) := \int_\Omega (z - \spatialmean(x))(z - \spatialmean(x))^T \widehat{\impulseresponse}_x(z) dz.
 	\end{align*}
 \end{defn}
 
@@ -1027,47 +1026,47 @@ with bound $\mu > |\lambda_\text{min}|$ and initial guess $\mu_0 = 2 |\lambda_\t
 \begin{proof}[Proof of Theorem \ref{thm:vol_mean_cov}]
 	Let $v \in L^2$ be arbitrary. We have
 	\begin{align*}
-		\left(v, \alpha\right)_{L^2(\Omega)} =& \int_\Omega v(x) \int_{\Omega} \left(\Aop \delta_x^*\right)^*(z) dz dx\\
+		\left(v, \spatialvol\right)_{L^2(\Omega)} =& \int_\Omega v(x) \int_{\Omega} \left(\Aop \delta_x^*\right)^*(z) dz dx\\
 		=& \int_\Omega v(x) \int_{\Omega} A(z,x) dz dx \\
 		=& \int_\Omega \int_\Omega v(x) A(z,x) C(z) dz dx \\
 		=& \left(\Aop^T C\right)(v),
 	\end{align*}
-	which implies $\alpha = \left(\Aop^T C\right)^*$.
+	which implies $\spatialvol = \left(\Aop^T C\right)^*$.
 	
 	Using similar techniques, we have
 	\begin{align*}
-		\left(v, \alpha \cdot \mu^i\right)_{L^2(\Omega)} =& \int_\Omega v(x) \alpha(x) \int_{\Omega} z^i \left(\Aop \delta_x^*\right)^*(z)/\alpha(x) dz dx\\
+		\left(v, \spatialvol \cdot \spatialmean^i\right)_{L^2(\Omega)} =& \int_\Omega v(x) \spatialvol(x) \int_{\Omega} z^i \left(\Aop \delta_x^*\right)^*(z)/\spatialvol(x) dz dx\\
 		=& \int_\Omega \int_\Omega v(x) L^i(z) A(z,x) dz dx \\
 		=& \left(\Aop^T L^i\right)(v),
 	\end{align*}
-	which implies $\mu^i = \left(\Aop^T L^i\right)^* / \alpha$. 
+	which implies $\spatialmean^i = \left(\Aop^T L^i\right)^* / \spatialvol$. 
 	
 	Using the identity
 	\begin{equation*}
-		\Sigma(x) = \int_\Omega zz^T \widehat{\impulseresponse}_x(z) dz - \mu(x) \mu(x)^T,
+		\spatialcov(x) = \int_\Omega zz^T \widehat{\impulseresponse}_x(z) dz - \spatialmean(x) \spatialmean(x)^T,
 	\end{equation*}
 	we have
 	\begin{align*}
-		\left(v, \alpha \cdot \left(\Sigma^{ij}+\mu^i \cdot \mu^j\right)\right)_{L^2(\Omega)} =& \int_\Omega v(x) \alpha(x) \int_\Omega z^i z^j \left(\Aop \delta_x^*\right)^*(z) / \alpha(x) dz dx \\
+		\left(v, \spatialvol \cdot \left(\spatialcov^{ij}+\spatialmean^i \cdot \spatialmean^j\right)\right)_{L^2(\Omega)} =& \int_\Omega v(x) \spatialvol(x) \int_\Omega z^i z^j \left(\Aop \delta_x^*\right)^*(z) / \spatialvol(x) dz dx \\
 		=& \int_\Omega \int_\Omega v(x) Q^{ij}(z) A(z,x) dz dx \\
 		=& \left(\Aop Q^{ij}\right)(v),
 	\end{align*}
-	which implies $\Sigma^{ij} = \left(\Aop^T Q^{ij}\right)^* / \alpha - \mu^i\cdot\mu^j$.
+	which implies $\spatialcov^{ij} = \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot\spatialmean^j$.
 \end{proof}
 
 
 \section{Background: distributions}
 \label{app:distributions}
 
-Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\Aop$ is extended to distributions $\mu:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
+Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\Aop$ is extended to distributions $\genericdistribution:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
 \begin{equation*}
-	\left(\Aop \mu^*\right)(v) := \int_\Omega v(y) \mu\left(A(y, \cdot)\right) dy, 
+	\left(\Aop \genericdistribution^*\right)(v) := \int_\Omega v(y) \genericdistribution\left(A(y, \cdot)\right) dy, 
 \end{equation*}
 where $A(y,\cdot)$ is the function $x \mapsto A(y,x)$. This is derived formally as follows:
 \begin{align*}
-	\left(\Aop \mu^*\right)(v) &= \int_\Omega \int_\Omega v(y) A(y,x) \textrm{``} \mu(x) \textrm{''} dx dy \\
-	&= \int_\Omega v(y) \int_\Omega A(y,x) \textrm{``} \mu(x) \textrm{''} dx \\
-	&= \int_\Omega v(y) \mu\left(A(y,\cdot)\right) dx.
+	\left(\Aop \genericdistribution^*\right)(v) &= \int_\Omega \int_\Omega v(y) A(y,x) \textrm{``} \genericdistribution(x) \textrm{''} dx dy \\
+	&= \int_\Omega v(y) \int_\Omega A(y,x) \textrm{``} \genericdistribution(x) \textrm{''} dx \\
+	&= \int_\Omega v(y) \genericdistribution\left(A(y,\cdot)\right) dx.
 \end{align*}
 For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, and the action of $\Aop$ on $\delta_x$ is given by
 \begin{equation}
@@ -1165,24 +1164,24 @@ Here we list the function space operations on $V_h$ and $V_h'$ that are required
 		\sigma_h = \mathcal{B}_h^T u_h \quad \Leftrightarrow \quad \boldsymbol{\sigma} = \mathbf{B}^T \mathbf{u}.
 	\end{equation*}
 
-	\item[Distributions:] Let $\mu:C\left(\overline{\Omega}\right)\rightarrow \mathbb{R}$ be a distribution. If $\mu(\febasis_i)$ is well-defined for $i=1,\dots,N$, then the restriction of $\mu$ to domain $V_h$ is a linear functional $\mu_h\in V_h'$. The functional $\mu_h$ has a coefficient dual vector $\boldsymbol{\mu} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ with entries 
+	\item[Distributions:] Let $\genericdistribution:C\left(\overline{\Omega}\right)\rightarrow \mathbb{R}$ be a distribution. If $\genericdistribution(\febasis_i)$ is well-defined for $i=1,\dots,N$, then the restriction of $\genericdistribution$ to domain $V_h$ is a linear functional $\genericdistribution_h\in V_h'$. The functional $\genericdistribution_h$ has a coefficient dual vector $\boldsymbol{\genericdistribution} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ with entries 
 	\begin{equation*}
-		\boldsymbol{\mu}_i=\mu(\febasis_i), \quad i=1,\dots,N.
+		\boldsymbol{\genericdistribution}_i=\genericdistribution(\febasis_i), \quad i=1,\dots,N.
 	\end{equation*} 
 	For example, let $\delta_p$ be the Dirac distribution centered at a point $p\in\Omega$. If the finite element basis functions, $\febasis_i$, are continuous at $p$, then restricting the domain of $\delta_p$ to the space $V_h$ yields a linear functional in $V_h'$. The corresponding coefficient dual vector, $\boldsymbol{\delta}_p$, has entries 
 	\begin{equation*}
 		\left(\boldsymbol{\delta}_p\right)_i = \febasis_i(p), \quad i=1,\dots,N.
 	\end{equation*}
 	
-	\item[Action of an operator on a distribution:] Since $V_h$ is finite-dimensional, the restriction, $\mu_h \in V_h$, of a distribution, $\mu$, to the space $V_h$ has a a Riesz representation $\mu_h^* \in V_h$. Let $B_h$ be the integral kernel associated with an operator $\mathcal{B}_h:V_h \rightarrow V_h'$. For $v_h \in V_h$, we have
+	\item[Action of an operator on a distribution:] Since $V_h$ is finite-dimensional, the restriction, $\genericdistribution_h \in V_h$, of a distribution, $\genericdistribution$, to the space $V_h$ has a a Riesz representation $\genericdistribution_h^* \in V_h$. Let $B_h$ be the integral kernel associated with an operator $\mathcal{B}_h:V_h \rightarrow V_h'$. For $v_h \in V_h$, we have
 	\begin{align*}
-		\langle \mathcal{B}_h, \mu_h \rangle(v) &= \int_\Omega v_h(y) \mu_h\left(B_h(y, \cdot)\right) dy \\
-		&= \int_\Omega v_h(y) \left(\int_\Omega B_h(y,x) \mu_h^*(x) dx\right) dy \\
-		&= \int_\Omega \int_\Omega v_h(y) B_h(y,x) \mu_h^*(x) dx dy = \left(\mathcal{B}_h \mu_h^*\right)(v).
+		\langle \mathcal{B}_h, \genericdistribution_h \rangle(v) &= \int_\Omega v_h(y) \genericdistribution_h\left(B_h(y, \cdot)\right) dy \\
+		&= \int_\Omega v_h(y) \left(\int_\Omega B_h(y,x) \genericdistribution_h^*(x) dx\right) dy \\
+		&= \int_\Omega \int_\Omega v_h(y) B_h(y,x) \genericdistribution_h^*(x) dx dy = \left(\mathcal{B}_h \genericdistribution_h^*\right)(v).
 	\end{align*}
-	Going from the first to the second line we used the definition of the Riesz representation. The action of $\mathcal{B}_h$ on $\mu_h$ in the sense of distributions is therefore equal to the action of $\mathcal{B}_h$ on $\mu^*_h$ in the conventional sense. We have
+	Going from the first to the second line we used the definition of the Riesz representation. The action of $\mathcal{B}_h$ on $\genericdistribution_h$ in the sense of distributions is therefore equal to the action of $\mathcal{B}_h$ on $\genericdistribution^*_h$ in the conventional sense. We have
 	\begin{equation*}
-		\sigma_h = \langle \mathcal{B}_h, \mu_h \rangle \quad \Leftrightarrow \quad \sigma_h = \mathcal{B}_h \mu_h^* \quad \Leftrightarrow \quad \boldsymbol{\sigma} = \mathbf{B} \mathbf{M}^{-1} \boldsymbol{\mu}.
+		\sigma_h = \langle \mathcal{B}_h, \genericdistribution_h \rangle \quad \Leftrightarrow \quad \sigma_h = \mathcal{B}_h \genericdistribution_h^* \quad \Leftrightarrow \quad \boldsymbol{\sigma} = \mathbf{B} \mathbf{M}^{-1} \boldsymbol{\genericdistribution}.
 	\end{equation*}
 \end{description}
 
@@ -1195,24 +1194,24 @@ Here we list the function space operations on $V_h$ and $V_h'$ that are required
 	\SetKwInOut{Output}{Output}
 	{	
 		\Input{Operator $\mathbf{A}$}
-		\Output{$\boldsymbol{\alpha}\in \mathbb{R}^N$, $\boldsymbol{\mu}\in \mathbb{R}^{d \times N}$, and $\boldsymbol{\Sigma} \in \mathbb{R}^{d \times d \times N}$}
+		\Output{$\boldsymbol{\spatialvol}\in \mathbb{R}^N$, $\boldsymbol{\spatialmean}\in \mathbb{R}^{d \times N}$, and $\boldsymbol{\spatialcov} \in \mathbb{R}^{d \times d \times N}$}
 		
 		Form vector $\mathbf{C} \in \mathbb{R}^N_{\mathbf{M}}$ by either projecting or interpolating constant function $C(x)=1$ onto $V_h$
 		
-		$\boldsymbol{\alpha} = \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{C}\right)^*$
+		$\boldsymbol{\spatialvol} = \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{C}\right)^*$
 		
 		\For{$i=1,2,\dots,d$}{
 			Form vector $\mathbf{L}^i \in \mathbb{R}^N_{\mathbf{M}}$ by either projecting or interpolating linear function $L^i(x) = x^i$ onto $V_h$
 			
-			$\mathbf{\mu}^i = \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right)^* / \boldsymbol{\alpha}$
+			$\mathbf{\spatialmean}^i = \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right)^* / \boldsymbol{\spatialvol}$
 		}
 		\For{$i=1,2,\dots,d$}{
 			\For{$j=1,\dots,i$}{
 				Form quadratic function $\mathbf{Q}^{ij} = x^i x^j$
 				
-				$\boldsymbol{\Sigma}^{ij} = \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{Q}^{ij}\right)^* / \boldsymbol{\alpha} - \boldsymbol{\mu}^i\cdot \boldsymbol{\mu}^j$
+				$\boldsymbol{\spatialcov}^{ij} = \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{Q}^{ij}\right)^* / \boldsymbol{\spatialvol} - \boldsymbol{\spatialmean}^i\cdot \boldsymbol{\spatialmean}^j$
 				
-				$\boldsymbol{\Sigma}^{ij} = \boldsymbol{\Sigma}^{ji}$
+				$\boldsymbol{\spatialcov}^{ij} = \boldsymbol{\spatialcov}^{ji}$
 				
 			}
 		}
@@ -1222,11 +1221,11 @@ Here we list the function space operations on $V_h$ and $V_h'$ that are required
 	\label{alg:varhpi_mean_cov_discrete}
 \end{algorithm2e}
 
-In computations, $\alpha$, $\mu^{i}$, and $\Sigma^{ij}$ are replaced with finite element approximations $\alpha_h, \mu_h^i, \Sigma_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\alpha}, \boldsymbol{\mu}^{ij}, \boldsymbol{\Sigma}^{ij}\in\mathbb{R}^N_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with either finite element projections onto $V_h$ (if the finite element basis does not satisfy the Kronecker property), or finite element interpolations onto $V_h$ (if the finite element basis satisfies the Kronecker property). In our numerical examples we use finite element basis functions that satisfy the Kronecker property, and we use finite element interpolations. The coefficient vectors corresponding to either the interpolations or projections are denoted $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
+In computations, $\spatialvol$, $\spatialmean^{i}$, and $\spatialcov^{ij}$ are replaced with finite element approximations $\spatialvol_h, \spatialmean_h^i, \spatialcov_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\spatialvol}, \boldsymbol{\spatialmean}^{ij}, \boldsymbol{\spatialcov}^{ij}\in\mathbb{R}^N_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with either finite element projections onto $V_h$ (if the finite element basis does not satisfy the Kronecker property), or finite element interpolations onto $V_h$ (if the finite element basis satisfies the Kronecker property). In our numerical examples we use finite element basis functions that satisfy the Kronecker property, and we use finite element interpolations. The coefficient vectors corresponding to either the interpolations or projections are denoted $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
 \begin{align*}
-	\boldsymbol{\alpha} &= \mathbf{M}^{-1}\mathbf{A}^T\mathbf{C} \\
-	\boldsymbol{\mu}^i &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right) / \boldsymbol{\alpha}\\
-	\boldsymbol{\Sigma}^{ij} &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{Q}^{ij}\right) / \boldsymbol{\alpha} - \boldsymbol{\mu}^i\cdot \boldsymbol{\mu}^j,
+	\boldsymbol{\spatialvol} &= \mathbf{M}^{-1}\mathbf{A}^T\mathbf{C} \\
+	\boldsymbol{\spatialmean}^i &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right) / \boldsymbol{\spatialvol}\\
+	\boldsymbol{\spatialcov}^{ij} &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{Q}^{ij}\right) / \boldsymbol{\spatialvol} - \boldsymbol{\spatialmean}^i\cdot \boldsymbol{\spatialmean}^j,
 \end{align*}
 respectively. Here $\mathbf{f} \cdot \mathbf{g}$ and $\mathbf{f} / \mathbf{g}$ denote the component-wise multiplication and division of vectors, respectively.
 
