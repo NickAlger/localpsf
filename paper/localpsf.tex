@@ -504,7 +504,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	\end{equation*}
 	which is impossible because a nonzero linear combination of delta distributions at different points cannot equal a constant function. Thus we must conclude that $\pointinteractionmatrix$ is non-singular. By block matrix factorization, non-singularity of $\pointinteractionmatrix$ implies that linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\bm{\secondgreenscoeff}$ and $\constcoeff$.
 	
-	By standard elliptic regularity theory, the functions $\secondgreens_i$ are in $H^3(\Omega)$, and therefore they are in $H^2(\Omega)$. By construction the functions $\secondgreens_i$ have Neumann zero boundary conditions, so $\secondgreens_i \in H^2_N(\Omega)$. Since $v_*$ is a linear combination of the functions $\secondgreens_i$ and the constant function $C(x)=1$, $v_* \in H^2_N(\Omega)$.
+	By standard elliptic regularity theory, the functions $\secondgreens_i$ are in $H^3(\Omega)$, and therefore they are in $H^2(\Omega)$. By construction the functions $\secondgreens_i$ have Neumann zero boundary conditions, so $\secondgreens_i \in H^2_N(\Omega)$. Since $v_*$ is a linear combination of the functions $\secondgreens_i$ and the constant function $C(x)=1$ which is in $H^2_N(\Omega)$, we have $v_* \in H^2_N(\Omega)$.
 \end{proof}
 
 \begin{lem}[Preparation for Theorem \ref{thm:wi_alg_is_correct}]
@@ -639,7 +639,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 		&= \mathcal{T}\left(\sum_{i=1}^\convrank \convkernel_i(y) \bm{e}^{(i)} \right)(x) \\
 		&= \mathcal{T}\left((\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))\right)(x) = \theta_*(x).
 	\end{align*}
-	Hence $\horizinterpolant_y^\text{pc}$ is the unique solution to optimization problem \eqref{eq:uy_optimization_problem}.
+	Thus $\horizinterpolant_y^\text{pc}$ is the unique solution to optimization problem \eqref{eq:uy_optimization_problem}.
 \end{proof}
 
 \begin{prop}[Poisson weighting functions sum to one]
@@ -1006,41 +1006,6 @@ with bound $\ratpole > |\lambda_\text{min}|$ and initial guess $\ratpole_0 = 2 |
 
 \section{Proofs}
 \label{app:proofs}
-
-\begin{lem}[Linearity of weighting function solution operator]
-	\label{lem:T_is_linear}
-	Let $\mathcal{T}:\mathbb{R}^\convrank \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
-	\begin{equation}
-		\label{eq:opt_soln_operator}
-		\mathcal{T}(f) := \horizinterpolant_*,
-	\end{equation}
-	where $\horizinterpolant_*$ is the minimizer of \eqref{eq:generic_optimization_initial}. The operator $\mathcal{T}$ is a linear operator.
-\end{lem}
-
-\begin{proof}
-	asdf
-\end{proof}
-
-
-\begin{proof}[Proof of Theorem \ref{thm:smoothest_interpolant}]
-	Let $f = (\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))$ and let $e_i = (0,\dots,0,1,0,\dots,0)$ be the length $\convrank$ vector with $i^\text{th}$ component equal to one and all other components equal to zero. The solution to optimization problem \eqref{eq:uy_optimization_problem} is given by
-	\begin{align*}
-		\mathcal{T}(f) &= \convkernel_1(y) \mathcal{T}(e_1) + \convkernel_2(y) \mathcal{T}(e_2) + \dots + \convkernel_\convrank(y) \mathcal{T}(e_\convrank) \\
-		&= \convkernel_1(y) w_1 + \convkernel_2(y) w_2 + \dots + \convkernel_\convrank(y) w_\convrank \\
-		&= \horizinterpolant_y.
-	\end{align*}
-	In the first line we used linearity of the solution map, $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), in the second line we used the fact that $w_i = \mathcal{T}(e_i)$, and in the third line we used the definition of $\horizinterpolant_y$ in \eqref{eq:u_defn_in_thm}.
-\end{proof}
-
-\begin{proof}[Proof of Proposition \ref{thm:wi_sum_to_one}]
-	By linearity of $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), we have
-	\begin{equation*}
-		\sum_{i=1}^\convrank w_i(x) = \sum_{i=1}^\convrank \mathcal{T}(e_i)(x) = \mathcal{T}\left(\sum_{i=1}^\convrank e_i\right)(x) = \mathcal{T}(\bm{1})(x) = 1,
-	\end{equation*}
-	where $\bm{1} = (1,1,\dots,1)$ is the length $\convrank$ vector which has all components equal to one. The last equality ($\mathcal{T}(\bm{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \bm{1}$, and yields the minimum possible value of zero for the objective function.
-\end{proof}
-
-
 
 \begin{defn}[Moments of $\impulseresponse_x$]
 	\label{defn:alpha_rho_mu_sigma}
