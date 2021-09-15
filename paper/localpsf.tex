@@ -93,13 +93,13 @@ when $h$ is not too large. One can imagine the kernel entry $\Aker(y,x)$ as repr
 \end{equation*}
 \end{description}
 
-Our overall strategy is to form a product-convolution approximation, $\AopPc$, of $\Aop$ using only operator actions, then convert $\AopPc$ into a hierarchical matrix (H-matrix), which we denote by $\AmatPc$. Schematically,
+Our overall strategy is to form a product-convolution approximation, $\AopPc$, of $\Aop$ using only operator actions, then convert a discretized version of $\AopPc$ into a hierarchical matrix (H-matrix), which we denote by $\AmatPc$. Schematically,
 \begin{equation*}
 	\Aop \longrightarrow \underbrace{\AopPc}_{\substack{\text{product}\\ \text{convolution}}} \longrightarrow \underbrace{\AmatPc}_{\text{H-matrix}}.
 \end{equation*}
 We will define product-convolution approximations in Section \ref{sec:prodconv_intro}. H-matrices are discussed in Appendix \ref{app:h_matrix}. Our method is summarized in Section \ref{sec:overview_intro}, and described in detail in Section \ref{sec:method}. 
 
-The novel contributions of our method are in the way that we form the product-convolution approximation ($\Aop \rightarrow \AopPc$). This is the part of the method where we use the four properties of $\Aop$ described above. Fast conversion of $\AopPc$ to H-matrix format ($\AopPc \rightarrow \AmatPc$) is possible because integral kernel entries for $\AopPc$ are easily accessible (unlike integral kernel entries for $\Aop$). Once in H-matrix format, one may use H-matrix methods to perform further useful linear algebra operations involving $\AmatPc$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems.
+The novel contributions of our method are in the way that we form the product-convolution approximation ($\Aop \rightarrow \AopPc$). This is the part of the method where we use the four properties of $\Aop$ described above. Fast conversion of the discretized version of $\AopPc$ to H-matrix format ($\AopPc \rightarrow \AmatPc$) is possible because integral kernel entries for $\AopPc$ are easily accessible (unlike integral kernel entries for $\Aop$). Once in H-matrix format, one may use H-matrix methods to perform further useful linear algebra operations involving $\AmatPc$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems.
 
 
 \subsection{Motivation: inverse problems with highly informative data}
@@ -117,26 +117,39 @@ which depend on  a state variable $u$. In turn, $u$ depends on $m$ implicitly th
 Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function of $m$. In the deterministic approach to inverse problems, one typically finds $m$ as the solution to the minimization problem 
 \begin{equation}
 	\label{eq:minimization_problem}
-	\min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + R(m),
+	\min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + \mathcal{R}(m),
 \end{equation}
-where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $R(m)$ is a regularization term. The objective function in optimization problem \eqref{eq:minimization_problem} is defined indirectly via the implicit function theorem. As a result, the Hessian of the objective function, $\mathcal{H}$, is only accessible matrix-free. In particular, applying $\mathcal{H}$ to a vector requires solving two PDEs \cite{HESSIANACTION}. More accessible approximations of $\mathcal{H}$ are highly desirable, because they allow for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. More accessible Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
+where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $\mathcal{R}(m)$ is a regularization term. The objective function in optimization problem \eqref{eq:minimization_problem} is defined indirectly via the implicit function theorem. As a result, information about the Hessian of the objective function, $\mathcal{H}$, is only accessible via the action of $\mathcal{H}$ action on vectors. In particular, applying $\mathcal{H}$ to a vector requires solving two PDEs \cite{HESSIANACTION}. More accessible approximations of $\mathcal{H}$ are highly desirable, because they allow for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. More accessible Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
 
 The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Conventionally, either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is therefore the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because our method can form high-rank approximations of an operator using a small number of matrix-vector products.
 
 \subsection{Product-convolution approximation}
 \label{sec:prodconv_intro}
-
-If $\Aop$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then it is straightforward to show that $\Aop$ would be the convolution operator $u \mapsto \left(\convkernel_x \ast u\right)^*$, where the convolution kernel is given by
+Let 
 \begin{equation}
-	\label{eq:convolution_kernel}
-	\convkernel_x(y) := \impulseresponse_x(y+x).
+\label{eq:convolution_kernel}
+\convkernel_x(y) := \impulseresponse_x(y+x)
 \end{equation}
-The convolution kernel $\convkernel_x$ is the result of translating the impulse response $\impulseresponse_x$ to re-center it at zero instead of $x$. Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\convkernel_x$, varies as $x$ changes. We therefore approximate $\Aop$ by a spatially varying weighted sum of convolution operators, $\AopPc \approx \Aop$, of the form
+be the translation of $\impulseresponse_x$ to re-center it at zero instead of $x$. If $\Aop$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then for any point $x_0$ we would have
+\begin{align*}
+	\Aker(y,x) &= \Aker(y+(x_0-x),x+(x_0-x)) \\
+	&= \phi_{x_0}(y-x+x_0) \\
+	&= \convkernel_{x_0}(y-x)
+\end{align*}
+which would imply
+\begin{align*}
+	(\Aop u)(v) &= \int_\Omega \int_\Omega v(y) \convkernel_{x_0}(y-x) u(x) dx dy \\
+	&= \int_\Omega v(y) \left(\int_\Omega \convkernel_{x_0}(y-x) u(x) dx\right) dy \\
+	&= \left(v, \convkernel_{x_0} \ast u\right)_{L^2(\Omega)},
+\end{align*}
+where $f \ast g$ denotes convolution of the functions $f$ and $g$, and $\left(f, g\right)_{L^2(\Omega)} := \int_\Omega f(x) g(x) dx$ denotes the $L^2$ inner product of $f$ and $g$ on $\Omega$. Hence, if $\Aop$ were perfectly translation invariant, it would be the convolution operator $u \mapsto \left(\convkernel_{x_0} \ast u\right)^*$. 
+
+Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\convkernel_x$, varies as $x$ changes. We therefore approximate $\Aop$ by a spatially varying weighted sum of convolution operators, $\AopPc \approx \Aop$, of the form
 \begin{equation}
 \label{eq:product_convolution}
 	\left(\AopPc~u\right)(v) := \left( v,~ \sum_{i=1}^\convrank \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
 \end{equation}
-where $f \cdot g$ denotes pointwise multiplication, $f \ast g$ denotes convolution, and $\left(f, g\right)_{L^2(\Omega)}$ denotes the $L^2$ inner product on $\Omega$, for functions $f,g \in L^2(\Omega)$. Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. To avoid nested subscripts, we write 
+where $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$ (i.e., $\left(f \cdot g\right)(x) = f(x) g(x)$). Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. To avoid nested subscripts, we write 
 \begin{equation*}
 	\convkernel_i := \convkernel_{x_i} \quad \text{and} \quad \impulseresponse_i := \impulseresponse_{x_i},
 \end{equation*}
@@ -227,14 +240,14 @@ We choose sample points, $x_i$, in batches. A greedy algorithm is used to choose
 \subsubsection{Estimating impulse response supports}
 \label{eq:mean_and_covariance_estimation}
 
-Because of the non-negative kernel property, for each $x \in \Omega$, the impulse response $\impulseresponse_x$ is a non-negative function $y \mapsto \impulseresponse_x(y)$. Hence, $\impulseresponse_x$ is a scaled probability distribution. Let $\spatialvol$ denote the scaling factor, let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
+Because of the non-negative kernel property, for each $x \in \Omega$, the impulse response $\impulseresponse_x$ is a non-negative function $y \mapsto \impulseresponse_x(y)$. Hence, $\impulseresponse_x$ is a scaled probability distribution. Let $\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy$ denote the scaling factor, let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
 \begin{equation}
 	\label{eq:support_ellipsoid}
 	E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
 \end{equation}
 where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\impulseresponse}_x$ (see Figure FIG). The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, the cost of our algorithm will depend on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
 
-The ellipsoid $E_x$ is not immediately available. To use $E_x$, we must first compute the scalar $\spatialvol(x)$, the length-$\gdim$ vector $\spatialmean(x)$, and the $\gdim \times \gdim$ matrix $\spatialcov(x)$ (recall $\gdim \in \{1,2,3\}$ is the spatial dimension of $\Omega$). The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because and it requires one operator action of $\Aop$ per point $x$ that we wish to evaluate $E_x$ at, and we will need to evaluate $E_x$ at a large number of points. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Theorem \ref{thm:vol_mean_cov} and summarize the method in Algorithm \ref{alg:varhpi_mean_cov}.
+The ellipsoid $E_x$ is not immediately available. To determine $E_x$, we must compute the scalar $\spatialvol(x)$, the length-$\gdim$ vector $\spatialmean(x)$, and the $\gdim \times \gdim$ matrix $\spatialcov(x)$ (recall $\gdim \in \{1,2,3\}$ is the spatial dimension of $\Omega$). The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because and it requires one operator action of $\Aop$ per point $x$ that we wish to evaluate $E_x$ at, and we will need to evaluate $E_x$ at a large number of points. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Theorem \ref{thm:vol_mean_cov} and summarize the method in Algorithm \ref{alg:varhpi_mean_cov}.
 
 
 \begin{theorem}[Impulse response moments]
@@ -329,7 +342,7 @@ We repeat the process to construct several batches of points $\pointbatch_1, \po
 	Initialize empty new batch of sample points, $\pointbatch_k = \{\}$
 	
 	\While{$P$ is not empty}{
-		Determine the point $p \in P$ that is farthest from all points in the previous sample point batches $\pointbatch_1,\dots,\pointbatch_{k-1}$
+		Determine the point $p \in P$ that is farthest from all points in previous sample point batches $\pointbatch_1,\dots,\pointbatch_{k-1}$
 		
 		Remove $p$ from $P$
 
