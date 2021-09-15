@@ -15,6 +15,7 @@
 %\usepackage{algorithmic}
 \usepackage[algo2e, ruled, noend, linesnumbered]{algorithm2e}
 %\usepackage[algo2e, ruled, vlined]{algorithm2e}
+\usepackage{bm}
 \ifpdf
   \DeclareGraphicsExtensions{.eps,.pdf,.png,.jpg}
 \else
@@ -78,14 +79,15 @@
 \newcommand{\weakadmconst}{C}
 \newcommand{\horizinterpolant}{f}
 \newcommand{\interpolatedvalues}{b}
-\newcommand{\firstgreens}{\psi}
-\newcommand{\secondgreens}{\theta}
+\newcommand{\firstgreens}{G}
+\newcommand{\secondgreens}{F}
 \newcommand{\impulseresponse}{\phi}
 \newcommand{\convkernel}{\varphi}
 \newcommand{\febasis}{\psi}
 \newcommand{\ratfct}{R}
 \newcommand{\ratpole}{\omega}
-\newcommand{\spatialvol}{\alpha}
+\newcommand{\ratcoeff}{c}
+\newcommand{\spatialvol}{V}
 \newcommand{\spatialmean}{\mu}
 \newcommand{\spatialcov}{\Sigma}
 \newcommand{\genericdistribution}{\rho}
@@ -95,6 +97,10 @@
 \newcommand{\fedim}{N}
 \newcommand{\convrank}{r}
 \newcommand{\hmatrixrank}{k}
+\newcommand{\secondgreenscoeff}{\beta}
+\newcommand{\constcoeff}{\alpha}
+\newcommand{\colcluster}{\mathtt{c}}
+\newcommand{\rowcluster}{\mathtt{r}}
 
 \usepackage{amsopn}
 \DeclareMathOperator{\diag}{diag}
