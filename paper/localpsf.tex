@@ -601,20 +601,46 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 
 \begin{thm}[Poisson weighting functions are optimal]
 	\label{thm:smoothest_interpolant}
-	Let $y \in \mathbb{R}^\gdim$, $\gdim \in \{1,2,3\}$, and let $\horizinterpolant_y$ be the function
+	Let 
 	\begin{equation}
-		\label{eq:u_defn_in_thm}
-		\horizinterpolant_y(x) := \sum_{i=1}^\convrank \convkernel_i(y)w_i(x) = \AkerPc\left(y+x,x\right),
+		\label{eq:conv_kernel_pc}
+		\convkernel_x^\text{pc}(y) := \sum_{i=1}^\convrank \convkernel_i(y)w_i(x)
 	\end{equation}
-	where the weighting functions $w_i$ are the solutions to optimization problem \eqref{eq:wi_optimization_problem}. Then for each $y \in \Omega$, the function $\horizinterpolant_y$ solves the optimization problem
+	denote the local convolution kernel for the product-convolution approximation, and let $\horizinterpolant_y^\text{pc}$ be the reinterpretation of $\convkernel_x^\text{pc}(y)$ as a function of $x$ instead of $y$. That is,
+	\begin{equation*}
+		\horizinterpolant_y^\text{pc}(x) := \convkernel_x^\text{pc}(y).
+	\end{equation*}
+	Then for each $y \in \Omega$, the function $\horizinterpolant_y^\text{pc}$ is the unique solution to the following optimization problem:
 	\begin{equation}
 		\label{eq:uy_optimization_problem}
 		\begin{aligned}
-			\min_{\horizinterpolant_y \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta \horizinterpolant_y}_{L^2(\Omega)}^2 \\
-			\text{such that} &\quad \horizinterpolant_y(x_i) = \convkernel_i(y), \quad i=1,\dots,q.
+			\min_{\horizinterpolant \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta \horizinterpolant}_{L^2(\Omega)}^2 \\
+			\text{such that} &\quad \horizinterpolant(x_i) = \convkernel_i(y), \quad i=1,\dots,\convrank.
 		\end{aligned}
 	\end{equation}
 \end{thm}
+
+\begin{proof}
+	The optimization problem that $w_i$ solves, and optimization problem \eqref{eq:uy_optimization_problem}, both take the form of optimization problem \eqref{eq:wi_optimization_problem_generic}, but with different constraint data. Let $\mathcal{T}:\bm{b} \mapsto v_*$ denote the solution operator for optimization problem \eqref{eq:wi_optimization_problem_generic} as a function of the constraint data,  $\bm{b}$. The mapping $\mathcal{T}$ is a linear operator because the procedure we presented for solving optimization problem \eqref{eq:wi_optimization_problem_generic} is linear in the constraint data, and we proved that this procedure always yields the unique solution of optimization problem \eqref{eq:wi_optimization_problem_generic} in Theorem \ref{thm:wi_no_breakdown} and Theorem \ref{thm:wi_alg_is_correct}.
+	
+	The constraint data for the optimization problem that $w_i$ solves is the unit vector $\bm{e}^{(i)}=(0,\dots,0,1,0,\dots,0) \in \mathbb{R}^\convrank$ which has $i$th component equal to one, and all other components equal to zero. Hence
+	\begin{equation*}
+		\label{eq:wi_via_solution_operator}
+		w_i = \mathcal{T}\left(\bm{e}^{(i)}\right).
+	\end{equation*}
+	The constraint data for optimization problem \eqref{eq:uy_optimization_problem} is the vector $(\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))$, so the solution, $\theta_*$, to optimization problem \eqref{eq:uy_optimization_problem} is given by
+	\begin{equation*}
+		\theta_* = \mathcal{T}\left((\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))\right).
+	\end{equation*}
+	Using the definition of $\horizinterpolant_y^\text{pc}(x)$ and linearity of $\mathcal{T}$, we have
+	\begin{align*}
+		\horizinterpolant_y^\text{pc}(x) &= \sum_{i=1}^\convrank \convkernel_i(y)w_i(x) \\
+		&= \sum_{i=1}^\convrank \convkernel_i(y)\mathcal{T}\left(\bm{e}^{(i)}\right)(x) \\
+		&= \mathcal{T}\left(\sum_{i=1}^\convrank \convkernel_i(y) \bm{e}^{(i)} \right)(x) \\
+		&= \mathcal{T}\left((\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))\right)(x) = \theta_*(x).
+	\end{align*}
+	Hence $\horizinterpolant_y^\text{pc}$ is the unique solution to optimization problem \eqref{eq:uy_optimization_problem}.
+\end{proof}
 
 \begin{prop}[Poisson weighting functions sum to one]
 	\label{thm:wi_sum_to_one}
