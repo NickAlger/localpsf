@@ -292,7 +292,7 @@ for ii_reg in range(len(regularization_parameters)):
 plt.figure()
 plt.loglog(regularization_parameters, num_cg_iters_none)
 plt.loglog(regularization_parameters, num_cg_iters_reg)
-for kk_batch in all_batch_sizes:
+for kk_batch in range(len(all_batch_sizes)):
     plt.loglog(regularization_parameters, all_num_cg_iters_hmatrix[:, kk_batch])
 
 plt.title(r'Conjugate gradient iterations to achieve tolerance $10^{-6}$')

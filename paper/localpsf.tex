@@ -435,7 +435,7 @@ in which one seeks a smooth function $v$ that takes the values $\interpolatedval
 \end{equation*}
 In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' \cite{JACOBSEN} interpolation of the convolution kernels, $\convkernel_i$, in a least-squares sense. Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}).
 
-We may efficiently solve optimization problem \eqref{eq:wi_optimization_problem_generic} via the following procedure:
+The solution to optimization problem \eqref{eq:wi_optimization_problem_generic} is given via the following procedure:
 \begin{enumerate}
 	\item For each sample point $x_i$, we compute a function $\firstgreens_i$ by solving the following Neumann Poisson problem:
 	\begin{equation}
@@ -507,7 +507,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	By standard elliptic regularity theory, the functions $\secondgreens_i$ are in $H^3(\Omega)$, and therefore they are in $H^2(\Omega)$. By construction the functions $\secondgreens_i$ have Neumann zero boundary conditions, so $\secondgreens_i \in H^2_N(\Omega)$. Since $v_*$ is a linear combination of the functions $\secondgreens_i$ and the constant function $C(x)=1$ which is in $H^2_N(\Omega)$, we have $v_* \in H^2_N(\Omega)$.
 \end{proof}
 
-\begin{lem}[Preparation for Theorem \ref{thm:wi_alg_is_correct}]
+\begin{lem}[Integral representation of delta distribution on $H^2_N(\Omega)$]
 	\label{lem:psi_delta_eval}
 	We have
 	\begin{equation}
@@ -523,6 +523,23 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 
 \begin{proof}
 	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\firstgreens_j$ onto $h$, and using the Neumann zero boundary conditions for $\firstgreens_j$ and $h$ to eliminate boundary integral terms.
+\end{proof}
+
+\begin{lem}[Characterization of $\pointinteractionmatrix$]
+	\label{lem:S_matrix_characterizations}
+	We have
+	\begin{equation*}
+		\pointinteractionmatrix_{ij} = \secondgreens_j(x_i).
+	\end{equation*}
+\end{lem}
+
+\begin{proof}
+	We compute
+	\begin{equation*}
+		\secondgreens_j(x_i) = \left(\firstgreens_i, \Delta \secondgreens_j\right)_{L^2(\Omega)} + \avg\left(\secondgreens_j\right)
+		= \left(\firstgreens_i, \firstgreens_j\right)_{L^2(\Omega)} = \pointinteractionmatrix_{ij}.
+	\end{equation*}
+	In the first equality we used Lemma \ref{lem:psi_delta_eval}. In the second equality we used the facts that $\Delta \secondgreens_j = \firstgreens_j$ and $\avg(\secondgreens_j) = \left(1 / |\Omega|\right) \int_\Omega \secondgreens_j = 0$ from the definition of $\secondgreens_j$ in \eqref{eq:theta_eq}. 
 \end{proof}
 
 \begin{thm}[Solution of optimization problem \eqref{eq:wi_optimization_problem_generic}]
@@ -543,18 +560,15 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	
 	The proof now proceeds in three steps. First, we show that $v_*$ is feasible ($v_* \in X$). Second, we show that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} if it satisfies a certain variational equation. Third, we verify that $v_*$ satisfies this variational equation.
 	
-	\paragraph{Feasibility} To show that $v_*$ is feasible (i.e., $v_* \in X$), we must show that $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$. We have
-	\begin{align*}
-		v_*(x_i) &= \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \secondgreens_j(x_i) \\
-		&= \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \left(\firstgreens_i, \Delta \secondgreens_j\right)_{L^2(\Omega)} + \avg\left(\secondgreens_j\right) \\
-		&= \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \left(\firstgreens_i, \firstgreens_j\right)_{L^2(\Omega)} \\
-		&= \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \pointinteractionmatrix_{ij}
-	\end{align*}
-	In the first line we used the definition of $v_*$ in \eqref{eq:optimal_v}. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the facts that, by construction, $\Delta \secondgreens_j = \firstgreens_j$ and $\int_\Omega \secondgreens_j(x) dx = 0$. In the fourth line we used the definition of $\pointinteractionmatrix$ in \eqref{eq:S_matrix}. Hence the condition $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$ may be written in matrix form as
+	\paragraph{Feasibility} To show that $v_*$ is feasible (i.e., $v_* \in X$), we must show that $v_* \in H^2_N(\Omega)$ and $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$. We already showed that $v_* \in H^2_N(\Omega)$ in Theorem \ref{thm:wi_no_breakdown}. Using the the definition of $v_*$ in \eqref{eq:optimal_v} and Lemma \ref{lem:S_matrix_characterizations}, we have
 	\begin{equation*}
-		\pointinteractionmatrix \bm{\secondgreenscoeff} + \constcoeff \bm{1} = \bm{\interpolatedvalues},
+		v_*(x_i) = \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \secondgreens_j(x_i)
+		= \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \pointinteractionmatrix_{ij} = \left(\pointinteractionmatrix \bm{\secondgreenscoeff} + \constcoeff \bm{1}\right)_i.
 	\end{equation*}
-	and this must hold because it is the first block row of system \eqref{eq:interpolation_linear_system} which is solved to compute $\bm{\secondgreenscoeff}$ and $\constcoeff$. So $v_* \in X$.
+	The conditions $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$ may therefore be written in matrix form as
+	$
+		\pointinteractionmatrix \bm{\secondgreenscoeff} + \constcoeff \bm{1} = \bm{\interpolatedvalues}
+	$, and this matrix equation must hold because it is the first block row of system \eqref{eq:interpolation_linear_system} which is solved to compute $\bm{\secondgreenscoeff}$ and $\constcoeff$. So $v_* \in X$.
 	
 	\paragraph{Optimality} Since $X$ is an affine subspace, and $X_0$ is the tangent space to $X$, any $v \in X$ may be written in the form $v = v_* + p$ for some $p \in X_0$. We may therefore reframe optimization problem \ref{eq:wi_optimization_problem_generic} as 
 	\begin{equation}
