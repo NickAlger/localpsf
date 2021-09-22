@@ -1,8 +1,5 @@
 import dolfin as dl
-import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
-
-from nalger_helper_functions import *
 
 
 def compute_impulse_response_batches(point_batches, V_in, V_out, apply_A, solve_M_in, solve_M_out):
@@ -36,21 +33,6 @@ def compute_impulse_response_batches(point_batches, V_in, V_out, apply_A, solve_
         f = get_one_dirac_comb_response(pp_batch, V_in, V_out, apply_A, solve_M_in, solve_M_out)
         ff.append(f)
     return ff
-
-
-def visualize_impulse_response_batch(impulse_response_batch_f, sample_points_batch, mu_batch, Sigma_batch, tau):
-    f = impulse_response_batch_f
-    pp = sample_points_batch
-
-    plt.figure()
-
-    cm = dl.plot(f)
-    plt.colorbar(cm)
-
-    plt.scatter(pp[:,0], pp[:,1], c='k', s=2)
-
-    for k in range(mu_batch.shape[0]):
-        plot_ellipse(mu_batch[k,:], Sigma_batch[k,:,:], n_std_tau=tau, facecolor='none', edgecolor='k', linewidth=1)
 
 
 def get_one_dirac_comb_response(points_pp, V_in, V_out, apply_A, solve_M_in, solve_M_out):

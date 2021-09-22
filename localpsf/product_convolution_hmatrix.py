@@ -9,6 +9,7 @@ from .impulse_response_moments import impulse_response_moments
 from .sample_point_batches import choose_sample_point_batches
 from .impulse_response_batches import compute_impulse_response_batches
 from .poisson_weighting_functions import make_poisson_weighting_functions
+from .rbf_weighting_functions import make_rbf_weighting_functions
 
 
 def product_convolution_hmatrix(V_in, V_out,
@@ -117,7 +118,8 @@ def product_convolution_hmatrix(V_in, V_out,
 
     ff_batches = compute_impulse_response_batches(point_batches, V_in, V_out, apply_A, solve_M_in, solve_M_out)
 
-    ww = make_poisson_weighting_functions(V_in, pp)
+    # ww = make_poisson_weighting_functions(V_in, pp)
+    ww = make_rbf_weighting_functions(V_in, pp)
 
     WW, initial_FF = \
         build_product_convolution_patches_from_fenics_functions(ww, ff_batches, pp,

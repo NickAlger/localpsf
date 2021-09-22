@@ -7,7 +7,7 @@ from tqdm.auto import tqdm
 from nalger_helper_functions import *
 import hlibpro_python_wrapper as hpro
 from localpsf.heat_inverse_problem import *
-from localpsf.impulse_response_batches import visualize_impulse_response_batch
+from localpsf.visualization import visualize_impulse_response_batch
 from localpsf.product_convolution_hmatrix import product_convolution_hmatrix
 
 
