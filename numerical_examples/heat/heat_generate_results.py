@@ -7,7 +7,7 @@ from tqdm.auto import tqdm
 from nalger_helper_functions import *
 import hlibpro_python_wrapper as hpro
 from localpsf.heat_inverse_problem import *
-from localpsf.visualization import visualize_impulse_response_batch
+from localpsf.visualization import visualize_impulse_response_batch, visualize_weighting_function
 from localpsf.product_convolution_hmatrix import product_convolution_hmatrix
 
 
@@ -162,19 +162,28 @@ def column_error_plot(relative_err_fct, point_batches):
     cm = dl.plot(relative_err_fct)
     plt.colorbar(cm)
 
+    num_batches = len(point_batches)
     pp = np.vstack(point_batches)
     plt.plot(pp[:, 0], pp[:, 1], '.r')
 
-    plt.title('Hd_relative_err_fct')
+    plt.title('Hd columns relative error, ' + str(num_batches) + ' batches')
 
 
-iM_Hd_iM_hmatrix_T = all_extras[2]['A_kernel_hmatrix'].T
+all_relative_Hd_errs = list()
+for k in range(len(all_extras)):
+    extras = all_extras[k]
+    # iM_Hd_iM_hmatrix_T = all_extras[2]['A_kernel_hmatrix'].T
+    iM_Hd_iM_hmatrix_T = extras['A_kernel_hmatrix'].T
 
-relative_Hd_err, Hd_relative_err_fct = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
-                                                                         lambda x: iM_Hd_iM_hmatrix_T * x,
-                                                                         HIP.V, n_random_error_matvecs)
+    relative_Hd_err, Hd_relative_err_fct = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
+                                                                             lambda x: iM_Hd_iM_hmatrix_T * x,
+                                                                             HIP.V, n_random_error_matvecs)
 
-column_error_plot(Hd_relative_err_fct, extras['point_batches'])
+    all_relative_Hd_errs.append(relative_Hd_err)
+
+    column_error_plot(Hd_relative_err_fct, extras['point_batches'])
+
+all_relative_Hd_errs = np.array(all_relative_Hd_errs)
 
 
 ########    MOROZOV FINDER    ########
@@ -395,7 +404,8 @@ np.savez(str(save_dir / 'preconditioned_spectrum.npz'),
          all_abs_ee_hmatrix=all_abs_ee_hmatrix,
          a_reg_morozov=a_reg_morozov)
 
-########    PLOT IMPULSE RESPONSES AND WEIGHTING FUNCTIONS    ########
+
+########    PLOT IMPULSE RESPONSES    ########
 
 for k in range(len(all_batch_sizes)):
     extras = all_extras[k]
@@ -415,3 +425,10 @@ cm = dl.plot(ff_batches[k])
 #     c.set_edgecolor("face")
 
 plt.savefig(str(save_dir / 'test.png'), bbox_inches='tight', dpi=500)
+
+
+########    PLOT WEIGHTING FUNCTIONS    ########
+
+vk = 0
+vw = 11
+visualize_weighting_function(all_extras[vk]['ww'], np.vstack(all_extras[vk]['point_batches']), vw)

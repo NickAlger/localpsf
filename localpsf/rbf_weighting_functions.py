@@ -9,7 +9,7 @@ def make_rbf_weighting_functions(function_space_V, points_pp,
                                  kernel_parameter=2):
     print('Making Poisson weighting functions')
     N, d = points_pp.shape
-    dof_coords = function_space_V.tabulate_dof_coords()
+    dof_coords = function_space_V.tabulate_dof_coordinates()
     Phi = rbf_interpolant_matrix(points_pp, kernel, kernel_parameter)
 
     solve_Phi = factorized(Phi)
