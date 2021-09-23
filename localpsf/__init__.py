@@ -7,3 +7,4 @@ from . import product_convolution_hmatrix
 from . import sample_point_batches
 from . import heat_inverse_problem
 from . import visualization
+from . import morozov_discrepancy
