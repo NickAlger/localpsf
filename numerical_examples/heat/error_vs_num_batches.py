@@ -25,10 +25,10 @@ plot_file = str(save_dir / 'error_vs_num_batches.pdf')
 if not load_results_from_file:
     ########    OPTIONS    ########
 
-    nondefault_HIP_options = {'mesh_h': 3e-2}
+    nondefault_HIP_options = {'mesh_h': 2e-2}
 
     hmatrix_rtol = 1e-4
-    all_batch_sizes = [1,3,6,9]
+    all_batch_sizes = list(np.arange(9) + 1) #[1,3,6,9]
     n_random_error_matvecs = 100
 
     options = {'hmatrix_rtol' : hmatrix_rtol,
@@ -55,26 +55,32 @@ if not load_results_from_file:
 
     ########    COMPUTE RELATIVE ERRORS VIA RANDOMIZED METHOD    ########
 
-    all_relative_Phi_errs = list()
-    for k in range(len(all_extras)):
-        extras = all_extras[k]
-        iM_Hd_iM_hmatrix_T = extras['A_kernel_hmatrix'].T
+    Hd_op = spla.LinearOperator((HIP.N, HIP.N), matvec=HIP.apply_Hd_numpy)
+    hh, _ = spla.eigsh(Hd_op, which='LM')
+    induced_2norm_Hd = np.max(np.abs(hh))
 
-        relative_Phi_err, _ = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
-                                                                lambda x: iM_Hd_iM_hmatrix_T * x,
+    all_Hd_rel_err_fro = list()
+    all_Hd_rel_err_induced2 = list()
+    for k in range(len(all_extras)):
+        Hd_pch = all_Hd_hmatrix[k]
+        Hd_rel_err_fro, _ = estimate_column_errors_randomized(HIP.apply_Hd_numpy,
+                                                                lambda x: Hd_pch * x,
                                                                 HIP.V, n_random_error_matvecs)
 
-        Hd_op = spla.LinearOperator((HIP.N, HIP.N), matvec=HIP.apply_iM_Hd_iM_numpy)
-
-        E_fct = lambda x: HIP.apply_iM_Hd_iM_numpy(x) - iM_Hd_iM_hmatrix_T * x
+        E_fct = lambda x: HIP.apply_Hd_numpy(x) - Hd_pch * x
         E_op = spla.LinearOperator((HIP.N, HIP.N), matvec=E_fct)
-
-        hh, _ = spla.eigsh(Hd_op, which='LM')
         ee, _ = spla.eigsh(E_op, which='LM')
+        induced_2norm_E = np.max(np.abs(ee))
 
-        all_relative_Phi_errs.append(relative_Phi_err)
+        Hd_rel_err_induced2 = induced_2norm_E / induced_2norm_Hd
 
-    all_relative_Phi_errs = np.array(all_relative_Phi_errs)
+        print('batch size=', all_batch_sizes[k], ', Hd_rel_err_fro=', Hd_rel_err_fro, ', Hd_rel_err_induced2=', Hd_rel_err_induced2)
+
+        all_Hd_rel_err_fro.append(Hd_rel_err_fro)
+        all_Hd_rel_err_induced2.append(Hd_rel_err_induced2)
+
+    all_Hd_rel_err_fro = np.array(all_Hd_rel_err_fro)
+    all_Hd_rel_err_induced2 = np.array(all_Hd_rel_err_induced2)
 
 
     ########    SAVE RESULTS    ########
@@ -90,22 +96,27 @@ if not load_results_from_file:
 
         # Save data
         np.savez(data_file,
-                 all_relative_Hd_errs=all_relative_Phi_errs,
+                 all_Hd_rel_err_fro=all_Hd_rel_err_fro,
+                 all_Hd_rel_err_induced2=all_Hd_rel_err_induced2,
                  all_batch_sizes=all_batch_sizes)
 else:
     data = np.load(data_file)
     all_relative_Phi_errs = data['all_relative_Phi_errs']
+    all_Hd_rel_err_induced2 = data['all_Hd_rel_err_induced2']
     all_batch_sizes = data['all_batch_sizes']
 
 
 ########    MAKE FIGURE    ########
 
 plt.figure()
-plt.plot(all_batch_sizes, all_relative_Phi_errs)
+plt.plot(all_batch_sizes, all_Hd_rel_err_induced2)
+plt.plot(all_batch_sizes, all_Hd_rel_err_fro)
 
-plt.title(r'Error vs. number of batches')
+
+plt.title(r'Relative error vs. number of batches')
 plt.xlabel(r'Number of batches')
-plt.ylabel(r'$||\Phi - \Phi_{PC}||_{L^2(\Omega \times \Omega)}}$')
+plt.ylabel(r'$\frac{||H_d - H_d^\mathrm{PC}||}{||H_d||}$')
+plt.legend(['Induced 2-norm', 'Frobenius norm'])
 
 plt.show()
 
