@@ -10,13 +10,13 @@ from localpsf.morozov_discrepancy import compute_morozov_regularization_paramete
 load_results_from_file = False
 save_results = True
 
-save_dir = get_project_root() / 'numerical_examples' / 'heat' / 'error_vs_krylov_iter'
+save_dir = get_project_root() / 'numerical_examples' / 'heat' / 'preconditioned_spectrum'
 save_dir.mkdir(parents=True, exist_ok=True)
 
 data_file = str(save_dir / 'data.npz')
 HIP_options_file = save_dir / 'HIP_options.txt'
 options_file = save_dir / 'options.txt'
-plot_file = str(save_dir / 'error_vs_krylov_iter.pdf')
+plot_file = str(save_dir / 'preconditioned_spectrum.pdf')
 
 
 ########    GENERATE OR LOAD RESULTS    ########
@@ -28,9 +28,11 @@ if not load_results_from_file:
 
     hmatrix_rtol = 1e-4
     all_batch_sizes = [1,3,6,9]
+    num_eigs = 1000
 
     options = {'hmatrix_rtol' : hmatrix_rtol,
-               'all_batch_sizes' : all_batch_sizes}
+               'all_batch_sizes' : all_batch_sizes,
+               'num_eigs' : num_eigs}
 
 
     ########    SET UP HEAT INVERSE PROBLEM    ########
@@ -77,33 +79,26 @@ if not load_results_from_file:
                                                              HIP.noise_Mnorm)
 
 
-    ########    KRYLOV CONVERGENCE FOR MOROZOV REGULARIZATION PARAMETER    ########
+    ########    COMPUTE PRECONDITIONED SPECTRUM    ########
 
-    HIP.regularization_parameter = a_reg_morozov
-
-    Hd_hmatrix = all_Hd_hmatrix[-1]
-    H_hmatrix = Hd_hmatrix + a_reg_morozov * R0_hmatrix
-    iH_hmatrix = H_hmatrix.inv()
-
-    g0_numpy = HIP.g_numpy(np.zeros(HIP.N))
-    u0_numpy, _, _ = custom_cg(HIP.H_linop, -g0_numpy, M=iH_hmatrix.as_linear_operator(), tol=1e-11,
-                               maxiter=1000, track_residuals=True)
-
-    _, _, errors_reg_morozov = custom_cg(HIP.H_linop, -g0_numpy, M=HIP.solve_R_linop, tol=1e-10, maxiter=1000,
-                                         x_true=u0_numpy, track_residuals=False)
-
-    _, _, errors_none_morozov = custom_cg(HIP.H_linop, -g0_numpy, tol=1e-10, maxiter=1000,
-                                          x_true=u0_numpy, track_residuals=False)
-
-    all_errors_hmatrix_morozov = list()
+    all_ee_hmatrix = np.zeros((len(all_batch_sizes), num_eigs))
+    all_abs_ee_hmatrix = np.zeros((len(all_batch_sizes), num_eigs))
     for kk_batch in range(len(all_batch_sizes)):
+        print('batch size=', all_batch_sizes[kk_batch])
         Hd_hmatrix = all_Hd_hmatrix[kk_batch]
         H_hmatrix = Hd_hmatrix + a_reg_morozov * R0_hmatrix
         iH_hmatrix = H_hmatrix.inv()
-        _, _, errors_hmatrix_morozov = custom_cg(HIP.H_linop, -g0_numpy, M=iH_hmatrix.as_linear_operator(),
-                                                 tol=1e-10, maxiter=1000,
-                                                 x_true=u0_numpy, track_residuals=False)
-        all_errors_hmatrix_morozov.append(errors_hmatrix_morozov)
+        delta_hmatrix_linop = spla.LinearOperator((HIP.N, HIP.N), matvec=lambda x: HIP.apply_H_numpy(x) - H_hmatrix * x)
+        ee_hmatrix, _ = spla.eigsh(delta_hmatrix_linop, k=num_eigs, M=H_hmatrix.as_linear_operator(),
+                                   Minv=iH_hmatrix.as_linear_operator(), which='LM')
+        abs_ee_hmatrix = np.sort(np.abs(ee_hmatrix))[::-1]
+
+        all_ee_hmatrix[kk_batch, :] = ee_hmatrix
+        all_abs_ee_hmatrix[kk_batch, :] = abs_ee_hmatrix
+
+    delta_reg_linop = spla.LinearOperator((HIP.N, HIP.N), matvec=lambda x: HIP.apply_H_numpy(x) - HIP.apply_R_numpy(x))
+    ee_reg, _ = spla.eigsh(delta_reg_linop, k=num_eigs, M=HIP.R_linop, Minv=HIP.solve_R_linop, which='LM')
+    abs_ee_reg = np.sort(np.abs(ee_reg))[::-1]
 
     if save_results:
         # Save HIP_options
@@ -116,15 +111,14 @@ if not load_results_from_file:
 
         # Save data
         np.savez(data_file,
-                 errors_reg_morozov=errors_reg_morozov,
-                 errors_none_morozov=errors_none_morozov,
-                 all_errors_hmatrix_morozov=all_errors_hmatrix_morozov,
-                 a_reg_morozov=a_reg_morozov)
+                 abs_ee_reg=abs_ee_reg,
+                 all_abs_ee_hmatrix=all_abs_ee_hmatrix,
+                 a_reg_morozov=a_reg_morozov,
+                 all_batch_sizes=all_batch_sizes)
 else:
     data = np.load(data_file)
-    errors_reg_morozov = data['errors_reg_morozov']
-    errors_none_morozov = data['errors_none_morozov']
-    all_errors_hmatrix_morozov = data['all_errors_hmatrix_morozov']
+    abs_ee_reg = data['abs_ee_reg']
+    all_abs_ee_hmatrix = data['all_abs_ee_hmatrix']
     a_reg_morozov = data['a_reg_morozov']
     all_batch_sizes = data['all_batch_sizes']
 
@@ -132,14 +126,14 @@ else:
 ########    MAKE FIGURE    ########
 
 plt.figure()
-plt.semilogy(errors_reg_morozov)
-plt.semilogy(errors_none_morozov)
-for errors_hmatrix_morozov in all_errors_hmatrix_morozov:
-    plt.semilogy(errors_hmatrix_morozov)
-plt.xlabel('Conjugate gradient iteration')
-plt.ylabel(r'$\frac{\|u_0 - u_0^*\|}{\|u_0^*\|}$')
-plt.title('Convergence of conjugate gradient')
-plt.legend(['Reg', 'None'] + ['PCH'+str(nB) for nB in all_batch_sizes])
+plt.semilogy(abs_ee_reg)
+for abs_ee_hmatrix in all_abs_ee_hmatrix:
+    plt.semilogy(abs_ee_hmatrix)
+
+plt.title(r'Absolute values of eigenvalues of $P^{-1}H-I$')
+plt.xlabel(r'$i$')
+plt.ylabel(r'$|\lambda_i|$')
+plt.legend(['Reg'] + ['PCH' + str(nB) for nB in all_batch_sizes])
 
 plt.show()
 

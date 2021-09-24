@@ -8,3 +8,4 @@ from . import sample_point_batches
 from . import heat_inverse_problem
 from . import visualization
 from . import morozov_discrepancy
+from . import estimate_column_errors_randomized

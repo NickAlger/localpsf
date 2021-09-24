@@ -11,7 +11,7 @@ from nalger_helper_functions import *
 
 class HeatInverseProblem:
     def __init__(me,
-                 mesh_h=5e-2,
+                 mesh_h=3e-2,
                  finite_element_order=1,
                  final_time=3e-4,
                  num_timesteps=35,
@@ -170,6 +170,7 @@ class HeatInverseProblem:
         return {'mesh_h': me.mesh_h,
                 'finite_element_order': me.finite_element_order,
                 'final_time': me.final_time,
+                'num_timesteps': me.num_timesteps,
                 'noise_level': me.noise_level,
                 'mesh_type': me.mesh_type,
                 'conductivity_type': me.conductivity_type,

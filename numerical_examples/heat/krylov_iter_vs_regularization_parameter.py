@@ -13,6 +13,7 @@ save_dir = get_project_root() / 'numerical_examples' / 'heat' / 'krylov_iter_vs_
 save_dir.mkdir(parents=True, exist_ok=True)
 
 data_file = str(save_dir / 'data.npz')
+HIP_options_file = save_dir / 'HIP_options.txt'
 options_file = save_dir / 'options.txt'
 plot_file = str(save_dir / 'krylov_iter_vs_regularization_parameter.pdf')
 
@@ -22,12 +23,7 @@ plot_file = str(save_dir / 'krylov_iter_vs_regularization_parameter.pdf')
 if not load_results_from_file:
     ########    OPTIONS    ########
 
-    HIP_options = {'mesh_h' : 1.5e-2,
-                   'finite_element_order' : 1,
-                   'final_time' : 3e-4,
-                   'num_timesteps' : 35,
-                   'noise_level' : 5e-2,
-                   'prior_correlation_length' : 0.05}
+    nondefault_HIP_options = {'mesh_h' : 3e-2}
 
     hmatrix_rtol = 1e-4
     krylov_tol = 1e-6
@@ -43,12 +39,10 @@ if not load_results_from_file:
                'num_reg' : num_reg,
                'all_batch_sizes' : all_batch_sizes}
 
-    options.update(HIP_options)
-
 
     ########    SET UP HEAT INVERSE PROBLEM    ########
 
-    HIP = HeatInverseProblem(**HIP_options)
+    HIP = HeatInverseProblem(**nondefault_HIP_options)
 
 
     ########    BUILD PC-HMATRIX APPROXIMATIONS FOR A VARIETY OF BATCH SIZES    ########
@@ -139,7 +133,11 @@ if not load_results_from_file:
         if save_results:
             # Save options
             with open(options_file, 'w') as f:
-                print(HIP_options, file=f)
+                print(options, file=f)
+
+            # Save HIP options
+            with open(HIP_options_file, 'w') as f:
+                print(HIP.options, file=f)
 
             # Save data
             np.savez(data_file,
