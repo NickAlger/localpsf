@@ -7,7 +7,7 @@ def compute_morozov_regularization_parameter(solve_inverse_problem : Callable,
                                              compute_morozov_discrepancy : Callable,
                                              noise_level,
                                              a_reg_min=1e-5, a_reg_max=1e0,
-                                             rtol=5e-2):
+                                             rtol=1e-2):
     def f(log_a_reg):
         u = solve_inverse_problem(np.exp(log_a_reg))
         discrepancy = compute_morozov_discrepancy(u)
