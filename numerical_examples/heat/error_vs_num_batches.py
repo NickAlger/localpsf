@@ -9,7 +9,7 @@ from localpsf.estimate_column_errors_randomized import estimate_column_errors_ra
 
 
 load_results_from_file = False
-save_results = True
+save_results = False
 
 save_dir = get_project_root() / 'numerical_examples' / 'heat' / 'error_vs_num_batches'
 save_dir.mkdir(parents=True, exist_ok=True)
@@ -25,15 +25,19 @@ plot_file = str(save_dir / 'error_vs_num_batches.pdf')
 if not load_results_from_file:
     ########    OPTIONS    ########
 
-    nondefault_HIP_options = {'mesh_h': 2e-2}
+    nondefault_HIP_options = {'mesh_h': 5e-2}
 
     hmatrix_rtol = 1e-4
     all_batch_sizes = list(np.arange(9) + 1) #[1,3,6,9]
     n_random_error_matvecs = 100
+    grid_density_multiplier=0.5
+    tau=2.5
+    w_support_rtol=2e-2
 
     options = {'hmatrix_rtol' : hmatrix_rtol,
                'all_batch_sizes' : all_batch_sizes,
-               'n_random_error_matvecs' : n_random_error_matvecs}
+               'n_random_error_matvecs' : n_random_error_matvecs,
+               'grid_density_multiplier' : grid_density_multiplier}
 
 
     ########    SET UP HEAT INVERSE PROBLEM    ########
@@ -48,7 +52,10 @@ if not load_results_from_file:
     for k in all_batch_sizes:
         Hd_hmatrix, extras = product_convolution_hmatrix(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, k,
                                                          hmatrix_tol=hmatrix_rtol, make_positive_definite=True,
-                                                         return_extras=True, grid_density_multiplier=0.5)
+                                                         return_extras=True,
+                                                         grid_density_multiplier=grid_density_multiplier,
+                                                         tau=tau,
+                                                         w_support_rtol=w_support_rtol)
         all_Hd_hmatrix.append(Hd_hmatrix)
         all_extras.append(extras)
 
