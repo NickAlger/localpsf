@@ -26,9 +26,9 @@ plot_file = str(save_dir / 'cond_vs_diff.pdf')
 if not load_results_from_file:
     ########    OPTIONS    ########
 
-    nondefault_HIP_options = {'mesh_h': 3e-2}
+    nondefault_HIP_options = {'mesh_h': 3.0e-2}
 
-    diffusion_time_min = 1e-4
+    diffusion_time_min = 3e-4
     diffusion_time_max = 5e-3
     num_diffusion_times = 11
     num_batches = 6
@@ -108,14 +108,15 @@ if not load_results_from_file:
 
         cond_pch = np.max(ee_max_pch) / np.min(ee_min_pch)
 
+        print('T=', T, ', cond_pch=', cond_pch)
+
         # Regularization Preconditioner
         R_op = HIP.R_linop
         iR_op = HIP.solve_R_linop
 
         ee_max_reg, _ = spla.eigsh(H_op, M=R_op, Minv=iR_op, which='LM')
-        ee_min_reg, _ = spla.eigsh(H_op, M=R_op, Minv=iR_op, which='SM')
 
-        cond_reg = np.max(ee_max_pch) / np.min(ee_min_pch)
+        cond_reg = np.max(ee_max_reg) # / min eig = 1.0
 
         print('T=', T, ', cond_pch=', cond_pch, ', cond_reg=', cond_reg)
 
@@ -156,14 +157,14 @@ else:
 ########    MAKE FIGURE    ########
 
 plt.figure()
-plt.plot(all_diffusion_times, all_cond_reg)
-plt.plot(all_diffusion_times, all_cond_pch)
+plt.semilogy(all_diffusion_times, all_cond_reg)
+plt.semilogy(all_diffusion_times, all_cond_pch)
 
 
 plt.title(r'Preconditioned condition number vs. diffusion time')
 plt.xlabel(r'Diffusion time')
 plt.ylabel(r'Condition number of $P^{-1}H$')
-plt.legend(['P = H_{PC}', 'P = R'])
+plt.legend(['$P = H_{PC}$', '$P = R$'])
 
 plt.show()
 
