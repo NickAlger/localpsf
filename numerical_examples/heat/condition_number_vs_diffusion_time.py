@@ -26,9 +26,9 @@ plot_file = str(save_dir / 'cond_vs_diff.pdf')
 if not load_results_from_file:
     ########    OPTIONS    ########
 
-    nondefault_HIP_options = {'mesh_h': 5e-2}
+    nondefault_HIP_options = {'mesh_h': 3e-2}
 
-    diffusion_time_min = 5e-5
+    diffusion_time_min = 1e-4
     diffusion_time_max = 5e-3
     num_diffusion_times = 11
     num_batches = 6
@@ -85,7 +85,8 @@ if not load_results_from_file:
 
         a_reg_morozov = compute_morozov_regularization_parameter(solve_inverse_problem,
                                                                  HIP.morozov_discrepancy,
-                                                                 HIP.noise_Mnorm)
+                                                                 HIP.noise_Mnorm,
+                                                                 a_reg_min=1e-6)
 
         all_a_reg_morozov.append(a_reg_morozov)
 
