@@ -17,13 +17,13 @@ class HeatInverseProblem:
                  num_timesteps=35,
                  noise_level=5e-2,
                  mesh_type='circle',
-                 conductivity_type='wiggly',
                  initial_condition_type='angel_peak',
                  prior_correlation_length=0.05,
                  regularization_parameter=1e-1,
-                 perform_checks=True,
+                 perform_checks=False,
                  make_plots=True,
-                 save_plots=True):
+                 save_plots=True,
+                 conductivity_type='wiggly'):
         ########    INITIALIZE OPTIONS    ########
 
         me.mesh_h = mesh_h
@@ -48,8 +48,10 @@ class HeatInverseProblem:
             mesh_center = np.array([0.5, 0.5])
             mesh_radius = 0.5
             me.mesh = circle_mesh(mesh_center, mesh_radius, mesh_h)
+        elif me.mesh_type == 'square':
+            me.mesh = dl.UnitSquareMesh(int(1./mesh_h)+1, int(1./mesh_h)+1)
         else:
-            raise RuntimeError('mesh_type must be circle')
+            raise RuntimeError('mesh_type must be circle or square')
 
 
         ########    FUNCTION SPACE    ########

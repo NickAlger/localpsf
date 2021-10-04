@@ -8,7 +8,7 @@ from localpsf.morozov_discrepancy import compute_morozov_regularization_paramete
 
 
 load_results_from_file = False
-save_results = True
+save_results = False
 
 save_dir = get_project_root() / 'numerical_examples' / 'heat' / 'preconditioned_spectrum'
 save_dir.mkdir(parents=True, exist_ok=True)
@@ -27,7 +27,8 @@ if not load_results_from_file:
     nondefault_HIP_options = {'mesh_h': 3e-2}
 
     hmatrix_rtol = 1e-4
-    all_batch_sizes = [1,3,6,9]
+    # all_batch_sizes = [1,3,6,9]
+    all_batch_sizes = [9]
     num_eigs = 1000
 
     options = {'hmatrix_rtol' : hmatrix_rtol,

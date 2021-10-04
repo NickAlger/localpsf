@@ -25,14 +25,15 @@ plot_file = str(save_dir / 'error_vs_num_batches.pdf')
 if not load_results_from_file:
     ########    OPTIONS    ########
 
-    nondefault_HIP_options = {'mesh_h': 5e-2}
+    nondefault_HIP_options = {'mesh_h': 3e-2}
 
-    hmatrix_rtol = 1e-4
-    all_batch_sizes = list(np.arange(9) + 1) #[1,3,6,9]
+    hmatrix_rtol = 1e-8
+    # all_batch_sizes = list(np.arange(9) + 1) #[1,3,6,9]
+    all_batch_sizes = [28]
     n_random_error_matvecs = 100
-    grid_density_multiplier=0.5
-    tau=2.5
-    w_support_rtol=2e-2
+    grid_density_multiplier=0.05
+    tau=4
+    w_support_rtol=5e-4
 
     options = {'hmatrix_rtol' : hmatrix_rtol,
                'all_batch_sizes' : all_batch_sizes,
@@ -70,6 +71,15 @@ if not load_results_from_file:
     all_Hd_rel_err_induced2 = list()
     for k in range(len(all_extras)):
         Hd_pch = all_Hd_hmatrix[k]
+        Hd_pch_nonsym = extras['A_hmatrix_nonsym']
+        Phi_pch = extras['A_kernel_hmatrix']
+
+        Phi_rel_err_fro, _ = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
+                                                              lambda x: Phi_pch * x,
+                                                              HIP.V, n_random_error_matvecs)
+
+        print('Phi_rel_err_fro=', Phi_rel_err_fro)
+
         Hd_rel_err_fro, _ = estimate_column_errors_randomized(HIP.apply_Hd_numpy,
                                                                 lambda x: Hd_pch * x,
                                                                 HIP.V, n_random_error_matvecs)
@@ -108,7 +118,7 @@ if not load_results_from_file:
                  all_batch_sizes=all_batch_sizes)
 else:
     data = np.load(data_file)
-    all_relative_Phi_errs = data['all_relative_Phi_errs']
+    all_Hd_rel_err_fro = data['all_Hd_rel_err_fro']
     all_Hd_rel_err_induced2 = data['all_Hd_rel_err_induced2']
     all_batch_sizes = data['all_batch_sizes']
 
