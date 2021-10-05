@@ -23,7 +23,7 @@ def product_convolution_hmatrix(V_in, V_out,
                                 hmatrix_tol=1e-4,
                                 bct_admissibility_eta=2.0,
                                 cluster_size_cutoff=50,
-                                use_boundary_extension=True,
+                                use_boundary_extension=False,
                                 make_positive_definite=False,
                                 return_extras=False):
     '''Builds hierarchical matrix representation of product convolution approximation of operator
@@ -378,7 +378,9 @@ def fill_in_missing_kernel_values_using_other_kernels(FF, pp):
     return filled_in_F
 
 
-def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, w_support_rtol=2e-2):
+def get_W_and_initial_F(w, f, p, mu, Sigma, tau,
+                        grid_density_multiplier=0.5, w_support_rtol=2e-2,
+                        boundary_extension_method='reflect'):
     '''Constructs initial BoxFunctions for one weighting function and associated convolution kernel
 
     Parameters
@@ -419,7 +421,10 @@ def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, w_
     dof_coords = V.tabulate_dof_coordinates()
 
     W_min0, W_max0 = function_support_box(w.vector()[:], dof_coords, support_rtol=w_support_rtol)
+
     F_min_plus_p0, F_max_plus_p0 = ellipsoid_bounding_box(mu, Sigma, tau)
+    F_min_plus_p0 = F_min_plus_p0 + 2. * (p - mu) * ((p - mu) < 0) # Make the box bigger
+    F_max_plus_p0 = F_max_plus_p0 + 2. * (p - mu) * ((p - mu) > 0)
 
     h_w = shortest_distance_between_points_in_box(W_min0, W_max0, dof_coords)
     h_f = shortest_distance_between_points_in_box(F_min_plus_p0, F_max_plus_p0, dof_coords)
@@ -428,11 +433,22 @@ def get_W_and_initial_F(w, f, p, mu, Sigma, tau, grid_density_multiplier=1.0, w_
     W_min, W_max, W_shape = conforming_box(W_min0, W_max0, p, h)
     F_min_plus_p, F_max_plus_p, F_shape = conforming_box(F_min_plus_p0, F_max_plus_p0, p, h)
 
-    W_array = eval_fenics_function_on_regular_grid(w, W_min, W_max, W_shape, outside_mesh_fill_value=None)
+    W_array = eval_fenics_function_on_regular_grid(w, W_min, W_max, W_shape,
+                                                   outside_mesh_fill_value=None)
     # W_array = eval_fenics_function_on_regular_grid(w, W_min, W_max, W_shape, outside_mesh_fill_value=0.0)
-    F_array = eval_fenics_function_on_regular_grid(f, F_min_plus_p, F_max_plus_p, F_shape, outside_mesh_fill_value=np.nan)
-    E = ellipsoid_characteristic_function(F_min_plus_p, F_max_plus_p, F_shape, mu, Sigma, tau)
-
     W = BoxFunction(W_min, W_max, W_array)
-    F = (E * BoxFunction(F_min_plus_p, F_max_plus_p, F_array)).translate(-p)
+
+    if boundary_extension_method == 'reflect':
+        ellipsoid_mask_function = lambda pp: point_is_in_ellipsoid(pp, mu, Sigma, tau)
+        F_array = eval_fenics_function_on_regular_grid(f, F_min_plus_p, F_max_plus_p, F_shape,
+                                                       boundary_reflection=True,
+                                                       mask_function = ellipsoid_mask_function,
+                                                       outside_mask_fill_value=np.nan)
+        F = BoxFunction(F_min_plus_p, F_max_plus_p, F_array).translate(-p)
+    else:
+        F_array = eval_fenics_function_on_regular_grid(f, F_min_plus_p, F_max_plus_p, F_shape,
+                                                       outside_mesh_fill_value=np.nan)
+        E = ellipsoid_characteristic_function(F_min_plus_p, F_max_plus_p, F_shape, mu, Sigma, tau)
+        F = (E * BoxFunction(F_min_plus_p, F_max_plus_p, F_array)).translate(-p)
+
     return W, F

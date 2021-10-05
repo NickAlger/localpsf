@@ -5,8 +5,9 @@ import hlibpro_python_wrapper as hpro
 from localpsf.heat_inverse_problem import *
 from localpsf.product_convolution_hmatrix import product_convolution_hmatrix
 from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
-from localpsf.estimate_column_errors_randomized import estimate_column_errors_randomized
+from localpsf.estimate_column_errors_randomized import estimate_column_errors_randomized, column_error_plot
 
+# from nalger_helper_functions import *
 
 load_results_from_file = False
 save_results = False
@@ -29,9 +30,9 @@ if not load_results_from_file:
 
     hmatrix_rtol = 1e-8
     # all_batch_sizes = list(np.arange(9) + 1) #[1,3,6,9]
-    all_batch_sizes = [28]
-    n_random_error_matvecs = 100
-    grid_density_multiplier=0.05
+    all_batch_sizes = [10]
+    n_random_error_matvecs = 300
+    grid_density_multiplier=0.25
     tau=4
     w_support_rtol=5e-4
 
@@ -56,7 +57,8 @@ if not load_results_from_file:
                                                          return_extras=True,
                                                          grid_density_multiplier=grid_density_multiplier,
                                                          tau=tau,
-                                                         w_support_rtol=w_support_rtol)
+                                                         w_support_rtol=w_support_rtol,
+                                                         use_boundary_extension=False)
         all_Hd_hmatrix.append(Hd_hmatrix)
         all_extras.append(extras)
 
@@ -73,10 +75,13 @@ if not load_results_from_file:
         Hd_pch = all_Hd_hmatrix[k]
         Hd_pch_nonsym = extras['A_hmatrix_nonsym']
         Phi_pch = extras['A_kernel_hmatrix']
+        Phi_pch_T = Phi_pch.T
 
-        Phi_rel_err_fro, _ = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
-                                                              lambda x: Phi_pch * x,
-                                                              HIP.V, n_random_error_matvecs)
+        Phi_rel_err_fro, Phi_relative_err_fct = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
+                                                                                  lambda x: Phi_pch_T * x,
+                                                                                  HIP.V, n_random_error_matvecs)
+
+        column_error_plot(Phi_relative_err_fct, extras['point_batches'])
 
         print('Phi_rel_err_fro=', Phi_rel_err_fro)
 

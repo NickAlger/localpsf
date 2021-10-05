@@ -28,7 +28,7 @@ if not load_results_from_file:
 
     hmatrix_rtol = 1e-4
     # all_batch_sizes = [1,3,6,9]
-    all_batch_sizes = [9]
+    all_batch_sizes = [2]
     num_eigs = 1000
 
     options = {'hmatrix_rtol' : hmatrix_rtol,
@@ -48,10 +48,53 @@ if not load_results_from_file:
     for k in all_batch_sizes:
         Hd_hmatrix, extras = product_convolution_hmatrix(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, k,
                                                          hmatrix_tol=hmatrix_rtol, make_positive_definite=True,
-                                                         return_extras=True, grid_density_multiplier=0.5)
+                                                         return_extras=True, grid_density_multiplier=0.25)
         all_Hd_hmatrix.append(Hd_hmatrix)
         all_extras.append(extras)
 
+    # k = 0
+    # pk = extras['point_batches'][0][k, :]
+    # Fk = extras['FF'][k].translate(pk)
+    # Fk.plot(title='Fk')
+    #
+    # plt.figure()
+    # Wk = extras['WW'][k]
+    # Wk.plot(title='Wk')
+    #
+    # fk = extras['ff_batches'][0]
+    # plt.figure()
+    # cm = dl.plot(fk)
+    # plt.title('fk')
+    # plt.colorbar(cm)
+    #
+    # V = fk.function_space()
+    # X = V.tabulate_dof_coordinates()
+    #
+    # fk2 = dl.Function(V)
+    # fk2.vector()[:] = Fk(X)
+    # fk2.set_allow_extrapolation(True)
+    #
+    # plt.figure()
+    # cm = dl.plot(fk2)
+    # plt.colorbar(cm)
+    # plt.title('fk2')
+    #
+    # p = np.array([0.96, 0.51])
+    # e = (fk(p) - fk2(p)) / fk(p)
+    # print('e=', e)
+    #
+    # N = Fk.gridpoints.shape[0]
+    # ff3 = np.zeros(N)
+    # for ii in range(N):
+    #     ff3[ii] = fk(Fk.gridpoints[ii,:])
+    #
+    # from nalger_helper_functions import *
+    #
+    # F3_arr = ff3.reshape(Fk.shape)
+    # F3 = BoxFunction(Fk.min, Fk.max, F3_arr)
+    # F3.plot(title='F3')
+    #
+    # (F3 - Fk).plot()
 
     ########    COMPUTE REGULARIZATION PARAMETER VIA MOROZOV DISCREPANCY PRINCIPLE    ########
 

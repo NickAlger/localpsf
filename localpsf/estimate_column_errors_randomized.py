@@ -1,5 +1,6 @@
 import numpy as np
 import dolfin as dl
+import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 
 
@@ -24,3 +25,15 @@ def estimate_column_errors_randomized(apply_A_true_numpy, apply_A_numpy, functio
     A_relative_err_fct.vector()[:] = A_relative_err_vec
 
     return relative_A_err, A_relative_err_fct
+
+
+def column_error_plot(relative_err_fct, point_batches):
+    plt.figure()
+    cm = dl.plot(relative_err_fct)
+    plt.colorbar(cm)
+
+    num_batches = len(point_batches)
+    pp = np.vstack(point_batches)
+    plt.plot(pp[:, 0], pp[:, 1], '.r')
+
+    plt.title('Hd columns relative error, ' + str(num_batches) + ' batches')
