@@ -10,6 +10,307 @@ from .sample_point_batches import choose_sample_point_batches
 from .impulse_response_batches import compute_impulse_response_batches
 from .poisson_weighting_functions import make_poisson_weighting_functions
 from .rbf_weighting_functions import make_rbf_weighting_functions
+from .visualization import visualize_impulse_response_batch, visualize_weighting_function
+
+
+def polyharmonic_spline(rr, k):
+    ff = np.zeros(rr.shape)
+    if np.mod(k,2) == 0:
+        ff[rr > 0] = np.power(rr[rr>0], k) * np.log(rr[rr>0])
+    else:
+        ff = np.power(rr, k)
+    return ff
+
+
+def eval_polyharmonic_spline_kernels_at_points(xx, pp, k):
+    # xx: evaluation points. shape=(M,d)
+    # pp: kernel centers. shape=(N,d)
+    # k: polyharmonic spline parameter. int
+    # ff: rbfs evaluated at points. shape=(N,M)
+    rr = np.linalg.norm(xx[None,:,:] - pp[:,None,:], axis=2)
+    return polyharmonic_spline(rr, k)
+
+
+def eval_fenics_function_at_points(f, pp):
+    num_pts, d = pp.shape
+    f0 = f(pp[0,:])
+    ff = np.zeros((num_pts,) + f0.shape)
+    ff[0,:] = f0
+    for ii in range(1, num_pts):
+        ff[ii,:] = f(pp[ii, :])
+    return ff
+
+
+class ProductConvolutionKernel:
+    def __init__(me, impulse_response_batches, sample_points_batches, mu_batches, Sigma_batches, tau,
+                 vol, mu, Sigma, V_in, V_out, rbf_kernel_parameter=2):
+        me.impulse_response_batches = impulse_response_batches
+        me.sample_points_batches = sample_points_batches
+        me.mu_batches = mu_batches
+        me.Sigma_batches = Sigma_batches
+        me.tau = tau
+        me.vol = vol
+        me.mu = mu
+        me.Sigma = Sigma
+        me.V_in = V_in
+        me.V_out = V_out
+        me.rbf_kernel_parameter = rbf_kernel_parameter
+
+        me.sample_points = np.concatenate(sample_points_batches, axis=0)
+
+        me.mesh_out = me.V_out.mesh()
+
+        me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
+        me.dof_coords_out = me.V_out.tabulate_dof_coordinates()
+
+        me.interpolation_matrix = eval_polyharmonic_spline_kernels_at_points(me.sample_points,
+                                                                             me.sample_points,
+                                                                             me.rbf_kernel_parameter)
+
+        me.solve_interpolation_matrix = factorized(me.interpolation_matrix)
+
+        me.num_batches = len(me.impulse_response_batches)
+        me.num_sample_points = me.sample_points.shape[0]
+
+    def eval_integral_kernel_at_points(me, yy, xx, display_progress=False):
+        # yy.shape = (N, d)
+        # xx.shape = (M, d)
+        # QQ[ii, jj] = Phi(yy[ii,:], xx[jj,:]), qq.shape = (N,M)
+        N, d = yy.shape
+        M, d = xx.shape
+        W = me.eval_all_weighting_functions_at_points(xx) # shape=(num_sample_points, M)
+        QQ = np.zeros((N, M))
+        for jj in tqdm(range(M), disable=(not display_progress)):
+            w = W[:,jj].reshape(-1) # shape=(num_sample_points,)
+            zz = yy - xx[jj,:]
+            cc = eval_all_convolution_kernels_at_points(me, zz) # shape=(num_sample_points, N)
+            QQ[:,jj] = np.dot(w, cc)
+        return QQ
+
+    def build_dense_integral_kernel(me, V_in=None, V_out=None):
+        if V_in is None:
+            V_in = me.V_in
+        if V_out is None:
+            V_out = me.V_out
+
+        xx = V_in.tabulate_dof_coordinates()
+        yy = V_out.tabulate_dof_coordinates()
+
+        print('Building dense integral kernel column-by-column')
+        Phi = eval_integral_kernel_at_points(me, yy, xx, display_progress=True)
+        print('done.')
+
+        return Phi
+
+    def eval_all_weighting_functions_at_points(me, xx):
+        # xx = points to evaluate weighting functions wk at. shape=(M,d)
+        # W[i,j] = w_i(x_j). W.shape = (num_weighting_functions, M)
+        if len(xx.shape) == 1:
+            xx = xx.reshape((1,-1))
+        M, d = xx.shape
+
+        B = eval_polyharmonic_spline_kernels_at_points(xx, me.sample_points, me.rbf_kernel_parameter)
+        W = me.solve_interpolation_matrix(B)
+
+        if len(xx.shape) == 1:
+            W = W.reshape(-1)
+        return W
+
+    def eval_one_batch_of_convolution_kernels_at_points(me, zz, batch_ind, reflect=True):
+        # zz = points to evaluate convolution kernels at. shape = (num_z, d)
+        num_z, d = zz.shape
+        if reflect:
+            zz = reflect_exterior_points_across_boundary(zz, me.mesh_out)
+
+        pp = me.sample_points_batches[batch_ind]
+        f = me.impulse_response_batches[batch_ind]
+        mu_batch = me.mu_batches[batch_ind]
+        Sigma_batch = me.Sigma_batches[batch_ind]
+
+        batch_size = pp.shape[0]
+        cc = np.zeros(batch_size, num_z)
+        for kk in range(batch_size):
+            shifted_zz = zz + pp[kk,:]
+            in_ellipsoid = point_is_in_ellipsoid(shifted_zz, mu_batch[kk], Sigma_batch[kk], me.tau)
+            cc[kk, in_ellipsoid] = eval_fenics_function_at_points(f, shifted_zz[in_ellipsoid, :]).reshape(-1)
+
+        return cc
+
+    def eval_all_convolution_kernels_at_points(me, zz):
+        # zz = points to evaluate convolution kernels at. shape = (num_z, d)
+        # cc.shape = (num_sample_points, num_z)
+        num_eval_points, d = zz.shape
+        zzR = reflect_exterior_points_across_boundary(zz, me.mesh_out)
+
+        cc_list = list()
+        for b in range(me.num_batches):
+            cc_b = eval_one_batch_of_convolution_kernels_at_points(me, zz, b, reflect=False)
+            cc_list.append(cc_b)
+
+        cc = np.concatenate(cc_list, axis=0)
+        return cc
+
+    def visualize_impulse_response_batch(me, k):
+        f = me.impulse_response_batches[k]
+        pp = me.sample_points_batches[k]
+        mu_batch = me.mu_batches[k]
+        Sigma_batch = me.Sigma_batches[k]
+
+
+        plt.figure()
+
+        cm = dl.plot(f)
+        plt.colorbar(cm)
+
+        plt.scatter(pp[:, 0], pp[:, 1], c='k', s=2)
+
+        for k in range(mu_batch.shape[0]):
+            plot_ellipse(mu_batch[k, :], Sigma_batch[k, :, :],
+                         n_std_tau=me.tau, facecolor='none', edgecolor='k',
+                         linewidth=1)
+
+    def visualize_weighting_function(me, k, V=None): # not efficient
+        if V is None:
+            V = me.V_in
+        dof_coords = V.tabulate_dof_coordinates()
+        WW = me.eval_weighting_functions_at_points(dof_coords, kk)
+
+        w = dl.Function(V)
+        w.vector()[:] = WW[k,:].copy()
+
+        plt.figure()
+        cm = dl.plot(w)
+        plt.colorbar(cm)
+        plt.title('Weighting function ' + str(index_ii))
+        plt.scatter(me.sample_points[:, 0], me.sample_points[:, 1], c='k', s=2)
+        plt.scatter(me.sample_points[k, 0], me.sample_points[k, 1], c='r', s=2)
+
+
+
+
+
+
+
+# class ProductConvolutionHmatrix:
+#     def __init__(me, V_in, V_out,
+#                  apply_A, apply_At,
+#                  num_batches,
+#                  tau=2.5,
+#                  max_candidate_points=None,
+#                  hmatrix_tol=1e-4,
+#                  bct_admissibility_eta=2.0,
+#                  cluster_size_cutoff=50,
+#                  make_positive_definite=False,
+#                  use_lumped_mass_matrix_for_impulse_response_moments=True):
+#         me.V_in = V_in
+#         me.V_out = V_out
+#         me.apply_A = apply_A
+#         me.apply_At = apply_At
+#         me.num_batches = num_batches
+#         me.tau = tau
+#         me.max_candidate_points = max_candidate_points
+#         me.hmatrix_tol = hmatrix_tol
+#         me.bct_admissibility_eta = bct_admissibility_eta
+#         me.cluster_size_cutoff = cluster_size_cutoff
+#
+#
+#         if use_boundary_extension:
+#             kernel_fill_value = np.nan
+#         else:
+#             kernel_fill_value = 0.0
+#
+#         print('Making mass matrices and solvers')
+#         M_in, solve_M_in = make_mass_matrix(V_in, make_solver=True)
+#         ML_in, solve_ML_in = make_mass_matrix(V_in, lumped=True, make_solver=True)
+#
+#         M_out, solve_M_out = make_mass_matrix(V_out, make_solver=True)
+#         ML_out, solve_ML_out = make_mass_matrix(V_out, lumped=True, make_solver=True)
+#
+#         if use_lumped_mass_matrix_for_impulse_response_moments:
+#             vol, mu, Sigma = impulse_response_moments(V_in, V_out, apply_At, solve_ML_in)
+#         else:
+#             vol, mu, Sigma = impulse_response_moments(V_in, V_out, apply_At, solve_M_in)
+#
+#         point_batches, mu_batches, Sigma_batches = choose_sample_point_batches(num_batches, V_in, mu, Sigma, tau,
+#                                                                                max_candidate_points=max_candidate_points)
+#
+#         pp = np.vstack(point_batches)
+#         all_mu = np.vstack(mu_batches)
+#         all_Sigma = np.vstack(Sigma_batches)
+#         batch_lengths = [pp_batch.shape[0] for pp_batch in point_batches]
+#
+#         ff_batches = compute_impulse_response_batches(point_batches, V_in, V_out, apply_A, solve_M_in, solve_M_out)
+#
+#         # ww = make_poisson_weighting_functions(V_in, pp)
+#         ww = make_rbf_weighting_functions(V_in, pp)
+#
+#         WW, initial_FF = \
+#             build_product_convolution_patches_from_fenics_functions(ww, ff_batches, pp,
+#                                                                     all_mu, all_Sigma, tau,
+#                                                                     batch_lengths,
+#                                                                     grid_density_multiplier=grid_density_multiplier,
+#                                                                     w_support_rtol=w_support_rtol,
+#                                                                     fill_value=kernel_fill_value)
+#
+#         if use_boundary_extension:
+#             FF = compute_convolution_kernel_boundary_extensions(initial_FF, pp,
+#                                                                 num_extension_kernels=num_extension_kernels)
+#         else:
+#             FF = initial_FF
+#
+#         print('Making row and column cluster trees')
+#         dof_coords_in = V_in.tabulate_dof_coordinates()
+#         dof_coords_out = V_out.tabulate_dof_coordinates()
+#         ct_in = hpro.build_cluster_tree_from_pointcloud(dof_coords_in, cluster_size_cutoff=cluster_size_cutoff)
+#         ct_out = hpro.build_cluster_tree_from_pointcloud(dof_coords_out, cluster_size_cutoff=cluster_size_cutoff)
+#
+#         print('Making block cluster trees')
+#         bct_in = hpro.build_block_cluster_tree(ct_in, ct_in, admissibility_eta=bct_admissibility_eta)
+#         bct_out = hpro.build_block_cluster_tree(ct_out, ct_out, admissibility_eta=bct_admissibility_eta)
+#         bct_kernel = hpro.build_block_cluster_tree(ct_out, ct_in, admissibility_eta=bct_admissibility_eta)
+#
+#         print('Building A kernel hmatrix')
+#         A_kernel_hmatrix = build_product_convolution_hmatrix_from_patches(WW, FF, bct_kernel,
+#                                                                           dof_coords_out, dof_coords_in,
+#                                                                           tol=hmatrix_tol)
+#
+#         print('Making input and output mass matrix hmatrices')
+#         M_in_scipy = csr_fenics2scipy(M_in)
+#         M_in_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_in_scipy, bct_in)
+#         M_out_scipy = csr_fenics2scipy(M_in)
+#         M_out_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_out_scipy, bct_out)
+#
+#         print('Computing A_hmatrix = M_out_hmatrix * A_kernel_hmatrix * M_in_hmatrix')
+#         A_hmatrix = M_out_hmatrix * (A_kernel_hmatrix * M_in_hmatrix)
+#         # hpro.h_mul(A_kernel_hmatrix, M_out_hmatrix, alpha_A_B_hmatrix=A_kernel_hmatrix, rtol=hmatrix_tol)
+#         # hpro.h_mul(M_in_hmatrix, A_kernel_hmatrix, alpha_A_B_hmatrix=A_kernel_hmatrix, rtol=hmatrix_tol)
+#         # A_hmatrix = A_kernel_hmatrix
+#
+#         extras = {'vol': vol,
+#                   'mu': mu,
+#                   'Sigma': Sigma,
+#                   'point_batches': point_batches,
+#                   'mu_batches': mu_batches,
+#                   'Sigma_batches': Sigma_batches,
+#                   'tau': tau,
+#                   'ww': ww,
+#                   'ff_batches': ff_batches,
+#                   'WW': WW,
+#                   'FF': FF,
+#                   'initial_FF': initial_FF,
+#                   'A_kernel_hmatrix': A_kernel_hmatrix}
+#
+#         if make_positive_definite:
+#             A_hmatrix_nonsym = A_hmatrix
+#             # A_hmatrix = hpro.rational_positive_definite_approximation_method1(A_hmatrix_nonsym, overwrite=False, rtol_inv=hmatrix_tol)
+#             A_hmatrix = A_hmatrix.spd(overwrite=False, rtol_inv=hmatrix_tol)
+#             extras['A_hmatrix_nonsym'] = A_hmatrix_nonsym
+#
+#         if return_extras:
+#             return A_hmatrix, extras
+#         else:
+#             return A_hmatrix
+
 
 
 def product_convolution_hmatrix(V_in, V_out,
@@ -25,7 +326,8 @@ def product_convolution_hmatrix(V_in, V_out,
                                 cluster_size_cutoff=50,
                                 use_boundary_extension=False,
                                 make_positive_definite=False,
-                                return_extras=False):
+                                return_extras=False,
+                                use_lumped_mass_matrix_for_impulse_response_moments=True):
     '''Builds hierarchical matrix representation of product convolution approximation of operator
         A: V_in -> V_out
     using only matrix-vector products with A and A^T.
@@ -100,13 +402,16 @@ def product_convolution_hmatrix(V_in, V_out,
         kernel_fill_value = 0.0
 
     print('Making mass matrices and solvers')
-    M_in = make_mass_matrix(V_in)
-    solve_M_in = make_fenics_amg_solver(M_in)
+    M_in, solve_M_in = make_mass_matrix(V_in, make_solver=True)
+    ML_in, solve_ML_in = make_mass_matrix(V_in, lumped=True, make_solver=True)
 
-    M_out = make_mass_matrix(V_out)
-    solve_M_out = make_fenics_amg_solver(M_out)
+    M_out, solve_M_out = make_mass_matrix(V_out, make_solver=True)
+    ML_out, solve_ML_out = make_mass_matrix(V_out, lumped=True, make_solver=True)
 
-    vol, mu, Sigma = impulse_response_moments(V_in, V_out, apply_At, solve_M_in)
+    if use_lumped_mass_matrix_for_impulse_response_moments:
+        vol, mu, Sigma = impulse_response_moments(V_in, V_out, apply_At, solve_ML_in)
+    else:
+        vol, mu, Sigma = impulse_response_moments(V_in, V_out, apply_At, solve_M_in)
 
     point_batches, mu_batches, Sigma_batches = choose_sample_point_batches(num_batches, V_in, mu, Sigma, tau,
                                                                            max_candidate_points=max_candidate_points)

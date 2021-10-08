@@ -30,10 +30,10 @@ if not load_results_from_file:
 
     hmatrix_rtol = 1e-8
     # all_batch_sizes = list(np.arange(9) + 1) #[1,3,6,9]
-    all_batch_sizes = [10]
+    all_batch_sizes = [5]
     n_random_error_matvecs = 300
-    grid_density_multiplier=0.25
-    tau=4
+    grid_density_multiplier=0.05
+    tau=8 # 3
     w_support_rtol=5e-4
 
     options = {'hmatrix_rtol' : hmatrix_rtol,
@@ -84,6 +84,9 @@ if not load_results_from_file:
         column_error_plot(Phi_relative_err_fct, extras['point_batches'])
 
         print('Phi_rel_err_fro=', Phi_rel_err_fro)
+
+        pp = extras['point_batches'][0]
+        print('Phi_relative_err_fct(pp[0, :])=', Phi_relative_err_fct(pp[0, :]))
 
         Hd_rel_err_fro, _ = estimate_column_errors_randomized(HIP.apply_Hd_numpy,
                                                                 lambda x: Hd_pch * x,
