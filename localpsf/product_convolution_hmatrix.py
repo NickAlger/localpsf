@@ -144,7 +144,7 @@ class ProductConvolutionKernel:
 
         cc_list = list()
         for b in range(me.num_batches):
-            cc_b = eval_one_batch_of_convolution_kernels_at_points(me, zz, b, reflect=False)
+            cc_b = eval_one_batch_of_convolution_kernels_at_points(me, zzR, b, reflect=False)
             cc_list.append(cc_b)
 
         cc = np.concatenate(cc_list, axis=0)
@@ -156,9 +156,7 @@ class ProductConvolutionKernel:
         mu_batch = me.mu_batches[k]
         Sigma_batch = me.Sigma_batches[k]
 
-
         plt.figure()
-
         cm = dl.plot(f)
         plt.colorbar(cm)
 
@@ -186,9 +184,39 @@ class ProductConvolutionKernel:
         plt.scatter(me.sample_points[k, 0], me.sample_points[k, 1], c='r', s=2)
 
 
+def build_product_convolution_kernel(V_in, V_out,
+                                     apply_A, apply_At,
+                                     num_batches,
+                                     tau=2.5,
+                                     max_candidate_points=None,
+                                     use_lumped_mass_matrix_for_impulse_response_moments=True,
+                                     rbf_kernel_parameter=2):
+    print('Making mass matrices and solvers')
+    M_in, solve_M_in = make_mass_matrix(V_in, make_solver=True)
+    ML_in, solve_ML_in = make_mass_matrix(V_in, lumped=True, make_solver=True)
 
+    M_out, solve_M_out = make_mass_matrix(V_out, make_solver=True)
+    ML_out, solve_ML_out = make_mass_matrix(V_out, lumped=True, make_solver=True)
 
+    print('Computing impulse response moments')
+    if use_lumped_mass_matrix_for_impulse_response_moments:
+        vol, mu, Sigma = impulse_response_moments(V_in, V_out, apply_At, solve_ML_in)
+    else:
+        vol, mu, Sigma = impulse_response_moments(V_in, V_out, apply_At, solve_M_in)
 
+    print('Choosing sample point batches')
+    point_batches, mu_batches, Sigma_batches = choose_sample_point_batches(num_batches, V_in, mu, Sigma, tau,
+                                                                           max_candidate_points=max_candidate_points)
+
+    print('Computing impulse response batches')
+    ff_batches = compute_impulse_response_batches(point_batches, V_in, V_out, apply_A, solve_M_in, solve_M_out)
+
+    print('Forming ProductConvolutionKernel')
+    PCK = ProductConvolutionKernel(ff_batches, point_batches, mu_batches, Sigma_batches, tau,
+                                   vol, mu, Sigma, V_in, V_out,
+                                   rbf_kernel_parameter=rbf_kernel_parameter)
+
+    return PCK
 
 
 # class ProductConvolutionHmatrix:
