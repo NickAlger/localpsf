@@ -1,10 +1,13 @@
 import numpy as np
+import dolfin as dl
+import matplotlib.pyplot as plt
 from scipy.spatial import cKDTree
 from tqdm.auto import tqdm
 
 from nalger_helper_functions import *
 import hlibpro_python_wrapper as hpro
 
+from .ellipsoid import points_which_are_not_in_ellipsoid_numba
 from .impulse_response_moments import impulse_response_moments
 from .sample_point_batches import choose_sample_point_batches
 from .impulse_response_batches import compute_impulse_response_batches
@@ -32,12 +35,10 @@ def eval_polyharmonic_spline_kernels_at_points(xx, pp, k):
 
 
 def eval_fenics_function_at_points(f, pp):
-    num_pts, d = pp.shape
-    f0 = f(pp[0,:])
-    ff = np.zeros((num_pts,) + f0.shape)
-    ff[0,:] = f0
-    for ii in range(1, num_pts):
-        ff[ii,:] = f(pp[ii, :])
+    num_pts = pp.shape[0]
+    ff = np.zeros(num_pts)
+    for ii in range(num_pts):
+        ff[ii] = f(pp[ii, :])
     return ff
 
 
@@ -72,6 +73,9 @@ class ProductConvolutionKernel:
         me.num_batches = len(me.impulse_response_batches)
         me.num_sample_points = me.sample_points.shape[0]
 
+        for f in me.impulse_response_batches:
+            f.set_allow_extrapolation(True)
+
     def eval_integral_kernel_at_points(me, yy, xx, display_progress=False):
         # yy.shape = (N, d)
         # xx.shape = (M, d)
@@ -83,7 +87,7 @@ class ProductConvolutionKernel:
         for jj in tqdm(range(M), disable=(not display_progress)):
             w = W[:,jj].reshape(-1) # shape=(num_sample_points,)
             zz = yy - xx[jj,:]
-            cc = eval_all_convolution_kernels_at_points(me, zz) # shape=(num_sample_points, N)
+            cc = me.eval_all_convolution_kernels_at_points(zz) # shape=(num_sample_points, N)
             QQ[:,jj] = np.dot(w, cc)
         return QQ
 
@@ -97,7 +101,7 @@ class ProductConvolutionKernel:
         yy = V_out.tabulate_dof_coordinates()
 
         print('Building dense integral kernel column-by-column')
-        Phi = eval_integral_kernel_at_points(me, yy, xx, display_progress=True)
+        Phi = me.eval_integral_kernel_at_points(yy, xx, display_progress=True)
         print('done.')
 
         return Phi
@@ -119,8 +123,8 @@ class ProductConvolutionKernel:
     def eval_one_batch_of_convolution_kernels_at_points(me, zz, batch_ind, reflect=True):
         # zz = points to evaluate convolution kernels at. shape = (num_z, d)
         num_z, d = zz.shape
-        if reflect:
-            zz = reflect_exterior_points_across_boundary(zz, me.mesh_out)
+        # if reflect:
+        #     zz = reflect_exterior_points_across_boundary(zz, me.mesh_out)
 
         pp = me.sample_points_batches[batch_ind]
         f = me.impulse_response_batches[batch_ind]
@@ -128,11 +132,19 @@ class ProductConvolutionKernel:
         Sigma_batch = me.Sigma_batches[batch_ind]
 
         batch_size = pp.shape[0]
-        cc = np.zeros(batch_size, num_z)
+        cc = np.zeros((batch_size, num_z))
         for kk in range(batch_size):
+            mu = mu_batch[kk, :]
+            Sigma = Sigma_batch[kk, :, :]
             shifted_zz = zz + pp[kk,:]
-            in_ellipsoid = point_is_in_ellipsoid(shifted_zz, mu_batch[kk], Sigma_batch[kk], me.tau)
-            cc[kk, in_ellipsoid] = eval_fenics_function_at_points(f, shifted_zz[in_ellipsoid, :]).reshape(-1)
+            if reflect:
+                shifted_zz = reflect_exterior_points_across_boundary(shifted_zz, me.mesh_out).copy()
+
+            not_in_ellipsoid = points_which_are_not_in_ellipsoid_numba(Sigma, mu, shifted_zz, me.tau)
+            in_ellipsoid = np.logical_not(not_in_ellipsoid)
+            if np.any(in_ellipsoid):
+                cc[kk, in_ellipsoid] = \
+                    eval_fenics_function_at_points(f, shifted_zz[in_ellipsoid, :]).reshape(-1)
 
         return cc
 
@@ -140,11 +152,11 @@ class ProductConvolutionKernel:
         # zz = points to evaluate convolution kernels at. shape = (num_z, d)
         # cc.shape = (num_sample_points, num_z)
         num_eval_points, d = zz.shape
-        zzR = reflect_exterior_points_across_boundary(zz, me.mesh_out)
+        # zzR = reflect_exterior_points_across_boundary(zz, me.mesh_out).copy()
 
         cc_list = list()
         for b in range(me.num_batches):
-            cc_b = eval_one_batch_of_convolution_kernels_at_points(me, zzR, b, reflect=False)
+            cc_b = me.eval_one_batch_of_convolution_kernels_at_points(zz, b)
             cc_list.append(cc_b)
 
         cc = np.concatenate(cc_list, axis=0)
@@ -171,7 +183,7 @@ class ProductConvolutionKernel:
         if V is None:
             V = me.V_in
         dof_coords = V.tabulate_dof_coordinates()
-        WW = me.eval_weighting_functions_at_points(dof_coords, kk)
+        WW = me.eval_all_weighting_functions_at_points(dof_coords)
 
         w = dl.Function(V)
         w.vector()[:] = WW[k,:].copy()
@@ -179,7 +191,7 @@ class ProductConvolutionKernel:
         plt.figure()
         cm = dl.plot(w)
         plt.colorbar(cm)
-        plt.title('Weighting function ' + str(index_ii))
+        plt.title('Weighting function ' + str(k))
         plt.scatter(me.sample_points[:, 0], me.sample_points[:, 1], c='k', s=2)
         plt.scatter(me.sample_points[k, 0], me.sample_points[k, 1], c='r', s=2)
 
