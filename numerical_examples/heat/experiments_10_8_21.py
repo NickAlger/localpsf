@@ -12,7 +12,7 @@ from localpsf.morozov_discrepancy import compute_morozov_regularization_paramete
 
 nondefault_HIP_options = {'mesh_h': 3e-2}
 
-num_batches = 2
+num_batches = 10
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
 

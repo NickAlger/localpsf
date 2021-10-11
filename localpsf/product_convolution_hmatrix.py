@@ -205,10 +205,10 @@ def build_product_convolution_kernel(V_in, V_out,
                                      rbf_kernel_parameter=2):
     print('Making mass matrices and solvers')
     M_in, solve_M_in = make_mass_matrix(V_in, make_solver=True)
-    ML_in, solve_ML_in = make_mass_matrix(V_in, lumped=True, make_solver=True)
+    ML_in, solve_ML_in = make_mass_matrix(V_in, lumping='simple', make_solver=True)
 
     M_out, solve_M_out = make_mass_matrix(V_out, make_solver=True)
-    ML_out, solve_ML_out = make_mass_matrix(V_out, lumped=True, make_solver=True)
+    ML_out, solve_ML_out = make_mass_matrix(V_out, lumping='simple', make_solver=True)
 
     print('Computing impulse response moments')
     if use_lumped_mass_matrix_for_impulse_response_moments:
@@ -443,10 +443,10 @@ def product_convolution_hmatrix(V_in, V_out,
 
     print('Making mass matrices and solvers')
     M_in, solve_M_in = make_mass_matrix(V_in, make_solver=True)
-    ML_in, solve_ML_in = make_mass_matrix(V_in, lumped=True, make_solver=True)
+    ML_in, solve_ML_in = make_mass_matrix(V_in, lumping='simple', make_solver=True)
 
     M_out, solve_M_out = make_mass_matrix(V_out, make_solver=True)
-    ML_out, solve_ML_out = make_mass_matrix(V_out, lumped=True, make_solver=True)
+    ML_out, solve_ML_out = make_mass_matrix(V_out, lumping='simple', make_solver=True)
 
     if use_lumped_mass_matrix_for_impulse_response_moments:
         vol, mu, Sigma = impulse_response_moments(V_in, V_out, apply_At, solve_ML_in)
