@@ -42,6 +42,62 @@ def eval_fenics_function_at_points(f, pp):
     return ff
 
 
+class ProductConvolutionKernelRBF:
+    def __init__(me, impulse_response_batches, sample_points_batches, mu_batches, Sigma_batches, tau,
+                 vol, mu, Sigma, V_in, V_out, rbf_kernel_parameter=2):
+        me.impulse_response_batches = impulse_response_batches
+        me.sample_points_batches = sample_points_batches
+        me.mu_batches = mu_batches
+        me.Sigma_batches = Sigma_batches
+        me.tau = tau
+        me.vol = vol
+        me.mu = mu
+        me.Sigma = Sigma
+        me.V_in = V_in
+        me.V_out = V_out
+        me.rbf_kernel_parameter = rbf_kernel_parameter
+
+        me.sample_points = np.concatenate(sample_points_batches, axis=0)
+
+        me.mesh_out = me.V_out.mesh()
+
+        me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
+        me.dof_coords_out = me.V_out.tabulate_dof_coordinates()
+
+        me.num_batches = len(me.impulse_response_batches)
+        me.num_sample_points = me.sample_points.shape[0]
+
+        for f in me.impulse_response_batches:
+            f.set_allow_extrapolation(True)
+
+        all_points = np.vstack(sample_points_batches)
+        all_mu = np.vstack(mu_batches)
+        all_Sigma = np.vstack(Sigma_batches)
+
+        me.vertex2dof_out = dl.vertex_to_dof_map(V_out)
+
+        me.all_points_list = [all_points[ii,:].copy() for ii in range(me.num_sample_points)]
+        me.all_mu_list = [all_mu[ii, :].copy() for ii in range(me.num_sample_points)]
+        me.all_Sigma_list = [all_Sigma[ii, :, :].copy() for ii in range(me.num_sample_points)]
+        me.impulse_response_batches_vectors = [IB.vector()[me.vertex2dof_out].copy() for IB in impulse_response_batches]
+        me.batch_lengths = [point_batch.shape[0] for point_batch in sample_points_batches]
+
+        me.mesh_vertices = np.array(me.mesh_out.coordinates().T, order='F')
+        me.mesh_cells = np.array(me.mesh_out.cells().T, order='F')
+
+        me.integral_kernel = hpro.hpro_cpp.ProductConvolutionKernelRBF(me.all_points_list,
+                                                                       me.all_mu_list,
+                                                                       me.all_Sigma_list,
+                                                                       me.tau,
+                                                                       me.impulse_response_batches_vectors,
+                                                                       me.batch_lengths,
+                                                                       me.mesh_vertices,
+                                                                       me.mesh_cells)
+
+    def __call__(me, y, x):
+        return me.integral_kernel.eval_integral_kernel(y, x)
+
+
 class ProductConvolutionKernel:
     def __init__(me, impulse_response_batches, sample_points_batches, mu_batches, Sigma_batches, tau,
                  vol, mu, Sigma, V_in, V_out, rbf_kernel_parameter=2):
@@ -224,9 +280,13 @@ def build_product_convolution_kernel(V_in, V_out,
     ff_batches = compute_impulse_response_batches(point_batches, V_in, V_out, apply_A, solve_M_in, solve_M_out)
 
     print('Forming ProductConvolutionKernel')
-    PCK = ProductConvolutionKernel(ff_batches, point_batches, mu_batches, Sigma_batches, tau,
-                                   vol, mu, Sigma, V_in, V_out,
-                                   rbf_kernel_parameter=rbf_kernel_parameter)
+    # PCK = ProductConvolutionKernel(ff_batches, point_batches, mu_batches, Sigma_batches, tau,
+    #                                vol, mu, Sigma, V_in, V_out,
+    #                                rbf_kernel_parameter=rbf_kernel_parameter)
+
+    PCK = ProductConvolutionKernelRBF(ff_batches, point_batches, mu_batches, Sigma_batches, tau,
+                                      vol, mu, Sigma, V_in, V_out,
+                                      rbf_kernel_parameter=rbf_kernel_parameter)
 
     return PCK
 
