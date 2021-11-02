@@ -12,7 +12,7 @@ from localpsf.morozov_discrepancy import compute_morozov_regularization_paramete
 
 nondefault_HIP_options = {'mesh_h': 3e-2}
 
-num_batches = 8
+num_batches = 20
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
 
@@ -25,7 +25,7 @@ y = np.array([0.5, 0.5])
 PCK(y,x)
 
 x = np.array([0.5, 0.5])
-y = np.array([0.5, 0.5000001])
+y = np.array([0.5, 0.5]) - 1e-10
 PCK(y,x)
 
 x = PCK.all_points_list[0]
@@ -33,7 +33,7 @@ y = PCK.all_points_list[0]
 PCK(y,x)
 
 x = PCK.all_points_list[0]
-y = PCK.all_points_list[0]+1e-3
+y = PCK.all_points_list[0]-1e-8
 PCK(y,x)
 
 
