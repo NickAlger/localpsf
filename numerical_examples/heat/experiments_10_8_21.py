@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm.auto import tqdm
 
 import hlibpro_python_wrapper as hpro
 from nalger_helper_functions import *
@@ -12,13 +13,23 @@ from localpsf.morozov_discrepancy import compute_morozov_regularization_paramete
 
 nondefault_HIP_options = {'mesh_h': 3e-2}
 
-num_batches = 20
+num_batches = 10
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
 
 HIP = HeatInverseProblem(**nondefault_HIP_options)
 
-PCK = build_product_convolution_kernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, num_batches)
+PCK = build_product_convolution_kernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, num_batches,
+                                       tau=4)
+
+x = np.array([0.513, 0.467])
+y = x
+PCK(y,x)
+
+x = np.array([0.513, 0.467])
+y = x + 1e-10
+PCK(y,x)
+
 
 x = np.array([0.5, 0.5])
 y = np.array([0.5, 0.5])
@@ -33,10 +44,48 @@ y = PCK.all_points_list[0]
 PCK(y,x)
 
 x = PCK.all_points_list[0]
-y = PCK.all_points_list[0]-1e-8
+y = PCK.all_points_list[0] + 1e-10
 PCK(y,x)
 
+x = PCK.all_points_list[0]
+y = PCK.all_points_list[1]
+PCK(y,x)
 
+dof_coords_in = HIP.V.tabulate_dof_coordinates()
+dof_coords_out = HIP.V.tabulate_dof_coordinates()
+M = 100
+A = np.zeros((M,M))
+for ii in tqdm(range(M)):
+    for jj in range(M):
+        x = dof_coords_in[ii,:].copy()
+        y = dof_coords_out[jj,:].copy()
+        A[ii,jj] = PCK(y,x)
+
+
+Phi = build_dense_matrix_from_matvecs(HIP.apply_iM_Hd_iM_numpy, HIP.V.dim())
+
+# x = np.array([0.513, 0.467])
+ii=18
+x = dof_coords_in[ii,:].copy()
+v = dl.Function(PCK.V_out)
+for jj in tqdm(range(Phi.shape[0])):
+    y = dof_coords_out[jj,:].copy()
+    v.vector()[jj] = PCK(y, x)
+
+plt.figure()
+cm = dl.plot(v)
+plt.colorbar(cm)
+plt.title('v')
+
+v_true = dl.Function(PCK.V_out)
+v_true.vector()[:] = Phi[:,ii].copy()
+
+plt.figure()
+cm = dl.plot(v_true)
+plt.colorbar(cm)
+plt.title('v_true')
+
+dl.norm(v.vector() - v_true.vector()) / dl.norm(v_true.vector())
 
 #
 

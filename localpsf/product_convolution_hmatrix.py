@@ -55,9 +55,14 @@ class ProductConvolutionKernelRBF:
         me.Sigma = Sigma
         me.V_in = V_in
         me.V_out = V_out
-        me.rbf_kernel_parameter = rbf_kernel_parameter
+
 
         me.sample_points = np.concatenate(sample_points_batches, axis=0)
+
+        me.RR = np.linalg.norm(me.sample_points[:,None,:] - me.sample_points[None,:,:], axis=2)
+        np.fill_diagonal(me.RR, np.inf)
+        me.rbf_sigma = 1.0*np.max(np.min(me.RR, axis=0))
+        print('me.rbf_sigma=', me.rbf_sigma)
 
         me.mesh_out = me.V_out.mesh()
 
@@ -91,6 +96,7 @@ class ProductConvolutionKernelRBF:
                                                                        me.tau,
                                                                        me.impulse_response_batches_vectors,
                                                                        me.batch_lengths,
+                                                                       me.rbf_sigma,
                                                                        me.mesh_vertices,
                                                                        me.mesh_cells)
 
