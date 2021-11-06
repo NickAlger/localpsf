@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
+from time import time
 
 import hlibpro_python_wrapper as hpro
 from nalger_helper_functions import *
@@ -13,14 +14,16 @@ from localpsf.morozov_discrepancy import compute_morozov_regularization_paramete
 
 nondefault_HIP_options = {'mesh_h': 3e-2}
 
-num_batches = 5
+num_batches = 9
+num_neighbors = 20
+tau = 2.5 #4
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
 
 HIP = HeatInverseProblem(**nondefault_HIP_options)
 
 PCK = build_product_convolution_kernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, num_batches,
-                                       tau=4)
+                                       tau=tau, num_neighbors=num_neighbors)
 
 x = np.array([0.513, 0.467])
 y = x
@@ -51,25 +54,41 @@ x = PCK.all_points_list[0]
 y = PCK.all_points_list[1]
 PCK(y,x)
 
-dof_coords_in = HIP.V.tabulate_dof_coordinates()
-dof_coords_out = HIP.V.tabulate_dof_coordinates()
-M = 100
-A = np.zeros((M,M))
-for ii in tqdm(range(M)):
-    for jj in range(M):
-        x = dof_coords_in[ii,:].copy()
-        y = dof_coords_out[jj,:].copy()
-        A[ii,jj] = PCK(y,x)
 
+dof_coords_in = np.array(HIP.V.tabulate_dof_coordinates().T, order='F')
+dof_coords_out = dof_coords_in
 
+# A = PCK(dof_coords_out[:,:100], dof_coords_in[:,:100])
+t = time()
+Phi_pc = PCK(dof_coords_out, dof_coords_in)
+dt_build_pc = time() - t
+print('dt_build_pc=', dt_build_pc)
+
+N = HIP.V.dim()
+# Phi_pc = np.zeros((N,N))
+# for ii in tqdm(range(N)):
+#     for jj in range(N):
+#         x = dof_coords_in[ii,:].copy()
+#         y = dof_coords_out[jj,:].copy()
+#         Phi_pc[ii,jj] = PCK(y,x)
+
+t = time()
 Phi = build_dense_matrix_from_matvecs(HIP.apply_iM_Hd_iM_numpy, HIP.V.dim())
+dt_build_dense = time() - t
+print('dt_build_dense', dt_build_dense)
+
+err_fro = np.linalg.norm(Phi_pc - Phi) / np.linalg.norm(Phi)
+print('err_fro=', err_fro)
+
+err_induced2 = np.linalg.norm(Phi_pc - Phi,2) / np.linalg.norm(Phi,2)
+print('err_induced2=', err_induced2)
 
 # x = np.array([0.513, 0.467])
-ii=4
-x = dof_coords_in[ii,:].copy()
+ii=5
+x = dof_coords_in[:,ii].copy()
 v = dl.Function(PCK.V_out)
 for jj in tqdm(range(Phi.shape[0])):
-    y = dof_coords_out[jj,:].copy()
+    y = dof_coords_out[:,jj].copy()
     v.vector()[jj] = PCK(y, x)
 
 plt.figure()
@@ -86,6 +105,15 @@ plt.colorbar(cm)
 plt.title('v_true')
 
 dl.norm(v.vector() - v_true.vector()) / dl.norm(v_true.vector())
+
+#
+
+e_fct = dl.Function(PCK.V_out)
+e_fct.vector()[:] = np.linalg.norm(Phi_pc - Phi, axis=0) / np.linalg.norm(Phi, axis=0)
+
+plt.figure()
+cm = dl.plot(e_fct)
+plt.colorbar(cm)
 
 #
 

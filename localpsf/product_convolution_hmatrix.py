@@ -101,8 +101,11 @@ class ProductConvolutionKernelRBF:
                                                                        me.mesh_vertices,
                                                                        me.mesh_cells)
 
-    def __call__(me, y, x):
-        return me.integral_kernel.eval_integral_kernel(y, x)
+    def __call__(me, yy, xx):
+        if len(xx.shape) == 1 and len(yy.shape) == 1:
+            return me.integral_kernel.eval_integral_kernel(yy, xx)
+        else:
+            return me.integral_kernel.eval_integral_kernel_block(yy, xx)
 
 
 class ProductConvolutionKernel:
