@@ -44,7 +44,7 @@ def eval_fenics_function_at_points(f, pp):
 
 class ProductConvolutionKernelRBF:
     def __init__(me, impulse_response_batches, sample_points_batches, mu_batches, Sigma_batches, tau,
-                 vol, mu, Sigma, V_in, V_out, rbf_kernel_parameter=2):
+                 vol, mu, Sigma, V_in, V_out, num_neighbors=20):
         me.impulse_response_batches = impulse_response_batches
         me.sample_points_batches = sample_points_batches
         me.mu_batches = mu_batches
@@ -55,6 +55,7 @@ class ProductConvolutionKernelRBF:
         me.Sigma = Sigma
         me.V_in = V_in
         me.V_out = V_out
+        me.num_neighbors = num_neighbors
 
 
         me.sample_points = np.concatenate(sample_points_batches, axis=0)
@@ -96,7 +97,7 @@ class ProductConvolutionKernelRBF:
                                                                        me.tau,
                                                                        me.impulse_response_batches_vectors,
                                                                        me.batch_lengths,
-                                                                       me.rbf_sigma,
+                                                                       me.num_neighbors,
                                                                        me.mesh_vertices,
                                                                        me.mesh_cells)
 
@@ -264,7 +265,7 @@ def build_product_convolution_kernel(V_in, V_out,
                                      tau=2.5,
                                      max_candidate_points=None,
                                      use_lumped_mass_matrix_for_impulse_response_moments=True,
-                                     rbf_kernel_parameter=2):
+                                     num_neighbors=20):
     print('Making mass matrices and solvers')
     M_in, solve_M_in = make_mass_matrix(V_in, make_solver=True)
     ML_in, solve_ML_in = make_mass_matrix(V_in, lumping='simple', make_solver=True)
@@ -292,7 +293,7 @@ def build_product_convolution_kernel(V_in, V_out,
 
     PCK = ProductConvolutionKernelRBF(ff_batches, point_batches, mu_batches, Sigma_batches, tau,
                                       vol, mu, Sigma, V_in, V_out,
-                                      rbf_kernel_parameter=rbf_kernel_parameter)
+                                      num_neighbors=num_neighbors)
 
     return PCK
 

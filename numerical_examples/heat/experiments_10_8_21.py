@@ -13,7 +13,7 @@ from localpsf.morozov_discrepancy import compute_morozov_regularization_paramete
 
 nondefault_HIP_options = {'mesh_h': 3e-2}
 
-num_batches = 10
+num_batches = 5
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
 
@@ -65,7 +65,7 @@ for ii in tqdm(range(M)):
 Phi = build_dense_matrix_from_matvecs(HIP.apply_iM_Hd_iM_numpy, HIP.V.dim())
 
 # x = np.array([0.513, 0.467])
-ii=18
+ii=4
 x = dof_coords_in[ii,:].copy()
 v = dl.Function(PCK.V_out)
 for jj in tqdm(range(Phi.shape[0])):
