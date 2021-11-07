@@ -15,7 +15,7 @@ from localpsf.morozov_discrepancy import compute_morozov_regularization_paramete
 nondefault_HIP_options = {'mesh_h': 3e-2}
 
 num_batches = 9
-num_neighbors = 20
+num_neighbors = 10
 tau = 2.5 #4
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
@@ -58,7 +58,11 @@ PCK(y,x)
 dof_coords_in = np.array(HIP.V.tabulate_dof_coordinates().T, order='F')
 dof_coords_out = dof_coords_in
 
-# A = PCK(dof_coords_out[:,:100], dof_coords_in[:,:100])
+t = time()
+A = PCK(dof_coords_out[:,:100], dof_coords_in[:,:100])
+dt_A = time() - t
+print('dt_A=', dt_A)
+
 t = time()
 Phi_pc = PCK(dof_coords_out, dof_coords_in)
 dt_build_pc = time() - t
@@ -77,14 +81,27 @@ Phi = build_dense_matrix_from_matvecs(HIP.apply_iM_Hd_iM_numpy, HIP.V.dim())
 dt_build_dense = time() - t
 print('dt_build_dense', dt_build_dense)
 
+#
+
 err_fro = np.linalg.norm(Phi_pc - Phi) / np.linalg.norm(Phi)
 print('err_fro=', err_fro)
 
 err_induced2 = np.linalg.norm(Phi_pc - Phi,2) / np.linalg.norm(Phi,2)
 print('err_induced2=', err_induced2)
 
+#
+
+Phi_pc_sym = 0.5*(Phi_pc.T+Phi_pc)
+
+err_fro_sym = np.linalg.norm(Phi_pc_sym - Phi) / np.linalg.norm(Phi)
+print('err_fro_sym=', err_fro_sym)
+
+err_induced2_sym = np.linalg.norm(Phi_pc_sym - Phi,2) / np.linalg.norm(Phi,2)
+print('err_induced2_sym=', err_induced2_sym)
+
+
 # x = np.array([0.513, 0.467])
-ii=5
+ii=0
 x = dof_coords_in[:,ii].copy()
 v = dl.Function(PCK.V_out)
 for jj in tqdm(range(Phi.shape[0])):
@@ -109,13 +126,14 @@ dl.norm(v.vector() - v_true.vector()) / dl.norm(v_true.vector())
 #
 
 e_fct = dl.Function(PCK.V_out)
-e_fct.vector()[:] = np.linalg.norm(Phi_pc - Phi, axis=0) / np.linalg.norm(Phi, axis=0)
+# e_fct.vector()[:] = np.linalg.norm(Phi_pc - Phi, axis=0) / np.linalg.norm(Phi, axis=0)
+e_fct.vector()[:] = np.linalg.norm(0.5*(Phi_pc.T+Phi_pc) - Phi, axis=0) / np.linalg.norm(Phi, axis=0)
 
 plt.figure()
 cm = dl.plot(e_fct)
 plt.colorbar(cm)
 
-#
+####
 
 PCK.visualize_impulse_response_batch(0)
 PCK.visualize_weighting_function(0)
