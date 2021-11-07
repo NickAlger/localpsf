@@ -44,7 +44,7 @@ def eval_fenics_function_at_points(f, pp):
 
 class ProductConvolutionKernelRBF:
     def __init__(me, impulse_response_batches, sample_points_batches, mu_batches, Sigma_batches, tau,
-                 vol, mu, Sigma, V_in, V_out, num_neighbors=20):
+                 vol, mu, Sigma, V_in, V_out, num_neighbors=10):
         me.impulse_response_batches = impulse_response_batches
         me.sample_points_batches = sample_points_batches
         me.mu_batches = mu_batches
