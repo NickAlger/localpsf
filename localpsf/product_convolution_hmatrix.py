@@ -9,8 +9,8 @@ import hlibpro_python_wrapper as hpro
 
 from .ellipsoid import points_which_are_not_in_ellipsoid_numba
 from .impulse_response_moments import impulse_response_moments
-from .sample_point_batches import choose_sample_point_batches
-from .impulse_response_batches import compute_impulse_response_batches
+from .sample_point_batches import choose_sample_point_batches, choose_one_sample_point_batch
+from .impulse_response_batches import compute_impulse_response_batches, get_one_dirac_comb_response
 from .poisson_weighting_functions import make_poisson_weighting_functions
 from .rbf_weighting_functions import make_rbf_weighting_functions
 from .visualization import visualize_impulse_response_batch, visualize_weighting_function
@@ -55,138 +55,125 @@ def eval_fenics_function_at_points(f, pp):
 #         me.phi_vertex = IB.vector()[me.vertex2dof_out].copy()
 #
 #         me.batch_data = (list(me.points), list(me.mus), list(me.Sigmas), me.phi_vertex)
-#
-#
-#
-#
-# class ImpulseResponsesBatches:
-#     def __init__(me, V_in, V_out,
-#                  apply_A, apply_At,
-#                  tau=2.5,
-#                  max_candidate_points=None,
-#                  use_lumped_mass_matrix_for_impulse_response_moments=True,
-#                  num_neighbors=10):
-#         me.V_in = V_in
-#         me.V_out = V_out
-#         me.apply_A = apply_A
-#         me.apply_At = apply_At
-#         me.tau = tau
-#         me.max_candidate_points = max_candidate_points
-#         me.use_lumped_mass_matrix_for_impulse_response_moments = use_lumped_mass_matrix_for_impulse_response_moments
-#         me.num_neighbors = num_neighbors
-#
-#         print('Making mass matrices and solvers')
-#         me.M_in, me.solve_M_in = make_mass_matrix(me.V_in, make_solver=True)
-#         me.ML_in, me.solve_ML_in = make_mass_matrix(me.V_in, lumping='simple', make_solver=True)
-#
-#         me.M_out, me.solve_M_out = make_mass_matrix(me.V_out, make_solver=True)
-#         me.ML_out, me.solve_ML_out = make_mass_matrix(me.V_out, lumping='simple', make_solver=True)
-#
-#         print('Computing impulse response moments')
-#         if me.use_lumped_mass_matrix_for_impulse_response_moments:
-#             me.vol, me.mu, me.Sigma = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_ML_in)
-#         else:
-#             me.vol, me.mu, me.Sigma = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_M_in)
-#
-#         print('Preparation for choosing sample points')
-#         me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
-#         me.mu_array = dlfct2array(me.mu)
-#         me.Sigma_array = dlfct2array(me.Sigma)
-#
-#         if me.max_candidate_points is None:
-#             me.candidate_inds = np.arange(me.V_in.dim())
-#         else:
-#             me.candidate_inds = np.random.permutation(me.V_in.dim())[:max_candidate_points]
-#
-#         me.point_batches = list()
-#         me.all_mu_batches = list()
-#         me.all_Sigma_batches = list()
-#
-#
-#     def choose_one_sample_point_batch(me):
-#         qq = me.dof_coords[me.candidate_inds, :]
-#         dd = np.inf * np.ones(len(candidate_inds))
-#         for IRB in me.all_impulse_response_batches:
-#             pp = IRB.points
-#             dd_batch = np.min(np.linalg.norm(pp[None,:,:] - qq[:,None,:], axis=2), axis=1)
-#             dd = np.min([dd,dd_batch])
-#             for k in range(pp.shape[0]):
-#                 pk = pp[k, :].reshape((1, -1))
-#                 ddk = np.linalg.norm(pk - qq, axis=1)
-#                 dd = np.min([dd, ddk], axis=0)
-#         candidate_inds_ordered_by_distance = np.array(candidate_inds)[np.argsort(dd)]
-#
-#         new_inds = choose_one_sample_point_batch(mu_array, Sigma_array, tau,
-#                                                  candidate_inds_ordered_by_distance, randomize=False)
-#
-#         new_points = dof_coords[new_inds, :]
-#         new_mu = mu_array[new_inds, :]
-#         new_Sigma = Sigma_array[new_inds, :]
-#
-#         point_batches.append(new_points)
-#         mu_batches.append(new_mu)
-#         Sigma_batches.append(new_Sigma)
-#
-#         candidate_inds = list(np.setdiff1d(candidate_inds, new_inds))
-#
-#
-#
-#         print('Choosing sample point batches')
-#         point_batches, mu_batches, Sigma_batches = choose_sample_point_batches(num_batches, V_in, mu, Sigma, tau,
-#                                                                                max_candidate_points=max_candidate_points)
-#
-#         print('Computing impulse response batches')
-#         ff_batches = compute_impulse_response_batches(point_batches, V_in, V_out, apply_A, solve_M_in, solve_M_out)
-#
-#         print('Forming ProductConvolutionKernel')
-#
-#         PCK = ProductConvolutionKernelRBF(ff_batches, point_batches, mu_batches, Sigma_batches, tau,
-#                                           vol, mu, Sigma, V_in, V_out,
-#                                           num_neighbors=num_neighbors)
-#
-#         # def __init__(me, impulse_response_batches, sample_points_batches, mu_batches, Sigma_batches, tau,
-#         #              vol, mu, Sigma):
-#
-#
-#         me.impulse_response_batches = impulse_response_batches
-#         me.sample_points_batches = sample_points_batches
-#         me.mu_batches = mu_batches
-#         me.Sigma_batches = Sigma_batches
-#         me.tau = tau
-#         me.vol = vol
-#         me.mu = mu
-#         me.Sigma = Sigma
-#
-#         me.V_in = vol.function_space()
-#         me.V_out = impulse_response_batches[0].function_space()
-#
-#         me.mesh_in = me.V_in.mesh()
-#         me.mesh_out = me.V_out.mesh()
-#
-#         me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
-#         me.dof_coords_out = me.V_out.tabulate_dof_coordinates()
-#
-#         me.sample_points = np.concatenate(sample_points_batches, axis=0)
-#
-#         me.num_batches = len(me.impulse_response_batches)
-#         me.num_sample_points = me.sample_points.shape[0]
-#
-#         for f in me.impulse_response_batches:
-#             f.set_allow_extrapolation(True)
-#
-#         all_points = np.vstack(sample_points_batches)
-#         all_mu = np.vstack(mu_batches)
-#         all_Sigma = np.vstack(Sigma_batches)
-#
-#         me.vertex2dof_out = dl.vertex_to_dof_map(me.V_out)
-#         me.impulse_response_batches_vectors = [IB.vector()[me.vertex2dof_out].copy() for IB in impulse_response_batches]
-#
-#         me.all_batches_data = [(list(pp), list(mus), list(Sigmas), IR) for
-#                                pp, mus, Sigmas, IR in
-#                                zip(sample_points_batches,
-#                                    mu_batches,
-#                                    Sigma_batches,
-#                                    me.impulse_response_batches_vectors)]
+
+
+
+
+class ImpulseResponsesBatches:
+    def __init__(me, V_in, V_out,
+                 apply_A, apply_At,
+                 num_initial_batches=5,
+                 tau=2.5,
+                 max_candidate_points=None,
+                 use_lumped_mass_matrix_for_impulse_response_moments=True,
+                 num_neighbors=10):
+        me.V_in = V_in
+        me.V_out = V_out
+        me.apply_A = apply_A
+        me.apply_At = apply_At
+        me.num_initial_batches = num_initial_batches
+        me.tau = tau
+        me.max_candidate_points = max_candidate_points
+        me.use_lumped_mass_matrix_for_impulse_response_moments = use_lumped_mass_matrix_for_impulse_response_moments
+        me.num_neighbors = num_neighbors
+
+        print('Making mass matrices and solvers')
+        me.M_in, me.solve_M_in = make_mass_matrix(me.V_in, make_solver=True)
+        me.ML_in, me.solve_ML_in = make_mass_matrix(me.V_in, lumping='simple', make_solver=True)
+
+        me.M_out, me.solve_M_out = make_mass_matrix(me.V_out, make_solver=True)
+        me.ML_out, me.solve_ML_out = make_mass_matrix(me.V_out, lumping='simple', make_solver=True)
+
+        print('Computing impulse response moments')
+        if me.use_lumped_mass_matrix_for_impulse_response_moments:
+            me.vol, me.mu, me.Sigma = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_ML_in)
+        else:
+            me.vol, me.mu, me.Sigma = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_M_in)
+
+        print('Preparing c++ object')
+        me.mesh_out = me.V_out.mesh();
+        me.mesh_vertices = np.array(me.mesh_out.coordinates().T, order='F')
+        me.mesh_cells = np.array(me.mesh_out.cells().T, order='F')
+
+        me.cpp_object = hpro.hpro_cpp.ImpulseResponseBatches( me.mesh_vertices,
+                                                              me.mesh_cells,
+                                                              me.num_neighbors,
+                                                              me.tau )
+
+        print('Preparing sample point batch stuff')
+        me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
+
+        me.vertex2dof_out = dl.vertex_to_dof_map(me.V_out)
+
+        me.mu_array = dlfct2array(me.mu)
+        me.Sigma_array = dlfct2array(me.Sigma)
+
+        if me.max_candidate_points is None:
+            me.candidate_inds = np.arange(me.V_in.dim())
+        else:
+            me.candidate_inds = np.random.permutation(me.V_in.dim())[:max_candidate_points]
+
+        # me.point_batches = list()
+        # me.mu_batches = list()
+        # me.Sigma_batches = list()
+
+        me.num_batches = 0
+
+
+    def add_one_sample_point_batch(me):
+        qq = np.array(me.dof_coords_in[me.candidate_inds, :].T, order='F')
+        dd = np.inf * np.ones(len(me.candidate_inds))
+        if me.num_batches > 0:
+            print('nearest neighbor')
+            _, dd = me.cpp_object.kdtree.nearest_neighbor_vectorized(qq)
+            print('done')
+
+        # for pp in me.point_batches:
+        #     # pp = np.array(IRB.points.T, order='F')
+        #     _, dd_batch = me.cpp_object.kdtree.nearest_neighbor_vectorized( qq )
+        #     # dd_batch = np.min(np.linalg.norm(pp[None,:,:] - qq[:,None,:], axis=2), axis=1)
+        #     dd = np.min([dd,dd_batch], axis=0)
+        #     # for k in range(pp.shape[0]):
+        #     #     pk = pp[k, :].reshape((1, -1))
+        #     #     ddk = np.linalg.norm(pk - qq, axis=1)
+        #     #     dd = np.min([dd, ddk], axis=0)
+        candidate_inds_ordered_by_distance = np.array(me.candidate_inds)[np.argsort(dd)]
+
+        print('choose sample point batch')
+        new_inds = choose_one_sample_point_batch(me.mu_array, me.Sigma_array, me.tau,
+                                                 candidate_inds_ordered_by_distance, randomize=False)
+        print('done')
+
+        new_points = me.dof_coords_in[new_inds, :]
+        new_mu = me.mu_array[new_inds, :]
+        new_Sigma = me.Sigma_array[new_inds, :]
+
+        print('dirac response')
+        phi = get_one_dirac_comb_response(new_points, me.V_in, me.V_out, me.apply_A, me.solve_M_in, me.solve_M_out)
+        print('done')
+
+        phi_vertex = phi.vector()[me.vertex2dof_out].copy()
+
+        A1 = [new_points[ii,:].copy() for ii in range(new_points.shape[0])]
+        A2 = [new_mu[ii, :].copy() for ii in range(new_mu.shape[0])]
+        A3 = [new_Sigma[ii, :, :].copy() for ii in range(new_Sigma.shape[0])]
+
+        new_batch_data = (A1, A2, A3, phi_vertex)
+        me.cpp_object.add_batch(new_batch_data, True)
+
+        me.candidate_inds = list(np.setdiff1d(me.candidate_inds, new_inds))
+
+        # point_batches.append(new_points)
+        # mu_batches.append(new_mu)
+        # Sigma_batches.append(new_Sigma)
+
+        me.num_batches = me.num_batches + 1
+
+        return new_inds
+
+
+
+
 
 
 

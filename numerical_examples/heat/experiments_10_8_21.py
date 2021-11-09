@@ -6,7 +6,7 @@ from time import time
 import hlibpro_python_wrapper as hpro
 from nalger_helper_functions import *
 from localpsf.heat_inverse_problem import *
-from localpsf.product_convolution_hmatrix import product_convolution_hmatrix, build_product_convolution_kernel
+from localpsf.product_convolution_hmatrix import product_convolution_hmatrix, build_product_convolution_kernel, ImpulseResponsesBatches
 from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
 
 
@@ -24,6 +24,15 @@ HIP = HeatInverseProblem(**nondefault_HIP_options)
 
 PCK = build_product_convolution_kernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, num_batches,
                                        tau=tau, num_neighbors=num_neighbors)
+
+#
+
+IRB = ImpulseResponsesBatches(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc)
+
+IRB.add_one_sample_point_batch()
+
+#
+
 
 x = np.array([0.513, 0.467])
 y = x
