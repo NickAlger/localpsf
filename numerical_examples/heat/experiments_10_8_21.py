@@ -101,7 +101,7 @@ print('err_induced2_sym=', err_induced2_sym)
 
 
 # x = np.array([0.513, 0.467])
-ii=0
+ii=1
 x = dof_coords_in[:,ii].copy()
 v = dl.Function(PCK.V_out)
 for jj in tqdm(range(Phi.shape[0])):

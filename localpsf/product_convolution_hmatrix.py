@@ -42,6 +42,50 @@ def eval_fenics_function_at_points(f, pp):
     return ff
 
 
+# class ImpulseResponsesObject:
+#     def __init__(me, impulse_response_batches, sample_points_batches, mu_batches, Sigma_batches, tau,
+#                  vol, mu, Sigma):
+#         me.impulse_response_batches = impulse_response_batches
+#         me.sample_points_batches = sample_points_batches
+#         me.mu_batches = mu_batches
+#         me.Sigma_batches = Sigma_batches
+#         me.tau = tau
+#         me.vol = vol
+#         me.mu = mu
+#         me.Sigma = Sigma
+#
+#         me.V_in = vol.function_space()
+#         me.V_out = impulse_response_batches[0].function_space()
+#
+#         me.mesh_in = me.V_in.mesh()
+#         me.mesh_out = me.V_out.mesh()
+#
+#         me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
+#         me.dof_coords_out = me.V_out.tabulate_dof_coordinates()
+#
+#         me.sample_points = np.concatenate(sample_points_batches, axis=0)
+#
+#         me.num_batches = len(me.impulse_response_batches)
+#         me.num_sample_points = me.sample_points.shape[0]
+#
+#         for f in me.impulse_response_batches:
+#             f.set_allow_extrapolation(True)
+#
+#         all_points = np.vstack(sample_points_batches)
+#         all_mu = np.vstack(mu_batches)
+#         all_Sigma = np.vstack(Sigma_batches)
+#
+#         me.vertex2dof_out = dl.vertex_to_dof_map(me.V_out)
+#
+#         me.all_points_list = [all_points[ii,:].copy() for ii in range(me.num_sample_points)]
+#         me.all_mu_list = [all_mu[ii, :].copy() for ii in range(me.num_sample_points)]
+#         me.all_Sigma_list = [all_Sigma[ii, :, :].copy() for ii in range(me.num_sample_points)]
+#         me.impulse_response_batches_vectors = [IB.vector()[me.vertex2dof_out].copy() for IB in impulse_response_batches]
+#         me.batch_lengths = [point_batch.shape[0] for point_batch in sample_points_batches]
+
+
+
+
 class ProductConvolutionKernelRBF:
     def __init__(me, impulse_response_batches, sample_points_batches, mu_batches, Sigma_batches, tau,
                  vol, mu, Sigma, V_in, V_out, num_neighbors=10):
@@ -91,15 +135,52 @@ class ProductConvolutionKernelRBF:
         me.mesh_vertices = np.array(me.mesh_out.coordinates().T, order='F')
         me.mesh_cells = np.array(me.mesh_out.cells().T, order='F')
 
-        me.integral_kernel = hpro.hpro_cpp.ProductConvolutionKernelRBF(me.all_points_list,
-                                                                       me.all_mu_list,
-                                                                       me.all_Sigma_list,
-                                                                       me.tau,
-                                                                       me.impulse_response_batches_vectors,
-                                                                       me.batch_lengths,
-                                                                       me.num_neighbors,
+        me.all_batches_data = [(list(pp), list(mus), list(Sigmas), IR) for
+                               pp, mus, Sigmas, IR in
+                               zip(sample_points_batches,
+                                   mu_batches,
+                                   Sigma_batches,
+                                   me.impulse_response_batches_vectors)]
+
+        me.integral_kernel = hpro.hpro_cpp.ProductConvolutionKernelRBF(me.all_batches_data,
                                                                        me.mesh_vertices,
-                                                                       me.mesh_cells)
+                                                                       me.mesh_cells,
+                                                                       me.num_neighbors,
+                                                                       me.tau,
+                                                                       me.all_batches_data,
+                                                                       me.mesh_vertices,
+                                                                       me.mesh_cells,
+                                                                       me.num_neighbors,
+                                                                       me.tau)
+
+        # me.integral_kernel = hpro.hpro_cpp.ProductConvolutionKernelRBF(me.all_points_list,
+        #                                                                me.all_mu_list,
+        #                                                                me.all_Sigma_list,
+        #                                                                me.impulse_response_batches_vectors,
+        #                                                                me.batch_lengths,
+        #                                                                me.mesh_vertices,
+        #                                                                me.mesh_cells,
+        #                                                                me.num_neighbors,
+        #                                                                me.tau,
+        #                                                                me.all_points_list,
+        #                                                                me.all_mu_list,
+        #                                                                me.all_Sigma_list,
+        #                                                                me.impulse_response_batches_vectors,
+        #                                                                me.batch_lengths,
+        #                                                                me.mesh_vertices,
+        #                                                                me.mesh_cells,
+        #                                                                me.num_neighbors,
+        #                                                                me.tau)
+
+        # me.integral_kernel = hpro.hpro_cpp.ProductConvolutionKernelRBF(me.all_points_list,
+        #                                                                me.all_mu_list,
+        #                                                                me.all_Sigma_list,
+        #                                                                me.tau,
+        #                                                                me.impulse_response_batches_vectors,
+        #                                                                me.batch_lengths,
+        #                                                                me.num_neighbors,
+        #                                                                me.mesh_vertices,
+        #                                                                me.mesh_cells)
 
     def __call__(me, yy, xx):
         if len(xx.shape) == 1 and len(yy.shape) == 1:
