@@ -42,22 +42,6 @@ def eval_fenics_function_at_points(f, pp):
     return ff
 
 
-# class ImpulseResponseBatch:
-#     def __init__(me, points, mus, Sigmas, phi):
-#         me.points = points
-#         me.mus = mus
-#         me.Sigmas = Sigmas
-#         me.phi = phi
-#
-#         me.V_out = me.phi.function_space()
-#         me.vertex2dof_out = dl.vertex_to_dof_map(me.V_out)
-#
-#         me.phi_vertex = IB.vector()[me.vertex2dof_out].copy()
-#
-#         me.batch_data = (list(me.points), list(me.mus), list(me.Sigmas), me.phi_vertex)
-
-
-
 
 class ImpulseResponsesBatches:
     def __init__(me, V_in, V_out,
@@ -71,11 +55,8 @@ class ImpulseResponsesBatches:
         me.V_out = V_out
         me.apply_A = apply_A
         me.apply_At = apply_At
-        me.num_initial_batches = num_initial_batches
-        me.tau = tau
         me.max_candidate_points = max_candidate_points
         me.use_lumped_mass_matrix_for_impulse_response_moments = use_lumped_mass_matrix_for_impulse_response_moments
-        me.num_neighbors = num_neighbors
 
         print('Making mass matrices and solvers')
         me.M_in, me.solve_M_in = make_mass_matrix(me.V_in, make_solver=True)
@@ -91,19 +72,21 @@ class ImpulseResponsesBatches:
             me.vol, me.mu, me.Sigma = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_M_in)
 
         print('Preparing c++ object')
-        me.mesh_out = me.V_out.mesh();
-        me.mesh_vertices = np.array(me.mesh_out.coordinates().T, order='F')
-        me.mesh_cells = np.array(me.mesh_out.cells().T, order='F')
+        mesh_out = me.V_out.mesh();
+        mesh_vertices = np.array(mesh_out.coordinates().T, order='F')
+        mesh_cells = np.array(mesh_out.cells().T, order='F')
 
-        me.cpp_object = hpro.hpro_cpp.ImpulseResponseBatches( me.mesh_vertices,
-                                                              me.mesh_cells,
-                                                              me.num_neighbors,
-                                                              me.tau )
+        me.cpp_object = hpro.hpro_cpp.ImpulseResponseBatches( mesh_vertices,
+                                                              mesh_cells,
+                                                              num_neighbors,
+                                                              tau )
 
         print('Preparing sample point batch stuff')
         me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
+        me.dof_coords_out = me.V_out.tabulate_dof_coordinates()
 
         me.vertex2dof_out = dl.vertex_to_dof_map(me.V_out)
+        me.dof2vertex_out = dl.dof_to_vertex_map(me.V_out)
 
         me.mu_array = dlfct2array(me.mu)
         me.Sigma_array = dlfct2array(me.Sigma)
@@ -113,61 +96,82 @@ class ImpulseResponsesBatches:
         else:
             me.candidate_inds = np.random.permutation(me.V_in.dim())[:max_candidate_points]
 
-        # me.point_batches = list()
-        # me.mu_batches = list()
-        # me.Sigma_batches = list()
-
+        print('Building initial sample point batches')
+        for ii in tqdm(range(num_initial_batches)):
+            me.add_one_sample_point_batch()
 
     def add_one_sample_point_batch(me):
         qq = np.array(me.dof_coords_in[me.candidate_inds, :].T, order='F')
-        dd = np.inf * np.ones(len(me.candidate_inds))
-        if me.cpp_object.num_pts() > 0:
-            print('nearest neighbor')
+        if me.num_sample_points() > 0:
             _, dd = me.cpp_object.kdtree.nearest_neighbor_vectorized(qq)
-            print('done')
+            candidate_inds_ordered_by_distance = np.array(me.candidate_inds)[np.argsort(dd)]
+        else:
+            candidate_inds_ordered_by_distance = np.array(me.candidate_inds)
 
-        # for pp in me.point_batches:
-        #     # pp = np.array(IRB.points.T, order='F')
-        #     _, dd_batch = me.cpp_object.kdtree.nearest_neighbor_vectorized( qq )
-        #     # dd_batch = np.min(np.linalg.norm(pp[None,:,:] - qq[:,None,:], axis=2), axis=1)
-        #     dd = np.min([dd,dd_batch], axis=0)
-        #     # for k in range(pp.shape[0]):
-        #     #     pk = pp[k, :].reshape((1, -1))
-        #     #     ddk = np.linalg.norm(pk - qq, axis=1)
-        #     #     dd = np.min([dd, ddk], axis=0)
-        candidate_inds_ordered_by_distance = np.array(me.candidate_inds)[np.argsort(dd)]
-
-        print('choose sample point batch')
         new_inds = choose_one_sample_point_batch(me.mu_array, me.Sigma_array, me.tau,
                                                  candidate_inds_ordered_by_distance, randomize=False)
-        print('done')
 
         new_points = me.dof_coords_in[new_inds, :]
         new_mu = me.mu_array[new_inds, :]
-        new_Sigma = me.Sigma_array[new_inds, :]
+        new_Sigma = me.Sigma_array[new_inds, :, :]
 
-        print('dirac response')
         phi = get_one_dirac_comb_response(new_points, me.V_in, me.V_out, me.apply_A, me.solve_M_in, me.solve_M_out)
-        print('done')
 
         phi_vertex = phi.vector()[me.vertex2dof_out].copy()
 
-        A1 = [new_points[ii,:].copy() for ii in range(new_points.shape[0])]
-        A2 = [new_mu[ii, :].copy() for ii in range(new_mu.shape[0])]
-        A3 = [new_Sigma[ii, :, :].copy() for ii in range(new_Sigma.shape[0])]
-
-        new_batch_data = (A1, A2, A3, phi_vertex)
+        new_batch_data = (list(new_points),
+                          list(new_mu),
+                          list(new_Sigma),
+                          phi_vertex)
         me.cpp_object.add_batch(new_batch_data, True)
 
         me.candidate_inds = list(np.setdiff1d(me.candidate_inds, new_inds))
 
-        # point_batches.append(new_points)
-        # mu_batches.append(new_mu)
-        # Sigma_batches.append(new_Sigma)
-
         return new_inds
 
+    @property
+    def sample_points(me):
+        return np.array(me.cpp_object.pts)
 
+    @property
+    def sample_mu(me):
+        return np.array(me.cpp_object.mu)
+
+    @property
+    def sample_inv_Sigma(me):
+        return np.array(me.cpp_object.inv_Sigma)
+
+    @property
+    def point2batch(me):
+        return np.array(me.cpp_object.point2batch)
+
+    @property
+    def psi_vertex_batches(me):
+        return np.array(me.cpp_object.psi_batches)
+
+    @property
+    def tau(me):
+        return me.cpp_object.tau
+
+    @tau.setter
+    def tau(me, new_tau):
+        me.cpp_object.tau = new_tau
+
+    @property
+    def num_neighbors(me):
+        return me.cpp_object.num_neighbors
+
+    @num_neighbors.setter
+    def num_neighbors(me, new_num_neighbors):
+        me.cpp_object.num_neighbors = new_num_neighbors
+
+    @property
+    def num_sample_points(me):
+        return me.cpp_object.num_pts
+
+    @property
+    def num_batches(me):
+        return me.cpp_object.num_batches
 
 
 

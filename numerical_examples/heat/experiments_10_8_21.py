@@ -22,14 +22,16 @@ tau = 2.5 #4
 
 HIP = HeatInverseProblem(**nondefault_HIP_options)
 
-PCK = build_product_convolution_kernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, num_batches,
-                                       tau=tau, num_neighbors=num_neighbors)
-
-#
-
 IRB = ImpulseResponsesBatches(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc)
 
 inds = IRB.add_one_sample_point_batch()
+
+
+
+#
+
+PCK = build_product_convolution_kernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, num_batches,
+                                       tau=tau, num_neighbors=num_neighbors)
 
 #
 
