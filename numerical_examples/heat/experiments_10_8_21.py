@@ -12,7 +12,7 @@ from localpsf.morozov_discrepancy import compute_morozov_regularization_paramete
 
 ########    OPTIONS    ########
 
-nondefault_HIP_options = {'mesh_h': 3e-2}
+nondefault_HIP_options = {'mesh_h': 2e-2} # {'mesh_h': 3e-2}
 
 num_batches = 9
 num_neighbors = 10
