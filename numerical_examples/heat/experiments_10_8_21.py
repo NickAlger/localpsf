@@ -29,7 +29,7 @@ PCK = build_product_convolution_kernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.app
 
 IRB = ImpulseResponsesBatches(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc)
 
-IRB.add_one_sample_point_batch()
+inds = IRB.add_one_sample_point_batch()
 
 #
 

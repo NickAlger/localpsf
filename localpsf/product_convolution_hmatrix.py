@@ -117,13 +117,11 @@ class ImpulseResponsesBatches:
         # me.mu_batches = list()
         # me.Sigma_batches = list()
 
-        me.num_batches = 0
-
 
     def add_one_sample_point_batch(me):
         qq = np.array(me.dof_coords_in[me.candidate_inds, :].T, order='F')
         dd = np.inf * np.ones(len(me.candidate_inds))
-        if me.num_batches > 0:
+        if me.cpp_object.num_pts() > 0:
             print('nearest neighbor')
             _, dd = me.cpp_object.kdtree.nearest_neighbor_vectorized(qq)
             print('done')
@@ -166,8 +164,6 @@ class ImpulseResponsesBatches:
         # point_batches.append(new_points)
         # mu_batches.append(new_mu)
         # Sigma_batches.append(new_Sigma)
-
-        me.num_batches = me.num_batches + 1
 
         return new_inds
 
