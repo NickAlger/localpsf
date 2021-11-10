@@ -6,7 +6,7 @@ from time import time
 import hlibpro_python_wrapper as hpro
 from nalger_helper_functions import *
 from localpsf.heat_inverse_problem import *
-from localpsf.product_convolution_hmatrix import product_convolution_hmatrix, build_product_convolution_kernel, ImpulseResponsesBatches
+from localpsf.product_convolution_hmatrix import product_convolution_hmatrix, build_product_convolution_kernel, ImpulseResponseBatches, ProductConvolutionKernelRBF
 from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
 
 
@@ -22,64 +22,79 @@ tau = 2.5 #4
 
 HIP = HeatInverseProblem(**nondefault_HIP_options)
 
-IRB = ImpulseResponsesBatches(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc)
+IRB = ImpulseResponseBatches(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc)
 
 inds = IRB.add_one_sample_point_batch()
 
-
-
-#
-
-PCK = build_product_convolution_kernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, num_batches,
-                                       tau=tau, num_neighbors=num_neighbors)
+IRB.cpp_object.interpolation_points_and_values(np.array([0.5, 0.5]), np.array([0.5, 0.5]))
+# IRB.cpp_object.interpolation_points_and_values(np.random.randn(2), np.random.randn(2))
 
 #
 
+PCK = ProductConvolutionKernelRBF(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, num_batches,
+                                  tau_rows=tau, tau_cols=tau,
+                                  num_neighbors_rows=num_neighbors,
+                                  num_neighbors_cols=num_neighbors,
+                                  symmetric=True)
 
-x = np.array([0.513, 0.467])
-y = x
-PCK(y,x)
+PCK.cpp_object.eval_integral_kernel(np.array([0.5, 0.5]), np.array([0.5, 0.5]))
 
-x = np.array([0.513, 0.467])
-y = x + 1e-10
-PCK(y,x)
+#
+
+PCK.col_batches.visualize_impulse_response_batch(0)
+
+# PCK = ProductConvolutionKernelRBF(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, num_batches,
+#                                        tau=tau, num_neighbors=num_neighbors, symmetric=False)
+
+#
 
 
-x = np.array([0.5, 0.5])
-y = np.array([0.5, 0.5])
-PCK(y,x)
-
-x = np.array([0.5, 0.5])
-y = np.array([0.5, 0.5]) - 1e-10
-PCK(y,x)
-
-x = PCK.all_points_list[0]
-y = PCK.all_points_list[0]
-PCK(y,x)
-
-x = PCK.all_points_list[0]
-y = PCK.all_points_list[0] + 1e-10
-PCK(y,x)
-
-x = PCK.all_points_list[0]
-y = PCK.all_points_list[1]
-PCK(y,x)
+# x = np.array([0.513, 0.467])
+# y = x
+# PCK(y,x)
+#
+# x = np.array([0.513, 0.467])
+# y = x + 1e-10
+# PCK(y,x)
+#
+#
+# x = np.array([0.5, 0.5])
+# y = np.array([0.5, 0.5])
+# PCK(y,x)
+#
+# x = np.array([0.5, 0.5])
+# y = np.array([0.5, 0.5]) - 1e-10
+# PCK(y,x)
+#
+# x = PCK.all_points_list[0]
+# y = PCK.all_points_list[0]
+# PCK(y,x)
+#
+# x = PCK.all_points_list[0]
+# y = PCK.all_points_list[0] + 1e-10
+# PCK(y,x)
+#
+# x = PCK.all_points_list[0]
+# y = PCK.all_points_list[1]
+# PCK(y,x)
 
 
 dof_coords_in = np.array(HIP.V.tabulate_dof_coordinates().T, order='F')
 dof_coords_out = dof_coords_in
 
 t = time()
+# A = PCK[:100, :100]
 A = PCK(dof_coords_out[:,:100], dof_coords_in[:,:100])
 dt_A = time() - t
 print('dt_A=', dt_A)
 
 t = time()
-Phi_pc = PCK(dof_coords_out, dof_coords_in)
+Phi_pc = PCK[:,:]
+# Phi_pc = PCK(dof_coords_out, dof_coords_in)
 dt_build_pc = time() - t
 print('dt_build_pc=', dt_build_pc)
 
-N = HIP.V.dim()
+# N = HIP.V.dim()
 # Phi_pc = np.zeros((N,N))
 # for ii in tqdm(range(N)):
 #     for jj in range(N):
@@ -112,33 +127,33 @@ print('err_induced2_sym=', err_induced2_sym)
 
 
 # x = np.array([0.513, 0.467])
-ii=1
-x = dof_coords_in[:,ii].copy()
-v = dl.Function(PCK.V_out)
-for jj in tqdm(range(Phi.shape[0])):
-    y = dof_coords_out[:,jj].copy()
-    v.vector()[jj] = PCK(y, x)
-
-plt.figure()
-cm = dl.plot(v)
-plt.colorbar(cm)
-plt.title('v')
-
-v_true = dl.Function(PCK.V_out)
-v_true.vector()[:] = Phi[:,ii].copy()
-
-plt.figure()
-cm = dl.plot(v_true)
-plt.colorbar(cm)
-plt.title('v_true')
-
-dl.norm(v.vector() - v_true.vector()) / dl.norm(v_true.vector())
+# ii=1
+# x = dof_coords_in[:,ii].copy()
+# v = dl.Function(PCK.V_out)
+# for jj in tqdm(range(Phi.shape[0])):
+#     y = dof_coords_out[:,jj].copy()
+#     v.vector()[jj] = PCK(y, x)
+#
+# plt.figure()
+# cm = dl.plot(v)
+# plt.colorbar(cm)
+# plt.title('v')
+#
+# v_true = dl.Function(PCK.V_out)
+# v_true.vector()[:] = Phi[:,ii].copy()
+#
+# plt.figure()
+# cm = dl.plot(v_true)
+# plt.colorbar(cm)
+# plt.title('v_true')
+#
+# dl.norm(v.vector() - v_true.vector()) / dl.norm(v_true.vector())
 
 #
 
 e_fct = dl.Function(PCK.V_out)
-# e_fct.vector()[:] = np.linalg.norm(Phi_pc - Phi, axis=0) / np.linalg.norm(Phi, axis=0)
-e_fct.vector()[:] = np.linalg.norm(0.5*(Phi_pc.T+Phi_pc) - Phi, axis=0) / np.linalg.norm(Phi, axis=0)
+e_fct.vector()[:] = np.linalg.norm(Phi_pc - Phi, axis=0) / np.linalg.norm(Phi, axis=0)
+# e_fct.vector()[:] = np.linalg.norm(0.5*(Phi_pc.T+Phi_pc) - Phi, axis=0) / np.linalg.norm(Phi, axis=0)
 
 plt.figure()
 cm = dl.plot(e_fct)

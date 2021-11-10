@@ -43,7 +43,7 @@ def eval_fenics_function_at_points(f, pp):
 
 
 
-class ImpulseResponsesBatches:
+class ImpulseResponseBatches:
     def __init__(me, V_in, V_out,
                  apply_A, apply_At,
                  num_initial_batches=5,
@@ -102,7 +102,7 @@ class ImpulseResponsesBatches:
 
     def add_one_sample_point_batch(me):
         qq = np.array(me.dof_coords_in[me.candidate_inds, :].T, order='F')
-        if me.num_sample_points() > 0:
+        if me.num_sample_points > 0:
             _, dd = me.cpp_object.kdtree.nearest_neighbor_vectorized(qq)
             candidate_inds_ordered_by_distance = np.array(me.candidate_inds)[np.argsort(dd)]
         else:
@@ -129,6 +129,34 @@ class ImpulseResponsesBatches:
 
         return new_inds
 
+    def visualize_impulse_response_batch(me, b):
+        if (0 <= b) and (b < me.num_batches):
+            phi = dl.Function(me.V_out)
+            phi.vector()[me.vertex2dof_out] = me.psi_vertex_batches[b]
+
+            start = me.batch2point_start[b]
+            stop = me.batch2point_stop[b]
+            pp = me.sample_points[start:stop, :]
+            mu_batch = me.sample_mu[start:stop, :]
+            inv_Sigma_batch = me.sample_inv_Sigma[start:stop, :, :]
+            Sigma_batch = np.array([np.linalg.inv(inv_Sigma_batch[ii,:,:])
+                                    for ii in range(inv_Sigma_batch.shape[0])])
+
+            plt.figure()
+
+            cm = dl.plot(phi)
+            plt.colorbar(cm)
+
+            plt.scatter(pp[:, 0], pp[:, 1], c='k', s=2)
+
+            for k in range(mu_batch.shape[0]):
+                plot_ellipse(mu_batch[k, :], Sigma_batch[k, :, :], n_std_tau=me.tau,
+                             facecolor='none', edgecolor='k', linewidth=1)
+
+            plt.title('Impulse response batch '+str(b))
+        else:
+            print('bad batch number. num_batches=', me.num_batches, ', b=', b)
+
     @property
     def sample_points(me):
         return np.array(me.cpp_object.pts)
@@ -144,6 +172,14 @@ class ImpulseResponsesBatches:
     @property
     def point2batch(me):
         return np.array(me.cpp_object.point2batch)
+
+    @property
+    def batch2point_start(me):
+        return np.array(me.cpp_object.batch2point_start)
+
+    @property
+    def batch2point_stop(me):
+        return np.array(me.cpp_object.batch2point_stop)
 
     @property
     def psi_vertex_batches(me):
@@ -167,90 +203,167 @@ class ImpulseResponsesBatches:
 
     @property
     def num_sample_points(me):
-        return me.cpp_object.num_pts
+        return me.cpp_object.num_pts()
 
     @property
     def num_batches(me):
-        return me.cpp_object.num_batches
-
-
-
+        return me.cpp_object.num_batches()
 
 
 
 class ProductConvolutionKernelRBF:
-    def __init__(me, impulse_response_batches, sample_points_batches, mu_batches, Sigma_batches, tau,
-                 vol, mu, Sigma, V_in, V_out, num_neighbors=10):
-        me.impulse_response_batches = impulse_response_batches
-        me.sample_points_batches = sample_points_batches
-        me.mu_batches = mu_batches
-        me.Sigma_batches = Sigma_batches
-        me.tau = tau
-        me.vol = vol
-        me.mu = mu
-        me.Sigma = Sigma
+    def __init__(me, V_in, V_out, apply_A, apply_At, num_batches,
+                 tau_rows=2.5, tau_cols=2.5,
+                 num_neighbors_rows=10, num_neighbors_cols=10,
+                 symmetric=False):
         me.V_in = V_in
         me.V_out = V_out
-        me.num_neighbors = num_neighbors
+        me.apply_A = apply_A
+        me.apply_At = apply_At
 
+        me.col_batches = ImpulseResponseBatches(V_in, V_out, apply_A, apply_At,
+                                                num_initial_batches=num_batches,
+                                                tau=tau_cols,
+                                                num_neighbors=num_neighbors_cols)
 
-        me.sample_points = np.concatenate(sample_points_batches, axis=0)
+        if symmetric:
+            me.row_batches = me.col_batches
+        else:
+            me.row_batches = ImpulseResponseBatches(V_out, V_in, apply_At, apply_A,
+                                                    num_initial_batches=num_batches,
+                                                    tau=tau_rows,
+                                                    num_neighbors=num_neighbors_rows)
 
-        me.RR = np.linalg.norm(me.sample_points[:,None,:] - me.sample_points[None,:,:], axis=2)
-        np.fill_diagonal(me.RR, np.inf)
-        me.rbf_sigma = 1.0*np.max(np.min(me.RR, axis=0))
-        print('me.rbf_sigma=', me.rbf_sigma)
+        me.col_coords = me.col_batches.dof_coords_in
+        me.row_coords = me.col_batches.dof_coords_out
+        me.shape = (me.V_out.dim(), me.V_in.dim())
 
-        me.mesh_out = me.V_out.mesh()
-
-        me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
-        me.dof_coords_out = me.V_out.tabulate_dof_coordinates()
-
-        me.num_batches = len(me.impulse_response_batches)
-        me.num_sample_points = me.sample_points.shape[0]
-
-        for f in me.impulse_response_batches:
-            f.set_allow_extrapolation(True)
-
-        all_points = np.vstack(sample_points_batches)
-        all_mu = np.vstack(mu_batches)
-        all_Sigma = np.vstack(Sigma_batches)
-
-        me.vertex2dof_out = dl.vertex_to_dof_map(V_out)
-
-        me.all_points_list = [all_points[ii,:].copy() for ii in range(me.num_sample_points)]
-        me.all_mu_list = [all_mu[ii, :].copy() for ii in range(me.num_sample_points)]
-        me.all_Sigma_list = [all_Sigma[ii, :, :].copy() for ii in range(me.num_sample_points)]
-        me.impulse_response_batches_vectors = [IB.vector()[me.vertex2dof_out].copy() for IB in impulse_response_batches]
-        me.batch_lengths = [point_batch.shape[0] for point_batch in sample_points_batches]
-
-        me.mesh_vertices = np.array(me.mesh_out.coordinates().T, order='F')
-        me.mesh_cells = np.array(me.mesh_out.cells().T, order='F')
-
-        me.all_batches_data = [(list(pp), list(mus), list(Sigmas), IR) for
-                               pp, mus, Sigmas, IR in
-                               zip(sample_points_batches,
-                                   mu_batches,
-                                   Sigma_batches,
-                                   me.impulse_response_batches_vectors)]
-
-        me.cpp_object = hpro.hpro_cpp.ProductConvolutionKernelRBF(me.all_batches_data,
-                                                                  me.mesh_vertices,
-                                                                  me.mesh_cells,
-                                                                  me.num_neighbors,
-                                                                  me.tau,
-                                                                  me.all_batches_data,
-                                                                  me.mesh_vertices,
-                                                                  me.mesh_cells,
-                                                                  me.num_neighbors,
-                                                                  me.tau)
-
+        me.cpp_object = hpro.hpro_cpp.ProductConvolutionKernelRBF(me.col_batches.cpp_object,
+                                                                  me.row_batches.cpp_object,
+                                                                  me.col_coords,
+                                                                  me.row_coords)
 
     def __call__(me, yy, xx):
         if len(xx.shape) == 1 and len(yy.shape) == 1:
             return me.cpp_object.eval_integral_kernel(yy, xx)
         else:
             return me.cpp_object.eval_integral_kernel_block(yy, xx)
+
+    def __getitem__(me, ii_jj):
+        ii, jj = ii_jj
+        yy = np.array(me.row_coords[ii,:].T, order='F')
+        xx = np.array(me.col_coords[jj, :].T, order='F')
+        return me.__call__(yy, xx)
+
+    @property
+    def tau_rows(me):
+        return me.row_batches.tau
+
+    @tau_rows.setter
+    def tau_rows(me, new_tau):
+        me.row_batches.tau = new_tau
+
+    @property
+    def tau_cols(me):
+        return me.col_batches.tau
+
+    @tau_cols.setter
+    def tau_cols(me, new_tau):
+        me.col_batches.tau = new_tau
+
+    @property
+    def num_neighbors_rows(me):
+        return me.row_batches.num_neighbors
+
+    @num_neighbors_rows.setter
+    def num_neighbors_rows(me, new_num_neighbors):
+        me.row_batches.num_neighbors = new_num_neighbors
+
+    @property
+    def num_neighbors_cols(me):
+        return me.col_batches.num_neighbors
+
+    @num_neighbors_cols.setter
+    def num_neighbors_cols(me, new_num_neighbors):
+        me.col_batches.num_neighbors = new_num_neighbors
+
+
+
+
+
+# class ProductConvolutionKernelRBF:
+#     def __init__(me, impulse_response_batches, sample_points_batches, mu_batches, Sigma_batches, tau,
+#                  vol, mu, Sigma, V_in, V_out, num_neighbors=10):
+#         me.impulse_response_batches = impulse_response_batches
+#         me.sample_points_batches = sample_points_batches
+#         me.mu_batches = mu_batches
+#         me.Sigma_batches = Sigma_batches
+#         me.tau = tau
+#         me.vol = vol
+#         me.mu = mu
+#         me.Sigma = Sigma
+#         me.V_in = V_in
+#         me.V_out = V_out
+#         me.num_neighbors = num_neighbors
+#
+#
+#         me.sample_points = np.concatenate(sample_points_batches, axis=0)
+#
+#         me.RR = np.linalg.norm(me.sample_points[:,None,:] - me.sample_points[None,:,:], axis=2)
+#         np.fill_diagonal(me.RR, np.inf)
+#         me.rbf_sigma = 1.0*np.max(np.min(me.RR, axis=0))
+#         print('me.rbf_sigma=', me.rbf_sigma)
+#
+#         me.mesh_out = me.V_out.mesh()
+#
+#         me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
+#         me.dof_coords_out = me.V_out.tabulate_dof_coordinates()
+#
+#         me.num_batches = len(me.impulse_response_batches)
+#         me.num_sample_points = me.sample_points.shape[0]
+#
+#         for f in me.impulse_response_batches:
+#             f.set_allow_extrapolation(True)
+#
+#         all_points = np.vstack(sample_points_batches)
+#         all_mu = np.vstack(mu_batches)
+#         all_Sigma = np.vstack(Sigma_batches)
+#
+#         me.vertex2dof_out = dl.vertex_to_dof_map(V_out)
+#
+#         me.all_points_list = [all_points[ii,:].copy() for ii in range(me.num_sample_points)]
+#         me.all_mu_list = [all_mu[ii, :].copy() for ii in range(me.num_sample_points)]
+#         me.all_Sigma_list = [all_Sigma[ii, :, :].copy() for ii in range(me.num_sample_points)]
+#         me.impulse_response_batches_vectors = [IB.vector()[me.vertex2dof_out].copy() for IB in impulse_response_batches]
+#         me.batch_lengths = [point_batch.shape[0] for point_batch in sample_points_batches]
+#
+#         me.mesh_vertices = np.array(me.mesh_out.coordinates().T, order='F')
+#         me.mesh_cells = np.array(me.mesh_out.cells().T, order='F')
+#
+#         me.all_batches_data = [(list(pp), list(mus), list(Sigmas), IR) for
+#                                pp, mus, Sigmas, IR in
+#                                zip(sample_points_batches,
+#                                    mu_batches,
+#                                    Sigma_batches,
+#                                    me.impulse_response_batches_vectors)]
+#
+#         me.cpp_object = hpro.hpro_cpp.ProductConvolutionKernelRBF(me.all_batches_data,
+#                                                                   me.mesh_vertices,
+#                                                                   me.mesh_cells,
+#                                                                   me.num_neighbors,
+#                                                                   me.tau,
+#                                                                   me.all_batches_data,
+#                                                                   me.mesh_vertices,
+#                                                                   me.mesh_cells,
+#                                                                   me.num_neighbors,
+#                                                                   me.tau)
+#
+#
+#     def __call__(me, yy, xx):
+#         if len(xx.shape) == 1 and len(yy.shape) == 1:
+#             return me.cpp_object.eval_integral_kernel(yy, xx)
+#         else:
+#             return me.cpp_object.eval_integral_kernel_block(yy, xx)
 
 
 class ProductConvolutionKernel:
