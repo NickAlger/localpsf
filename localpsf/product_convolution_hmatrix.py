@@ -255,6 +255,12 @@ class ProductConvolutionKernelRBF:
         xx = np.array(me.col_coords[jj, :].T, order='F')
         return me.__call__(yy, xx)
 
+    def build_hmatrix(me, bct, tol=1e-5):
+        hmatrix_cpp_object = hpro.hpro_cpp.build_hmatrix_from_coefffn( me.cpp_object, bct.cpp_object, tol )
+        # hmatrix_cpp_object = me.cpp_object.build_hmatrix( bct.cpp_object, tol )
+        return hpro.HMatrix(hmatrix_cpp_object, bct)
+
+
     @property
     def tau_rows(me):
         return me.row_batches.tau

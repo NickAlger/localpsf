@@ -36,4 +36,4 @@ def column_error_plot(relative_err_fct, point_batches):
     pp = np.vstack(point_batches)
     plt.plot(pp[:, 0], pp[:, 1], '.r')
 
-    plt.title('Hd columns relative error, ' + str(num_batches) + ' batches')
+    plt.title('Hd columns relative error, ' + str(pp.shape[0]) + ' points')

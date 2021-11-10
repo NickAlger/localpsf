@@ -8,13 +8,14 @@ from nalger_helper_functions import *
 from localpsf.heat_inverse_problem import *
 from localpsf.product_convolution_hmatrix import product_convolution_hmatrix, build_product_convolution_kernel, ImpulseResponseBatches, ProductConvolutionKernelRBF
 from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
+from localpsf.estimate_column_errors_randomized import *
 
 
 ########    OPTIONS    ########
 
-nondefault_HIP_options = {'mesh_h': 3e-2} # {'mesh_h': 2e-2}
+nondefault_HIP_options = {'mesh_h': 2e-2} # {'mesh_h': 3e-2}
 
-num_batches = 9
+num_batches = 50
 num_neighbors = 10
 tau = 2.5 #4
 
@@ -43,41 +44,30 @@ PCK.cpp_object.eval_integral_kernel(np.array([0.5, 0.5]), np.array([0.5, 0.5]))
 
 PCK.col_batches.visualize_impulse_response_batch(0)
 
-# PCK = ProductConvolutionKernelRBF(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, num_batches,
-#                                        tau=tau, num_neighbors=num_neighbors, symmetric=False)
+#
+
+ct = hpro.build_cluster_tree_from_pointcloud(PCK.col_coords, cluster_size_cutoff=50)
+bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
+Phi_pch = PCK.build_hmatrix(bct, tol=1e-5)
+
+v = np.random.randn(Phi_pch.shape[1])
+z1 = Phi_pch * v
+z2 = HIP.apply_iM_Hd_iM_numpy(v)
+
+err_hmatrix_vs_true = np.linalg.norm(z1 - z2) / np.linalg.norm(z2)
+print('err_hmatrix_vs_true=', err_hmatrix_vs_true)
+
+Phi_pch.visualize('Phi_pch1')
 
 #
 
+err_pch_cols, e_fct = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
+                                                        lambda x: Phi_pch * x,
+                                                        HIP.V, 100)
 
-# x = np.array([0.513, 0.467])
-# y = x
-# PCK(y,x)
-#
-# x = np.array([0.513, 0.467])
-# y = x + 1e-10
-# PCK(y,x)
-#
-#
-# x = np.array([0.5, 0.5])
-# y = np.array([0.5, 0.5])
-# PCK(y,x)
-#
-# x = np.array([0.5, 0.5])
-# y = np.array([0.5, 0.5]) - 1e-10
-# PCK(y,x)
-#
-# x = PCK.all_points_list[0]
-# y = PCK.all_points_list[0]
-# PCK(y,x)
-#
-# x = PCK.all_points_list[0]
-# y = PCK.all_points_list[0] + 1e-10
-# PCK(y,x)
-#
-# x = PCK.all_points_list[0]
-# y = PCK.all_points_list[1]
-# PCK(y,x)
+column_error_plot(e_fct, PCK.col_batches.sample_points)
 
+#
 
 dof_coords_in = np.array(HIP.V.tabulate_dof_coordinates().T, order='F')
 dof_coords_out = dof_coords_in
@@ -93,6 +83,12 @@ Phi_pc = PCK[:,:]
 # Phi_pc = PCK(dof_coords_out, dof_coords_in)
 dt_build_pc = time() - t
 print('dt_build_pc=', dt_build_pc)
+
+z0 = np.dot(Phi_pc, v)
+
+#
+
+
 
 # N = HIP.V.dim()
 # Phi_pc = np.zeros((N,N))
