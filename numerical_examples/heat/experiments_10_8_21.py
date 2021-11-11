@@ -10,12 +10,13 @@ from localpsf.product_convolution_hmatrix import product_convolution_hmatrix, bu
 from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
 from localpsf.estimate_column_errors_randomized import *
 
+import scipy.sparse.linalg as spla
 
 ########    OPTIONS    ########
 
 nondefault_HIP_options = {'mesh_h': 2e-2} # {'mesh_h': 3e-2}
 
-num_batches = 50
+num_batches = 25
 num_neighbors = 10
 tau = 2.5 #4
 
@@ -61,11 +62,24 @@ Phi_pch.visualize('Phi_pch1')
 
 #
 
-err_pch_cols, e_fct = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
+err_pch_fro, e_fct = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
                                                         lambda x: Phi_pch * x,
                                                         HIP.V, 100)
 
+print('err_pch_fro=', err_pch_fro)
+
 column_error_plot(e_fct, PCK.col_batches.sample_points)
+
+#
+
+Phi_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x))
+err_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x) - Phi_pch*x)
+
+aa,_ = spla.eigsh(Phi_linop, k=1, which='LM')
+ee,_ = spla.eigsh(err_linop, k=1, which='LM')
+
+err_pch_induced2 = np.abs(ee[0] / aa[0])
+print('err_pch_induced2=', err_pch_induced2)
 
 #
 
