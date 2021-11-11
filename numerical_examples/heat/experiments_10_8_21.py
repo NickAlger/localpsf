@@ -16,28 +16,39 @@ import scipy.sparse.linalg as spla
 
 nondefault_HIP_options = {'mesh_h': 2e-2} # {'mesh_h': 3e-2}
 
-num_batches = 25
+num_batches = 200
 num_neighbors = 10
-tau = 2.5 #4
+tau = 4 #2.5
+gamma = 1e-5
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
 
 HIP = HeatInverseProblem(**nondefault_HIP_options)
 
-IRB = ImpulseResponseBatches(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc)
-
-inds = IRB.add_one_sample_point_batch()
-
-IRB.cpp_object.interpolation_points_and_values(np.array([0.5, 0.5]), np.array([0.5, 0.5]))
+# IRB = ImpulseResponseBatches(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc)
+#
+# inds = IRB.add_one_sample_point_batch()
+#
+# IRB.cpp_object.interpolation_points_and_values(np.array([0.5, 0.5]), np.array([0.5, 0.5]))
 # IRB.cpp_object.interpolation_points_and_values(np.random.randn(2), np.random.randn(2))
 
 #
 
-PCK = ProductConvolutionKernelRBF(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc, num_batches,
+PCK = ProductConvolutionKernelRBF(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc,
+                                  num_batches, num_batches,
                                   tau_rows=tau, tau_cols=tau,
                                   num_neighbors_rows=num_neighbors,
                                   num_neighbors_cols=num_neighbors,
-                                  symmetric=True)
+                                  symmetric=True,
+                                  gamma=gamma)
+
+# PCK = ProductConvolutionKernelRBF(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc,
+#                                   0, num_batches,
+#                                   tau_rows=tau, tau_cols=tau,
+#                                   num_neighbors_rows=num_neighbors,
+#                                   num_neighbors_cols=num_neighbors,
+#                                   symmetric=False,
+#                                   gamma=gamma)
 
 PCK.cpp_object.eval_integral_kernel(np.array([0.5, 0.5]), np.array([0.5, 0.5]))
 
@@ -49,6 +60,8 @@ PCK.col_batches.visualize_impulse_response_batch(0)
 
 ct = hpro.build_cluster_tree_from_pointcloud(PCK.col_coords, cluster_size_cutoff=50)
 bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
+
+# PCK.gamma = 1e-4
 Phi_pch = PCK.build_hmatrix(bct, tol=1e-5)
 
 v = np.random.randn(Phi_pch.shape[1])
@@ -64,7 +77,7 @@ Phi_pch.visualize('Phi_pch1')
 
 err_pch_fro, e_fct = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
                                                         lambda x: Phi_pch * x,
-                                                        HIP.V, 100)
+                                                        HIP.V, 50)
 
 print('err_pch_fro=', err_pch_fro)
 
@@ -72,11 +85,35 @@ column_error_plot(e_fct, PCK.col_batches.sample_points)
 
 #
 
+z1 = np.random.randn(Phi_pch.shape[0])
+z2 = np.random.randn(Phi_pch.shape[1])
+
+ip1 = np.dot(Phi_pch * z1, z2)
+ip2 = np.dot(z1, Phi_pch * z2)
+err_sym = np.abs(ip1 - ip2) / (np.abs(ip1) + np.abs(ip2))
+print('err_sym', err_sym)
+
+#
+
+Phi_pch_plus = Phi_pch.spd()
+
+err_pch_plus_fro, e_plus_fct = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
+                                                                 lambda x: Phi_pch_plus * x,
+                                                                 HIP.V, 50)
+
+print('err_pch_plus_fro=', err_pch_plus_fro)
+
+column_error_plot(e_plus_fct, PCK.col_batches.sample_points)
+plt.title('column errors spd')
+
+
+#
+
 Phi_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x))
 err_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x) - Phi_pch*x)
 
-aa,_ = spla.eigsh(Phi_linop, k=1, which='LM')
-ee,_ = spla.eigsh(err_linop, k=1, which='LM')
+aa,_ = spla.eigsh(Phi_linop, k=10, which='LM')
+ee,_ = spla.eigsh(err_linop, k=10, which='LM')
 
 err_pch_induced2 = np.abs(ee[0] / aa[0])
 print('err_pch_induced2=', err_pch_induced2)

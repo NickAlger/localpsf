@@ -212,17 +212,17 @@ class ImpulseResponseBatches:
 
 
 class ProductConvolutionKernelRBF:
-    def __init__(me, V_in, V_out, apply_A, apply_At, num_batches,
+    def __init__(me, V_in, V_out, apply_A, apply_At, num_row_batches, num_col_batches,
                  tau_rows=2.5, tau_cols=2.5,
                  num_neighbors_rows=10, num_neighbors_cols=10,
-                 symmetric=False):
+                 symmetric=False, gamma=1e-8):
         me.V_in = V_in
         me.V_out = V_out
         me.apply_A = apply_A
         me.apply_At = apply_At
 
         me.col_batches = ImpulseResponseBatches(V_in, V_out, apply_A, apply_At,
-                                                num_initial_batches=num_batches,
+                                                num_initial_batches=num_col_batches,
                                                 tau=tau_cols,
                                                 num_neighbors=num_neighbors_cols)
 
@@ -230,7 +230,7 @@ class ProductConvolutionKernelRBF:
             me.row_batches = me.col_batches
         else:
             me.row_batches = ImpulseResponseBatches(V_out, V_in, apply_At, apply_A,
-                                                    num_initial_batches=num_batches,
+                                                    num_initial_batches=num_row_batches,
                                                     tau=tau_rows,
                                                     num_neighbors=num_neighbors_rows)
 
@@ -241,7 +241,8 @@ class ProductConvolutionKernelRBF:
         me.cpp_object = hpro.hpro_cpp.ProductConvolutionKernelRBF(me.col_batches.cpp_object,
                                                                   me.row_batches.cpp_object,
                                                                   me.col_coords,
-                                                                  me.row_coords)
+                                                                  me.row_coords,
+                                                                  gamma)
 
     def __call__(me, yy, xx):
         if len(xx.shape) == 1 and len(yy.shape) == 1:
@@ -260,6 +261,13 @@ class ProductConvolutionKernelRBF:
         # hmatrix_cpp_object = me.cpp_object.build_hmatrix( bct.cpp_object, tol )
         return hpro.HMatrix(hmatrix_cpp_object, bct)
 
+    @property
+    def gamma(me):
+        return me.cpp_object.gamma
+
+    @gamma.setter
+    def gamma(me, new_gamma):
+        me.cpp_object.gamma = new_gamma
 
     @property
     def tau_rows(me):
