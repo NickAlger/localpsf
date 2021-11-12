@@ -103,7 +103,7 @@ class ImpulseResponseBatches:
     def add_one_sample_point_batch(me):
         qq = np.array(me.dof_coords_in[me.candidate_inds, :].T, order='F')
         if me.num_sample_points > 0:
-            _, dd = me.cpp_object.kdtree.nearest_neighbor_vectorized(qq)
+            dd = me.cpp_object.kdtree.query(qq,1)[1][0]
             candidate_inds_ordered_by_distance = np.array(me.candidate_inds)[np.argsort(dd)]
         else:
             candidate_inds_ordered_by_distance = np.array(me.candidate_inds)

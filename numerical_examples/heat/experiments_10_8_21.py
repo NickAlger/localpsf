@@ -16,9 +16,9 @@ import scipy.sparse.linalg as spla
 
 nondefault_HIP_options = {'mesh_h': 2e-2} # {'mesh_h': 3e-2}
 
-num_batches = 200
+num_batches = 10
 num_neighbors = 10
-tau = 4 #2.5
+tau = 2.5 # 4
 gamma = 1e-5
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
