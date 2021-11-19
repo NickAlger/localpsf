@@ -120,6 +120,15 @@ print('err_pch_induced2=', err_pch_induced2)
 
 #
 
+err_plus_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x) - Phi_pch_plus*x)
+
+ee_plus,_ = spla.eigsh(err_plus_linop, k=10, which='LM')
+
+err_pch_plus_induced2 = np.abs(ee_plus[0] / aa[0])
+print('err_pch_plus_induced2=', err_pch_plus_induced2)
+
+#
+
 dof_coords_in = np.array(HIP.V.tabulate_dof_coordinates().T, order='F')
 dof_coords_out = dof_coords_in
 

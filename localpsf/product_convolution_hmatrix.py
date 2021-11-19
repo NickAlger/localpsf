@@ -119,11 +119,12 @@ class ImpulseResponseBatches:
 
         phi_vertex = phi.vector()[me.vertex2dof_out].copy()
 
-        new_batch_data = (list(new_points),
-                          list(new_mu),
-                          list(new_Sigma),
-                          phi_vertex)
-        me.cpp_object.add_batch(new_batch_data, True)
+        me.cpp_object.add_batch(list(new_points),
+                                list(new_mu),
+                                list(new_Sigma),
+                                phi_vertex,
+                                True)
+        # me.cpp_object.add_batch(new_batch_data, True)
 
         me.candidate_inds = list(np.setdiff1d(me.candidate_inds, new_inds))
 
