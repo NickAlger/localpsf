@@ -16,7 +16,7 @@ import scipy.sparse.linalg as spla
 
 nondefault_HIP_options = {'mesh_h': 2e-2} # {'mesh_h': 3e-2}
 
-num_batches = 10
+num_batches = 20
 num_neighbors = 10
 tau = 2.5 # 4
 gamma = 1e-5
@@ -115,7 +115,7 @@ err_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_
 aa,_ = spla.eigsh(Phi_linop, k=10, which='LM')
 ee,_ = spla.eigsh(err_linop, k=10, which='LM')
 
-err_pch_induced2 = np.abs(ee[0] / aa[0])
+err_pch_induced2 = np.max(np.abs(ee)) / np.max(np.abs(aa))
 print('err_pch_induced2=', err_pch_induced2)
 
 #
@@ -124,7 +124,7 @@ err_plus_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_i
 
 ee_plus,_ = spla.eigsh(err_plus_linop, k=10, which='LM')
 
-err_pch_plus_induced2 = np.abs(ee_plus[0] / aa[0])
+err_pch_plus_induced2 = np.max(np.abs(ee_plus)) / np.max(np.abs(aa))
 print('err_pch_plus_induced2=', err_pch_plus_induced2)
 
 #
