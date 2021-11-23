@@ -6,9 +6,10 @@ from time import time
 import hlibpro_python_wrapper as hpro
 from nalger_helper_functions import *
 from localpsf.heat_inverse_problem import *
-from localpsf.product_convolution_hmatrix import product_convolution_hmatrix, build_product_convolution_kernel, ImpulseResponseBatches, ProductConvolutionKernelRBF
+from localpsf.product_convolution_kernel import ProductConvolutionKernel
+from localpsf.product_convolution_hmatrix import make_hmatrix_from_kernel, product_convolution_hmatrix
+from localpsf.visualization import column_error_plot
 from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
-from localpsf.estimate_column_errors_randomized import *
 
 import scipy.sparse.linalg as spla
 
@@ -21,39 +22,23 @@ num_neighbors = 10
 tau = 2.5 # 4
 gamma = 1e-5
 sigma_min = 1e-6 # 1e-1 # minimum width of support ellipsoid
+num_random_error_matvecs = 50
 
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
 
 HIP = HeatInverseProblem(**nondefault_HIP_options)
 
-# IRB = ImpulseResponseBatches(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc)
-#
-# inds = IRB.add_one_sample_point_batch()
-#
-# IRB.cpp_object.interpolation_points_and_values(np.array([0.5, 0.5]), np.array([0.5, 0.5]))
-# IRB.cpp_object.interpolation_points_and_values(np.random.randn(2), np.random.randn(2))
-
 #
 
-PCK = ProductConvolutionKernelRBF(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc,
-                                  num_batches, num_batches,
-                                  tau_rows=tau, tau_cols=tau,
-                                  num_neighbors_rows=num_neighbors,
-                                  num_neighbors_cols=num_neighbors,
-                                  symmetric=True,
-                                  gamma=gamma,
-                                  sigma_min=sigma_min)
-
-# PCK = ProductConvolutionKernelRBF(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc,
-#                                   0, num_batches,
-#                                   tau_rows=tau, tau_cols=tau,
-#                                   num_neighbors_rows=num_neighbors,
-#                                   num_neighbors_cols=num_neighbors,
-#                                   symmetric=False,
-#                                   gamma=gamma)
-
-PCK.cpp_object.eval_integral_kernel(np.array([0.5, 0.5]), np.array([0.5, 0.5]))
+PCK = ProductConvolutionKernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc,
+                               num_batches, num_batches,
+                               tau_rows=tau, tau_cols=tau,
+                               num_neighbors_rows=num_neighbors,
+                               num_neighbors_cols=num_neighbors,
+                               symmetric=True,
+                               gamma=gamma,
+                               sigma_min=sigma_min)
 
 #
 
@@ -61,26 +46,51 @@ PCK.col_batches.visualize_impulse_response_batch(0)
 
 #
 
-ct = hpro.build_cluster_tree_from_pointcloud(PCK.col_coords, cluster_size_cutoff=50)
-bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
+A_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=True, hmatrix_tol=1e-3)
 
-# PCK.gamma = 1e-4
-Phi_pch = PCK.build_hmatrix(bct, tol=1e-5)
 
-v = np.random.randn(Phi_pch.shape[1])
-z1 = Phi_pch * v
-z2 = HIP.apply_iM_Hd_iM_numpy(v)
-
-err_hmatrix_vs_true = np.linalg.norm(z1 - z2) / np.linalg.norm(z2)
-print('err_hmatrix_vs_true=', err_hmatrix_vs_true)
-
-Phi_pch.visualize('Phi_pch1')
+Phi_pch = extras['A_kernel_hmatrix']
+A_pch_nonsym = extras['A_hmatrix_nonsym']
 
 #
 
-err_pch_fro, e_fct = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
-                                                        lambda x: Phi_pch * x,
-                                                        HIP.V, 50)
+Phi_pch.visualize('Phi_pch')
+A_pch_nonsym.visualize('A_pch_nonsym')
+A_pch.visualize('A_pch')
+
+#
+
+Phi_col_rel_errs_fro, Phi_col_norms_fro, Phi_col_errs_fro, Phi_relative_err_fro \
+    = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
+                                        lambda x: Phi_pch * x,
+                                        Phi_pch.shape[1],
+                                        num_random_error_matvecs)
+
+print('Phi_relative_err_fro=', Phi_relative_err_fro)
+
+_, _, _, A_relative_err_fro \
+    = estimate_column_errors_randomized(HIP.apply_Hd_numpy,
+                                        lambda x: A_pch_nonsym * x,
+                                        A_pch_nonsym.shape[1],
+                                        num_random_error_matvecs)
+
+print('A_relative_err_fro=', A_relative_err_fro)
+
+_, _, _, Asym_relative_err_fro \
+    = estimate_column_errors_randomized(HIP.apply_Hd_numpy,
+                                        lambda x: A_pch * x,
+                                        A_pch.shape[1],
+                                        num_random_error_matvecs)
+
+print('Asym_relative_err_fro=', Asym_relative_err_fro)
+
+#
+
+column_error_plot(Phi_col_rel_errs_fro, PCK.V_in, PCK.col_batches.sample_points)
+
+#
+
+err_pch_fro, e_fct = estimate_column_errors_randomized()
 
 print('err_pch_fro=', err_pch_fro)
 
