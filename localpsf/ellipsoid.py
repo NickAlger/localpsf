@@ -42,7 +42,7 @@ def K_fct_vectorized(ss, lambdas, v_squared, tau):
 def geigh_numpy(A, B):
     # Generalized eigenvalue decomposition A*Phi = B*Phi*Lambda
     # Phi.T * B * Phi = I
-    lambdas0, Phi0 = np.linalg.eig(np.linalg.solve(B, A))
+    lambdas0, Phi0 = np.linalg.eig(np.linalg.solve(B, A)+0.0*1j)
     lambdas = lambdas0.real
     Rayleigh_matrix = np.dot(np.dot(Phi0.real.T, B), Phi0.real)
     scaling_factors = np.sqrt(np.diag(Rayleigh_matrix))

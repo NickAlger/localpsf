@@ -16,10 +16,11 @@ import scipy.sparse.linalg as spla
 
 nondefault_HIP_options = {'mesh_h': 2e-2} # {'mesh_h': 3e-2}
 
-num_batches = 20
+num_batches = 10
 num_neighbors = 10
 tau = 2.5 # 4
 gamma = 1e-5
+sigma_min = 1e-6 # 1e-1 # minimum width of support ellipsoid
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
 
@@ -40,7 +41,8 @@ PCK = ProductConvolutionKernelRBF(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd
                                   num_neighbors_rows=num_neighbors,
                                   num_neighbors_cols=num_neighbors,
                                   symmetric=True,
-                                  gamma=gamma)
+                                  gamma=gamma,
+                                  sigma_min=sigma_min)
 
 # PCK = ProductConvolutionKernelRBF(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc,
 #                                   0, num_batches,

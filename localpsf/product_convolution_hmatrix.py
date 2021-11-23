@@ -50,7 +50,8 @@ class ImpulseResponseBatches:
                  tau=2.5,
                  max_candidate_points=None,
                  use_lumped_mass_matrix_for_impulse_response_moments=True,
-                 num_neighbors=10):
+                 num_neighbors=10,
+                 sigma_min=1e-6):
         me.V_in = V_in
         me.V_out = V_out
         me.apply_A = apply_A
@@ -72,7 +73,7 @@ class ImpulseResponseBatches:
             me.vol, me.mu, me.Sigma = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_M_in)
 
         print('Preparing c++ object')
-        mesh_out = me.V_out.mesh();
+        mesh_out = me.V_out.mesh()
         mesh_vertices = np.array(mesh_out.coordinates().T, order='F')
         mesh_cells = np.array(mesh_out.cells().T, order='F')
 
@@ -89,7 +90,12 @@ class ImpulseResponseBatches:
         me.dof2vertex_out = dl.dof_to_vertex_map(me.V_out)
 
         me.mu_array = dlfct2array(me.mu)
-        me.Sigma_array = dlfct2array(me.Sigma)
+        me.Sigma_array0 = dlfct2array(me.Sigma)
+
+        eee0, PP = np.linalg.eigh(me.Sigma_array0)
+        eee = np.max([np.ones(eee0.shape)*sigma_min**2, eee0], axis=0)
+        me.Sigma_array = np.einsum('nij,nj,nkj->nik', PP, eee, PP)
+
 
         if me.max_candidate_points is None:
             me.candidate_inds = np.arange(me.V_in.dim())
@@ -216,7 +222,7 @@ class ProductConvolutionKernelRBF:
     def __init__(me, V_in, V_out, apply_A, apply_At, num_row_batches, num_col_batches,
                  tau_rows=2.5, tau_cols=2.5,
                  num_neighbors_rows=10, num_neighbors_cols=10,
-                 symmetric=False, gamma=1e-8):
+                 symmetric=False, gamma=1e-8, sigma_min=1e-6):
         me.V_in = V_in
         me.V_out = V_out
         me.apply_A = apply_A
@@ -225,7 +231,8 @@ class ProductConvolutionKernelRBF:
         me.col_batches = ImpulseResponseBatches(V_in, V_out, apply_A, apply_At,
                                                 num_initial_batches=num_col_batches,
                                                 tau=tau_cols,
-                                                num_neighbors=num_neighbors_cols)
+                                                num_neighbors=num_neighbors_cols,
+                                                sigma_min=sigma_min)
 
         if symmetric:
             me.row_batches = me.col_batches
@@ -233,7 +240,8 @@ class ProductConvolutionKernelRBF:
             me.row_batches = ImpulseResponseBatches(V_out, V_in, apply_At, apply_A,
                                                     num_initial_batches=num_row_batches,
                                                     tau=tau_rows,
-                                                    num_neighbors=num_neighbors_rows)
+                                                    num_neighbors=num_neighbors_rows,
+                                                    sigma_min=sigma_min)
 
         me.col_coords = me.col_batches.dof_coords_in
         me.row_coords = me.col_batches.dof_coords_out
