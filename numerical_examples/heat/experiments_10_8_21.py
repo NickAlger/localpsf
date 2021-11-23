@@ -22,6 +22,7 @@ tau = 2.5 # 4
 gamma = 1e-5
 sigma_min = 1e-6 # 1e-1 # minimum width of support ellipsoid
 
+
 ########    SET UP HEAT INVERSE PROBLEM    ########
 
 HIP = HeatInverseProblem(**nondefault_HIP_options)
