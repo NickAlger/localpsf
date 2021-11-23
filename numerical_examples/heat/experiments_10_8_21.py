@@ -15,7 +15,7 @@ import scipy.sparse.linalg as spla
 
 ########    OPTIONS    ########
 
-nondefault_HIP_options = {'mesh_h': 2e-2} # {'mesh_h': 3e-2}
+nondefault_HIP_options = {'mesh_h': 3e-2} # {'mesh_h': 2e-2}
 
 num_batches = 10
 num_neighbors = 10
@@ -89,6 +89,97 @@ print('Asym_relative_err_fro=', Asym_relative_err_fro)
 column_error_plot(Phi_col_rel_errs_fro, PCK.V_in, PCK.col_batches.sample_points)
 
 #
+
+Phi_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x))
+err_Phi_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x) - Phi_pch*x)
+
+aa_Phi,_ = spla.eigsh(Phi_linop, k=1, which='LM')
+ee_Phi,_ = spla.eigsh(err_Phi_linop, k=1, which='LM')
+
+Phi_relative_error_induced2 = np.max(np.abs(ee_Phi)) / np.max(np.abs(aa_Phi))
+print('Phi_relative_error_induced2=', Phi_relative_error_induced2)
+
+#
+
+A_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_Hd_numpy(x))
+err_A_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_Hd_numpy(x) - A_pch_nonsym*x)
+
+aa_A,_ = spla.eigsh(A_linop, k=1, which='LM')
+ee_A,_ = spla.eigsh(err_A_linop, k=1, which='LM')
+
+A_relative_err_induced2 = np.max(np.abs(ee_A)) / np.max(np.abs(aa_A))
+print('A_relative_err_induced2=', A_relative_err_induced2)
+
+#
+
+err_Asym_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_Hd_numpy(x) - A_pch*x)
+
+ee_Asym,_ = spla.eigsh(err_Asym_linop, k=1, which='LM')
+
+Asym_relative_err_induced2 = np.max(np.abs(ee_Asym)) / np.max(np.abs(aa_A))
+print('Asym_relative_err_induced2=', Asym_relative_err_induced2)
+
+#
+
+R0_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(HIP.R0_scipy, A_pch.bct)
+
+def solve_inverse_problem(a_reg):
+    HIP.regularization_parameter = a_reg
+
+    g0_numpy = HIP.g_numpy(np.zeros(HIP.N))
+    H_hmatrix = A_pch + a_reg * R0_hmatrix
+    iH_hmatrix = H_hmatrix.inv()
+
+    u0_numpy, info, residuals = custom_cg(HIP.H_linop, -g0_numpy,
+                                          M=iH_hmatrix.as_linear_operator(),
+                                          tol=1e-10, maxiter=500)
+
+    u0 = dl.Function(HIP.V)
+    u0.vector()[:] = u0_numpy
+
+    return u0.vector()  # dolfin Vector
+
+
+a_reg_morozov = compute_morozov_regularization_parameter(solve_inverse_problem,
+                                                         HIP.morozov_discrepancy,
+                                                         HIP.noise_Mnorm)
+
+#
+
+HIP.regularization_parameter = a_reg_morozov
+
+g0_numpy = HIP.g_numpy(np.zeros(HIP.N))
+H_hmatrix = A_pch + a_reg_morozov * R0_hmatrix
+iH_hmatrix = H_hmatrix.inv()
+
+u0_numpy, info, residuals = custom_cg(HIP.H_linop, -g0_numpy,
+                                      M=iH_hmatrix.as_linear_operator(),
+                                      tol=1e-12, maxiter=500)
+
+_, _, residuals_PCH, errors_PCH = custom_cg(HIP.H_linop, -g0_numpy,
+                                            x_true=u0_numpy,
+                                            M=iH_hmatrix.as_linear_operator(),
+                                            tol=1e-10, maxiter=500)
+
+_, _, residuals_None, errors_None = custom_cg(HIP.H_linop, -g0_numpy,
+                                              x_true=u0_numpy,
+                                              tol=1e-10, maxiter=500)
+
+_, _, residuals_Reg, errors_Reg = custom_cg(HIP.H_linop, -g0_numpy,
+                                            x_true=u0_numpy,
+                                            M=HIP.solve_R_linop,
+                                            tol=1e-10, maxiter=1000)
+
+plt.figure()
+plt.semilogy(errors_PCH)
+plt.semilogy(errors_None)
+plt.semilogy(errors_Reg)
+plt.xlabel('Iteration')
+plt.ylabel('relative l2 error')
+plt.title('Relative error vs. Krylov iteration')
+plt.legend(['PCH', 'None', 'Reg'])
+
+########
 
 err_pch_fro, e_fct = estimate_column_errors_randomized()
 
