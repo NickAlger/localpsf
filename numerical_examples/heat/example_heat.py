@@ -30,7 +30,8 @@ num_random_error_matvecs = 50
 
 HIP = HeatInverseProblem(**nondefault_HIP_options)
 
-#
+
+########    CONSTRUCT KERNEL    ########
 
 PCK = ProductConvolutionKernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_petsc,
                                num_batches, num_batches,
@@ -41,25 +42,28 @@ PCK = ProductConvolutionKernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_pe
                                gamma=gamma,
                                sigma_min=sigma_min)
 
-#
+
+########    VISUALIZE IMPULSE RESPONSE BATCHES    ########
 
 PCK.col_batches.visualize_impulse_response_batch(0)
 
-#
+
+########    CREATE HMATRICES    ########
 
 A_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=True, hmatrix_tol=1e-3)
-
 
 Phi_pch = extras['A_kernel_hmatrix']
 A_pch_nonsym = extras['A_hmatrix_nonsym']
 
-#
+
+########    VISUALIZE HMATRICES    ########
 
 Phi_pch.visualize('Phi_pch')
 A_pch_nonsym.visualize('A_pch_nonsym')
 A_pch.visualize('A_pch')
 
-#
+
+########    ESTIMATE ERRORS IN FROBENIUS NORM    ########
 
 Phi_col_rel_errs_fro, Phi_col_norms_fro, Phi_col_errs_fro, Phi_relative_err_fro \
     = estimate_column_errors_randomized(HIP.apply_iM_Hd_iM_numpy,
@@ -85,11 +89,13 @@ _, _, _, Asym_relative_err_fro \
 
 print('Asym_relative_err_fro=', Asym_relative_err_fro)
 
-#
+
+########    COLUMN ERROR PLOT    ########
 
 column_error_plot(Phi_col_rel_errs_fro, PCK.V_in, PCK.col_batches.sample_points)
 
-#
+
+########    ESTIMATE ERRORS IN INDUCED2 NORM    ########
 
 Phi_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x))
 err_Phi_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x) - Phi_pch*x)
@@ -120,7 +126,8 @@ ee_Asym,_ = spla.eigsh(err_Asym_linop, k=1, which='LM')
 Asym_relative_err_induced2 = np.max(np.abs(ee_Asym)) / np.max(np.abs(aa_A))
 print('Asym_relative_err_induced2=', Asym_relative_err_induced2)
 
-#
+
+########    SET UP REGULARIZATION OPERATOR AND INVERSE PROBLEM SOLVER    ########
 
 R0_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(HIP.R0_scipy, A_pch.bct)
 
@@ -141,11 +148,14 @@ def solve_inverse_problem(a_reg):
     return u0.vector()  # dolfin Vector
 
 
+########    FIND REGULARIZATION PARAMETER VIA MOROZOV DISCREPANCY PRINCIPLE    ########
+
 a_reg_morozov = compute_morozov_regularization_parameter(solve_inverse_problem,
                                                          HIP.morozov_discrepancy,
                                                          HIP.noise_Mnorm)
 
-#
+
+########    SOLVE INVERSE PROBLEM VIA CG WITH DIFFERENT PRECONDITIONERS    ########
 
 HIP.regularization_parameter = a_reg_morozov
 
@@ -180,5 +190,24 @@ plt.ylabel('relative l2 error')
 plt.title('Relative error vs. Krylov iteration')
 plt.legend(['PCH', 'None', 'Reg'])
 
-#
 
+########    COMPUTE PRECONDITIONED SPECTRUM    ########
+
+num_eigs = 1000
+
+delta_hmatrix_linop = spla.LinearOperator((HIP.N, HIP.N), matvec=lambda x: HIP.apply_H_numpy(x) - H_hmatrix * x)
+ee_hmatrix, _ = spla.eigsh(delta_hmatrix_linop, k=num_eigs, M=H_hmatrix.as_linear_operator(),
+                           Minv=iH_hmatrix.as_linear_operator(), which='LM')
+abs_ee_hmatrix = np.sort(np.abs(ee_hmatrix))[::-1]
+
+delta_reg_linop = spla.LinearOperator((HIP.N, HIP.N), matvec=lambda x: HIP.apply_H_numpy(x) - HIP.apply_R_numpy(x))
+ee_reg, _ = spla.eigsh(delta_reg_linop, k=num_eigs, M=HIP.R_linop, Minv=HIP.solve_R_linop, which='LM')
+abs_ee_reg = np.sort(np.abs(ee_reg))[::-1]
+
+plt.figure()
+plt.semilogy(abs_ee_reg)
+plt.semilogy(abs_ee_hmatrix)
+plt.xlabel('k')
+plt.ylabel(r'$\lambda_k$')
+plt.title('preconditioned spectrum')
+plt.legend(['Reg', 'PCH sym'])
