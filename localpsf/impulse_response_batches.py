@@ -81,6 +81,10 @@ class ImpulseResponseBatches:
         else:
             candidate_inds_ordered_by_distance = np.array(me.candidate_inds)
 
+        if len(candidate_inds_ordered_by_distance) < 1:
+            print('no points left to choose')
+            return np.array([])
+
         new_inds = choose_one_sample_point_batch(me.mu_array, me.Sigma_array, me.tau,
                                                  candidate_inds_ordered_by_distance, randomize=False)
 
