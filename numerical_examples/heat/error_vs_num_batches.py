@@ -131,7 +131,7 @@ plt.legend(legend)
 plt.show()
 
 if save_figures:
-    plt.savefig(save_dir / 'error_vs_num_batches_induced2', bbox_inches='tight', dpi=100)
+    plt.savefig(save_dir / 'error_vs_num_batches_induced2.pdf', bbox_inches='tight', dpi=100)
 
 #
 
@@ -148,7 +148,7 @@ plt.legend(legend)
 plt.show()
 
 if save_figures:
-    plt.savefig(save_dir / 'error_vs_num_batches_fro', bbox_inches='tight', dpi=100)
+    plt.savefig(save_dir / 'error_vs_num_batches_fro.pdf', bbox_inches='tight', dpi=100)
 
 #
 
@@ -165,7 +165,7 @@ plt.legend(legend)
 plt.show()
 
 if save_figures:
-    plt.savefig(save_dir / 'error_vs_num_sample_points_induced2', bbox_inches='tight', dpi=100)
+    plt.savefig(save_dir / 'error_vs_num_sample_points_induced2.pdf', bbox_inches='tight', dpi=100)
 
 #
 
@@ -182,7 +182,7 @@ plt.legend(legend)
 plt.show()
 
 if save_figures:
-    plt.savefig(save_dir / 'error_vs_num_sample_points_fro', bbox_inches='tight', dpi=100)
+    plt.savefig(save_dir / 'error_vs_num_sample_points_fro.pdf', bbox_inches='tight', dpi=100)
 
 #
 
