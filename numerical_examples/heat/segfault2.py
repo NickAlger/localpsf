@@ -36,7 +36,7 @@ num_random_error_matvecs = 50
 error_cutoff = 1e-1
 
 
-mesh_h = 1e-2
+mesh_h = 0.25
 num_batches = 2
 
 print('mesh_h=', mesh_h)
@@ -57,10 +57,10 @@ PCK = ProductConvolutionKernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_pe
                                sigma_min=sigma_min)
 
 PCK.col_batches.add_one_sample_point_batch()
-PCK.col_batches.add_one_sample_point_batch()
-PCK.col_batches.add_one_sample_point_batch()
+# PCK.col_batches.add_one_sample_point_batch()
+# PCK.col_batches.add_one_sample_point_batch()
 print('mesh_h=', mesh_h, ', num_batches=', PCK.col_batches.num_batches, ', num_sample_points=', PCK.col_batches.num_sample_points)
 
-# Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=hmatrix_tol) # SEGFAULT
-Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=1e-3) # SEGFAULT
+Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=hmatrix_tol) # SEGFAULT
+# Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=1e-3) # SEGFAULT
 
