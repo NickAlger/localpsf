@@ -64,6 +64,10 @@ PCK.col_batches.add_one_sample_point_batch()
 print('mesh_h=', mesh_h, ', num_batches=', PCK.col_batches.num_batches, ', num_sample_points=', PCK.col_batches.num_sample_points)
 
 
+A = np.zeros((HIP.V.dim(), HIP.V.dim()))
+for ii in tqdm(range(HIP.V.dim())):
+    A[:,ii] = PCK[:,ii].reshape(-1)
+
 # Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=hmatrix_tol) # SEGFAULT
-Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=1e-3) # SEGFAULT
+# Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=1e-3) # SEGFAULT
 
