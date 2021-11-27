@@ -14,8 +14,8 @@ from localpsf.morozov_discrepancy import compute_morozov_regularization_paramete
 import scipy.sparse.linalg as spla
 
 
-save_data = True
-save_figures = True
+save_data = False
+save_figures = False
 
 save_dir = get_project_root() / 'numerical_examples' / 'heat' / 'error_vs_mesh_size'
 save_dir.mkdir(parents=True, exist_ok=True)
@@ -25,7 +25,7 @@ save_dir.mkdir(parents=True, exist_ok=True)
 
 nondefault_HIP_options = dict()
 
-mesh_hh = np.logspace(-2, -1, 5)[::-1] #[1e-1, 3e-2]
+mesh_hh = [1e-2] #np.logspace(-2, -1, 5)[::-1] #[1e-1, 3e-2]
 
 tau = 2.5
 num_neighbors = 10
