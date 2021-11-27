@@ -61,6 +61,12 @@ PCK.col_batches.add_one_sample_point_batch()
 # PCK.col_batches.add_one_sample_point_batch()
 print('mesh_h=', mesh_h, ', num_batches=', PCK.col_batches.num_batches, ', num_sample_points=', PCK.col_batches.num_sample_points)
 
-Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=hmatrix_tol) # SEGFAULT
-# Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=1e-3) # SEGFAULT
+for ii in range(HIP.V.dim()):
+    for jj in range(HIP.V.dim()):
+        print('ii=', ii, ', jj=', jj)
+        vv = PCK[ii,jj]
+        print('vv=', vv)
+
+# Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=hmatrix_tol) # SEGFAULT
+
 
