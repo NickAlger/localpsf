@@ -67,3 +67,5 @@ print('mesh_h=', mesh_h, ', num_batches=', PCK.col_batches.num_batches, ', num_s
 # Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=hmatrix_tol) # SEGFAULT
 Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=1e-3) # SEGFAULT
 
+Phi = extras['A_kernel_hmatrix']
+Phi.visualize('bbb')
