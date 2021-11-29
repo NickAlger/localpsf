@@ -7,4 +7,6 @@ setup(
     license='MIT',
     author='Nick Alger',
     # long_description=open('README.txt').read(),
+    include_package_data=True,
+    package_data={'localpsf': ['angel_peak_badlands.png']},
 )
