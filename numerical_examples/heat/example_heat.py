@@ -191,54 +191,54 @@ plt.title('Relative error vs. Krylov iteration')
 plt.legend(['PCH', 'None', 'Reg'])
 
 
-########    COMPUTE PRECONDITIONED SPECTRUM    ########
-
-num_eigs = 1000
-
-delta_hmatrix_linop = spla.LinearOperator((HIP.N, HIP.N), matvec=lambda x: HIP.apply_H_numpy(x) - H_hmatrix * x)
-ee_hmatrix, _ = spla.eigsh(delta_hmatrix_linop, k=num_eigs, M=H_hmatrix.as_linear_operator(),
-                           Minv=iH_hmatrix.as_linear_operator(), which='LM')
-abs_ee_hmatrix = np.sort(np.abs(ee_hmatrix))[::-1]
-
-delta_reg_linop = spla.LinearOperator((HIP.N, HIP.N), matvec=lambda x: HIP.apply_H_numpy(x) - HIP.apply_R_numpy(x))
-ee_reg, _ = spla.eigsh(delta_reg_linop, k=num_eigs, M=HIP.R_linop, Minv=HIP.solve_R_linop, which='LM')
-abs_ee_reg = np.sort(np.abs(ee_reg))[::-1]
-
-plt.figure()
-plt.semilogy(abs_ee_reg)
-plt.semilogy(abs_ee_hmatrix)
-plt.xlabel('k')
-plt.ylabel(r'$\lambda_k$')
-plt.title('preconditioned spectrum')
-plt.legend(['Reg', 'PCH sym'])
-
-
-########    PRECONDITIONED CONDITION NUMBER    ########
-
-biggest_eig_pch = spla.eigsh(HIP.H_linop, k=1, M=H_hmatrix.as_linear_operator(),
-                             Minv=iH_hmatrix.as_linear_operator(), which='LM')[0]
-
-smallest_eig_pch = spla.eigsh(HIP.H_linop, k=1, M=H_hmatrix.as_linear_operator(),
-                              Minv=iH_hmatrix.as_linear_operator(), which='SM')[0]
-
-cond_pch = np.abs(biggest_eig_pch) / np.abs(smallest_eig_pch)
-print('cond_pch=', cond_pch)
-
+# ########    COMPUTE PRECONDITIONED SPECTRUM    ########
 #
-
-biggest_eig_none = spla.eigsh(HIP.H_linop, k=1, which='LM')[0]
-
-smallest_eig_none = spla.eigsh(HIP.H_linop, k=1, which='SM')[0]
-
-cond_none = np.abs(biggest_eig_none) / np.abs(smallest_eig_none)
-print('cond_none=', cond_none)
-
+# num_eigs = 1000
 #
-
-biggest_eig_reg = spla.eigsh(HIP.H_linop, k=1, M=HIP.R_linop, Minv=HIP.solve_R_linop, which='LM')[0]
-
-# smallest_eig_reg = spla.eigsh(HIP.H_linop, k=1, M=HIP.R_linop, Minv=HIP.solve_R_linop, which='SM')[0]
-smallest_eig_reg = 1.0
-
-cond_reg = np.abs(biggest_eig_reg) / np.abs(smallest_eig_reg)
-print('cond_reg=', cond_reg)
+# delta_hmatrix_linop = spla.LinearOperator((HIP.N, HIP.N), matvec=lambda x: HIP.apply_H_numpy(x) - H_hmatrix * x)
+# ee_hmatrix, _ = spla.eigsh(delta_hmatrix_linop, k=num_eigs, M=H_hmatrix.as_linear_operator(),
+#                            Minv=iH_hmatrix.as_linear_operator(), which='LM')
+# abs_ee_hmatrix = np.sort(np.abs(ee_hmatrix))[::-1]
+#
+# delta_reg_linop = spla.LinearOperator((HIP.N, HIP.N), matvec=lambda x: HIP.apply_H_numpy(x) - HIP.apply_R_numpy(x))
+# ee_reg, _ = spla.eigsh(delta_reg_linop, k=num_eigs, M=HIP.R_linop, Minv=HIP.solve_R_linop, which='LM')
+# abs_ee_reg = np.sort(np.abs(ee_reg))[::-1]
+#
+# plt.figure()
+# plt.semilogy(abs_ee_reg)
+# plt.semilogy(abs_ee_hmatrix)
+# plt.xlabel('k')
+# plt.ylabel(r'$\lambda_k$')
+# plt.title('preconditioned spectrum')
+# plt.legend(['Reg', 'PCH sym'])
+#
+#
+# ########    PRECONDITIONED CONDITION NUMBER    ########
+#
+# biggest_eig_pch = spla.eigsh(HIP.H_linop, k=1, M=H_hmatrix.as_linear_operator(),
+#                              Minv=iH_hmatrix.as_linear_operator(), which='LM')[0]
+#
+# smallest_eig_pch = spla.eigsh(HIP.H_linop, k=1, M=H_hmatrix.as_linear_operator(),
+#                               Minv=iH_hmatrix.as_linear_operator(), which='SM')[0]
+#
+# cond_pch = np.abs(biggest_eig_pch) / np.abs(smallest_eig_pch)
+# print('cond_pch=', cond_pch)
+#
+# #
+#
+# biggest_eig_none = spla.eigsh(HIP.H_linop, k=1, which='LM')[0]
+#
+# smallest_eig_none = spla.eigsh(HIP.H_linop, k=1, which='SM')[0]
+#
+# cond_none = np.abs(biggest_eig_none) / np.abs(smallest_eig_none)
+# print('cond_none=', cond_none)
+#
+# #
+#
+# biggest_eig_reg = spla.eigsh(HIP.H_linop, k=1, M=HIP.R_linop, Minv=HIP.solve_R_linop, which='LM')[0]
+#
+# # smallest_eig_reg = spla.eigsh(HIP.H_linop, k=1, M=HIP.R_linop, Minv=HIP.solve_R_linop, which='SM')[0]
+# smallest_eig_reg = 1.0
+#
+# cond_reg = np.abs(biggest_eig_reg) / np.abs(smallest_eig_reg)
+# print('cond_reg=', cond_reg)

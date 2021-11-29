@@ -14,8 +14,8 @@ from localpsf.morozov_discrepancy import compute_morozov_regularization_paramete
 import scipy.sparse.linalg as spla
 
 
-save_data = False
-save_figures = False
+save_data = True
+save_figures = True
 
 save_dir = get_project_root() / 'numerical_examples' / 'heat' / 'error_vs_mesh_size'
 save_dir.mkdir(parents=True, exist_ok=True)
@@ -25,7 +25,7 @@ save_dir.mkdir(parents=True, exist_ok=True)
 
 nondefault_HIP_options = dict()
 
-mesh_hh =  np.logspace(np.log10(0.005), np.log10(0.1), 7)[::-1] #[1e-1, 3e-2] # [1e-2]
+mesh_hh =  np.logspace(np.log10(0.0075), np.log10(0.1), 7)[::-1] #[1e-1, 3e-2] # [1e-2]
 
 tau = 2.5
 num_neighbors = 10
@@ -102,6 +102,7 @@ if save_data:
 
 plt.figure()
 plt.semilogx(mesh_hh, required_num_batches)
+plt.semilogx(mesh_hh, required_num_batches, '.')
 plt.xlabel(r'mesh size $h$')
 plt.ylabel('number of batches')
 plt.title('Number of batches to achieve relative error '+str(error_cutoff))
