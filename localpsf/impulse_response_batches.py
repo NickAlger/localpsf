@@ -40,12 +40,12 @@ class ImpulseResponseBatches:
             me.vol, me.mu, me.Sigma = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_M_in)
 
         print('Preparing c++ object')
-        mesh_out = me.V_out.mesh()
-        mesh_vertices = np.array(mesh_out.coordinates().T, order='F')
-        mesh_cells = np.array(mesh_out.cells().T, order='F')
+        me.mesh_out = me.V_out.mesh()
+        me.mesh_vertices = np.array(me.mesh_out.coordinates().T, order='F')
+        me.mesh_cells = np.array(me.mesh_out.cells().T, order='F')
 
-        me.cpp_object = hpro.hpro_cpp.ImpulseResponseBatches( mesh_vertices,
-                                                              mesh_cells,
+        me.cpp_object = hpro.hpro_cpp.ImpulseResponseBatches( me.mesh_vertices,
+                                                              me.mesh_cells,
                                                               num_neighbors,
                                                               tau )
 
@@ -63,6 +63,10 @@ class ImpulseResponseBatches:
         eee = np.max([np.ones(eee0.shape)*sigma_min**2, eee0], axis=0)
         me.Sigma_array = np.einsum('nij,nj,nkj->nik', PP, eee, PP)
 
+        me.point_batches = list()
+        me.mu_batches = list()
+        me.Sigma_batches = list()
+        me.phi_batches = list()
 
         if me.max_candidate_points is None:
             me.candidate_inds = np.arange(me.V_in.dim())
@@ -101,6 +105,11 @@ class ImpulseResponseBatches:
                                 list(new_Sigma),
                                 phi_vertex,
                                 True)
+
+        me.point_batches.append(new_points)
+        me.mu_batches.append(new_mu)
+        me.Sigma_batches.append(new_Sigma)
+        me.phi_batches.append(phi_vertex)
 
         me.candidate_inds = list(np.setdiff1d(me.candidate_inds, new_inds))
 

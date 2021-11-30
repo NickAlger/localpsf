@@ -63,9 +63,29 @@ PCK.col_batches.add_one_sample_point_batch()
 PCK.col_batches.add_one_sample_point_batch()
 print('mesh_h=', mesh_h, ', num_batches=', PCK.col_batches.num_batches, ', num_sample_points=', PCK.col_batches.num_sample_points)
 
+np.savetxt('mesh_vertices.txt', PCK.col_batches.mesh_vertices)
+np.savetxt('mesh_cells.txt', PCK.col_batches.mesh_cells)
+
+np.savetxt('points_batch0.txt', PCK.col_batches.point_batches[0])
+np.savetxt('mu_batch0.txt', PCK.col_batches.mu_batches[0])
+np.savetxt('Sigma_batch0.txt', PCK.col_batches.Sigma_batches[0].reshape((-1,4)))
+np.savetxt('phi_batch0.txt', PCK.col_batches.phi_batches[0])
+
+np.savetxt('points_batch1.txt', PCK.col_batches.point_batches[1])
+np.savetxt('mu_batch1.txt', PCK.col_batches.mu_batches[1])
+np.savetxt('Sigma_batch1.txt', PCK.col_batches.Sigma_batches[1].reshape((-1,4)))
+np.savetxt('phi_batch1.txt', PCK.col_batches.phi_batches[1])
+
+np.savetxt('points_batch2.txt', PCK.col_batches.point_batches[2])
+np.savetxt('mu_batch2.txt', PCK.col_batches.mu_batches[2])
+np.savetxt('Sigma_batch2.txt', PCK.col_batches.Sigma_batches[2].reshape((-1,4)))
+np.savetxt('phi_batch2.txt', PCK.col_batches.phi_batches[2])
+
+np.savetxt('dof_coords.txt', PCK.row_coords)
+
 
 # Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=hmatrix_tol) # SEGFAULT
 Hd_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=False, hmatrix_tol=1e-3) # SEGFAULT
 
-Phi = extras['A_kernel_hmatrix']
-Phi.visualize('bbb')
+# Phi = extras['A_kernel_hmatrix']
+# Phi.visualize('bbb')
