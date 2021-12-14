@@ -154,6 +154,7 @@ class HeatInverseProblem:
 
         ########    Hessian and Regularization as linear operators    ########
 
+        me.Hd_linop = spla.LinearOperator((me.N, me.N), matvec=me.apply_Hd_numpy)
         me.H_linop = spla.LinearOperator((me.N, me.N), matvec=me.apply_H_numpy)
         me.R_linop = spla.LinearOperator((me.N, me.N), matvec = me.apply_R_numpy)
         me.solve_R_linop = spla.LinearOperator((me.N, me.N), matvec=me.solve_R_numpy)

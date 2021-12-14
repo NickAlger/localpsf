@@ -65,7 +65,12 @@ def get_spatially_varying_covariance(V_in, V_out, apply_At, solve_M_in, vol, mu)
             quadratic_fct = dl.interpolate(dl.Expression('x[k]*x[j]', element=V_out.ufl_element(), k=k, j=j), V_out)
             Sigma_kj = dl.Function(V_in)
             Sigma_kj.vector()[:] = solve_M_in(apply_At(quadratic_fct.vector()))
-            Sigma_kj = dl.project(Sigma_kj / vol - mu.sub(k) * mu.sub(j), V_in)
+            #Sigma_kj.vector()[:] = Sigma_kj.vector()[:] / vol.vector()[:] - mu.sub(k).vector()[:] * mu.sub(j).vector()[:]
+            #Sigma_kj = dl.interpolate(Sigma_kj / vol - mu.sub(k) * mu.sub(j), V_in)
+            Sigma_kj = dl.interpolate(dl.Expression('Skj / v - muk * muj',
+                                                    Skj=Sigma_kj, v=vol, muk=mu.sub(k), muj=mu.sub(j),
+                                                    element=V_in.ufl_element()), V_in)
+            # Sigma_kj = dl.project(Sigma_kj / vol - mu.sub(k) * mu.sub(j), V_in)
             dl.assign(covariance_function_Sigma.sub(k + d * j), Sigma_kj)
             dl.assign(covariance_function_Sigma.sub(j + d * k), Sigma_kj)
 
