@@ -35,9 +35,9 @@ class ImpulseResponseBatches:
 
         print('Computing impulse response moments')
         if me.use_lumped_mass_matrix_for_impulse_response_moments:
-            me.vol, me.mu, me.Sigma = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_ML_in)
+            me.vol, me.mu, me.Sigma0 = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_ML_in)
         else:
-            me.vol, me.mu, me.Sigma = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_M_in)
+            me.vol, me.mu, me.Sigma0 = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_M_in)
 
         print('Preparing c++ object')
         me.mesh_out = me.V_out.mesh()
@@ -56,12 +56,9 @@ class ImpulseResponseBatches:
         me.vertex2dof_out = dl.vertex_to_dof_map(me.V_out)
         me.dof2vertex_out = dl.dof_to_vertex_map(me.V_out)
 
-        me.mu_array = dlfct2array(me.mu)
-        me.Sigma_array0 = dlfct2array(me.Sigma)
-
-        eee0, PP = np.linalg.eigh(me.Sigma_array0)
+        eee0, PP = np.linalg.eigh(me.Sigma0)
         eee = np.max([np.ones(eee0.shape)*sigma_min**2, eee0], axis=0)
-        me.Sigma_array = np.einsum('nij,nj,nkj->nik', PP, eee, PP)
+        me.Sigma = np.einsum('nij,nj,nkj->nik', PP, eee, PP)
 
         me.point_batches = list()
         me.mu_batches = list()
@@ -89,12 +86,12 @@ class ImpulseResponseBatches:
             print('no points left to choose')
             return np.array([])
 
-        new_inds = choose_one_sample_point_batch(me.mu_array, me.Sigma_array, me.tau,
+        new_inds = choose_one_sample_point_batch(me.mu, me.Sigma, me.tau,
                                                  candidate_inds_ordered_by_distance, randomize=False)
 
         new_points = me.dof_coords_in[new_inds, :]
-        new_mu = me.mu_array[new_inds, :]
-        new_Sigma = me.Sigma_array[new_inds, :, :]
+        new_mu = me.mu[new_inds, :]
+        new_Sigma = me.Sigma[new_inds, :, :]
 
         phi = get_one_dirac_comb_response(new_points, me.V_in, me.V_out, me.apply_A, me.solve_M_in, me.solve_M_out)
 
