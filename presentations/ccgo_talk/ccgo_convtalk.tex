@@ -974,6 +974,21 @@ Robin boundary condition
 	}
 \end{frame}
 %---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{Technical details}
+	{\Large
+		\begin{itemize}
+			\setlength\itemsep{2em}
+			\item How do we choose the impulse response points?
+			\item How do we interpolate the impulse responses? 
+			\begin{itemize}
+				\item {\large What about boundary issues?}
+			\end{itemize}
+			\item What are $\mathcal{H}$-matrices and how do we use them?
+		\end{itemize}
+	}
+\end{frame}
+%---------------------------------------------------------------------------------%
 
 \begin{frame}
 	\frametitle{Hierarchical matrices ($\mathcal{H}$-matrices)}
@@ -982,45 +997,185 @@ Robin boundary condition
 	\end{center}
 \end{frame}
 %---------------------------------------------------------------------------------%
+
 \begin{frame}
-	\frametitle{Stage 3: Hessian approximation is a good preconditioner}
+	\frametitle{Radial basis function interpolation}
 	\begin{center}
-		\includegraphics[width=0.75\columnwidth]{ice_gmres_convergence.pdf}
+		\includegraphics[width=0.8\textwidth]{interpolation_rbf.pdf}
 	\end{center}
-\begin{center}
-	H-matrix compressed Hessian approximation, used as a preconditioner, leads to fast Krylov method convergence.
-\end{center}
+	\begin{itemize}
+		\item Interpolate impulse responses using polyharmonic spline radial basis functions.
+		\item Use only $k$-nearest neighbors (must solve $k \times k$ linear system)
+	\end{itemize}
+\end{frame}
+%---------------------------------------------------------------------------------%
+
+\begin{frame}
+	\frametitle{Boundary considerations (1)}
+	\begin{center}
+		\includegraphics[width=0.8\textwidth]{interpolation_rbf_boundary.pdf}
+	\end{center}
+	\begin{itemize}
+		\item If $p_i + y - x$ is outside the domain, don't use $i$th impulse response for $H(y,x)$
+	\end{itemize}
+\end{frame}
+%---------------------------------------------------------------------------------%
+
+\begin{frame}
+	\frametitle{Boundary considerations (2)}
+	\begin{center}
+		\includegraphics[width=0.8\textwidth]{interpolation_rbf_adjoint.pdf}
+	\end{center}
+	\begin{itemize}
+		\item Take advantage of symmetry
+	\end{itemize}
+\end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{How to choose impulse response points?}
+	One hessian matrix-vector product $\rightarrow$ many impulse responses
+	\begin{center}
+		\includegraphics[width=0.5\columnwidth]{IRB1.png} 
+	\end{center}
+	\begin{itemize}
+		\item \textbf{Goal:} choose as many points as possible, such that the impulse response supports don't overlap
+		\item \textbf{Dilemma:} How can we know the impulse response supports before we compute them?
+	\end{itemize}
+\end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{How to choose impulse response points?}
+	One hessian matrix-vector product $\rightarrow$ many impulse responses
+	\begin{center}
+		\includegraphics[width=0.5\columnwidth]{IRB1.png} 
+	\end{center}
+	\begin{itemize}
+		\item \textbf{Goal:} choose as many points as possible, such that the impulse response supports don't overlap
+		\item \textbf{Dilemma:} How can we know the impulse response supports before we compute them?
+	\end{itemize}
+\end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{Matrix analogy: getting all row sums}
+	
+\textbf{Matrix:} let $A \in \mathbb{R}^{N \times N}$. Then
+	
+	$$A^T \begin{bmatrix}
+	1 \\ 1 \\ \vdots \\ 1
+	\end{bmatrix} = \begin{bmatrix}
+	\text{sum of }A \text{ col }1 \\
+	\text{sum of }A \text{ col }2 \\
+	\vdots \\
+	\text{sum of }A \text{ col }N
+	\end{bmatrix}$$
+
+Apply matrix to vector of ones $\rightarrow$ get row sums for all rows
+
+\vspace{3em}
+
+\textbf{Operator:} let $C(x)=1$ be the constant function. Then 
+
+	$$(H^T C)^*(y) = \int_\Omega \left(H \delta_y\right)(x) dx$$
+	
+
+Apply Hessian to constant function $\rightarrow$ get volumes of every impulse response
+\end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{Mean and standard deviations of impulse responses}
+	\begin{itemize}
+		\setlength\itemsep{2em}
+%		\item Let $V(y)$, $\mu(y)$, and $\Sigma(y)$ be the ``volume'', ``mean'', and ``variance'' of $\left(H\delta_y\right)^*$
+		\item Let $C$, $L^i$, and $Q^{ij}$ be the following functions:
+		\begin{equation*}
+		C(x) := 1, \qquad
+		L^i(x) := x^i, \qquad
+		Q^{ij}(x) = x^i x^j
+		\end{equation*}
+		\item Then
+		\begin{align*}
+		V =& \left(H^T C\right)^* \\
+		\mu^i =& \left(H^T L^i\right)^* / V \\
+		\Sigma^{ij} =& \left(H^T Q^{ij}\right)^* / V - \mu^i\cdot \mu^j
+		\end{align*}
+		\item Apply Hessian to constant, linear, and quadratic functions $\rightarrow$ get estimates of support for every impulse response
+	\end{itemize}
+	
+\end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{Impulse response support ellipsoids}
+	\begin{center}
+		\includegraphics[width=0.9\columnwidth]{IRB1.png} 
+	\end{center}
+\end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{Outline}
+	{\Large
+		\begin{itemize}
+			\setlength\itemsep{2em}
+			{\color{lightgray}\item Motivation: \textbf{Antartic ice sheet}}
+			{\color{lightgray}\item New Hessian approximation: \textbf{big idea}}
+			{\color{lightgray}\item New Hessian approximation: \textbf{technical details}}
+			\item Preliminary \textbf{numerical results} (heat inverse problem)
+		\end{itemize}
+	}
+\end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{Heat swirl: CG Hessian solve with different preconditioners}
+	\begin{center}
+		\includegraphics[width=0.75\columnwidth]{error_vs_krylov_iter.pdf}
+	\end{center}
+Solving $Hp=-g$ with preconditioned conjutate gradient
+\end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{Heat swirl: Krylov iter vs. regularization parameter}
+	\begin{center}
+		\includegraphics[width=0.75\columnwidth]{krylov_iter_vs_regularization_parameter.pdf}
+	\end{center}
+Solving $Hp=-g$ with preconditioned conjutate gradient
+\end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{Heat swirl: preconditioned spectrum}
+	\begin{center}
+		\includegraphics[width=0.75\columnwidth]{preconditioned_spectrum.pdf}
+	\end{center}
+\end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{Heat swirl: error vs. num batches}
+	\begin{center}
+		\includegraphics[width=0.75\columnwidth]{error_vs_num_batches_fro.pdf}
+	\end{center}
+	tau: number of standard deviations used for ellipsoids
+\end{frame}
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{Heat swirl: error vs. mesh size}
+	\begin{center}
+		\includegraphics[width=0.75\columnwidth]{error_vs_mesh_size.pdf}
+	\end{center}
 \end{frame}
 %--------------------------------------------------------------------------
 \begin{frame}
   \frametitle{Summary}
 
   \begin{itemize}
-  \item Hessians in inverse problems governed by
-    partial differential equations are essential for
-    efficient, dimension-independent methods for both
-    \begin{itemize}
-    \item Newton solution of deterministic inverse problems (i.e., for
-      computing the MAP point);
-      \vspace{0.05in}
-    \item Markov chain Monte Carlo sampling to characterize the
-      posterior.
-    \end{itemize}
+  	\setlength\itemsep{2em}
+  \item Hessian approximations or preconditioners are essential for Bayesian sampling in inverse problems governed by
+    partial differential equations.
     \vspace{0.05in}
   \item Low-rank approximations of the Hessian become
     prohibitive as the data becomes more informative (as is the case
     for ice sheet inverse problems).
     \vspace{0.05in}
-  \item Product-convolution approximation combined with Hierarchical matrix representations promise a more efficient
+  \item Local point spread function interpolation combined with Hierarchical matrix representations promise a more efficient
     Hessian approximation.
   \end{itemize}
     \vspace{0.2in}
-  \begin{itemize}
-  \item [] \scriptsize{Details in: N. Alger, T. Hartland, N. Petra,
-    and O. Ghattas. {\em Fast matrix-free approximation of smoothly
-      varying blur operators, with application to Hessians in
-      PDE-constrained inverse problems with highly informative data},
-    In preparation.}
-  \end{itemize}
 \end{frame}
 \end{document}
