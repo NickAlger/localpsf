@@ -61,6 +61,7 @@ class ImpulseResponseBatches:
         me.Sigma = np.einsum('nij,nj,nkj->nik', PP, eee, PP)
 
         me.point_batches = list()
+        me.vol_batches = list()
         me.mu_batches = list()
         me.Sigma_batches = list()
         me.phi_batches = list()
@@ -90,6 +91,7 @@ class ImpulseResponseBatches:
                                                  candidate_inds_ordered_by_distance, randomize=False)
 
         new_points = me.dof_coords_in[new_inds, :]
+        new_vol = me.vol[new_inds]
         new_mu = me.mu[new_inds, :]
         new_Sigma = me.Sigma[new_inds, :, :]
 
@@ -104,6 +106,7 @@ class ImpulseResponseBatches:
                                 True)
 
         me.point_batches.append(new_points)
+        me.vol_batches.append(new_vol)
         me.mu_batches.append(new_mu)
         me.Sigma_batches.append(new_Sigma)
         me.phi_batches.append(phi_vertex)
