@@ -8,7 +8,7 @@
 \usepackage{xspace}
 %\usepackage{enumitem}
 \usepackage[mathscr]{euscript}
-\usepackage{subfigure}
+\usepackage{subcaption}
 \hypersetup{colorlinks,linkcolor=,urlcolor=blue}
 
 % \usetheme{Boadilla}
@@ -751,7 +751,30 @@ Robin boundary condition
 	\end{itemize}
 	
 \end{frame}
-
+%---------------------------------------------------------------------------------%
+\begin{frame}
+	\frametitle{Model problems}
+	\begin{figure}
+		\centering
+		\begin{subfigure}[b]{0.3\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{beta_cube_cut.png}
+			\caption{Antartica (Stokes)}
+		\end{subfigure}
+		\hfill
+		\begin{subfigure}[b]{0.3\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{Mesh_Height.png}
+			\caption{Ice mountain (Stokes)}
+		\end{subfigure}
+		\hfill
+		\begin{subfigure}[b]{0.3\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{heat_swirl.png}
+			\caption{Heat swirl (heat)}
+		\end{subfigure}
+	\end{figure}
+\end{frame}
 %---------------------------------------------------------------------------------%
 \begin{frame}
 	\frametitle{Outline}
@@ -765,7 +788,6 @@ Robin boundary condition
 		\end{itemize}
 	}
 \end{frame}
-
 %---------------------------------------------------------------------------------%
 %---------------------------------------------------------------------------------%
 %Story:
@@ -819,13 +841,6 @@ Robin boundary condition
 	\includegraphics[width=0.65\columnwidth]{translation_invariance_level_sets.pdf}
 	%\includegraphics[width=0.6\columnwidth]{Hess1_ordered.png}
 \end{center}
-\end{frame}
-%---------------------------------------------------------------------------------%
-\begin{frame}
-	\frametitle{Ice mountain}
-	\begin{center}
-		\includegraphics[width=0.7\columnwidth]{Mesh_Height.png}
-	\end{center}
 \end{frame}
 %---------------------------------------------------------------------------------%
 \begin{frame}
@@ -931,6 +946,7 @@ Robin boundary condition
 		\includegraphics[width=0.5\columnwidth]{ice_hessian_impulse_response_21.pdf}
 	\end{center}
 }
+*image shown from ice mountain
 
 \end{frame}
 %---------------------------------------------------------------------------------%
@@ -939,9 +955,10 @@ Robin boundary condition
       \begin{itemize}
       \item {\bf Step 1:} Compute ``batches'' of impulse responses by applying Hessian to Dirac combs
       \item {\bf Step 2:} Interpolate known impulse responses to approximate unknown impulse responses
+      \item {\bf Step 3:} Convert to $\mathcal{H}$-matrix to do linear algebra
       \end{itemize}
   	\includegraphics[width=0.45\columnwidth]{IRB1.png}  \includegraphics[width=0.45\columnwidth]{IRB2.png}
-  *images shown from heat inverse problem
+  *images shown from heat swirl
 \end{frame}
 %---------------------------------------------------------------------------------%
 \begin{frame}
@@ -958,66 +975,13 @@ Robin boundary condition
 \end{frame}
 %---------------------------------------------------------------------------------%
 
-
 \begin{frame}
-	\frametitle{Stage 1: Product-convolution approximation}
-	\framesubtitle{Weighting functions used for interpolation of impulse responses}
+	\frametitle{Hierarchical matrices ($\mathcal{H}$-matrices)}
 	\begin{center}
-		\includegraphics[width=0.3\columnwidth]{ice_hessian_weighting_function_5.pdf}
-		\includegraphics[width=0.3\columnwidth]{ice_hessian_weighting_function_8.pdf}
-		\includegraphics[width=0.3\columnwidth]{ice_hessian_weighting_function_27.pdf}
+		\includegraphics[width=0.65\textwidth]{heat_inverse_problem_Hfull_hmatrix.eps}
 	\end{center}
 \end{frame}
-
-
-\begin{frame}
-	\frametitle{Stage 2: $\mathcal{H}$-matrix approximation}
-	
-	\begin{minipage}{0.49\textwidth} 
-		\begin{itemize}
-			\item Mesh points are 
-			hierarchically partitioned into
-			clusters by recursive hyperplane splitting.
-			\item If two clusters are well separated, then the associated
-			submatrix is low-rank.
-		\end{itemize}
-	\end{minipage}
-	\begin{minipage}{0.49\textwidth}
-		\begin{figure}[htb]
-			\centering\includegraphics[width=0.5\textwidth]
-			{heat_inverse_problem_Hfull_hmatrix.eps}
-		\end{figure}
-		\begin{center}
-			{\tiny $\mathcal{H}$-matrix structure of a diffusion
-				inverse problem Hessian \\}
-		\end{center}
-	\end{minipage}
-	
-	\begin{itemize}
-		\item 
-		$\mathcal{H}$-matrix operations are fast: $\mathcal{O}\left(n\,\log\left(n\right)\right)$
-		matrix-vector product, $\mathcal{O}\left(n\,\log^{2}\left(n\right)\right)$
-		LU factorization.
-	\end{itemize}
-	
-	\scriptsize{
-		\begin{itemize}
-%			\item[]    Details in:
-%			\item[]    N. Halko, P.G. Martinsson, J Tropp.
-%			{\em Finding structure with randomness: Probabilistic
-%				algorithms for constructing approximate matrix
-%				decompositions}, SIAM review, 2011.
-			\item[]  R. Kriemann.
-			{\em HLIBpro user manual}, Max-Planck-Institute
-			for Mathematics in the Sciences, Leipzig, 2008
-			\item[]   J. Ballani, D. Kressner.
-			{\em Matrices with Hierarchical Low-Rank Structures},
-			Exploiting Hidden Structure in Matrix Compuations:
-			Algorithms and Applications, 2016
-		\end{itemize}
-	}
-	
-\end{frame}
+%---------------------------------------------------------------------------------%
 \begin{frame}
 	\frametitle{Stage 3: Hessian approximation is a good preconditioner}
 	\begin{center}
