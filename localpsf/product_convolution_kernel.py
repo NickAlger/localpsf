@@ -9,17 +9,20 @@ class ProductConvolutionKernel:
     def __init__(me, V_in, V_out, apply_A, apply_At, num_row_batches, num_col_batches,
                  tau_rows=2.5, tau_cols=2.5,
                  num_neighbors_rows=10, num_neighbors_cols=10,
-                 symmetric=False, gamma=1e-8, sigma_min=1e-6):
+                 symmetric=False, gamma=1e-8, sigma_min=1e-6,
+                 max_scale_discrepancy=1e2):
         me.V_in = V_in
         me.V_out = V_out
         me.apply_A = apply_A
         me.apply_At = apply_At
+        me.max_scale_discrepancy = max_scale_discrepancy
 
         me.col_batches = ImpulseResponseBatches(V_in, V_out, apply_A, apply_At,
                                                 num_initial_batches=num_col_batches,
                                                 tau=tau_cols,
                                                 num_neighbors=num_neighbors_cols,
-                                                sigma_min=sigma_min)
+                                                sigma_min=sigma_min,
+                                                max_scale_discrepancy=max_scale_discrepancy)
 
         if symmetric:
             me.row_batches = me.col_batches
@@ -28,7 +31,8 @@ class ProductConvolutionKernel:
                                                     num_initial_batches=num_row_batches,
                                                     tau=tau_rows,
                                                     num_neighbors=num_neighbors_rows,
-                                                    sigma_min=sigma_min)
+                                                    sigma_min=sigma_min,
+                                                    max_scale_discrepancy=max_scale_discrepancy)
 
         me.col_coords = me.col_batches.dof_coords_in
         me.row_coords = me.col_batches.dof_coords_out

@@ -846,6 +846,15 @@ Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}
 	\item turn on preconditioner after number of krylov iterations exceeds 15 in an iteration. Rebuild "as needed". (S)
 \end{itemize}
 
+\begin{itemize}
+	\item Stokes Krylov convergence (10 solves for nonlinear forward + 6 hessian matvecs for ellipsoid estimation + 10 matvecs for impulse responses + 30 matvecs for PCH6 CG solve + 100 matvecs for Reg CG solve)
+	\item Stokes error vs num batches (small number of batches; 1, 3, 6, 9 batches?) (50 matvecs for randomized error estimation +)
+	\item Velocity field
+	\item Basal friction field
+	\item Picture of impulse responses
+	\item Mesh negative numbers picture
+\end{itemize}
+
 Some numerical results here.
 
 
@@ -1252,7 +1261,7 @@ The Dirac comb impulse response coefficient vector for $\combresponse^h_k$ is th
 
 
 \section*{Acknowledgments}
-We thank J.J. Alger, Longfei Gao, Mathew Hu, and Rami Nammour for helpful discussions.
+We thank J.J. Alger, Longfei Gao, Mathew Hu, and Rami Nammour for helpful discussions. Georg Stadler (domain geometry help)
 
 \bibliographystyle{siamplain}
 \bibliography{references}

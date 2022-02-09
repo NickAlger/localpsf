@@ -18,13 +18,15 @@ class ImpulseResponseBatches:
                  max_candidate_points=None,
                  use_lumped_mass_matrix_for_impulse_response_moments=True,
                  num_neighbors=10,
-                 sigma_min=1e-6):
+                 sigma_min=1e-6,
+                 max_scale_discrepancy=1e2):
         me.V_in = V_in
         me.V_out = V_out
         me.apply_A = apply_A
         me.apply_At = apply_At
         me.max_candidate_points = max_candidate_points
         me.use_lumped_mass_matrix_for_impulse_response_moments = use_lumped_mass_matrix_for_impulse_response_moments
+        me.max_scale_discrepancy = max_scale_discrepancy
 
         print('Making mass matrices and solvers')
         me.M_in, me.solve_M_in = make_mass_matrix(me.V_in, make_solver=True)
@@ -95,11 +97,21 @@ class ImpulseResponseBatches:
         new_mu = me.mu[new_inds, :]
         new_Sigma = me.Sigma[new_inds, :, :]
 
-        phi = get_one_dirac_comb_response(new_points, me.V_in, me.V_out, me.apply_A, me.solve_M_in, me.solve_M_out)
+        min_vol = np.max(me.vol) / me.max_scale_discrepancy
+        scale_factors = 1./new_vol.copy()
+        scale_factors[new_vol < min_vol] = 0.0
+
+        # new_vol_min = min_vol*np.ones(new_vol.shape)
+        # scale_factors = 1./np.max([new_vol, new_vol_min], axis=0)
+
+        # phi = get_one_dirac_comb_response(new_points, me.V_in, me.V_out, me.apply_A, me.solve_M_in, me.solve_M_out, scale_factors=scale_factors)
+        phi = get_one_dirac_comb_response(new_points, me.V_in, me.V_out, me.apply_A, me.solve_ML_in, me.solve_ML_out,
+                                          scale_factors=scale_factors)
 
         phi_vertex = phi.vector()[me.vertex2dof_out].copy()
 
         me.cpp_object.add_batch(list(new_points),
+                                list(new_vol),
                                 list(new_mu),
                                 list(new_Sigma),
                                 phi_vertex,
@@ -196,17 +208,20 @@ class ImpulseResponseBatches:
         return me.cpp_object.num_batches()
 
 
-def get_one_dirac_comb_response(points_pp, V_in, V_out, apply_A, solve_M_in, solve_M_out):
-    dirac_comb_dual_vector = make_dirac_comb_dual_vector(points_pp, V_in)
+def get_one_dirac_comb_response(points_pp, V_in, V_out, apply_A, solve_M_in, solve_M_out, scale_factors=None):
+    dirac_comb_dual_vector = make_dirac_comb_dual_vector(points_pp, V_in, scale_factors=scale_factors)
     dirac_comb_response = dl.Function(V_out)
     dirac_comb_response.vector()[:] = solve_M_out(apply_A(solve_M_in(dirac_comb_dual_vector)))
     return dirac_comb_response
 
 
-def make_dirac_comb_dual_vector(pp, V):
+def make_dirac_comb_dual_vector(pp, V, scale_factors=None):
     num_pts, d = pp.shape
+    if scale_factors is None:
+        scale_factors = np.ones(num_pts)
+
     dirac_comb_dual_vector = dl.assemble(dl.Constant(0.0) * dl.TestFunction(V) * dl.dx)
     for k in range(num_pts):
-        ps = dl.PointSource(V, dl.Point(pp[k,:]), 1.0)
-        ps.apply(dirac_comb_dual_vector)
+            ps = dl.PointSource(V, dl.Point(pp[k,:]), scale_factors[k])
+            ps.apply(dirac_comb_dual_vector)
     return dirac_comb_dual_vector
