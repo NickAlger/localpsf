@@ -69,16 +69,16 @@ class ImpulseResponseBatches:
                                                               num_neighbors,
                                                               tau )
 
-        # me.point_batches = list()
-        # me.vol_batches = list()
-        # me.mu_batches = list()
-        # me.Sigma_batches = list()
-        # me.phi_batches = list()
+        min_vol = np.max(me.vol) / me.max_scale_discrepancy
+        good_vol_inds = np.argwhere(me.vol > min_vol).reshape(-1)
 
-        if me.max_candidate_points is None:
-            me.candidate_inds = np.arange(me.V_in.dim())
-        else:
-            me.candidate_inds = np.random.permutation(me.V_in.dim())[:max_candidate_points]
+        good_Sigma_inds = np.argwhere(np.all(eee0 > sigma_min, axis=1)).reshape(-1)
+        # good_Sigma_inds = np.argwhere(np.linalg.det(me.Sigma0) > sigma_min).reshape(-1)
+
+        me.candidate_inds = np.intersect1d(good_Sigma_inds, good_vol_inds)
+
+        if me.max_candidate_points is not None:
+            me.candidate_inds = np.random.permutation(len(me.candidate_inds))[:max_candidate_points]
 
         print('Building initial sample point batches')
         for ii in tqdm(range(num_initial_batches)):
@@ -101,42 +101,15 @@ class ImpulseResponseBatches:
 
         new_points = me.dof_coords_in[new_inds, :]
         new_vol = me.vol[new_inds]
-        # new_mu = me.mu[new_inds, :]
-        # new_Sigma = me.Sigma[new_inds, :, :]
 
-        min_vol = np.max(me.vol) / me.max_scale_discrepancy
-        scale_factors = 1./new_vol.copy()
-        scale_factors[new_vol < min_vol] = 0.0
-
-        # new_vol_min = min_vol*np.ones(new_vol.shape)
-        # scale_factors = 1./np.max([new_vol, new_vol_min], axis=0)
-
-        # phi = get_one_dirac_comb_response(new_points, me.V_in, me.V_out, me.apply_A, me.solve_M_in, me.solve_M_out, scale_factors=scale_factors)
         phi = get_one_dirac_comb_response(new_points, me.V_in, me.V_out, me.apply_A, me.solve_ML_in, me.solve_ML_out,
-                                          scale_factors=scale_factors)
+                                          scale_factors=1./new_vol)
 
         phi_vertex = phi.vector()[me.vertex2dof_out].copy()
 
         me.cpp_object.add_batch(me.dof2vertex_out[new_inds],
                                 phi_vertex,
                                 True)
-
-        # me.cpp_object.add_batch(list(new_points),
-        #                         phi_vertex,
-        #                         True)
-
-        # me.cpp_object.add_batch(list(new_points),
-        #                         list(new_vol),
-        #                         list(new_mu),
-        #                         list(new_Sigma),
-        #                         phi_vertex,
-        #                         True)
-
-        # me.point_batches.append(new_points)
-        # me.vol_batches.append(new_vol)
-        # me.mu_batches.append(new_mu)
-        # me.Sigma_batches.append(new_Sigma)
-        # me.phi_batches.append(phi_vertex)
 
         me.candidate_inds = list(np.setdiff1d(me.candidate_inds, new_inds))
 
