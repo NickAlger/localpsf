@@ -18,8 +18,8 @@ class ImpulseResponseBatches:
                  max_candidate_points=None,
                  use_lumped_mass_matrix_for_impulse_response_moments=True,
                  num_neighbors=10,
-                 sigma_min=1e-6,
-                 max_scale_discrepancy=1e2):
+                 sigma_min=1e-12,
+                 max_scale_discrepancy=1e5):
         me.V_in = V_in
         me.V_out = V_out
         me.apply_A = apply_A
@@ -41,16 +41,6 @@ class ImpulseResponseBatches:
         else:
             me.vol, me.mu, me.Sigma0 = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_M_in)
 
-        print('Preparing c++ object')
-        me.mesh_out = me.V_out.mesh()
-        me.mesh_vertices = np.array(me.mesh_out.coordinates().T, order='F')
-        me.mesh_cells = np.array(me.mesh_out.cells().T, order='F')
-
-        me.cpp_object = hpro.hpro_cpp.ImpulseResponseBatches( me.mesh_vertices,
-                                                              me.mesh_cells,
-                                                              num_neighbors,
-                                                              tau )
-
         print('Preparing sample point batch stuff')
         me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
         me.dof_coords_out = me.V_out.tabulate_dof_coordinates()
@@ -62,11 +52,28 @@ class ImpulseResponseBatches:
         eee = np.max([np.ones(eee0.shape)*sigma_min**2, eee0], axis=0)
         me.Sigma = np.einsum('nij,nj,nkj->nik', PP, eee, PP)
 
-        me.point_batches = list()
-        me.vol_batches = list()
-        me.mu_batches = list()
-        me.Sigma_batches = list()
-        me.phi_batches = list()
+        mesh_vertex_vol   = [me.vol[k]       for k in me.vertex2dof_out]
+        mesh_vertex_mu    = [me.mu[k,:]      for k in me.vertex2dof_out]
+        mesh_vertex_Sigma = [me.Sigma[k,:,:] for k in me.vertex2dof_out]
+
+        print('Preparing c++ object')
+        me.mesh_out = me.V_out.mesh()
+        me.mesh_vertices = np.array(me.mesh_out.coordinates().T, order='F')
+        me.mesh_cells = np.array(me.mesh_out.cells().T, order='F')
+
+        me.cpp_object = hpro.hpro_cpp.ImpulseResponseBatches( me.mesh_vertices,
+                                                              me.mesh_cells,
+                                                              mesh_vertex_vol,
+                                                              mesh_vertex_mu,
+                                                              mesh_vertex_Sigma,
+                                                              num_neighbors,
+                                                              tau )
+
+        # me.point_batches = list()
+        # me.vol_batches = list()
+        # me.mu_batches = list()
+        # me.Sigma_batches = list()
+        # me.phi_batches = list()
 
         if me.max_candidate_points is None:
             me.candidate_inds = np.arange(me.V_in.dim())
@@ -94,8 +101,8 @@ class ImpulseResponseBatches:
 
         new_points = me.dof_coords_in[new_inds, :]
         new_vol = me.vol[new_inds]
-        new_mu = me.mu[new_inds, :]
-        new_Sigma = me.Sigma[new_inds, :, :]
+        # new_mu = me.mu[new_inds, :]
+        # new_Sigma = me.Sigma[new_inds, :, :]
 
         min_vol = np.max(me.vol) / me.max_scale_discrepancy
         scale_factors = 1./new_vol.copy()
@@ -110,18 +117,26 @@ class ImpulseResponseBatches:
 
         phi_vertex = phi.vector()[me.vertex2dof_out].copy()
 
-        me.cpp_object.add_batch(list(new_points),
-                                list(new_vol),
-                                list(new_mu),
-                                list(new_Sigma),
+        me.cpp_object.add_batch(me.dof2vertex_out[new_inds],
                                 phi_vertex,
                                 True)
 
-        me.point_batches.append(new_points)
-        me.vol_batches.append(new_vol)
-        me.mu_batches.append(new_mu)
-        me.Sigma_batches.append(new_Sigma)
-        me.phi_batches.append(phi_vertex)
+        # me.cpp_object.add_batch(list(new_points),
+        #                         phi_vertex,
+        #                         True)
+
+        # me.cpp_object.add_batch(list(new_points),
+        #                         list(new_vol),
+        #                         list(new_mu),
+        #                         list(new_Sigma),
+        #                         phi_vertex,
+        #                         True)
+
+        # me.point_batches.append(new_points)
+        # me.vol_batches.append(new_vol)
+        # me.mu_batches.append(new_mu)
+        # me.Sigma_batches.append(new_Sigma)
+        # me.phi_batches.append(phi_vertex)
 
         me.candidate_inds = list(np.setdiff1d(me.candidate_inds, new_inds))
 
@@ -136,16 +151,15 @@ class ImpulseResponseBatches:
             stop = me.batch2point_stop[b]
             pp = me.sample_points[start:stop, :]
             mu_batch = me.sample_mu[start:stop, :]
-            inv_Sigma_batch = me.sample_inv_Sigma[start:stop, :, :]
-            Sigma_batch = np.array([np.linalg.inv(inv_Sigma_batch[ii,:,:])
-                                    for ii in range(inv_Sigma_batch.shape[0])])
+            Sigma_batch = me.sample_Sigma[start:stop, :, :]
 
             plt.figure()
 
             cm = dl.plot(phi)
             plt.colorbar(cm)
 
-            plt.scatter(pp[:, 0], pp[:, 1], c='k', s=2)
+            plt.scatter(pp[:, 0], pp[:, 1], c='r', s=2)
+            plt.scatter(mu_batch[:, 0], mu_batch[:, 1], c='k', s=2)
 
             for k in range(mu_batch.shape[0]):
                 plot_ellipse(mu_batch[k, :], Sigma_batch[k, :, :], n_std_tau=me.tau,
@@ -156,16 +170,32 @@ class ImpulseResponseBatches:
             print('bad batch number. num_batches=', me.num_batches, ', b=', b)
 
     @property
+    def mesh_vertex_vol(me):
+        return np.array(me.cpp_object.mesh_vertex_vol)
+
+    @property
+    def mesh_vertex_mu(me):
+        return np.array(me.cpp_object.mesh_vertex_mu)
+
+    @property
+    def mesh_vertex_Sigma(me):
+        return np.array(me.cpp_object.mesh_vertex_Sigma)
+
+    @property
     def sample_points(me):
-        return np.array(me.cpp_object.pts)
+        return np.array(me.cpp_object.sample_points)
+
+    @property
+    def sample_vol(me):
+        return np.array(me.cpp_object.sample_vol)
 
     @property
     def sample_mu(me):
-        return np.array(me.cpp_object.mu)
+        return np.array(me.cpp_object.sample_mu)
 
     @property
-    def sample_inv_Sigma(me):
-        return np.array(me.cpp_object.inv_Sigma)
+    def sample_Sigma(me):
+        return np.array(me.cpp_object.sample_Sigma)
 
     @property
     def point2batch(me):

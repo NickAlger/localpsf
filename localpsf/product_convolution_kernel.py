@@ -61,6 +61,22 @@ class ProductConvolutionKernel:
         return hpro.HMatrix(hmatrix_cpp_object, bct)
 
     @property
+    def mean_shift(me):
+        return me.cpp_object.mean_shift
+
+    @mean_shift.setter
+    def mean_shift(me, new_mean_shift_bool : bool):
+        me.cpp_object.mean_shift = new_mean_shift_bool
+
+    @property
+    def vol_preconditioning(me):
+        return me.cpp_object.vol_preconditioning
+
+    @vol_preconditioning.setter
+    def vol_preconditioning(me, new_vol_preconditioning_bool : bool):
+        me.cpp_object.vol_preconditioning = new_vol_preconditioning_bool
+
+    @property
     def gamma(me):
         return me.cpp_object.gamma
 

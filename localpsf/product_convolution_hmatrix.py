@@ -10,7 +10,8 @@ def make_hmatrix_from_kernel( Phi_pc : ProductConvolutionKernel,
                               hmatrix_tol=1e-5,
                               bct_admissibility_eta=2.0,
                               cluster_size_cutoff=50,
-                              make_positive_definite=False ):
+                              make_positive_definite=False,
+                              use_lumped_mass_matrix=True ):
     print('Making row and column cluster trees')
     dof_coords_in = Phi_pc.V_in.tabulate_dof_coordinates()
     dof_coords_out = Phi_pc.V_out.tabulate_dof_coordinates()
@@ -26,9 +27,15 @@ def make_hmatrix_from_kernel( Phi_pc : ProductConvolutionKernel,
     A_kernel_hmatrix = Phi_pc.build_hmatrix(bct_kernel,tol=hmatrix_tol)
 
     print('Making input and output mass matrix hmatrices')
-    M_in_scipy = csr_fenics2scipy(Phi_pc.col_batches.M_in)
+    if use_lumped_mass_matrix:
+        M_in_fenics = Phi_pc.col_batches.ML_in
+        M_out_fenics = Phi_pc.col_batches.ML_out
+    else:
+        M_in_fenics = Phi_pc.col_batches.M_in
+        M_out_fenics = Phi_pc.col_batches.M_out
+    M_in_scipy = csr_fenics2scipy(M_in_fenics)
     M_in_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_in_scipy, bct_in)
-    M_out_scipy = csr_fenics2scipy(Phi_pc.col_batches.M_out)
+    M_out_scipy = csr_fenics2scipy(M_out_fenics)
     M_out_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_out_scipy, bct_out)
 
     print('Computing A_hmatrix = M_out_hmatrix * A_kernel_hmatrix * M_in_hmatrix')
