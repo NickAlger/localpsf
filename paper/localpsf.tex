@@ -40,17 +40,24 @@
 
 % REQUIRED
 \begin{abstract}
-	We present a fast matrix-free method for computing hierarchical matrix (H-matrix) approximations of locally translation invariant operators that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in Schur complement methods for solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained optimization and inverse problems. Converting an operator to H-matrix format is highly desirable, because fast scalable H-matrix methods can be used to add, multiply, invert, and factorize H-matrices, perform matrix-vector products, solve linear systems, and perform other useful matrix operations. The computational cost of these operations is $O(N \log^a N)$, where the matrix is $N\times N$, and $a \in \{1,2,3\}$. Classical H-matrix construction methods require evaluating the integral kernel $O(N \log N)$ times, but this is not feasible in large-scale problems when the operator is only accessible via matrix-vector products (``matrix-free''). We overcome this problem by computing impulse responses of the operator and its transpose at a collection of scattered points, then interpolating shifted versions of these impulse responses on-the-fly to evaluate the integral kernel rapidly. Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. The key innovation of our method is a matrix-free procedure for choosing as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problems with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. We are able to form high quality approximations of high rank Hessians using only a small number of Hessian matrix-vector products.
+	We present a fast matrix-free method for computing hierarchical matrix (H-matrix) approximations of operators that have locally supported non-negative impulse responses. Such operators arise, for example, as Schur complements in Schur complement methods for solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained inverse problems. 
+	H-matrix approximations are highly desirable because fast H-matrix methods can add, multiply, invert, and factorize H-matrices, compute matrix-vector products, solve linear systems, and perform other useful matrix computations. 
+%	The computational cost of these operations is $O(N \log^a N)$, where the matrix is $N\times N$, and $a \in \{1,2,3\}$. 
+	Classical H-matrix construction methods 
+%	require evaluating the integral kernel $O(N \log N)$ times, but this is not feasible 
+	are infeasible for large-scale problems in which the operator is only accessible via matrix-vector products (``matrix-free''), because these methods require evaluating the integral kernel of the operator at a large number of points. We overcome this problem by computing impulse responses of the operator and its transpose at a collection of scattered points, then interpolating these known impulse responses to evaluate entries of the integral kernel at other points where the impulse response is not known. 
+%	We improve upon classical product-convolution approximations by translating with respect the estimated mean of the impulse response, rather than the location of the impulse response point source. 
+	Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. We construct a-priori ellipsoid estimates of the supports of the impulse responses (i.e., support ellipsoids are estimated \emph{before} any impulse responses have been computed). By solving an ellipsoid packing problem, we choose as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problems with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. We are able to form high quality approximations of high rank operators using only a small number of operator-vector products.
 \end{abstract}
 
 % REQUIRED
 \begin{keywords}
-  example, \LaTeX
+  
 \end{keywords}
 
 % REQUIRED
 \begin{AMS}
-  ASDF
+  
 \end{AMS}
 
 \section{Introduction}
@@ -58,44 +65,69 @@
 
 We present a fast matrix free method for approximating locally translation-invariant operators, $\Aop$, that have locally supported non-negative integral kernels. Such operators arise throughout computational science. Examples include Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps), covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained optimization and inverse problems.
 
-Let $\Omega \subset \mathbb{R}^d$ be a bounded domain in dimension $\gdim=1$, $2$, or $3$. We consider integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ of the form
+Let $\Omega \subset \mathbb{R}^d$ be a bounded domain (in applications typically $\gdim=1$, $2$, or $3$). We consider integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ of the form
 \begin{equation}
 	\label{eq:kernel_representation}
 	(\Aop u)(v) := \int_\Omega \int_\Omega v(y) \Aker(y,x) u(x) dx dy,
 \end{equation}
-where $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel. Here $\Aop u \in L^2(\Omega)'$ is the linear functional that results from applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. We further narrow our focus to operators which possess the following four properties:
-\begin{description}
-\item[1) Matrix-free:] One cannot easily evaluate kernel entries $\Aker(y,x)$. Instead, access to $\Aop$ is available through ``operator actions.'' That is, we have a black-box computational procedure (which is typically expensive) through which we may evaluate the maps
-\begin{equation*}
-	u \mapsto\Aop u \quad \text{and} \quad v \mapsto \Aop^Tv
-\end{equation*} 
-for arbitrary functions $u$ and $v$. After discretization (see Appendix \ref{app:discretized_operations}), $\Aop$ becomes a dense matrix, $\bm{A}$, that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means that one can perform matrix-vector products of $\bm{A}$ and $\bm{A}^T$ with arbitrary vectors, but one cannot easily\footnote{One could compute $\bm{v} = \bm{A}\bm{e}_j$, where $\bm{e}_j=(0,\dots,0,1,0,\dots,0)$ is the unit vector which has $j^\text{th}$ component equal to one and all other components equal to zero, then extract $\bm{A}_{ij} = \bm{v}_i$. However, this process is wasteful because one computes the entire vector $\bm{v}$, then discards all but one component.} access matrix entries $\bm{A}_{ij}$. In applications, applying $\bm{A}$ to a vector may involve iteratively solving a large linear system, timestepping, or performing some other nontrivial computational procedure. For example, in reduced space approaches to PDE-constrained optimization and inverse problems, Hessian information is available only through the application of the Hessian to vectors, and one such Hessian application requires solving two PDEs \cite{HESSIANADJOINT}. 
-\item[2) Local support:] Let $\impulseresponse_x$ be the following \emph{impulse response}:
+where $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel. Here $\Aop u \in L^2(\Omega)'$ is the linear functional that results from applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. Further, let $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$,
 \begin{equation}
 \label{eq:impulse_response_defn}
-\impulseresponse_x(y) := \Aker(y, x).
+\impulseresponse_x(y) := \Aker(y, x),
 \end{equation} 
-We say that $\Aop$ has local support if, for all $x\in \Omega$, the support of $\impulseresponse_x$ is contained (or approximately contained) in a neighborhood of $x$. The smaller these supports are, the better our algorithm will perform.  Let $\delta_x$ denote the delta distribution (point source) centered at $x$. The function $\impulseresponse_x$ is called the impulse response because straightforward analysis shows that it may be expressed as follows:
+be the \emph{impulse response} of $\Aop$ at $x$. The function $\impulseresponse_x$ is called the impulse response because straightforward analysis shows that it may be expressed as follows:
 \begin{equation}
-	\label{eq:impulse_response_delta_action}
-	\impulseresponse_x = \left( \Aop \delta_x^* \right)^*,
+\label{eq:impulse_response_delta_action}
+\impulseresponse_x = \left( \Aop \delta_x^* \right)^*,
 \end{equation}
-where $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying the operator $\Aop$ to the distribution $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\sigma \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\sigma^* \in L^2(\Omega)$ such that $\sigma(v) = \left(\sigma^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Aker$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}. From \eqref{eq:impulse_response_delta_action}, we see that this local support property means that the response of $\Aop$ to a point source at $x$ is zero (or small) at points $y$ that are far from $x$.
-\item[3) Local translation invariance:] We say that $\Aop$ is locally translation invariant if
-\begin{equation}
-	\label{eq:local_translation_invariance}
-	\Aker(y+h, x+h) \approx \Aker(y,x)
-\end{equation}
-when $h$ is not too large. One can imagine the kernel entry $\Aker(y,x)$ as representing the strength of an interaction between a source at point $x$ and a target at point $y$. Local translation invariance means that the interaction strength remains roughly the same if the source and target points are both translated by the same vector. This is illustrated in Figure FIG.
-\item[4) Non-negative kernel:] For all $(y,x) \in \Omega \times \Omega$, we have
-\begin{equation*}
-\Aker(y,x) \ge 0.
-\end{equation*}
-\end{description}
+where $\delta_x$ is the the point source (delta distribution) centered at $x$, $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying the operator $\Aop$ to $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\sigma \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\sigma^* \in L^2(\Omega)$ such that $\sigma(v) = \left(\sigma^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is formally defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Aker$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}.
 
-Our overall strategy is to form a product-convolution approximation, $\AopPc$, of $\Aop$ using only operator actions, then convert a discretized version of $\AopPc$ into a hierarchical matrix (H-matrix), which we denote by $\AmatPc$. Schematically,
+We seek to approximate operators $\Aop$ with locally supported, non-negative impulse responses that are accessible matrix-free. 
+\begin{itemize}
+	\item $\Aop$ has \textbf{locally supported impulse responses} if, for all $x\in \Omega$, the support of $\impulseresponse_x$ is contained (or approximately contained) in a small region.
+	\item  $\Aop$ has \textbf{non-negative impulse responses} if
+	\begin{equation*}
+	\impulseresponse_x(y) \ge 0
+	\end{equation*}
+	for all (or approximately all) $(y,x) \in \Omega \times \Omega$.
+	\item $\Aop$ is accessible \textbf{matrix-free} if one cannot easily evaluate kernel entries $\Aker(y,x)$. Instead, access to $\Aop$ is available through ``operator actions.'' That is, we have a black-box computational procedure (which is typically expensive) through which we may evaluate the maps
+	\begin{equation*}
+	u \mapsto\Aop u \quad \text{and} \quad v \mapsto \Aop^Tv
+	\end{equation*} 
+	for arbitrary functions $u$ and $v$. After discretization (see Appendix \ref{app:discretized_operations}), $\Aop$ becomes a dense matrix, $\bm{A}$, that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means that one can perform matrix-vector products of $\bm{A}$ and $\bm{A}^T$ with arbitrary vectors, but one cannot easily\footnote{One could compute $\bm{v} = \bm{A}\bm{e}_j$, where $\bm{e}_j=(0,\dots,0,1,0,\dots,0)$ is the unit vector which has $j^\text{th}$ component equal to one and all other components equal to zero, then extract $\bm{A}_{ij} = \bm{v}_i$. However, this process is wasteful because one computes the entire vector $\bm{v}$, then discards all but one component.} access matrix entries $\bm{A}_{ij}$. In applications, applying $\bm{A}$ to a vector may involve iteratively solving a large linear system, timestepping, or performing some other nontrivial computational procedure. 
+	%For example, in reduced space approaches to PDE-constrained optimization and inverse problems, Hessian information is available only through the application of the Hessian to vectors, and one such Hessian application requires solving two PDEs \cite{HESSIANADJOINT}. 
+\end{itemize} 
+
+% approximate operators which possess the following properties:
+% 
+%We further limit our focus to operators that have
+%\textbf{Local support}
+%We say that $\Aop$ has local support if, for all $x\in \Omega$, the support of $\impulseresponse_x$ is contained (or approximately contained) in a small region. 
+%The smaller these supports are, the better our algorithm will perform.  Let $\delta_x$ denote the delta distribution (point source) centered at $x$. From \eqref{eq:impulse_response_delta_action}, we see that this local support property means that the response of $\Aop$ to a point source at $x$ is zero (or small) at points $y$ that are far from $x$.
+%\item[3) Local translation invariance:] We say that $\Aop$ is locally translation invariant if
+%\begin{equation}
+%	\label{eq:local_translation_invariance}
+%	\Aker(y+h, x+h) \approx \Aker(y,x)
+%\end{equation}
+%when $h$ is not too large. One can imagine the kernel entry $\Aker(y,x)$ as representing the strength of an interaction between a source at point $x$ and a target at point $y$. Local translation invariance means that the interaction strength remains roughly the same if the source and target points are both translated by the same vector. This is illustrated in Figure FIG.
+%\textbf{Non-negative impulse response:} We have
+%\begin{equation*}
+%\impulseresponse_x(y) \ge 0
+%\end{equation*}
+%for all $(y,x) \in \Omega \times \Omega$.
+
+\subsection{Idea of the method}
+
+Because of the non-negative impulse response property, $\impulseresponse_x$ may be interpreted as a scaled probability distribution. Let $\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy$ denote the scaling factor (the ``volume'' of $\impulseresponse_x$), let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ \emph{for all $x \in \Omega$ simultaneously}, via a procedure that involves applying $\Aop^T$ to a small number of specially chosen functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$). Knowing $V(x)$, $\mu(x)$, and $\Sigma(x)$ allows to form an ellipsoid shaped estimate for the support of $\phi_x$. We can predict where $\phi_x$ will be nonzero \emph{before} we compute it.
+
+
+Our overall strategy is to compute impulse responses $\{\impulseresponse_{x_i}\}_{i=1}^r$ of $\Aop$ to point sources at a collection of points $x_i$ using a small number of operator actions of $\Aop$. If $\Aop$ is non-symmetric, we also compute impulse responses $\{\impulseresponse'_{y_i}\}_{i=1}^r$ of $\Aop^T$ to point sources at a collection of points $y_i$. We then form a H-matrix approximation, $\boldsymbol{\Phi}_H$, of the kernel, $\Phi$, and use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Forming the H-matrix approximation $\boldsymbol{\Phi}_H$ requires evaluating kernel entries, $\Phi(y,x)$, at arbitrary points $(y,x)$, and this is done by interpolating the known impulse responses $\{\impulseresponse_{x_i}\}_{i=1}^r, \{\impulseresponse'_{y_i}\}_{i=1}^r$. The details of the interpolation will be described in detail later, but underlying idea behind the interpolation is that 
+$$\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))$$
+if $x_i$ is close to $x$.
+This is shown in Figure FIG.
+Schematically the overall framework proceeds as follows:
 \begin{equation*}
-	\Aop \longrightarrow \underbrace{\AopPc}_{\substack{\text{product}\\ \text{convolution}}} \longrightarrow \underbrace{\AmatPc}_{\text{H-matrix}}.
+	\Aop \longrightarrow V, \mu, \Sigma \longrightarrow \{\impulseresponse_{x_i}\}_{i=1}^r, \{\impulseresponse'_{y_i}\}_{i=1}^r \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
 \end{equation*}
 We will define product-convolution approximations in Section \ref{sec:prodconv_intro}. H-matrices are discussed in Appendix \ref{app:h_matrix}. Our method is summarized in Section \ref{sec:overview_intro}, and described in detail in Section \ref{sec:method}. 
 
@@ -122,6 +154,10 @@ Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function o
 where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $\mathcal{R}(m)$ is a regularization term. The objective function in optimization problem \eqref{eq:minimization_problem} is defined indirectly via the implicit function theorem. As a result, information about the Hessian of the objective function, $\mathcal{H}$, is only accessible via the action of $\mathcal{H}$ action on vectors. In particular, applying $\mathcal{H}$ to a vector requires solving two PDEs \cite{HESSIANACTION}. More accessible approximations of $\mathcal{H}$ are highly desirable, because they allow for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. More accessible Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
 
 The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Conventionally, either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is therefore the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because our method can form high-rank approximations of an operator using a small number of matrix-vector products.
+
+\subsection{Mean-displacement invariance vs. translation invariance}
+
+This is similar to the classical local translation invariance assumption, $\phi_{x_i}(y - x + x_i)$, used in product-convolution approximations.
 
 \subsection{Product-convolution approximation}
 \label{sec:prodconv_intro}
