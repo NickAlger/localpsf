@@ -193,49 +193,42 @@ When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be indefinit
 
 \subsection{Local mean-displacement invariance}
 
-Consider the following approximations:
+Let $x$ and $x'$ be points in $\Omega$ that are close to each other, and consider the following three approximations:
 \begin{align}
-	\phi_x(y) &\approx \phi_{x_i}(y) \label{eq:translate1}\\
-	\phi_x(y) &\approx \phi_{x_i}(y-x+x_i) \label{eq:translate2}\\
-	\phi_x(y) &\approx \phi_{x_i}\left(y-\mu(x)+\mu(x_i)\right). \label{eq:translate3}
+	\phi_x(y) &\approx \phi_{x'}(y) \label{eq:translate1}\\
+	\phi_x(y) &\approx \phi_{x'}(y-x+x') \label{eq:translate2}\\
+	\phi_x(y) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right). \label{eq:translate3}
 \end{align}
-Operators with smooth integral kernels satisfy \eqref{eq:translate1}. These operators can be well-approximated by low-rank decompositions of the form
-\begin{equation}
-	\label{eq:low_rank_interpolation}
-	\Phi(y,x) \approx \sum_{i=1}^r w_i(x) \phi_{x_i}(y)
-\end{equation}
-where $w_i$ are smooth weighting functions that interpolate known impulse responses $\phi_{x_i}$. Unfortunately, the required rank, $r$, for these interpolative-type decompositions can be extremely large in practical applications, such as Hessians in inverse problems with highly informative data. Moreover, if $\Aop$ is numerically low rank, then one would typically use more accurate and robust methods matrix-free methods for forming low-rank approximations, such as randomized SVD or Lanczos.
+These approximations are illustrated in Figure FIG.
 
-Operators that satisfy \eqref{eq:translate2} are called ``locally translation-invariant.'' Kernels for these operators can be well-approximated by decompositions of the form
-\begin{equation}
-	\Phi(y,x) \approx \sum_{i=1}^r w_i(x) \phi_{x_i}(y-x)
-\end{equation}
-which correspond to operator approximations of the form
-\begin{equation}
-\label{eq:product_convolution}
-\left(\Aop~u\right)(v) \approx \left( v,~ \sum_{i=1}^\convrank \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
-\end{equation}
-where $f \ast g$ denotes convolution, and $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$ (i.e., $\left(f \cdot g\right)(x) = f(x) g(x)$). Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution.
+Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank interpolative factorization of the kernel $\Phi$.
+% of the form
+%\begin{equation}
+%	\label{eq:low_rank_interpolation}
+%	\Phi(y,x) \approx \sum_{i=1}^r w_i(x) \phi_{x_i}(y)
+%\end{equation}
+%where $\phi_{x_i}$ are known impulse responses at a collection of points $x_i$ scattered throughout $\Omega$, and $w_i$ are smooth weighting functions that interpolate the $\phi_{x_i}$. 
+However, such approximations are not suitable if $\Aop$ is high rank.
+%, such as Hessians in inverse problems with highly informative data. 
+%Moreover, if $\Aop$ is numerically low rank, then one would typically use more accurate and robust matrix-free methods for forming low-rank approximations, such as randomized SVD or Lanczos.
+Operators that satisfy \eqref{eq:translate2} are called ``locally translation-invariant'' because integral kernel entries $\Phi(y,x)$ for such operators are approximately invariant under translation of $x$ and $y$ by the same displacement, i.e., $x \rightarrow x+h$ and $y \rightarrow y+h$. Locally translation-invariant operators act like convolutions locally, and can therefore be well-approximated by so-called product-convolution approximations---weighted sums of convolution operators with spatially varying weights. Product-convolution approximations can be high-rank even if the number of convolution operators used in the approximation is small.
 
-
-We use approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x_i)$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x_i)-\mu(x) \approx x_i - x$, so again \eqref{eq:translate3} holds.
-
-
-
-the first one holds, then $\mu(x) = \mu(x_i)$, and so the third one holds. If the second one holds, then $\mu(x) - \mu(x_i) = x - x_i$, and so the third one holds. 
-
-Notice that the shift of the 
-
-\begin{equation}
-\phi_x(y) \approx \phi_{x_i}(y-x+x_i)
-\end{equation}
-
-\begin{equation}
-\phi_x(y) \approx \phi_{x_i}\left(y-\mu(x)+\mu(x_i)\right)
-\end{equation}
+% Kernels for locally translation invariant operators can be well-approximated by decompositions of the form
+%\begin{equation}
+%	\Phi(y,x) \approx \sum_{i=1}^r w_i(x) \phi_{x_i}(y-x)
+%\end{equation}
+%which correspond to operator approximations of the form
+%\begin{equation}
+%\label{eq:product_convolution}
+%\left(\Aop~u\right)(v) \approx \left( v,~ \sum_{i=1}^\convrank \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)}.
+%\end{equation}
+%Here $f \ast g$ denotes convolution, and $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$ (i.e., $\left(f \cdot g\right)(x) = f(x) g(x)$). Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. Product-convolution approximations can be high-rank even if $r$ is small.
 
 
-This is similar to the classical local translation invariance assumption, $\phi_{x_i}(y - x + x_i)$, used in product-convolution approximations.
+We use approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x_i)$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x_i)-\mu(x) \approx x_i - x$, so again \eqref{eq:translate3} holds. But approximation \eqref{eq:translate3} may continue to hold in situation where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, \eqref{eq:translate3} will hold when an operator is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case (see Figure FIG). Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires $y \in \Omega_2$ and $-x+x' \in \Omega_1$ to be added together. We call operators that satisfy \eqref{eq:translate3} ``locally mean-displacement invariant.''
+
+
+
 
 \subsection{Product-convolution approximation}
 \label{sec:prodconv_intro}
