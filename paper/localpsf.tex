@@ -143,10 +143,22 @@ The most popular existing Hessian approximation methods are based on forming a l
 
 
 \subsection{Overview of the method}
-The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative impulse response property. Let $\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy$ denote the scaling factor (the ``volume'' of $\impulseresponse_x$), let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of polynomial functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$). Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$.
-%That is, we can predict an ellipsoid outside of which $\phi_x$ will be (nearly) zero, \emph{without} computing $\phi_x$.
+The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative impulse response property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
+\begin{equation*}
+\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy
+\end{equation*}
+denote the spatially varying scaling factor (the ``volume'' of $\impulseresponse_x$), let 
+\begin{equation*}
+\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)
+\end{equation*}
+denote the normalized version of $\impulseresponse_x$, and let $\mu:\Omega \rightarrow \mathbb{R}^d$, $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d},$
+\begin{equation*}
+\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
+\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
+\end{equation*}
+denote the spatially varying mean and covariance of $\widehat{\impulseresponse}_x$, respectively. In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of polynomial functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$). 
 
-This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
+Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
 Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in detail later, but the key idea is that
 \begin{equation}
@@ -154,15 +166,15 @@ Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we a
 \end{equation}
 if $x_i$ is close to $x$. This is shown in Figure FIG. We therefore approximate $\phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for the $k$-nearest points $x_i$ to $x$. Here $k$ is a user-defined parameter; we use $k=10$. The weights in the linear combination are determined via radial basis function interpolation.
 
-The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall framework proceeds as follows:
+The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall H-matrix approximation proceeds as follows:
 \begin{equation*}
 \Aop \longrightarrow V, \mu, \Sigma \longrightarrow \{\impulseresponse_{x_i}\}_{i=1}^r \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
 \end{equation*}
 One may use H-matrix methods to perform further useful linear algebra operations involving $\mathbf{A}_H$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems.
 
-Often we are interested in approximating operators $\Aop$ that are symmetric, or symmetric positive semi-definite. If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$, which may be interpolated in the variable $y$ instead of $x$ to yield a different approximation of $\Phi(y,x)$. In this case, we combine information from impulse responses of $\Aop$ and $\Aop^T$ in the interpolation procedure for approximating $\Phi(y,x)$, to get a more accurate approximation at negligible additional cost. Intuitively, impulse responses of $\Aop$ can be thought of as ``columns'' of $\Phi$, impulse responses of $\Aop^T$ can be thought of as ``rows'' of $\Phi$, and $\Phi(y,x)$ can be thought of as an unknown entry of $\Phi$. When $\Aop$ is symmetric, computing a column of $\Aop$ also gives us a row of $\Aop$ for free, so we approximate $\Phi(y,x)$ using information from a combination of known columns and known rows, rather than just known columns.
+Often we are interested in approximating operators $\Aop$ that are symmetric, or symmetric positive semi-definite. If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$, which may be interpolated in the variable $y$ instead of $x$ to yield a different approximation of $\Phi(y,x)$. In this case, we combine information from impulse responses of both $\Aop$ and $\Aop^T$ in the interpolation procedure for approximating $\Phi(y,x)$, to get a more accurate approximation at negligible additional cost. Intuitively, impulse responses of $\Aop$ can be thought of as ``columns'' of $\Phi$, impulse responses of $\Aop^T$ can be thought of as ``rows'' of $\Phi$, and $\Phi(y,x)$ can be thought of as an unknown entry of $\Phi$. When $\Aop$ is symmetric, computing a column of $\Aop$ also gives us a row of $\Aop$ for free, so we approximate $\Phi(y,x)$ using information from a combination of known columns and known rows, rather than just known columns.
 
-When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ will generally be indefinite due to errors in the approximation. In this case, we modify the H-matrix representation of $\mathbf{A}_H$ to make it positive semi-definite, by applying a specially chosen rational matrix function to $\mathbf{A}_H$.
+When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be indefinite due to errors in the approximation. In this case, we modify the H-matrix representation of $\mathbf{A}_H$ to make it positive semi-definite, by applying a specially chosen rational matrix function to $\mathbf{A}_H$.
 
 %Forming the H-matrix approximation $\boldsymbol{\Phi}_H$ requires evaluating kernel entries, $\Phi(y,x)$, at arbitrary points $(y,x)$, and this is done by interpolating the known impulse responses $\{\impulseresponse_{x_i}\}_{i=1}^r, \{\impulseresponse'_{y_i}\}_{i=1}^r$. 
 %
@@ -179,7 +191,7 @@ When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ will generally b
 %
 %The novel contributions of our method are in the way that we form the product-convolution approximation ($\Aop \rightarrow \AopPc$). This is the part of the method where we use the four properties of $\Aop$ described above. Fast conversion of the discretized version of $\AopPc$ to H-matrix format ($\AopPc \rightarrow \AmatPc$) is possible because integral kernel entries for $\AopPc$ are easily accessible (unlike integral kernel entries for $\Aop$). Once in H-matrix format, one may use H-matrix methods to perform further useful linear algebra operations involving $\AmatPc$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems.
 
-\subsection{Differences in interpolation}
+\subsection{Local mean-displacement invariance}
 
 Consider the following approximations:
 \begin{align}
@@ -187,10 +199,26 @@ Consider the following approximations:
 	\phi_x(y) &\approx \phi_{x_i}(y-x+x_i) \label{eq:translate2}\\
 	\phi_x(y) &\approx \phi_{x_i}\left(y-\mu(x)+\mu(x_i)\right). \label{eq:translate3}
 \end{align}
+Operators with smooth integral kernels satisfy \eqref{eq:translate1}. These operators can be well-approximated by low-rank decompositions of the form
+\begin{equation}
+	\label{eq:low_rank_interpolation}
+	\Phi(y,x) \approx \sum_{i=1}^r w_i(x) \phi_{x_i}(y)
+\end{equation}
+where $w_i$ are smooth weighting functions that interpolate known impulse responses $\phi_{x_i}$. Unfortunately, the required rank, $r$, for these interpolative-type decompositions can be extremely large in practical applications, such as Hessians in inverse problems with highly informative data. Moreover, if $\Aop$ is numerically low rank, then one would typically use more accurate and robust methods matrix-free methods for forming low-rank approximations, such as randomized SVD or Lanczos.
 
-First one: low rank. Second one: local translation invariance/product-convolution. Third one: our proposal.
+Operators that satisfy \eqref{eq:translate2} are called ``locally translation-invariant.'' Kernels for these operators can be well-approximated by decompositions of the form
+\begin{equation}
+	\Phi(y,x) \approx \sum_{i=1}^r w_i(x) \phi_{x_i}(y-x)
+\end{equation}
+which correspond to operator approximations of the form
+\begin{equation}
+\label{eq:product_convolution}
+\left(\Aop~u\right)(v) \approx \left( v,~ \sum_{i=1}^\convrank \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
+\end{equation}
+where $f \ast g$ denotes convolution, and $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$ (i.e., $\left(f \cdot g\right)(x) = f(x) g(x)$). Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution.
 
-Approximation \eqref{eq:translate3} is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes them both. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x_i)$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x_i)-\mu(x) \approx x_i - x$, so again \eqref{eq:translate3} holds.
+
+We use approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x_i)$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x_i)-\mu(x) \approx x_i - x$, so again \eqref{eq:translate3} holds.
 
 
 
@@ -232,7 +260,6 @@ where $f \ast g$ denotes convolution of the functions $f$ and $g$, and $\left(f,
 
 Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\convkernel_x$, varies as $x$ changes. We therefore approximate $\Aop$ by a spatially varying weighted sum of convolution operators, $\AopPc \approx \Aop$, of the form
 \begin{equation}
-\label{eq:product_convolution}
 	\left(\AopPc~u\right)(v) := \left( v,~ \sum_{i=1}^\convrank \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
 \end{equation}
 where $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$ (i.e., $\left(f \cdot g\right)(x) = f(x) g(x)$). Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. To avoid nested subscripts, we write 
