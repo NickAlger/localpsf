@@ -181,9 +181,22 @@ When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ will generally b
 
 \subsection{Differences in interpolation}
 
-\begin{equation}
-	\phi_x(y) \approx \phi_{x_i}(y)
-\end{equation}
+Consider the following approximations:
+\begin{align}
+	\phi_x(y) &\approx \phi_{x_i}(y) \label{eq:translate1}\\
+	\phi_x(y) &\approx \phi_{x_i}(y-x+x_i) \label{eq:translate2}\\
+	\phi_x(y) &\approx \phi_{x_i}\left(y-\mu(x)+\mu(x_i)\right). \label{eq:translate3}
+\end{align}
+
+First one: low rank. Second one: local translation invariance/product-convolution. Third one: our proposal.
+
+Approximation \eqref{eq:translate3} is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes them both. If \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x_i)$, and so \eqref{eq:translate3} holds. If \eqref{eq:translate2} holds, then $\mu(x_i)-\mu(x) \approx x_i - x$ because translating a distribution translates its mean, so again \eqref{eq:translate3} holds.
+
+
+
+the first one holds, then $\mu(x) = \mu(x_i)$, and so the third one holds. If the second one holds, then $\mu(x) - \mu(x_i) = x - x_i$, and so the third one holds. 
+
+Notice that the shift of the 
 
 \begin{equation}
 \phi_x(y) \approx \phi_{x_i}(y-x+x_i)
