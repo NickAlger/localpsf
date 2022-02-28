@@ -160,7 +160,7 @@ denote the spatially varying mean and covariance of $\widehat{\impulseresponse}_
 
 Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
-Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in detail later, but the key idea is that
+Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section SECTION, but the key idea is that
 \begin{equation}
 \Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
 \end{equation}
@@ -170,7 +170,7 @@ The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us
 \begin{equation*}
 \Aop \longrightarrow V, \mu, \Sigma \longrightarrow \{\impulseresponse_{x_i}\}_{i=1}^r \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
 \end{equation*}
-One may use H-matrix methods to perform further useful linear algebra operations involving $\mathbf{A}_H$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems.
+One may use H-matrix methods to perform further useful linear algebra operations involving $\mathbf{A}_H$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. WHY DO THESE OPERATIONS: KRYLOV SOLVERS, SAMPLING STRATEGIES, CAN'T DO WITH A. These H-matrix methods are fast and scale well to large problems.
 
 Often we are interested in approximating operators $\Aop$ that are symmetric, or symmetric positive semi-definite. If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$, which may be interpolated in the variable $y$ instead of $x$ to yield a different approximation of $\Phi(y,x)$. In this case, we combine information from impulse responses of both $\Aop$ and $\Aop^T$ in the interpolation procedure for approximating $\Phi(y,x)$, to get a more accurate approximation at negligible additional cost. Intuitively, impulse responses of $\Aop$ can be thought of as ``columns'' of $\Phi$, impulse responses of $\Aop^T$ can be thought of as ``rows'' of $\Phi$, and $\Phi(y,x)$ can be thought of as an unknown entry of $\Phi$. When $\Aop$ is symmetric, computing a column of $\Aop$ also gives us a row of $\Aop$ for free, so we approximate $\Phi(y,x)$ using information from a combination of known columns and known rows, rather than just known columns.
 
@@ -229,7 +229,68 @@ Operators that satisfy \eqref{eq:translate2} are called ``locally translation-in
 We use approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x_i)$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x_i)-\mu(x) \approx x_i - x$, so again \eqref{eq:translate3} holds. But approximation \eqref{eq:translate3} may continue to hold in situation where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, \eqref{eq:translate3} will hold when an operator is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case (see Figure FIG). Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires $y \in \Omega_2$ and $-x+x' \in \Omega_1$ to be added together. We call operators that satisfy \eqref{eq:translate3} ``locally mean-displacement invariant.''
 
 
+\subsection{Approximating kernel entries $\Phi(y,x)$}
 
+We approximate kernel entries $\Phi(y,x)$ by preconditioned radial basis function interpolation of the impulse response values
+\begin{equation}
+\label{eq:phi_mu_shift32}
+	\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right),
+\end{equation}
+where the points $x_i$ are sample points at which $\phi_{x_i}$ is known. Interpolation using all sample points $x_i$ is too expensive, so we only use the $k$ nearest sample points to $x$, excluding points $x_i$ for which \eqref{eq:phi_mu_shift32} is not defined. That is, we exclude points $x_i$ such that $y - \mu(x) + \mu(x_i) \notin \Omega$. In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree [CITE] of all sample points. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) [CITE] of the mesh cells used to discretize the problem.
+
+Once the $k$ nearest sample points, $\{x_i\}_{i=1}^k$, are found, we approximate $\Phi(y,x)$ using preconditioned radial basis function interpolation of the following form:
+\begin{equation}
+	\Phi(y,x) \approx \sum_{i=1}^k w_i b\left(\|x-x_i\|\right).
+\end{equation}
+For radial basis functions, $b_i$, we use polyharmonic splines. That is, 
+\begin{equation}
+b_i(r) = r^d
+\end{equation}
+if $d$ is odd, and
+\begin{equation}
+	b_i(r) = \begin{cases}
+		r^d \log r, & r \neq 0 \\
+		0 & r = 0
+	\end{cases}
+\end{equation}
+if $d$ is even.
+The vector of weights, $w = (w_1, w_2, \dots, w_k)^T$, is found as the solution to the $k \times k$ linear system
+\begin{equation}
+	Bw = f,
+\end{equation}
+where the coefficient matrix $B \in \mathbb{R}^{k \times k}$ has entries 
+\begin{equation*}
+	B_{ij} = b\left(\|x_i - x_j\|\right),
+\end{equation*}
+and the right hand side vector $f \in \mathbb{R}^k$ has entries
+\begin{equation}
+	f_i = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right).
+\end{equation}
+%The result of this interpolation is to approximate $\Phi(y,x)$ with a linear combination of the shifted impulse response values $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$. 
+By including the factor $\frac{V(x)}{V(x_i)}$, we are implicitly performing polyharmonic spline radial basis function interpolation of the ``volume preconditioned'' function $\frac{1}{V(x)}\Phi(y,x)$, then rescaling the result by $V(x)$ to get an approximation of $\Phi(y,x)$. Volume preconditioning improves the approximation considerably when $V(x)$ varies widely in magnitude, as is commonly the case for many operators of practical interest. In the Hessian for the Stokes inverse problem, for example, $V(x)$ varies over six orders of magnitude.
+
+The point $y - \mu(x) + \mu(x_i)$ typically is not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Although it is advisable to avoid evaluating finite element functions at arbitrary points [CITE], here we are forced to do this. We evaluate $\frac{1}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
+\begin{equation}
+\label{eq:ellipsoid_check93}
+	(y - \mu(x))^T \Sigma^{-1}(x) (y - \mu(x))  \le \tau^2.
+\end{equation}
+If \eqref{eq:ellipsoid_check93} does not hold, then $y - \mu(x) + \mu(x_i) \notin E_{x_i}$, so we use $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)=0$ for the purpose of interpolation. If \eqref{eq:ellipsoid_check93} does hold, then $y - \mu(x) + \mu(x_i) \in E_{x_i}$. In this case, we look up the batch index $b$ for the batch of sample points containing $x_i$, and evaluate
+\begin{equation}
+	\frac{1}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right) = \eta_b\left(y - \mu(x) + \mu(x_i)\right).
+\end{equation}
+To evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, we recall the mesh cell that $y - \mu(x) + \mu(x_i)$ resides in. This mesh cell was already computed as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. We then evaluate the relevant finite element basis functions on the cell to evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$.
+
+If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$, and we can use this fact to improve the interpolation accuracy at negligible additional cost.
+
+Let $\phi'_{y_i}(x) := \Phi(y_i,x)$ denote the impulse response of $\Aop^T$ to a point source at $y_i$. 
+
+Let $\{y_i\}_{i=1}^r$ be the $k$ nearest sample points to $y$, and let . In the case where $\Aop$ is symmetric, knowing 
+
+In the case where $\Aop$ is symmetric, we have
+\begin{equation}
+	\impulseresponse_{x_i}(y) = \Phi(y,x_i) = \Phi(x_i,y) = \impulseresponse'_{x_i}(y)
+\end{equation}
+knowing the impulse response $\impulseresponse_{x_i}$ of $\Aop$ at $x_i$
 
 \subsection{Product-convolution approximation}
 \label{sec:prodconv_intro}
