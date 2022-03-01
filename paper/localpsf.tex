@@ -291,10 +291,10 @@ In this section we describe how we choose the sample points, $x_i$ (Section \ref
 We choose sample points, $x_i$, in batches. A greedy algorithm is used to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other. We ensure that the points $x_i$ are well separated from each other by forming a-priori estimates of the supports of the functions $\impulseresponse_x$ (Section \ref{eq:mean_and_covariance_estimation}). The support of $\impulseresponse_x$ is estimated to be contained within an ellipsoid, so the process of choosing batches of points is an ellipsoid packing problem (Section \ref{sec:greedy_point_selection}). 
 
 
-\subsubsection{Estimating impulse response supports}
+\subsubsection{Impulse response moments and support estimation}
 \label{eq:mean_and_covariance_estimation}
 
-Because of the non-negative kernel property, for each $x \in \Omega$, the impulse response $\impulseresponse_x$ is a non-negative function $y \mapsto \impulseresponse_x(y)$. Hence, $\impulseresponse_x$ is a scaled probability distribution. Let $\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy$ denote the scaling factor (the ``volume'' of $\impulseresponse_x$), let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
+Because of the non-negative impulse response property, for each $x \in \Omega$, the impulse response $\impulseresponse_x$ is a non-negative function $y \mapsto \impulseresponse_x(y)$. Hence, $\impulseresponse_x$ is a scaled probability distribution. Let $\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy$ denote the scaling factor (the ``volume'' of $\impulseresponse_x$), let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
 \begin{equation}
 	\label{eq:support_ellipsoid}
 	E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
@@ -416,7 +416,7 @@ We repeat the process to construct several batches of points $\pointbatch_1, \po
 \end{algorithm2e}
 
 
-\subsection{Convolution kernels}
+\subsection{Impulse response batches}
 \label{sec:get_impulse_response}
 
 We compute convolution kernels $\convkernel_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$. That is,
@@ -446,7 +446,7 @@ for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, \eqref
 
 
 
-\subsection{Approximating kernel entries $\Phi(y,x)$}
+\subsection{Approximate integral kernel entries}
 
 Given a pair of points $(y,x) \subset \Omega \times \Omega$, we define the function
 \begin{equation}
@@ -524,7 +524,7 @@ where $\eta_b$ is the impulse response batch function that we have computed and 
 Evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires some care, because the point $y - \mu(x) + \mu(x_i)$ is typically not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints.
 To evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, we determine which mesh cell contains $y - \mu(x) + \mu(x_i)$, then we evaluate the relevant finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $y - \mu(x) + \mu(x_i)$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. 
 
-\subsubsection{Improvements when $\Aop$ is symmetric}
+\subsubsection{Improvements based on symmetry}
 If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$. Let $\{y_i\}_{i=1}^k$ be the $k$ nearest sample points to $y$, excluding points $y_i$ such that $x - \mu(y) + \mu(y_i) \notin \Omega$. We could form an alternative approximation of $\Phi(y,x)$ by interpolating the (point, value) pairs
 \begin{equation}
 \label{eq:phi_mu_shift_y}
