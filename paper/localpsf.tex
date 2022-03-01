@@ -231,16 +231,16 @@ We use approximation \eqref{eq:translate3}, which is an improvement upon \eqref{
 
 \subsection{Approximating kernel entries $\Phi(y,x)$}
 
-We approximate kernel entries $\Phi(y,x)$ by preconditioned radial basis function interpolation of the impulse response values
+We approximate kernel entries $\Phi(y,x)$ by preconditioned radial basis function interpolation of known impulse response values
 \begin{equation}
 \label{eq:phi_mu_shift32}
-	\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right),
+	\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right).
 \end{equation}
-where the points $x_i$ are sample points at which $\phi_{x_i}$ is known. Interpolation using all sample points $x_i$ is too expensive, so we only use the $k$ nearest sample points to $x$, excluding points $x_i$ for which \eqref{eq:phi_mu_shift32} is not defined. That is, we exclude points $x_i$ such that $y - \mu(x) + \mu(x_i) \notin \Omega$. In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree [CITE] of all sample points. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) [CITE] of the mesh cells used to discretize the problem.
+Interpolation using all sample points $x_i$ is too expensive, so we only use the $k$ nearest sample points to $x$, excluding points $x_i$ for which \eqref{eq:phi_mu_shift32} is not defined. That is, we exclude points $x_i$ such that $y - \mu(x) + \mu(x_i) \notin \Omega$. In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree [CITE] of all sample points. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) [CITE] of the mesh cells used to discretize the problem.
 
 Once the $k$ nearest sample points, $\{x_i\}_{i=1}^k$, are found, we approximate $\Phi(y,x)$ using preconditioned radial basis function interpolation of the following form:
 \begin{equation}
-	\Phi(y,x) \approx \sum_{i=1}^k w_i b\left(\|x-x_i\|\right).
+	\Phi(y,x) \approx \sum_{i=1}^k w_i~ b\left(\|x-x_i\|\right).
 \end{equation}
 For radial basis functions, $b_i$, we use polyharmonic splines. That is, 
 \begin{equation}
@@ -267,9 +267,9 @@ and the right hand side vector $f \in \mathbb{R}^k$ has entries
 	f_i = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right).
 \end{equation}
 %The result of this interpolation is to approximate $\Phi(y,x)$ with a linear combination of the shifted impulse response values $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$. 
-By including the factor $\frac{V(x)}{V(x_i)}$, we are implicitly performing polyharmonic spline radial basis function interpolation of the ``volume preconditioned'' function $\frac{1}{V(x)}\Phi(y,x)$, then rescaling the result by $V(x)$ to get an approximation of $\Phi(y,x)$. Volume preconditioning improves the approximation considerably when $V(x)$ varies widely in magnitude, as is commonly the case for many operators of practical interest. In the Hessian for the Stokes inverse problem, for example, $V(x)$ varies over six orders of magnitude.
+By including the factor $\frac{V(x)}{V(x_i)}$, we are implicitly interpolating the ``volume preconditioned'' function $\frac{1}{V(x)}\Phi(y,x)$, then rescaling the result by $V(x)$ to get an approximation of $\Phi(y,x)$. Volume preconditioning improves the approximation considerably when $V(x)$ varies widely in magnitude, as is commonly the case for many operators of practical interest. In the Hessian for the Stokes inverse problem, for example, we observe that $V(x)$ varies over six orders of magnitude.
 
-The point $y - \mu(x) + \mu(x_i)$ typically is not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Although it is advisable to avoid evaluating finite element functions at arbitrary points [CITE], here we are forced to do this. We evaluate $\frac{1}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
+The point $y - \mu(x) + \mu(x_i)$ is typically not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Although it is advisable to avoid evaluating finite element functions at arbitrary points [CITE], here we have no choice. We evaluate $\frac{1}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
 \begin{equation}
 \label{eq:ellipsoid_check93}
 	(y - \mu(x))^T \Sigma^{-1}(x) (y - \mu(x))  \le \tau^2.
@@ -280,17 +280,83 @@ If \eqref{eq:ellipsoid_check93} does not hold, then $y - \mu(x) + \mu(x_i) \noti
 \end{equation}
 To evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, we recall the mesh cell that $y - \mu(x) + \mu(x_i)$ resides in. This mesh cell was already computed as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. We then evaluate the relevant finite element basis functions on the cell to evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$.
 
-If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$, and we can use this fact to improve the interpolation accuracy at negligible additional cost.
-
-Let $\phi'_{y_i}(x) := \Phi(y_i,x)$ denote the impulse response of $\Aop^T$ to a point source at $y_i$. 
-
-Let $\{y_i\}_{i=1}^r$ be the $k$ nearest sample points to $y$, and let . In the case where $\Aop$ is symmetric, knowing 
-
-In the case where $\Aop$ is symmetric, we have
+If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$. Let $\{y_i\}_{i=1}^k$ be the $k$ nearest sample points to $y$, excluding points $y_i$ such that $x - \mu(y) + \mu(y_i) \notin \Omega$. We could form an alternative approximation of $\Phi(y,x)$ by interpolating the values
 \begin{equation}
-	\impulseresponse_{x_i}(y) = \Phi(y,x_i) = \Phi(x_i,y) = \impulseresponse'_{x_i}(y)
+\label{eq:phi_mu_shift_y}
+\phi_{y_i}\left(x - \mu(y) + \mu(y_i)\right),
 \end{equation}
-knowing the impulse response $\impulseresponse_{x_i}$ of $\Aop$ at $x_i$
+in the manner described above, but with $x$ and $y$ now taking opposite roles. By combining both of these approximations, we can improve the interpolation accuracy at negligible additional cost. We combine both approximations by placing function values 
+\begin{equation*}
+	\left(\widetilde{f}_x\right)_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right), \qquad i=1,\dots,k,
+\end{equation*}
+at the points $x_i-x$, placing function values
+\begin{equation*}
+\left(\widetilde{f}_y\right)_i := \frac{V(y)}{V(y_i)}\phi_{y_i}\left(x - \mu(y) + \mu(y_i)\right), \qquad i=1,\dots,k,
+\end{equation*}
+at the points $y_i-y$, and interpolating the combination of all $2k$ of these points and values at zero.
+
+To that end, define 
+\begin{equation*}
+\widetilde{x_i} := x_i - x \qquad \text{and} \qquad \widetilde{y_i} := y_i - y.
+\end{equation*}
+and let
+\begin{equation*}
+	\widetilde{B} = \begin{bmatrix}
+		\widetilde{B}_{xx} & \widetilde{B}_{xy} \\
+		\widetilde{B}_{yx} & \widetilde{B}_{xx}
+	\end{bmatrix}, \qquad \widetilde{w} = \begin{bmatrix}\widetilde{w}_x \\ \widetilde{w}_y\end{bmatrix}, \qquad \widetilde{f} = \begin{bmatrix}
+		\widetilde{f}_x \\ \widetilde{f}_y
+	\end{bmatrix},
+\end{equation*}
+be the $2k \times 2k$ block matrix and $2k \times 1$ block vectors, respectively, with block entries of $\widetilde{B}$ given by
+\begin{align*}
+\left(\widetilde{B}_{xx}\right)_{ij} = b\left(\|\widetilde{x}_i - \widetilde{x}_j\|\right), &\qquad
+\left(\widetilde{B}_{xy}\right)_{ij} = b\left(\|\widetilde{x}_i - \widetilde{y}_j\|\right), \\
+\left(\widetilde{B}_{yx}\right)_{ij} = b\left(\|\widetilde{y}_i - \widetilde{x}_j\|\right), &\qquad \left(\widetilde{B}_{yy}\right)_{ij} = b\left(\|\widetilde{y}_i - \widetilde{y}_j\|\right),
+\end{align*}
+for $i,j=1,\dots,k$. We approximate $\Phi(y,x)$ as follows:
+\begin{equation}
+\Phi(y,x) \approx \sum_{i=1}^k \left(w_x\right)_i~ b\left(\|\widetilde{x}_i\|\right) + \sum_{i=1}^k \left(w_y\right)_i~ b\left(\|\widetilde{y}_i\|\right),
+\end{equation}
+where $\widetilde{w}$ is the solution of the following regularized least-squares problem,
+\begin{equation*}
+	\min_{\widetilde{w}} \frac{1}{2}\|\widetilde{B} \widetilde{w} - \widetilde{f}\|^2 + \frac{\alpha}{2}\|\widetilde{w}\|^2,
+\end{equation*}
+for a small regularization parameter $\alpha$. 
+We solve the regularized least squares problem by QR factorization of the block $4k \times 2k$ matrix $\begin{bmatrix}\widetilde{B} & I\end{bmatrix}^T$. We regularize the problem because of numerical issues that arise if there are points $\widetilde{x}_i$ and $\widetilde{y}_j$ in the interpolation such that $\widetilde{x}_i \approx \widetilde{y}_j$, a situation that arises often. Indeed, situations where $\widetilde{x}_i = \widetilde{y}_j$ are inevitable when a regular grid is used to discretize the problem. In this case, $\widetilde{B}$ is (nearly) singular, so it is numerically ill-advised to solve the standard interpolation equation $\widetilde{B} \widetilde{w} = \widetilde{f}$. 
+
+%In principle, this equation is still solvable if $\left(\widetilde{f}_x\right)_i = \left(\widetilde{f}_x\right)_j$, which should hold in principle. However, errors incurred at any stage of the approximation process, particularly the assumption that the support of $\phi_x$ is contained in the ellipsoid $E_x$, will cause small discrepancies between $\left(\widetilde{f}_x\right)_i$ and $\left(\widetilde{f}_x\right)_j$, and these errors get amplified by the ill-conditioning.
+	
+%	 or $\widetilde{x}_i \approx \widetilde{y}_j$. 
+%	
+%	while $\left(\widetilde{f}_x\right)_i \neq \left(\widetilde{f}_x\right)_j$
+%
+% $\widetilde{B}\widetilde{w}=\widetilde{f}$
+
+
+
+
+%and let $\widetilde{B}_{xx}$, $\widetilde{B}_{xy}$, $\widetilde{B}_{yx}$, and $\widetilde{B}_{yy}$ be $k \times k$ matrices with the following entries:
+%\begin{align*}
+%	\left(\widetilde{B}_{xx}\right)_{ij} &= b\left(\|\widetilde{x}_i - \widetilde{x}_j\|\right) \\	\left(\widetilde{B}_{xy}\right)_{ij} &= b\left(\|\widetilde{x}_i - \widetilde{y}_j\|\right) \\
+%\end{align*}
+%
+%
+%\begin{equation*}
+%	\begin{bmatrix}
+%		B_{xx} & B_{xy} \\ B_{yx} & B_{yy}
+%	\end{bmatrix}
+%\end{equation*}
+%
+%Let $\phi'_{y_i}(x) := \Phi(y_i,x)$ denote the impulse response of $\Aop^T$ to a point source at $y_i$. 
+%
+%Let $\{y_i\}_{i=1}^r$ be the $k$ nearest sample points to $y$, and let . In the case where $\Aop$ is symmetric, knowing 
+%
+%In the case where $\Aop$ is symmetric, we have
+%\begin{equation}
+%	\impulseresponse_{x_i}(y) = \Phi(y,x_i) = \Phi(x_i,y) = \impulseresponse'_{x_i}(y)
+%\end{equation}
+%knowing the impulse response $\impulseresponse_{x_i}$ of $\Aop$ at $x_i$
 
 \subsection{Product-convolution approximation}
 \label{sec:prodconv_intro}
