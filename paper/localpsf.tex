@@ -231,14 +231,23 @@ We use approximation \eqref{eq:translate3}, which is an improvement upon \eqref{
 
 \subsection{Approximating kernel entries $\Phi(y,x)$}
 
-We approximate kernel entries $\Phi(y,x)$ by preconditioned radial basis function interpolation of known impulse response values
+As discussed in Section SECTION, we have
+\begin{equation*}
+	\Phi(y,x) = \phi_x(y) \approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right)
+\end{equation*}
+if $x'$ is close to $x$. Hence, we approximate the kernel entry $\Phi(y,x)$ by preconditioned radial basis function interpolation of the following (point,value) pairs:
 \begin{equation}
-\label{eq:phi_mu_shift32}
-	\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right).
+	\left(x_i, \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)\right).
 \end{equation}
-Interpolation using all sample points $x_i$ is too expensive, so we only use the $k$ nearest sample points to $x$, excluding points $x_i$ for which \eqref{eq:phi_mu_shift32} is not defined. That is, we exclude points $x_i$ such that $y - \mu(x) + \mu(x_i) \notin \Omega$. In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree [CITE] of all sample points. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) [CITE] of the mesh cells used to discretize the problem.
+Here $x_i \in \Omega$ are sample points at which the impulse response $\phi_{x_i}$ is known, and $x$ is the point we seek to evaluate the interpolation at.
+%. Specifically, we interpolate $(\text{point}, \text{value})$ pairs $(x_i, f_i)$ at the point $x$, where $x_i$ are sample points, and $f_i$ are given as follows:
+%\begin{equation}
+%\label{eq:phi_mu_shift32}
+%	f_i := \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right).
+%\end{equation}
+Interpolation using all sample points $x_i$ is too expensive, so we only use the $k$ nearest sample points to $x$. In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree [CITE] of all sample points. We exclude points $x_i$ for which $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is not defined. In other words, if $y - \mu(x) + \mu(x_i) \notin \Omega$, then the point $x_i$ is considered invalid, and not used in the interpolation, even it is close to $x$. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) [CITE] of the mesh cells used to discretize the problem.
 
-Once the $k$ nearest sample points, $\{x_i\}_{i=1}^k$, are found, we approximate $\Phi(y,x)$ using preconditioned radial basis function interpolation of the following form:
+Once the $k$ nearest (valid) sample points, $\{x_i\}_{i=1}^k$, are found, we approximate $\Phi(y,x)$ using preconditioned radial basis function interpolation of the following form:
 \begin{equation}
 	\Phi(y,x) \approx \sum_{i=1}^k w_i~ b\left(\|x-x_i\|\right).
 \end{equation}
@@ -269,23 +278,23 @@ and the right hand side vector $f \in \mathbb{R}^k$ has entries
 %The result of this interpolation is to approximate $\Phi(y,x)$ with a linear combination of the shifted impulse response values $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$. 
 By including the factor $\frac{V(x)}{V(x_i)}$, we are implicitly interpolating the ``volume preconditioned'' function $\frac{1}{V(x)}\Phi(y,x)$, then rescaling the result by $V(x)$ to get an approximation of $\Phi(y,x)$. Volume preconditioning improves the approximation considerably when $V(x)$ varies widely in magnitude, as is commonly the case for many operators of practical interest. In the Hessian for the Stokes inverse problem, for example, we observe that $V(x)$ varies over six orders of magnitude.
 
-The point $y - \mu(x) + \mu(x_i)$ is typically not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Although it is advisable to avoid evaluating finite element functions at arbitrary points [CITE], here we have no choice. We evaluate $\frac{1}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
+The point $y - \mu(x) + \mu(x_i)$ is typically not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Although it is typically recommended that one avoid evaluating finite element functions at arbitrary points [CITE], here we have no choice. We evaluate $\frac{1}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
 \begin{equation}
 \label{eq:ellipsoid_check93}
 	(y - \mu(x))^T \Sigma^{-1}(x) (y - \mu(x))  \le \tau^2.
 \end{equation}
-If \eqref{eq:ellipsoid_check93} does not hold, then $y - \mu(x) + \mu(x_i) \notin E_{x_i}$, so we use $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)=0$ for the purpose of interpolation. If \eqref{eq:ellipsoid_check93} does hold, then $y - \mu(x) + \mu(x_i) \in E_{x_i}$. In this case, we look up the batch index $b$ for the batch of sample points containing $x_i$, and evaluate
+If \eqref{eq:ellipsoid_check93} does not hold, then $y - \mu(x) + \mu(x_i) \notin E_{x_i}$, so we assume $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)=0$ for the purpose of interpolation. If \eqref{eq:ellipsoid_check93} does hold, then $y - \mu(x) + \mu(x_i) \in E_{x_i}$. In this case, we look up the batch index $b$ for the batch of sample points containing $x_i$, and evaluate
 \begin{equation}
 	\frac{1}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right) = \eta_b\left(y - \mu(x) + \mu(x_i)\right).
 \end{equation}
 To evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, we recall the mesh cell that $y - \mu(x) + \mu(x_i)$ resides in. This mesh cell was already computed as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. We then evaluate the relevant finite element basis functions on the cell to evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$.
 
-If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$. Let $\{y_i\}_{i=1}^k$ be the $k$ nearest sample points to $y$, excluding points $y_i$ such that $x - \mu(y) + \mu(y_i) \notin \Omega$. We could form an alternative approximation of $\Phi(y,x)$ by interpolating the values
+If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$. Let $\{y_i\}_{i=1}^k$ be the $k$ nearest sample points to $y$, excluding points $y_i$ such that $x - \mu(y) + \mu(y_i) \notin \Omega$. We could form an alternative approximation of $\Phi(y,x)$ by interpolating the (point, value) pairs
 \begin{equation}
 \label{eq:phi_mu_shift_y}
-\phi_{y_i}\left(x - \mu(y) + \mu(y_i)\right),
+\left(y_i,\phi_{y_i}\left(x - \mu(y) + \mu(y_i)\right)\right)
 \end{equation}
-in the manner described above, but with $x$ and $y$ now taking opposite roles. By combining both of these approximations, we can improve the interpolation accuracy at negligible additional cost. We combine both approximations by placing function values 
+at the point $y$, in the manner described above but with $x$ and $y$ now taking opposite roles. We improve the interpolation accuracy at negligible additional cost by combining both of these approximations. Specifically, we combine both approximations by placing function values 
 \begin{equation*}
 	\left(\widetilde{f}_x\right)_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right), \qquad i=1,\dots,k,
 \end{equation*}
@@ -295,7 +304,7 @@ at the points $x_i-x$, placing function values
 \end{equation*}
 at the points $y_i-y$, and interpolating the combination of all $2k$ of these points and values at zero.
 
-To that end, define 
+In detail, define 
 \begin{equation*}
 \widetilde{x_i} := x_i - x \qquad \text{and} \qquad \widetilde{y_i} := y_i - y.
 \end{equation*}
