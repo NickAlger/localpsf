@@ -160,13 +160,13 @@ denote the spatially varying mean and covariance of $\widehat{\impulseresponse}_
 
 Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
-Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section SECTION, but the key idea is that
+Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section SECTION, but the key idea is something that we call \emph{local mean-displacement invariance}, which is the widely applicable assumption that
 \begin{equation}
 \Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
 \end{equation}
-if $x_i$ is close to $x$. This is shown in Figure FIG. We therefore approximate $\phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for the $k$-nearest points $x_i$ to $x$. Here $k$ is a user-defined parameter; we use $k=10$. The weights in the linear combination are determined via radial basis function interpolation.
+if $x_i$ is close to $x$. This is shown in Figure FIG, and discussed in greater detail in Section SEC. We approximate $\phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for the $k$-nearest points $x_i$ to $x$. Here $k$ is a user-defined parameter; we use $k=10$. The weights in the linear combination are determined via radial basis function interpolation.
 
-The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall H-matrix approximation proceeds as follows:
+The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall H-matrix approximation proceeds as follows:
 \begin{equation*}
 \Aop \longrightarrow V, \mu, \Sigma \longrightarrow \{\impulseresponse_{x_i}\}_{i=1}^r \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
 \end{equation*}
@@ -199,7 +199,7 @@ Let $x$ and $x'$ be points in $\Omega$ that are close to each other, and conside
 	\phi_x(y) &\approx \phi_{x'}(y-x+x') \label{eq:translate2}\\
 	\phi_x(y) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right). \label{eq:translate3}
 \end{align}
-Approximations \eqref{eq:translate1} and \eqref{eq:translate2} are standard. Approximation \eqref{eq:translate3}, which we use,  is new. These approximations are illustrated in Figure FIG.
+Approximations \eqref{eq:translate1} and \eqref{eq:translate2} are standard. Approximation \eqref{eq:translate3}, which we use,  is new. We call operators that satisfy \eqref{eq:translate3} ``locally mean-displacement invariant.'' These approximations are illustrated in Figure FIG.
 
 Approximation \eqref{eq:translate1} follows from the assumption that $\Phi$ is smooth. Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank interpolative factorization of $\Phi$.
 % of the form
@@ -209,7 +209,7 @@ Approximation \eqref{eq:translate1} follows from the assumption that $\Phi$ is s
 %\end{equation}
 %where $\phi_{x_i}$ are known impulse responses at a collection of points $x_i$ scattered throughout $\Omega$, and $w_i$ are smooth weighting functions that interpolate the $\phi_{x_i}$. 
 %In problems of practical interest, \eqref{eq:translate1} typically holds \emph{asymptotically} in the limit as $x'$ approaches $x$. 
-However, even if $\Phi$ is smooth (which is typically the case asymptotically) the relevant Lipschitz constant for continuity, and hence the required rank in the low rank approximation, can be large, and this makes algorithms based on assumption \eqref{eq:translate1} highly inefficient. This is the case, for example, for Hessians in PDE constrained inverse problems with highly informative data. As the data become more informative, typically the ``mass'' of $\Phi(y,x)$ concentrates nearer and nearer to the ``diagonal'' $y=x$, the Lipschitz constant increases, and the required rank blows up.
+However, even if $\Phi$ is smooth (which is typically the case asymptotically) the relevant Lipschitz constant for continuity, and hence the required rank in the low rank approximation, can be large, which makes algorithms based on assumption \eqref{eq:translate1} computationally expensive. This is the case, for example, for Hessians in PDE constrained inverse problems with highly informative data. As the data become more informative, typically the ``mass'' of $\Phi(y,x)$ concentrates nearer and nearer to the ``diagonal'' $y=x$, the Lipschitz constant increases, and the required rank in the approximation blows up.
 %Moreover, if $\Aop$ is numerically low rank, then one would typically use more accurate and robust matrix-free methods for forming low-rank approximations, such as randomized SVD or Lanczos.
 
 Operators that satisfy \eqref{eq:translate2} are called ``locally translation-invariant'' because integral kernel entries $\Phi(y,x)$ for such operators are approximately invariant under translation of $x$ and $y$ by the same displacement, i.e., $x \rightarrow x+h$ and $y \rightarrow y+h$. Locally translation-invariant operators act like convolutions locally, and can therefore be well-approximated by so-called product-convolution approximations---weighted sums of convolution operators with spatially varying weights. Product-convolution approximations can be high-rank even if the number of convolution operators used in the approximation is small.
@@ -226,216 +226,9 @@ Operators that satisfy \eqref{eq:translate2} are called ``locally translation-in
 %Here $f \ast g$ denotes convolution, and $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$ (i.e., $\left(f \cdot g\right)(x) = f(x) g(x)$). Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. Product-convolution approximations can be high-rank even if $r$ is small.
 
 
-We use approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x_i)$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x_i)-\mu(x) \approx x_i - x$, so again \eqref{eq:translate3} holds. But approximation \eqref{eq:translate3} may continue to hold in situation where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, \eqref{eq:translate3} will hold when an operator is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case (see Figure FIG). Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires $y \in \Omega_2$ and $-x+x' \in \Omega_1$ to be added together. We call operators that satisfy \eqref{eq:translate3} ``locally mean-displacement invariant.''
+We use approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x_i)$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x_i)-\mu(x) \approx x_i - x$, so again \eqref{eq:translate3} holds. Furthermore, approximation \eqref{eq:translate3} can hold in situations where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, \eqref{eq:translate3} will hold when an operator is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case (see Figure FIG). Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires $y \in \Omega_2$ and $-x+x' \in \Omega_1$ to be added together. 
 
 
-\subsection{Approximating kernel entries $\Phi(y,x)$}
-
-Given a pair of points $(y,x) \subset \Omega \times \Omega$, we define the function
-\begin{equation}
-\label{eq:fxyxp}
-	f_{y,x}(x') := \frac{V(x)}{V(x')}\phi_{x_i}\left(y - \mu(x) + \mu(x')\right).
-\end{equation}
-It follows from inspection that 
-\begin{equation*}
-	\Phi(y,x) = f_{y,x}(x),
-\end{equation*}
-and from the discussion in Section SEC, we expect that $\Phi(y,x) \approx f_{y,x}(x')$ when $x'$ is close to $x$. The factor $\frac{V(x)}{V(x_i)}$, which was not discussed in Section SEC, is a form of preconditioning that improves the quality of this approximation in situations where $V(x)$ varies rapidly.
-%, as is commonly the case for many operators of practical interest. In the Hessian for the Stokes inverse problem, for example, we observe that $V(x)$ varies over six orders of magnitude.
-%As discussed in Section SECTION, we make the approximation
-%\begin{equation*}
-%	\Phi(y,x) = \phi_x(y) \approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right)
-%\end{equation*}
-%if $x'$ is close to $x$. Hence, w
-
-We approximate $\Phi(y,x)$ by performing radial basis function interpolation of the function $f_{y,x}(x')$ in the variable $x'$. The data used in the interpolation are the following (point,value) pairs
-\begin{equation}
-	\left(x_i, f_{y,x}(x_i)\right), \qquad i=1,\dots,k,
-\end{equation}
-and $(x, f_{y,x}(x))$ is the (point,value) pair we approximate via interpolation.
-Here $\{x_i\}_{i=1}^k \subset \Omega$ are the $k$ nearest sample points to $x$, excluding sample points for which $f_{y,x}(x_i)$ is not defined.
-%a collection of sample points at which the impulse response $\phi_{x_i}$ is known.
-%. Specifically, we interpolate $(\text{point}, \text{value})$ pairs $(x_i, f_i)$ at the point $x$, where $x_i$ are sample points, and $f_i$ are given as follows:
-%\begin{equation}
-%\label{eq:phi_mu_shift32}
-%	f_i := \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right).
-%\end{equation}
-%We must perform a new interpolation every time we evaluate $\Phi(y,x)$ at a new pair of points $(y,x)$, and constructing the H-matrix approximation of $\Phi$ requires evaluating $\Phi(y,x)$ at a large number of pairs of points $(y,x)$. 
-%Interpolation using all sample points $x_i$ is too expensive, so we only use the $k$ nearest sample points to $x$, excluding sample points for which $f_{y,x}(x_i)$ is not defined. 
-In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree [CITE] of all sample points. 
-
-From the definition of $f_{y,x}$ in \eqref{eq:fxyxp}, we see that $f_{y,x}(x_i)$ is only defined if $y - \mu(x) + \mu(x_i) \in \Omega$, because $\phi_x$ is only defined on $\Omega$. But it may happen that $y - \mu(x) + \mu(x_i) \notin \Omega$, even if $y,x,x_i \in \Omega$. In this case, the point $x_i$ is considered invalid, and not used in the interpolation, even if it is close to $x$. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) [CITE] of the mesh cells used to discretize the problem.
-
-We approximate $\Phi(y,x)$ using radial basis function interpolation of the following form:
-\begin{equation}
-	\Phi(y,x) = f_{y,x}(x) \approx \sum_{i=1}^k w_i~ b\left(\|x-x_i\|\right),
-\end{equation}
-where $b_i$ are radial basis functions, and $w_i$ are weights. The vector of weights, $w = (w_1, w_2, \dots, w_k)^T$, is found as the solution to the $k \times k$ linear system
-\begin{equation}
-Bw = f,
-\end{equation}
-where the coefficient matrix $B \in \mathbb{R}^{k \times k}$ has entries 
-\begin{equation*}
-B_{ij} = b\left(\|x_i - x_j\|\right),
-\end{equation*}
-and the right hand side vector $f \in \mathbb{R}^k$ has entries $f_i = f_{y,x}(x_i)$, $i=1,\dots,k$. We use polyharmonic spline radial basis functions [CITE], which are defined as follows:
-\begin{equation}
-	b_i(r) := \begin{cases}
-		r^d, & d=1,3,5,\dots \\
-		r^d \log r & d=2,4,6,\dots
-	\end{cases}
-\end{equation}
-for $r>0$, and $b_i(0):=0$.
-%\begin{equation}
-%	f_i = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right).
-%\end{equation}
-%The result of this interpolation is to approximate $\Phi(y,x)$ with a linear combination of the shifted impulse response values $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$. 
-%By including the factor $\frac{V(x)}{V(x_i)}$, we are implicitly interpolating the ``volume preconditioned'' function $\frac{1}{V(x)}\Phi(y,x)$, then rescaling the result by $V(x)$ to get an approximation of $\Phi(y,x)$. Volume preconditioning improves the approximation considerably when $V(x)$ varies widely in magnitude, as is commonly the case for many operators of practical interest. In the Hessian for the Stokes inverse problem, for example, we observe that $V(x)$ varies over six orders of magnitude.
-
-%In order to compute $f_{y,x}(x_i)$, we must evaluate $\impulseresponse_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$, and we do this by evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$. Here $b$ is the index of the batch that contains the sample point $x_i$, and $\eta_b$ is the corresponding impulse response batch function that we have computed and stored.  
-%Although it is typically recommended that one avoid evaluating finite element functions at arbitrary points [CITE], here we have no choice. 
-We evaluate $f_{y,x}(x_i)$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
-\begin{equation}
-\label{eq:ellipsoid_check93}
-	(y - \mu(x))^T \Sigma^{-1}(x) (y - \mu(x))  \le \tau^2.
-\end{equation}
-If \eqref{eq:ellipsoid_check93} does not hold, then $y - \mu(x) + \mu(x_i) \notin E_{x_i}$ (i.e., $y - \mu(x) + \mu(x_i)$ is outside the estimated support of $\impulseresponse_{x_i}$), so we set $f_{y,x}(x_i)=0$ for the purpose of interpolation. If \eqref{eq:ellipsoid_check93} does hold, then $y - \mu(x) + \mu(x_i) \in E_{x_i}$. In this case, we look up the batch index $b$ for the batch of sample points that contains $x_i$, and evaluate
-\begin{equation}
-	f_{y,x}(x_i) = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right) = V(x)\eta_b\left(y - \mu(x) + \mu(x_i)\right),
-\end{equation}
-where $\eta_b$ is the impulse response batch function that we have computed and stored.
-Evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires some care, because the point $y - \mu(x) + \mu(x_i)$ is typically not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints.
-To evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, we determine which mesh cell contains $y - \mu(x) + \mu(x_i)$, then we evaluate the relevant finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $y - \mu(x) + \mu(x_i)$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. 
-
-If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$. Let $\{y_i\}_{i=1}^k$ be the $k$ nearest sample points to $y$, excluding points $y_i$ such that $x - \mu(y) + \mu(y_i) \notin \Omega$. We could form an alternative approximation of $\Phi(y,x)$ by interpolating the (point, value) pairs
-\begin{equation}
-\label{eq:phi_mu_shift_y}
-\left(y_i,f_{x,y}(y_i)\right), \qquad i=1,\dots,k,
-\end{equation}
-in the same manner as before, but with $x$ and $y$ now taking opposite roles. We improve the interpolation accuracy at negligible additional cost by combining both of these approximations. Specifically, we combine both approximations by placing function values 
-\begin{equation*}
-	\left(\widetilde{f}_x\right)_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right), \qquad i=1,\dots,k,
-\end{equation*}
-at the points $x_i-x$, placing function values
-\begin{equation*}
-\left(\widetilde{f}_y\right)_i := \frac{V(y)}{V(y_i)}\phi_{y_i}\left(x - \mu(y) + \mu(y_i)\right), \qquad i=1,\dots,k,
-\end{equation*}
-at the points $y_i-y$, and interpolating the combination of all $2k$ of these points and values at zero.
-
-In detail, define 
-\begin{equation*}
-\widetilde{x_i} := x_i - x \qquad \text{and} \qquad \widetilde{y_i} := y_i - y.
-\end{equation*}
-and let
-\begin{equation*}
-	\widetilde{B} = \begin{bmatrix}
-		\widetilde{B}_{xx} & \widetilde{B}_{xy} \\
-		\widetilde{B}_{yx} & \widetilde{B}_{xx}
-	\end{bmatrix}, \qquad \widetilde{w} = \begin{bmatrix}\widetilde{w}_x \\ \widetilde{w}_y\end{bmatrix}, \qquad \widetilde{f} = \begin{bmatrix}
-		\widetilde{f}_x \\ \widetilde{f}_y
-	\end{bmatrix},
-\end{equation*}
-be a $2k \times 2k$ block matrix and $2k \times 1$ block vectors, respectively, with the block entries of $\widetilde{B}$ be given by
-\begin{align*}
-\left(\widetilde{B}_{xx}\right)_{ij} = b\left(\|\widetilde{x}_i - \widetilde{x}_j\|\right), &\qquad
-\left(\widetilde{B}_{xy}\right)_{ij} = b\left(\|\widetilde{x}_i - \widetilde{y}_j\|\right), \\
-\left(\widetilde{B}_{yx}\right)_{ij} = b\left(\|\widetilde{y}_i - \widetilde{x}_j\|\right), &\qquad \left(\widetilde{B}_{yy}\right)_{ij} = b\left(\|\widetilde{y}_i - \widetilde{y}_j\|\right),
-\end{align*}
-for $i,j=1,\dots,k$. We approximate $\Phi(y,x)$ as follows:
-\begin{equation}
-\Phi(y,x) \approx \sum_{i=1}^k \left(w_x\right)_i~ b\left(\|\widetilde{x}_i\|\right) + \sum_{i=1}^k \left(w_y\right)_i~ b\left(\|\widetilde{y}_i\|\right),
-\end{equation}
-where $\widetilde{w}$ is the solution of the following regularized least-squares problem,
-\begin{equation*}
-	\min_{\widetilde{w}} \frac{1}{2}\|\widetilde{B} \widetilde{w} - \widetilde{f}\|^2 + \frac{\alpha}{2}\|\widetilde{w}\|^2,
-\end{equation*}
-for a small regularization parameter $\alpha$. 
-We solve the regularized least squares problem by QR factorization of the block $4k \times 2k$ matrix $\begin{bmatrix}\widetilde{B} & I\end{bmatrix}^T$. We regularize the problem because of numerical issues that arise if there are points $\widetilde{x}_i$ and $\widetilde{y}_j$ in the interpolation such that $\widetilde{x}_i \approx \widetilde{y}_j$, a situation that arises often in practice. Indeed, situations where $\widetilde{x}_i = \widetilde{y}_j$ are inevitable when a regular grid is used to discretize the problem. In this case, $\widetilde{B}$ is (nearly) singular, so it is numerically ill-advised to solve the standard interpolation equation $\widetilde{B} \widetilde{w} = \widetilde{f}$. 
-
-%In principle, this equation is still solvable if $\left(\widetilde{f}_x\right)_i = \left(\widetilde{f}_x\right)_j$, which should hold in principle. However, errors incurred at any stage of the approximation process, particularly the assumption that the support of $\phi_x$ is contained in the ellipsoid $E_x$, will cause small discrepancies between $\left(\widetilde{f}_x\right)_i$ and $\left(\widetilde{f}_x\right)_j$, and these errors get amplified by the ill-conditioning.
-	
-%	 or $\widetilde{x}_i \approx \widetilde{y}_j$. 
-%	
-%	while $\left(\widetilde{f}_x\right)_i \neq \left(\widetilde{f}_x\right)_j$
-%
-% $\widetilde{B}\widetilde{w}=\widetilde{f}$
-
-
-
-
-%and let $\widetilde{B}_{xx}$, $\widetilde{B}_{xy}$, $\widetilde{B}_{yx}$, and $\widetilde{B}_{yy}$ be $k \times k$ matrices with the following entries:
-%\begin{align*}
-%	\left(\widetilde{B}_{xx}\right)_{ij} &= b\left(\|\widetilde{x}_i - \widetilde{x}_j\|\right) \\	\left(\widetilde{B}_{xy}\right)_{ij} &= b\left(\|\widetilde{x}_i - \widetilde{y}_j\|\right) \\
-%\end{align*}
-%
-%
-%\begin{equation*}
-%	\begin{bmatrix}
-%		B_{xx} & B_{xy} \\ B_{yx} & B_{yy}
-%	\end{bmatrix}
-%\end{equation*}
-%
-%Let $\phi'_{y_i}(x) := \Phi(y_i,x)$ denote the impulse response of $\Aop^T$ to a point source at $y_i$. 
-%
-%Let $\{y_i\}_{i=1}^r$ be the $k$ nearest sample points to $y$, and let . In the case where $\Aop$ is symmetric, knowing 
-%
-%In the case where $\Aop$ is symmetric, we have
-%\begin{equation}
-%	\impulseresponse_{x_i}(y) = \Phi(y,x_i) = \Phi(x_i,y) = \impulseresponse'_{x_i}(y)
-%\end{equation}
-%knowing the impulse response $\impulseresponse_{x_i}$ of $\Aop$ at $x_i$
-
-\subsection{Product-convolution approximation}
-\label{sec:prodconv_intro}
-Let 
-\begin{equation}
-\label{eq:convolution_kernel}
-\convkernel_x(y) := \impulseresponse_x(y+x)
-\end{equation}
-be the translation of $\impulseresponse_x$ to re-center it at zero instead of $x$. If $\Aop$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then for any point $x_0$ we would have
-\begin{align*}
-	\Aker(y,x) &= \Aker(y+(x_0-x),x+(x_0-x)) \\
-	&= \phi_{x_0}(y-x+x_0) \\
-	&= \convkernel_{x_0}(y-x)
-\end{align*}
-which would imply
-\begin{align*}
-	(\Aop u)(v) &= \int_\Omega \int_\Omega v(y) \convkernel_{x_0}(y-x) u(x) dx dy \\
-	&= \int_\Omega v(y) \left(\int_\Omega \convkernel_{x_0}(y-x) u(x) dx\right) dy \\
-	&= \left(v, \convkernel_{x_0} \ast u\right)_{L^2(\Omega)},
-\end{align*}
-where $f \ast g$ denotes convolution of the functions $f$ and $g$, and $\left(f, g\right)_{L^2(\Omega)} := \int_\Omega f(x) g(x) dx$ denotes the $L^2$ inner product of $f$ and $g$ on $\Omega$. Hence, if $\Aop$ were perfectly translation invariant, it would be the convolution operator $u \mapsto \left(\convkernel_{x_0} \ast u\right)^*$. 
-
-Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\convkernel_x$, varies as $x$ changes. We therefore approximate $\Aop$ by a spatially varying weighted sum of convolution operators, $\AopPc \approx \Aop$, of the form
-\begin{equation}
-	\left(\AopPc~u\right)(v) := \left( v,~ \sum_{i=1}^\convrank \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
-\end{equation}
-where $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$ (i.e., $\left(f \cdot g\right)(x) = f(x) g(x)$). Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. To avoid nested subscripts, we write 
-\begin{equation*}
-	\convkernel_i := \convkernel_{x_i} \quad \text{and} \quad \impulseresponse_i := \impulseresponse_{x_i},
-\end{equation*}
-with $\convkernel_{x_i}$ defined in \eqref{eq:convolution_kernel} and $\impulseresponse_{x_i}$ defined in \eqref{eq:impulse_response_defn}, to denote local convolution kernels and impulse responses corresponding to a collection of points $\{x_i\}_{i=1}^\convrank \subset \Omega$ scattered throughout the domain. The functions $w_i$ are spatially varying weighting functions that are used to interpolate the convolution kernels $\convkernel_i$. Our operator approximation method is defined by how we compute the convolution kernels, $\convkernel_i$, how we choose the points, $x_i$, and what weighting functions, $w_i$, that we use. In Section \ref{sec:overview_intro} we summarize the answers to these questions; we will provide detailed answers to these questions in Section \ref{sec:method}.
-
-The more locally translation invariant an operator is (i.e., the smaller the discrepancy between the left hand side and right hand side in \eqref{eq:local_translation_invariance}), the smaller the number of terms that are required in \eqref{eq:product_convolution} to achieve an accurate product-convolution approximation. 
-
-\subsection{Overview of the method (old)}
-\label{sec:overview_intro}
-
-We compute one ``batch'' of $\convkernel_i$'s by applying $\Aop$ to a sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen so that the support of $\impulseresponse_i$ and the support of $\impulseresponse_j$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_i$, and therefore the functions $\convkernel_i$, associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\convkernel_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\convkernel_i$'s, until a desired number of batches is reached.
-
-In order to choose the points $x_i$, we need to estimate the support of $\impulseresponse_i$ \emph{before} we compute it. The supports of the functions $\impulseresponse_x$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of specially chosen functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$), then post processing the results (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
-
-We choose the $i$th weighting function, $w_i$, to be the flattest function, in a least-squares sense, that takes the value one at the sample point $x_i$, and the value zero at the other sample points $x_j$, $j \neq i$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid. We call this interpolation scheme \emph{Poisson interpolation}. The advantage of Poisson interpolation over other interpolation methods, most notably radial basis function interpolation \cite{ESCANDE}, is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. This is illustrated in Figure FIG. 
-
-Once the $\convkernel_i$ and $w_i$ are computed, we convert $\AopPc$ to hierarchical matrix (H-matrix) format. Let $\Aker_\text{pc}$ denote the integral kernel associated with $\AopPc$. While $\Aker(y,x)$ is not easily computable, $\Aker_\text{pc}(y,x)$ is given by the formula
-\begin{equation}
-	\label{eq:kernel_entries}
-	\AkerPc(y,x) = \sum_{i=1}^\convrank \convkernel_i(y-x) w_i(x).
-\end{equation}
-This follows from~\eqref{eq:product_convolution} and the fact that the convolution operator $u \mapsto \convkernel_i \ast u$ has $(y,x)$ kernel entry given by $\convkernel(y-x)$.
-Formula~\eqref{eq:kernel_entries} allows us to construct a H-matrix representation of $\AopPc$ using the conventional adaptive cross H-matrix construction method, in which one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. Once in H-matrix format, fast H-matrix arithmetic is used to invert $\AopPc$, or perform other useful matrix operations.
-
-Often we are interested in approximating operators $\Aop$ that are symmetric positive semi-definite. Unfortunately, $\AopPc$ is, in general, non-symmetric and indefinite due to errors in the product convolution approximation. In this case, we modify the H-matrix representation of $\AopPc$ to make it positive definite, by symmetrizing it, then applying a specially chosen rational matrix function to the symmetrized H-matrix.
 
 
 \subsection{Existing work}
@@ -652,324 +445,164 @@ Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approxim
 for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the convolution kernels $\convkernel_{x_i}$ associated with every point $x_i \in \pointbatch_k$. 
 
 
-\subsubsection{Interpolation onto local regular grids}
-\label{sec:convolution_kernel_regular_grid}
 
-To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\convkernel_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\convkernel_{x_i}(z)$ requires evaluating $\combresponse_k(z+x_i)$. In computations, $\combresponse_k$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\combresponse_k(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. 
+\subsection{Approximating kernel entries $\Phi(y,x)$}
 
-To speed up evaluation of $\convkernel_{x_i}$, we interpolate $\convkernel_{x_i}$ onto a regular rectilinear grid on a coordinate axis aligned box that just barely contains the ellipsoid $E_{x_i}$. We transfer the function $\convkernel_{x_i}$ from the irregular mesh to the regular grid by evaluating $\convkernel_{x_i}$ at all gridpoints in the regular grid, using the slow process described in the previous paragraph. This is an upfront cost which is done ``offline.'' After $\convkernel_{x_i}$ has been transferred to the regular grid, we use fast regular grid interpolation to perform all subsequent ``online'' evaluations of $\convkernel_{x_i}$. This yields a substantial overall speedup because the number of finite element function evaluations required to transfer the functions $\convkernel_{x_i}$ to the regular grid is $O(\fedim)$, while the number of kernel evaluations required to convert $\AopPc$ to H-matrix format is $O(k \fedim \log \fedim)$. Here $\fedim$ is the number of degrees of freedom in the finite element space used to discretize $\combresponse_k$, and $\hmatrixrank$ is the H-matrix rank. Furthermore, transferring $\convkernel_{x_i}$ to a regular grid requires evaluating $\convkernel_{x_i}$ at a predetermined and highly structured collection of points. This structure allows for faster determination of which mesh cell that a point is in, and allows one to evaluate the finite element function at all regular gridpoints in parallel. In contrast, constructing the H-matrix requires evaluating $\convkernel_{x_i}$ at an unpredictable sequence of scattered points, which is an expensive task for finite element function evaluation, but a cheap task for regular grid interpolation. 
-Having $\convkernel_{x_i}$ stored on a regular grid also simplifies the implementation of the method that we use to handle boundary artifacts, which will be described in Section \ref{sec:boundary_extension}.
-
-We incur interpolation error when transferring $\convkernel_{x_i}$ from the irregular mesh to the regular grid. To limit this interpolation error, the density of the regular grid should be as dense or denser than the local density of the finite element mesh. In our numerical results, the distance between neighboring points in the regular grid is chosen to be half the minimum distance between any pair of finite element Lagrange nodes that are contained in $E_{x_i}$. The grid transfer procedure is illustrated in Figure FIG. 
-
-When $x_i$ is near a boundary, it may occur that some gridpoints for the regular grid are in locations where $\convkernel_{x_i}$ is undefined. In this case, we store a placeholder value for $\convkernel_{x_i}$ at those gridpoints. We use the IEEE standard value of ``NaN'' (not a number) for this placeholder. In the next section (Section \ref{sec:boundary_extension}) we replace these NaN values with more appropriate values.
-
-
-\subsubsection{Addressing boundary artifacts}
-\label{sec:boundary_extension}
-
-Evaluating the kernel for our product-convolution approximation, $\AkerPc(y,x)$, requires evaluating $\convkernel_{x_i}(y-x)$. But $\convkernel_{x_i}(y-x)$ is undefined  when $y - x + x_i$ is outside $\Omega$, which may occur even if $x \in \Omega$ and $y \in \Omega$. The default approach to deal with this problem is to extend $\convkernel_{x_i}$ by zero wherever it is undefined. But this leads to substantial errors, known as boundary artifacts, which are especially significant when the sample point $x_i$ is near the boundary of the domain. In this case, the impulse response is artificially chopped off by the domain boundary. See Figure FIG for an illustration. 
-
-While $\convkernel_{x_i}$ may be undefined at a point $z$, often there is a sample point $x_j$ that is near $x_i$, but further away from the boundary than $x_i$, such that $\convkernel_{x_j}$ is well defined at $z$. To address boundary artifacts, we fill in missing/undefined portions of convolution kernels using information from other convolution kernels associated with the $k$ nearest sample points (we use $k=8$ in our numerical results). Kernels associated with nearer sample points are given precedence over kernels associated with farther away sample points. 
-
-In detail, let $p_1, p_2, \dots, p_k$ be the $k$ nearest sample points to $x_i$, ordered by nearness, including $x_i$ itself. That is, $p_1=x_i$, $p_2$ is the nearest neighbor to $x_i$, $p_3$ is the second nearest neighbor to $x_i$, and so on. Also, recall from the previous section (Section \ref{sec:convolution_kernel_regular_grid}) that the functions $\convkernel_{x_i}$ are stored on regular rectilinear grids. To extend $\convkernel_{x_i}$, we form an expanded regular rectilinear grid that has the same grid spacing as the grid used for $\convkernel_{x_i}$, and contains that grid as a subgrid, but is large enough to contain the boxes associated with all of the neighbor kernels, $\convkernel_{p_1}, \convkernel_{p_2}, \dots, \convkernel_{p_k}$ (recall that the functions $\convkernel_{x_i}$ are all centered at zero). We initialize an extended convolution kernel, $\convkernel_{x_i}^E$, to zero on this expanded grid. Then we interpolate the functions $\convkernel_{p_j}$ onto this expanded grid in reverse order. First we interpolate $\convkernel_{p_k}$ onto the grid, then $\convkernel_{p_{k-1}}$, and so on until the last step in which we interpolate the original kernel $\convkernel_{p_1} = \convkernel_{x_i}$. At each step, we overwrite existing values of $\convkernel_{x_i}^E$ with new values from the kernel currently being interpolated, except when the new value of $\convkernel_{p_j}$ is undefined (``NaN''). At gridpoints where the kernel being interpolated is undefined, we leave $\convkernel_{x_i}^E$ unchanged. In this way, we fill in undefined values of $\convkernel_{x_i}$ with values from successively further and further away kernels. This process is illustrated in Figure FIG. To avoid notational clutter, and since we will henceforth only work with the extended kernel, $\convkernel_{x_i}^E$, in the remainder of this paper the symbol $\convkernel_{x_i}$ refers to $\convkernel_{x_i}^E$.
-
-
-\subsection{Poisson weighting functions}
-\label{sec:weighting_functions}
-
-Consider the following optimization problem,
+Given a pair of points $(y,x) \subset \Omega \times \Omega$, we define the function
 \begin{equation}
-	\label{eq:wi_optimization_problem_generic}
-	\begin{aligned}
-	\min_{v \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta v}_{L^2(\Omega)}^2 \\
-	\text{such that} &\quad v(x_j) = \interpolatedvalues_j, \quad j=1,\dots,\convrank,
-	\end{aligned}
+\label{eq:fxyxp}
+f_{y,x}(x') := \frac{V(x)}{V(x')}\phi_{x_i}\left(y - \mu(x) + \mu(x')\right).
 \end{equation}
-in which one seeks a smooth function $v$ that takes the values $\interpolatedvalues_j \in \mathbb{R}$ at the points $x_j$. Here $\Delta$ is the Laplacian on $\Omega$ and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to optimization problem \eqref{eq:wi_optimization_problem_generic}, with 
+It follows from inspection that 
 \begin{equation*}
-	b_j = w_i(x_j) = 
-	\begin{cases}
-		1, & j=i\\
-		0, & j \neq i.
-	\end{cases}
+\Phi(y,x) = f_{y,x}(x),
 \end{equation*}
-In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' \cite{JACOBSEN} interpolation of the convolution kernels, $\convkernel_i$, in a least-squares sense. Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}).
+and from the discussion in Section SEC, we expect that $\Phi(y,x) \approx f_{y,x}(x')$ when $x'$ is close to $x$. The factor $\frac{V(x)}{V(x_i)}$, which was not discussed in Section SEC, is a form of preconditioning that improves the quality of this approximation in situations where $V(x)$ varies rapidly.
+%, as is commonly the case for many operators of practical interest. In the Hessian for the Stokes inverse problem, for example, we observe that $V(x)$ varies over six orders of magnitude.
+%As discussed in Section SECTION, we make the approximation
+%\begin{equation*}
+%	\Phi(y,x) = \phi_x(y) \approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right)
+%\end{equation*}
+%if $x'$ is close to $x$. Hence, w
 
-The solution to optimization problem \eqref{eq:wi_optimization_problem_generic} is given via the following procedure:
-\begin{enumerate}
-	\item For each sample point $x_i$, we compute a function $\firstgreens_i$ by solving the following Neumann Poisson problem:
-	\begin{equation}
-		\label{eq:psi_eq}
-		\begin{cases}
-			\Delta \firstgreens_i = \delta_{x_i} - 1/|\Omega|, & \text{in }\Omega, \\
-			\nu \cdot \nabla \firstgreens_i = 0 & \text{on } \partial \Omega,
-		\end{cases}
-	\end{equation}
-	with condition $\int_\Omega \firstgreens_i(x) dx = 0$. Here $\delta_{x_i}$ is the point source centered at $x_i$, $|\Omega|$ is the measure of the domain $\Omega$, and $\nu$ is the normal vector to $\partial \Omega$.
-	\item For each function $\firstgreens_i$, we compute a function $\secondgreens_i$ by solving another Neumann Poisson problem:
-	\begin{equation}
-		\label{eq:theta_eq}
-		\begin{cases}
-			\Delta \secondgreens_i = \firstgreens_i, & \text{in }\Omega, \\
-			\nu \cdot \nabla \secondgreens_i = 0 & \text{on } \partial \Omega,
-		\end{cases}
-	\end{equation}
-	with condition $\int_\Omega \secondgreens_i(x) dx = 0$.
-	\item The solution to optimization problem \eqref{eq:wi_optimization_problem_generic}, which we denote by $v_*$, is formed as follows:
-	\begin{equation}
-		\label{eq:optimal_v}
-		v_*(x) := \constcoeff + \sum_{i=1}^\convrank \secondgreenscoeff_i \secondgreens_i(x),
-	\end{equation}
-	where the constants $\secondgreenscoeff_i \in \mathbb{R}$, $i=1,\dots,\convrank$, and $\constcoeff \in \mathbb{R}$ are the solution to the following linear system:
-	\begin{equation}
-		\label{eq:interpolation_linear_system}
-		\begin{bmatrix}
-			\pointinteractionmatrix & \bm{1} \\ \bm{1}^T & 0
-		\end{bmatrix}
-		\begin{bmatrix}
-			\bm{\secondgreenscoeff} \\ \constcoeff
-		\end{bmatrix}
-		=
-		\begin{bmatrix}
-			\bm{\interpolatedvalues} \\ 0
-		\end{bmatrix}.
-	\end{equation}
-	Here $\bm{\secondgreenscoeff} \in \mathbb{R}^\convrank$ is the vector with $i$th component $\secondgreenscoeff_i$, $\bm{1} \in \bm{R}^\convrank$ is the column vector of all ones, $\bm{\interpolatedvalues} \in \mathbb{R}^\convrank$ is the vector with $i$th component $\interpolatedvalues_i$, and $\pointinteractionmatrix \in \mathbb{R}^{\convrank \times \convrank}$ is the matrix with entries given by
-	\begin{equation}
-		\label{eq:S_matrix}
-		\pointinteractionmatrix_{ij} := \left( \firstgreens_i, \firstgreens_j \right)_{L^2(\Omega)}.
-	\end{equation}
-\end{enumerate}
-Linear system \eqref{eq:interpolation_linear_system} is the KKT system that arises if one solves optimization problem \eqref{eq:wi_optimization_problem_generic} on the $\convrank+1$-dimensional subspace of $H^2_N(\Omega)$ spanned by the functions $\secondgreens_i$, $i=1,\dots,\convrank$, and the constant function $C(x)=1$. In Theorem \ref{thm:wi_no_breakdown}, we prove that this procedure does not break down, and in Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this procedure is the solution to optimization problem \eqref{eq:wi_optimization_problem_generic} on $H^2_N(\Omega)$.
+We approximate $\Phi(y,x)$ by performing radial basis function interpolation of the function $f_{y,x}(x')$ in the variable $x'$. The data used in the interpolation are the following (point,value) pairs
+\begin{equation}
+\left(x_i, f_{y,x}(x_i)\right), \qquad i=1,\dots,k,
+\end{equation}
+and $(x, f_{y,x}(x))$ is the (point,value) pair we approximate via interpolation.
+Here $\{x_i\}_{i=1}^k \subset \Omega$ are the $k$ nearest sample points to $x$, excluding sample points for which $f_{y,x}(x_i)$ is not defined.
+%a collection of sample points at which the impulse response $\phi_{x_i}$ is known.
+%. Specifically, we interpolate $(\text{point}, \text{value})$ pairs $(x_i, f_i)$ at the point $x$, where $x_i$ are sample points, and $f_i$ are given as follows:
+%\begin{equation}
+%\label{eq:phi_mu_shift32}
+%	f_i := \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right).
+%\end{equation}
+%We must perform a new interpolation every time we evaluate $\Phi(y,x)$ at a new pair of points $(y,x)$, and constructing the H-matrix approximation of $\Phi$ requires evaluating $\Phi(y,x)$ at a large number of pairs of points $(y,x)$. 
+%Interpolation using all sample points $x_i$ is too expensive, so we only use the $k$ nearest sample points to $x$, excluding sample points for which $f_{y,x}(x_i)$ is not defined. 
+In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree [CITE] of all sample points. 
 
-Constructing all $\convrank$ of the functions $w_i$ thus requires solving the Poisson equation $2\convrank$ times with different right hand side sources to form the functions $\firstgreens_i$ and $\secondgreens_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, which are the most expensive part of this procedure, can be performed cheaply with multigrid. 
+From the definition of $f_{y,x}$ in \eqref{eq:fxyxp}, we see that $f_{y,x}(x_i)$ is only defined if $y - \mu(x) + \mu(x_i) \in \Omega$, because $\phi_x$ is only defined on $\Omega$. But it may happen that $y - \mu(x) + \mu(x_i) \notin \Omega$, even if $y,x,x_i \in \Omega$. In this case, the point $x_i$ is considered invalid, and not used in the interpolation, even if it is close to $x$. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) [CITE] of the mesh cells used to discretize the problem.
 
-It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension of the domain is $\gdim=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-posed in three spatial dimensions or fewer. In four or higher spatial dimensions, one could construct appropriate weighting functions using radial basis functions, though we do not discuss this here.
+We approximate $\Phi(y,x)$ using radial basis function interpolation of the following form:
+\begin{equation}
+\Phi(y,x) = f_{y,x}(x) \approx \sum_{i=1}^k w_i~ b\left(\|x-x_i\|\right),
+\end{equation}
+where $b_i$ are radial basis functions, and $w_i$ are weights. The vector of weights, $w = (w_1, w_2, \dots, w_k)^T$, is found as the solution to the $k \times k$ linear system
+\begin{equation}
+Bw = f,
+\end{equation}
+where the coefficient matrix $B \in \mathbb{R}^{k \times k}$ has entries 
+\begin{equation*}
+B_{ij} = b\left(\|x_i - x_j\|\right),
+\end{equation*}
+and the right hand side vector $f \in \mathbb{R}^k$ has entries $f_i = f_{y,x}(x_i)$, $i=1,\dots,k$. We use polyharmonic spline radial basis functions [CITE], which are defined as follows:
+\begin{equation}
+b_i(r) := \begin{cases}
+r^d, & d=1,3,5,\dots \\
+r^d \log r & d=2,4,6,\dots
+\end{cases}
+\end{equation}
+for $r>0$, and $b_i(0):=0$.
+%\begin{equation}
+%	f_i = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right).
+%\end{equation}
+%The result of this interpolation is to approximate $\Phi(y,x)$ with a linear combination of the shifted impulse response values $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$. 
+%By including the factor $\frac{V(x)}{V(x_i)}$, we are implicitly interpolating the ``volume preconditioned'' function $\frac{1}{V(x)}\Phi(y,x)$, then rescaling the result by $V(x)$ to get an approximation of $\Phi(y,x)$. Volume preconditioning improves the approximation considerably when $V(x)$ varies widely in magnitude, as is commonly the case for many operators of practical interest. In the Hessian for the Stokes inverse problem, for example, we observe that $V(x)$ varies over six orders of magnitude.
 
-\begin{thm}[Procedure for computing $v_*$ does not break down]
-	\label{thm:wi_no_breakdown}
-	If all the sample points $x_i$, $i=1,\dots,\convrank$, are distinct, then PDE \eqref{eq:psi_eq} is uniquely solvable for $\firstgreens_i$, PDE \eqref{eq:theta_eq} is uniquely solvable for $\secondgreens_i$, and linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\bm{\secondgreenscoeff}$ and $\constcoeff$. That is, the procedure for computing $v_*$ does not break down. Furthermore, $v_* \in H^2_N(\Omega)$.
-\end{thm}
+%In order to compute $f_{y,x}(x_i)$, we must evaluate $\impulseresponse_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$, and we do this by evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$. Here $b$ is the index of the batch that contains the sample point $x_i$, and $\eta_b$ is the corresponding impulse response batch function that we have computed and stored.  
+%Although it is typically recommended that one avoid evaluating finite element functions at arbitrary points [CITE], here we have no choice. 
+We evaluate $f_{y,x}(x_i)$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
+\begin{equation}
+\label{eq:ellipsoid_check93}
+(y - \mu(x))^T \Sigma^{-1}(x) (y - \mu(x))  \le \tau^2.
+\end{equation}
+If \eqref{eq:ellipsoid_check93} does not hold, then $y - \mu(x) + \mu(x_i) \notin E_{x_i}$ (i.e., $y - \mu(x) + \mu(x_i)$ is outside the estimated support of $\impulseresponse_{x_i}$), so we set $f_{y,x}(x_i)=0$ for the purpose of interpolation. If \eqref{eq:ellipsoid_check93} does hold, then $y - \mu(x) + \mu(x_i) \in E_{x_i}$. In this case, we look up the batch index $b$ for the batch of sample points that contains $x_i$, and evaluate
+\begin{equation}
+f_{y,x}(x_i) = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right) = V(x)\eta_b\left(y - \mu(x) + \mu(x_i)\right),
+\end{equation}
+where $\eta_b$ is the impulse response batch function that we have computed and stored.
+Evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires some care, because the point $y - \mu(x) + \mu(x_i)$ is typically not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints.
+To evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, we determine which mesh cell contains $y - \mu(x) + \mu(x_i)$, then we evaluate the relevant finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $y - \mu(x) + \mu(x_i)$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. 
 
-\begin{proof}
-	Existence and uniqueness for the solutions to PDEs \eqref{eq:psi_eq} and \eqref{eq:theta_eq} follow from the standard elliptic PDE theory. By standard elliptic regularity theory, $\firstgreens_i \in H^1(\Omega)$, so $\firstgreens_i \in L^2(\Omega)$, and so all matrix entries $\pointinteractionmatrix_{ij}$ are finite. 
-	
-	Using the definition of $\pointinteractionmatrix$ and basic linear algebra, it is straightforward to show that if $\pointinteractionmatrix$ were singular, there would exist constants $a_1, a_2, \dots a_\convrank$, which are not all zero, such that
-	\begin{equation*}
-		0 = a_1 \firstgreens_1 + a_2 \firstgreens_2 + \dots a_\convrank \firstgreens_\convrank.
-	\end{equation*}
-	Applying the Laplacian to this equation yields
-	\begin{equation*}
-		0 = a_1 \delta_{x_1} + a_2 \delta_{x_2} + \dots a_\convrank \delta_{x_\convrank} - \left(\sum_{i=1}^\convrank a_i\right)\bigg/|\Omega|,
-	\end{equation*}
-	which is impossible because a nonzero linear combination of delta distributions at different points cannot equal a constant function. Thus we must conclude that $\pointinteractionmatrix$ is non-singular. By block matrix factorization, non-singularity of $\pointinteractionmatrix$ implies that linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\bm{\secondgreenscoeff}$ and $\constcoeff$.
-	
-	By standard elliptic regularity theory, the functions $\secondgreens_i$ are in $H^3(\Omega)$, and therefore they are in $H^2(\Omega)$. By construction the functions $\secondgreens_i$ have Neumann zero boundary conditions, so $\secondgreens_i \in H^2_N(\Omega)$. Since $v_*$ is a linear combination of the functions $\secondgreens_i$ and the constant function $C(x)=1$ which is in $H^2_N(\Omega)$, we have $v_* \in H^2_N(\Omega)$.
-\end{proof}
+\subsubsection{Improvements when $\Aop$ is symmetric}
+If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$. Let $\{y_i\}_{i=1}^k$ be the $k$ nearest sample points to $y$, excluding points $y_i$ such that $x - \mu(y) + \mu(y_i) \notin \Omega$. We could form an alternative approximation of $\Phi(y,x)$ by interpolating the (point, value) pairs
+\begin{equation}
+\label{eq:phi_mu_shift_y}
+\left(y_i,f_{x,y}(y_i)\right), \qquad i=1,\dots,k,
+\end{equation}
+in the same manner as before, but with $x$ and $y$ now taking opposite roles. We improve the interpolation accuracy at negligible additional cost by combining both of these approximations. Specifically, we combine both approximations by placing function values 
+\begin{equation*}
+\left(\widetilde{f}_x\right)_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right), \qquad i=1,\dots,k,
+\end{equation*}
+at the points $x_i-x$, placing function values
+\begin{equation*}
+\left(\widetilde{f}_y\right)_i := \frac{V(y)}{V(y_i)}\phi_{y_i}\left(x - \mu(y) + \mu(y_i)\right), \qquad i=1,\dots,k,
+\end{equation*}
+at the points $y_i-y$, and interpolating the combination of all $2k$ of these points and values at zero.
 
-\begin{lem}[Integral representation of delta distribution on $H^2_N(\Omega)$]
-	\label{lem:psi_delta_eval}
-	We have
-	\begin{equation}
-		\label{eq:inline_wi_lemma}
-		h(x_j) = \left(\firstgreens_j, \Delta h\right)_{L^2(\Omega)} + \avg(h)
-	\end{equation}
-	for all $h\in H^2_N(\Omega)$, where
-	\begin{equation*}
-		\avg(h) :=	 \frac{1}{|\Omega|} \int_\Omega h ~dx,
-	\end{equation*}
-	and $|\Omega| = \int_\Omega 1 ~dx$ is the Lebesgue measure of $\Omega$.
-\end{lem}
+In detail, define 
+\begin{equation*}
+\widetilde{x_i} := x_i - x \qquad \text{and} \qquad \widetilde{y_i} := y_i - y.
+\end{equation*}
+and let
+\begin{equation*}
+\widetilde{B} = \begin{bmatrix}
+\widetilde{B}_{xx} & \widetilde{B}_{xy} \\
+\widetilde{B}_{yx} & \widetilde{B}_{xx}
+\end{bmatrix}, \qquad \widetilde{w} = \begin{bmatrix}\widetilde{w}_x \\ \widetilde{w}_y\end{bmatrix}, \qquad \widetilde{f} = \begin{bmatrix}
+\widetilde{f}_x \\ \widetilde{f}_y
+\end{bmatrix},
+\end{equation*}
+be a $2k \times 2k$ block matrix and $2k \times 1$ block vectors, respectively, with the block entries of $\widetilde{B}$ be given by
+\begin{align*}
+\left(\widetilde{B}_{xx}\right)_{ij} = b\left(\|\widetilde{x}_i - \widetilde{x}_j\|\right), &\qquad
+\left(\widetilde{B}_{xy}\right)_{ij} = b\left(\|\widetilde{x}_i - \widetilde{y}_j\|\right), \\
+\left(\widetilde{B}_{yx}\right)_{ij} = b\left(\|\widetilde{y}_i - \widetilde{x}_j\|\right), &\qquad \left(\widetilde{B}_{yy}\right)_{ij} = b\left(\|\widetilde{y}_i - \widetilde{y}_j\|\right),
+\end{align*}
+for $i,j=1,\dots,k$. We approximate $\Phi(y,x)$ as follows:
+\begin{equation}
+\Phi(y,x) \approx \sum_{i=1}^k \left(w_x\right)_i~ b\left(\|\widetilde{x}_i\|\right) + \sum_{i=1}^k \left(w_y\right)_i~ b\left(\|\widetilde{y}_i\|\right),
+\end{equation}
+where $\widetilde{w}$ is the solution of the following regularized least-squares problem,
+\begin{equation*}
+\min_{\widetilde{w}} \frac{1}{2}\|\widetilde{B} \widetilde{w} - \widetilde{f}\|^2 + \frac{\alpha}{2}\|\widetilde{w}\|^2,
+\end{equation*}
+for a small regularization parameter $\alpha$. 
+We solve the regularized least squares problem by QR factorization of the block $4k \times 2k$ matrix $\begin{bmatrix}\widetilde{B} & I\end{bmatrix}^T$. We regularize the problem because of numerical issues that arise if there are points $\widetilde{x}_i$ and $\widetilde{y}_j$ in the interpolation that are very close to each other, a situation that arises often in practice. Indeed, situations where $\widetilde{x}_i = \widetilde{y}_j$ are inevitable when a regular grid is used to discretize the problem. In this case, $\widetilde{B}$ is (nearly) singular, so it is numerically ill-advised to solve the standard interpolation equation $\widetilde{B} \widetilde{w} = \widetilde{f}$. 
 
-\begin{proof}
-	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\firstgreens_j$ onto $h$, and using the Neumann zero boundary conditions for $\firstgreens_j$ and $h$ to eliminate boundary integral terms.
-\end{proof}
+%In principle, this equation is still solvable if $\left(\widetilde{f}_x\right)_i = \left(\widetilde{f}_x\right)_j$, which should hold in principle. However, errors incurred at any stage of the approximation process, particularly the assumption that the support of $\phi_x$ is contained in the ellipsoid $E_x$, will cause small discrepancies between $\left(\widetilde{f}_x\right)_i$ and $\left(\widetilde{f}_x\right)_j$, and these errors get amplified by the ill-conditioning.
 
-\begin{lem}[Characterization of $\pointinteractionmatrix$]
-	\label{lem:S_matrix_characterizations}
-	We have
-	\begin{equation*}
-		\pointinteractionmatrix_{ij} = \secondgreens_j(x_i).
-	\end{equation*}
-\end{lem}
-
-\begin{proof}
-	We compute
-	\begin{equation*}
-		\secondgreens_j(x_i) = \left(\firstgreens_i, \Delta \secondgreens_j\right)_{L^2(\Omega)} + \avg\left(\secondgreens_j\right)
-		= \left(\firstgreens_i, \firstgreens_j\right)_{L^2(\Omega)} = \pointinteractionmatrix_{ij}.
-	\end{equation*}
-	In the first equality we used Lemma \ref{lem:psi_delta_eval}. In the second equality we used the facts that $\Delta \secondgreens_j = \firstgreens_j$ and $\avg(\secondgreens_j) = \left(1 / |\Omega|\right) \int_\Omega \secondgreens_j = 0$ from the definition of $\secondgreens_j$ in \eqref{eq:theta_eq}. 
-\end{proof}
-
-\begin{thm}[Solution of optimization problem \eqref{eq:wi_optimization_problem_generic}]
-	\label{thm:wi_alg_is_correct}
-	The function $v_*$ given in \eqref{eq:optimal_v} is the unique solution to optimization problem \eqref{eq:wi_optimization_problem_generic}.
-\end{thm}
-
-\begin{proof}
-	Let
-	\begin{equation*}
-		X := \{v \in H^2_N(\Omega) : v(x_i) = \interpolatedvalues_i \text{ for }i=1,\dots,\convrank\}
-	\end{equation*}
-	denote the feasible set for optimization problem \ref{eq:wi_optimization_problem_generic}, and let 
-	\begin{equation*}
-		X_0 := \{v \in H^2_N(\Omega) : v(x_i) = 0 \text{ for }i=1,\dots,\convrank\}
-	\end{equation*}	
-	denote the tangent space to $X$. Note that pointwise values of functions in $H_N^2(\Omega)$ are well-defined since the Sobolev imbedding theorem (see, e.g., Theorem 7.19 in \cite{Arbogast}) implies that $H^2(\Omega)$ is continuously imbedded in the space of continuous functions $C^0(\Omega)$ when $\gdim < 4$, and we are considering $\gdim \in \{1,2,3\}$. The feasible set $X$ is therefore a closed affine subspace of $H^2_N(\Omega)$, the tangent space $X_0$ is a closed subspace of $H^2_N(\Omega)$, and optimization problem \eqref{eq:wi_optimization_problem_generic} is well-defined.
-	
-	The proof now proceeds in three steps. First, we show that $v_*$ is feasible ($v_* \in X$). Second, we show that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} if it satisfies a certain variational equation. Third, we verify that $v_*$ satisfies this variational equation.
-	
-	\paragraph{Feasibility} To show that $v_*$ is feasible (i.e., $v_* \in X$), we must show that $v_* \in H^2_N(\Omega)$ and $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$. We already showed that $v_* \in H^2_N(\Omega)$ in Theorem \ref{thm:wi_no_breakdown}. Using the the definition of $v_*$ in \eqref{eq:optimal_v} and Lemma \ref{lem:S_matrix_characterizations}, we have
-	\begin{equation*}
-		v_*(x_i) = \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \secondgreens_j(x_i)
-		= \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \pointinteractionmatrix_{ij} = \left(\pointinteractionmatrix \bm{\secondgreenscoeff} + \constcoeff \bm{1}\right)_i.
-	\end{equation*}
-	The conditions $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$ may therefore be written in matrix form as
-	$
-		\pointinteractionmatrix \bm{\secondgreenscoeff} + \constcoeff \bm{1} = \bm{\interpolatedvalues}
-	$, and this matrix equation must hold because it is the first block row of system \eqref{eq:interpolation_linear_system} which is solved to compute $\bm{\secondgreenscoeff}$ and $\constcoeff$. So $v_* \in X$.
-	
-	\paragraph{Optimality} Since $X$ is an affine subspace, and $X_0$ is the tangent space to $X$, any $v \in X$ may be written in the form $v = v_* + p$ for some $p \in X_0$. We may therefore reframe optimization problem \ref{eq:wi_optimization_problem_generic} as 
-	\begin{equation}
-		\label{eq:p_optimization}
-		\min_{p \in X_0} J(p),
-	\end{equation}
-	where
-	\begin{equation*}
-		J(p) := \frac{1}{2}||\Delta (v_* + p)||^2.
-	\end{equation*}
-	Showing that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} is equivalent to showing that $0$ is the unique minimizer of \eqref{eq:p_optimization}. 
-	
-	By direct expansion, we have
-	\begin{equation}
-		\label{eq:Ju_expanded}
-		J(p) = J(0) + \left(\Delta u, \Delta p\right)_{L^2(\Omega)} + \frac{1}{2}||\Delta p||^2.
-	\end{equation}
-	Since $p$ has Neumann zero boundary conditions, if $\Delta p = 0$, then $p$ is constant on each connected component of $\Omega$. Furthermore, since $p(x_i)$ is zero for at least one point $x_i$ per connected component of $\Omega$, if $\Delta p = 0$ then $p=0$. Hence, by contrapositive we have
-	\begin{align*}
-		\label{eq:contrapositive_laplacian_zero}
-		p \neq 0 \quad \implies \quad& 0 < ||\Delta p||_{L^2(\Omega)}\\
-		\implies \quad& J(0) < J(p) + \left(\Delta v_*, \Delta p\right)_{L^2(\Omega)}.
-	\end{align*}
-	If $v_*$ satisfies the following variational equation,
-	\begin{equation}
-		\label{eq:variational_up}
-		(\Delta v_*, \Delta p)_{L^2(\Omega)} = 0 \quad \text{for all~} p \in X_0,
-	\end{equation} 
-	then
-	\begin{equation*}
-		p \neq 0 \quad \implies \quad J(0) < J(p).
-	\end{equation*}
-	Showing that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} therefore reduces to showing that $v_*$ satisfies variational equation \eqref{eq:variational_up}. 
-	
-	\paragraph{Variational equation} To show that $v_*$ satisfies variational equation \eqref{eq:variational_up}, notice that
-	\begin{align*}
-		(\Delta v_*, \Delta p)_{L^2(\Omega)} =& \sum_{i=1}^\convrank \secondgreenscoeff_i(\Delta \secondgreens_i, \Delta p)_{L^2(\Omega)} \\
-		=& \sum_{i=1}^\convrank \secondgreenscoeff_i \left(p(x_i) - \avg\left(p\right)\right) \\
-		=& -\avg\left(p\right) \sum_{i=1}^\convrank \secondgreenscoeff_i. 
-	\end{align*}
-	In the first line we used the definition of $\secondgreens_i$ and the fact that the Laplacian of a constant is zero. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the fact that $p(x_i)=0$ because $p \in X_0$. Hence variational equation \eqref{eq:variational_up} holds if $\sum_{i=1}^\convrank \secondgreenscoeff_i = 0$, which may be written in matrix form as $\bm{1}^T \bm{\secondgreenscoeff} = 0$. This must hold because it is the second block row in system \eqref{eq:interpolation_linear_system}.
-\end{proof}
+%	 or $\widetilde{x}_i \approx \widetilde{y}_j$. 
+%	
+%	while $\left(\widetilde{f}_x\right)_i \neq \left(\widetilde{f}_x\right)_j$
+%
+% $\widetilde{B}\widetilde{w}=\widetilde{f}$
 
 
-\begin{thm}[Poisson weighting functions are optimal]
-	\label{thm:smoothest_interpolant}
-	Let 
-	\begin{equation}
-		\label{eq:conv_kernel_pc}
-		\convkernel_x^\text{pc}(y) := \sum_{i=1}^\convrank \convkernel_i(y)w_i(x)
-	\end{equation}
-	denote the local convolution kernel for the product-convolution approximation, and let $\horizinterpolant_y^\text{pc}$ be the reinterpretation of $\convkernel_x^\text{pc}(y)$ as a function of $x$ instead of $y$. That is,
-	\begin{equation*}
-		\horizinterpolant_y^\text{pc}(x) := \convkernel_x^\text{pc}(y).
-	\end{equation*}
-	Then for each $y \in \Omega$, the function $\horizinterpolant_y^\text{pc}$ is the unique solution to the following optimization problem:
-	\begin{equation}
-		\label{eq:uy_optimization_problem}
-		\begin{aligned}
-			\min_{\horizinterpolant \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta \horizinterpolant}_{L^2(\Omega)}^2 \\
-			\text{such that} &\quad \horizinterpolant(x_i) = \convkernel_i(y), \quad i=1,\dots,\convrank.
-		\end{aligned}
-	\end{equation}
-\end{thm}
 
-\begin{proof}
-	The optimization problem that $w_i$ solves, and optimization problem \eqref{eq:uy_optimization_problem}, both take the form of optimization problem \eqref{eq:wi_optimization_problem_generic}, but with different constraint data. Let $\mathcal{T}:\bm{b} \mapsto v_*$ denote the solution operator for optimization problem \eqref{eq:wi_optimization_problem_generic} as a function of the constraint data,  $\bm{b}$. The mapping $\mathcal{T}$ is a linear operator because the procedure we presented for solving optimization problem \eqref{eq:wi_optimization_problem_generic} is linear in the constraint data, and we proved that this procedure always yields the unique solution of optimization problem \eqref{eq:wi_optimization_problem_generic} in Theorem \ref{thm:wi_no_breakdown} and Theorem \ref{thm:wi_alg_is_correct}.
-	
-	The constraint data for the optimization problem that $w_i$ solves is the unit vector $\bm{e}^{(i)}=(0,\dots,0,1,0,\dots,0) \in \mathbb{R}^\convrank$ which has $i$th component equal to one, and all other components equal to zero. Hence
-	\begin{equation*}
-		\label{eq:wi_via_solution_operator}
-		w_i = \mathcal{T}\left(\bm{e}^{(i)}\right).
-	\end{equation*}
-	The constraint data for optimization problem \eqref{eq:uy_optimization_problem} is the vector $(\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))$, so the solution, $\theta_*$, to optimization problem \eqref{eq:uy_optimization_problem} is given by
-	\begin{equation*}
-		\theta_* = \mathcal{T}\left((\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))\right).
-	\end{equation*}
-	Using the definition of $\horizinterpolant_y^\text{pc}(x)$ and linearity of $\mathcal{T}$, we have
-	\begin{align*}
-		\horizinterpolant_y^\text{pc}(x) &= \sum_{i=1}^\convrank \convkernel_i(y)w_i(x) \\
-		&= \sum_{i=1}^\convrank \convkernel_i(y)\mathcal{T}\left(\bm{e}^{(i)}\right)(x) \\
-		&= \mathcal{T}\left(\sum_{i=1}^\convrank \convkernel_i(y) \bm{e}^{(i)} \right)(x) \\
-		&= \mathcal{T}\left((\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))\right)(x) = \theta_*(x).
-	\end{align*}
-	Thus $\horizinterpolant_y^\text{pc}$ is the unique solution to optimization problem \eqref{eq:uy_optimization_problem}.
-\end{proof}
 
-\begin{prop}[Poisson weighting functions sum to one]
-	\label{thm:wi_sum_to_one}
-	We have
-	\begin{equation*}
-		\sum_{i=1}^\convrank w_i(x) = 1
-	\end{equation*}
-	for all $x \in \Omega$.
-\end{prop}
+%and let $\widetilde{B}_{xx}$, $\widetilde{B}_{xy}$, $\widetilde{B}_{yx}$, and $\widetilde{B}_{yy}$ be $k \times k$ matrices with the following entries:
+%\begin{align*}
+%	\left(\widetilde{B}_{xx}\right)_{ij} &= b\left(\|\widetilde{x}_i - \widetilde{x}_j\|\right) \\	\left(\widetilde{B}_{xy}\right)_{ij} &= b\left(\|\widetilde{x}_i - \widetilde{y}_j\|\right) \\
+%\end{align*}
+%
+%
+%\begin{equation*}
+%	\begin{bmatrix}
+%		B_{xx} & B_{xy} \\ B_{yx} & B_{yy}
+%	\end{bmatrix}
+%\end{equation*}
+%
+%Let $\phi'_{y_i}(x) := \Phi(y_i,x)$ denote the impulse response of $\Aop^T$ to a point source at $y_i$. 
+%
+%Let $\{y_i\}_{i=1}^r$ be the $k$ nearest sample points to $y$, and let . In the case where $\Aop$ is symmetric, knowing 
+%
+%In the case where $\Aop$ is symmetric, we have
+%\begin{equation}
+%	\impulseresponse_{x_i}(y) = \Phi(y,x_i) = \Phi(x_i,y) = \impulseresponse'_{x_i}(y)
+%\end{equation}
+%knowing the impulse response $\impulseresponse_{x_i}$ of $\Aop$ at $x_i$
 
-\begin{algorithm2e}
-	\SetAlgoNoLine
-	\SetKwInOut{Input}{Input}
-	\SetKwInOut{Output}{Output}
-	{	
-		\Input{Sample points $\{x_i\}_{i=1}^\convrank$, domain geometry $\Omega$}
-		\Output{Weighting functions $\{w_i\}_{i=1}^\convrank$}
-
-		\For{$k=1,2, \dots, \convrank$}{
-			
-			Solve the Neumann Poisson problem \eqref{eq:psi_eq} for $\firstgreens_k$.
-
-			Solve the Neumann Poisson problem \eqref{eq:theta_eq} for $\secondgreens_k$.
-			
-		}
-		
-		Form the $\convrank \times \convrank$ matrix $\pointinteractionmatrix$ given in \eqref{eq:S_matrix}.
-		
-		\For{$i=1,2,\dots,\convrank$}{
-			Solve the linear system
-			\begin{equation*}
-			\begin{bmatrix}
-			\pointinteractionmatrix & \bm{1} \\ \bm{1}^T & 0
-			\end{bmatrix}
-			\begin{bmatrix}
-			\bm{\secondgreenscoeff}^{(i)} \\ \constcoeff^{(i)}
-			\end{bmatrix}
-			=
-			\begin{bmatrix}
-			\bm{e}^{(i)} \\ 0
-			\end{bmatrix}.
-			\end{equation*}
-			for $\bm{\secondgreenscoeff}^{(i)}=(\secondgreenscoeff_1^{(i)}, \secondgreenscoeff_2^{(i)}, \dots, \secondgreenscoeff_\convrank^{(i)})$ and $\constcoeff^{(i)}$. Here $\bm{1} = (1,1,\dots,1) \in \mathbb{R}^\convrank$, and $\bm{e}^{(i)} = (0,\dots,0,1,0,\dots,0)\in \mathbb{R}^\convrank$ is the unit vector with $i^\text{th}$ component equal to one and all other components equal to zero.
-			
-			Form the weighting function $w_i$ given by
-			\begin{equation*}
-			w_i(x) = \constcoeff^{(i)} + \sum_{k=1}^\convrank \secondgreenscoeff_k^{(i)} \secondgreens_k(x).
-			\end{equation*}
-			
-		}
-	}
-	\caption{Compute weighting functions $w_i$, $i=1,\dots,\convrank$.}
-	\label{alg:weighting_functions_incremental}
-\end{algorithm2e}
 
 
 \subsection{Discretization and hierarchical matrix construction}
@@ -1520,6 +1153,381 @@ The Dirac comb impulse response coefficient vector for $\combresponse^h_k$ is th
 	\bm{\combresponse}_k = \bm{M}^{-1} \bm{A}^T \bm{M}^{-1}\bm{\diraccomb}^k.
 \end{equation*}
 
+
+\section{OLD CONTENT}
+
+\subsection{Product-convolution approximation}
+\label{sec:prodconv_intro}
+Let 
+\begin{equation}
+\label{eq:convolution_kernel}
+\convkernel_x(y) := \impulseresponse_x(y+x)
+\end{equation}
+be the translation of $\impulseresponse_x$ to re-center it at zero instead of $x$. If $\Aop$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then for any point $x_0$ we would have
+\begin{align*}
+\Aker(y,x) &= \Aker(y+(x_0-x),x+(x_0-x)) \\
+&= \phi_{x_0}(y-x+x_0) \\
+&= \convkernel_{x_0}(y-x)
+\end{align*}
+which would imply
+\begin{align*}
+(\Aop u)(v) &= \int_\Omega \int_\Omega v(y) \convkernel_{x_0}(y-x) u(x) dx dy \\
+&= \int_\Omega v(y) \left(\int_\Omega \convkernel_{x_0}(y-x) u(x) dx\right) dy \\
+&= \left(v, \convkernel_{x_0} \ast u\right)_{L^2(\Omega)},
+\end{align*}
+where $f \ast g$ denotes convolution of the functions $f$ and $g$, and $\left(f, g\right)_{L^2(\Omega)} := \int_\Omega f(x) g(x) dx$ denotes the $L^2$ inner product of $f$ and $g$ on $\Omega$. Hence, if $\Aop$ were perfectly translation invariant, it would be the convolution operator $u \mapsto \left(\convkernel_{x_0} \ast u\right)^*$. 
+
+Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\convkernel_x$, varies as $x$ changes. We therefore approximate $\Aop$ by a spatially varying weighted sum of convolution operators, $\AopPc \approx \Aop$, of the form
+\begin{equation}
+\left(\AopPc~u\right)(v) := \left( v,~ \sum_{i=1}^\convrank \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
+\end{equation}
+where $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$ (i.e., $\left(f \cdot g\right)(x) = f(x) g(x)$). Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. To avoid nested subscripts, we write 
+\begin{equation*}
+\convkernel_i := \convkernel_{x_i} \quad \text{and} \quad \impulseresponse_i := \impulseresponse_{x_i},
+\end{equation*}
+with $\convkernel_{x_i}$ defined in \eqref{eq:convolution_kernel} and $\impulseresponse_{x_i}$ defined in \eqref{eq:impulse_response_defn}, to denote local convolution kernels and impulse responses corresponding to a collection of points $\{x_i\}_{i=1}^\convrank \subset \Omega$ scattered throughout the domain. The functions $w_i$ are spatially varying weighting functions that are used to interpolate the convolution kernels $\convkernel_i$. Our operator approximation method is defined by how we compute the convolution kernels, $\convkernel_i$, how we choose the points, $x_i$, and what weighting functions, $w_i$, that we use. In Section \ref{sec:overview_intro} we summarize the answers to these questions; we will provide detailed answers to these questions in Section \ref{sec:method}.
+
+The more locally translation invariant an operator is (i.e., the smaller the discrepancy between the left hand side and right hand side in \eqref{eq:local_translation_invariance}), the smaller the number of terms that are required in \eqref{eq:product_convolution} to achieve an accurate product-convolution approximation. 
+
+\subsection{Overview of the method (old)}
+\label{sec:overview_intro}
+
+We compute one ``batch'' of $\convkernel_i$'s by applying $\Aop$ to a sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen so that the support of $\impulseresponse_i$ and the support of $\impulseresponse_j$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_i$, and therefore the functions $\convkernel_i$, associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\convkernel_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\convkernel_i$'s, until a desired number of batches is reached.
+
+In order to choose the points $x_i$, we need to estimate the support of $\impulseresponse_i$ \emph{before} we compute it. The supports of the functions $\impulseresponse_x$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of specially chosen functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$), then post processing the results (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
+
+We choose the $i$th weighting function, $w_i$, to be the flattest function, in a least-squares sense, that takes the value one at the sample point $x_i$, and the value zero at the other sample points $x_j$, $j \neq i$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid. We call this interpolation scheme \emph{Poisson interpolation}. The advantage of Poisson interpolation over other interpolation methods, most notably radial basis function interpolation \cite{ESCANDE}, is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. This is illustrated in Figure FIG. 
+
+Once the $\convkernel_i$ and $w_i$ are computed, we convert $\AopPc$ to hierarchical matrix (H-matrix) format. Let $\Aker_\text{pc}$ denote the integral kernel associated with $\AopPc$. While $\Aker(y,x)$ is not easily computable, $\Aker_\text{pc}(y,x)$ is given by the formula
+\begin{equation}
+\label{eq:kernel_entries}
+\AkerPc(y,x) = \sum_{i=1}^\convrank \convkernel_i(y-x) w_i(x).
+\end{equation}
+This follows from~\eqref{eq:product_convolution} and the fact that the convolution operator $u \mapsto \convkernel_i \ast u$ has $(y,x)$ kernel entry given by $\convkernel(y-x)$.
+Formula~\eqref{eq:kernel_entries} allows us to construct a H-matrix representation of $\AopPc$ using the conventional adaptive cross H-matrix construction method, in which one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. Once in H-matrix format, fast H-matrix arithmetic is used to invert $\AopPc$, or perform other useful matrix operations.
+
+Often we are interested in approximating operators $\Aop$ that are symmetric positive semi-definite. Unfortunately, $\AopPc$ is, in general, non-symmetric and indefinite due to errors in the product convolution approximation. In this case, we modify the H-matrix representation of $\AopPc$ to make it positive definite, by symmetrizing it, then applying a specially chosen rational matrix function to the symmetrized H-matrix.
+
+
+\subsection{Poisson weighting functions}
+\label{sec:weighting_functions}
+
+Consider the following optimization problem,
+\begin{equation}
+\label{eq:wi_optimization_problem_generic}
+\begin{aligned}
+\min_{v \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta v}_{L^2(\Omega)}^2 \\
+\text{such that} &\quad v(x_j) = \interpolatedvalues_j, \quad j=1,\dots,\convrank,
+\end{aligned}
+\end{equation}
+in which one seeks a smooth function $v$ that takes the values $\interpolatedvalues_j \in \mathbb{R}$ at the points $x_j$. Here $\Delta$ is the Laplacian on $\Omega$ and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to optimization problem \eqref{eq:wi_optimization_problem_generic}, with 
+\begin{equation*}
+b_j = w_i(x_j) = 
+\begin{cases}
+1, & j=i\\
+0, & j \neq i.
+\end{cases}
+\end{equation*}
+In Theorem \ref{thm:smoothest_interpolant}, we show that using these weighting functions yields the ``flattest possible'' \cite{JACOBSEN} interpolation of the convolution kernels, $\convkernel_i$, in a least-squares sense. Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}).
+
+The solution to optimization problem \eqref{eq:wi_optimization_problem_generic} is given via the following procedure:
+\begin{enumerate}
+	\item For each sample point $x_i$, we compute a function $\firstgreens_i$ by solving the following Neumann Poisson problem:
+	\begin{equation}
+	\label{eq:psi_eq}
+	\begin{cases}
+	\Delta \firstgreens_i = \delta_{x_i} - 1/|\Omega|, & \text{in }\Omega, \\
+	\nu \cdot \nabla \firstgreens_i = 0 & \text{on } \partial \Omega,
+	\end{cases}
+	\end{equation}
+	with condition $\int_\Omega \firstgreens_i(x) dx = 0$. Here $\delta_{x_i}$ is the point source centered at $x_i$, $|\Omega|$ is the measure of the domain $\Omega$, and $\nu$ is the normal vector to $\partial \Omega$.
+	\item For each function $\firstgreens_i$, we compute a function $\secondgreens_i$ by solving another Neumann Poisson problem:
+	\begin{equation}
+	\label{eq:theta_eq}
+	\begin{cases}
+	\Delta \secondgreens_i = \firstgreens_i, & \text{in }\Omega, \\
+	\nu \cdot \nabla \secondgreens_i = 0 & \text{on } \partial \Omega,
+	\end{cases}
+	\end{equation}
+	with condition $\int_\Omega \secondgreens_i(x) dx = 0$.
+	\item The solution to optimization problem \eqref{eq:wi_optimization_problem_generic}, which we denote by $v_*$, is formed as follows:
+	\begin{equation}
+	\label{eq:optimal_v}
+	v_*(x) := \constcoeff + \sum_{i=1}^\convrank \secondgreenscoeff_i \secondgreens_i(x),
+	\end{equation}
+	where the constants $\secondgreenscoeff_i \in \mathbb{R}$, $i=1,\dots,\convrank$, and $\constcoeff \in \mathbb{R}$ are the solution to the following linear system:
+	\begin{equation}
+	\label{eq:interpolation_linear_system}
+	\begin{bmatrix}
+	\pointinteractionmatrix & \bm{1} \\ \bm{1}^T & 0
+	\end{bmatrix}
+	\begin{bmatrix}
+	\bm{\secondgreenscoeff} \\ \constcoeff
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	\bm{\interpolatedvalues} \\ 0
+	\end{bmatrix}.
+	\end{equation}
+	Here $\bm{\secondgreenscoeff} \in \mathbb{R}^\convrank$ is the vector with $i$th component $\secondgreenscoeff_i$, $\bm{1} \in \bm{R}^\convrank$ is the column vector of all ones, $\bm{\interpolatedvalues} \in \mathbb{R}^\convrank$ is the vector with $i$th component $\interpolatedvalues_i$, and $\pointinteractionmatrix \in \mathbb{R}^{\convrank \times \convrank}$ is the matrix with entries given by
+	\begin{equation}
+	\label{eq:S_matrix}
+	\pointinteractionmatrix_{ij} := \left( \firstgreens_i, \firstgreens_j \right)_{L^2(\Omega)}.
+	\end{equation}
+\end{enumerate}
+Linear system \eqref{eq:interpolation_linear_system} is the KKT system that arises if one solves optimization problem \eqref{eq:wi_optimization_problem_generic} on the $\convrank+1$-dimensional subspace of $H^2_N(\Omega)$ spanned by the functions $\secondgreens_i$, $i=1,\dots,\convrank$, and the constant function $C(x)=1$. In Theorem \ref{thm:wi_no_breakdown}, we prove that this procedure does not break down, and in Theorem \ref{thm:wi_alg_is_correct}, we prove that the function $v_*$ produced by this procedure is the solution to optimization problem \eqref{eq:wi_optimization_problem_generic} on $H^2_N(\Omega)$.
+
+Constructing all $\convrank$ of the functions $w_i$ thus requires solving the Poisson equation $2\convrank$ times with different right hand side sources to form the functions $\firstgreens_i$ and $\secondgreens_i$, then post-processing these functions. This is shown in Algorithm \ref{alg:weighting_functions_incremental}. The Poisson PDE solves, which are the most expensive part of this procedure, can be performed cheaply with multigrid. 
+
+It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension of the domain is $\gdim=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-posed in three spatial dimensions or fewer. In four or higher spatial dimensions, one could construct appropriate weighting functions using radial basis functions, though we do not discuss this here.
+
+\begin{thm}[Procedure for computing $v_*$ does not break down]
+	\label{thm:wi_no_breakdown}
+	If all the sample points $x_i$, $i=1,\dots,\convrank$, are distinct, then PDE \eqref{eq:psi_eq} is uniquely solvable for $\firstgreens_i$, PDE \eqref{eq:theta_eq} is uniquely solvable for $\secondgreens_i$, and linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\bm{\secondgreenscoeff}$ and $\constcoeff$. That is, the procedure for computing $v_*$ does not break down. Furthermore, $v_* \in H^2_N(\Omega)$.
+\end{thm}
+
+\begin{proof}
+	Existence and uniqueness for the solutions to PDEs \eqref{eq:psi_eq} and \eqref{eq:theta_eq} follow from the standard elliptic PDE theory. By standard elliptic regularity theory, $\firstgreens_i \in H^1(\Omega)$, so $\firstgreens_i \in L^2(\Omega)$, and so all matrix entries $\pointinteractionmatrix_{ij}$ are finite. 
+	
+	Using the definition of $\pointinteractionmatrix$ and basic linear algebra, it is straightforward to show that if $\pointinteractionmatrix$ were singular, there would exist constants $a_1, a_2, \dots a_\convrank$, which are not all zero, such that
+	\begin{equation*}
+	0 = a_1 \firstgreens_1 + a_2 \firstgreens_2 + \dots a_\convrank \firstgreens_\convrank.
+	\end{equation*}
+	Applying the Laplacian to this equation yields
+	\begin{equation*}
+	0 = a_1 \delta_{x_1} + a_2 \delta_{x_2} + \dots a_\convrank \delta_{x_\convrank} - \left(\sum_{i=1}^\convrank a_i\right)\bigg/|\Omega|,
+	\end{equation*}
+	which is impossible because a nonzero linear combination of delta distributions at different points cannot equal a constant function. Thus we must conclude that $\pointinteractionmatrix$ is non-singular. By block matrix factorization, non-singularity of $\pointinteractionmatrix$ implies that linear system \eqref{eq:interpolation_linear_system} is uniquely solvable for $\bm{\secondgreenscoeff}$ and $\constcoeff$.
+	
+	By standard elliptic regularity theory, the functions $\secondgreens_i$ are in $H^3(\Omega)$, and therefore they are in $H^2(\Omega)$. By construction the functions $\secondgreens_i$ have Neumann zero boundary conditions, so $\secondgreens_i \in H^2_N(\Omega)$. Since $v_*$ is a linear combination of the functions $\secondgreens_i$ and the constant function $C(x)=1$ which is in $H^2_N(\Omega)$, we have $v_* \in H^2_N(\Omega)$.
+\end{proof}
+
+\begin{lem}[Integral representation of delta distribution on $H^2_N(\Omega)$]
+	\label{lem:psi_delta_eval}
+	We have
+	\begin{equation}
+	\label{eq:inline_wi_lemma}
+	h(x_j) = \left(\firstgreens_j, \Delta h\right)_{L^2(\Omega)} + \avg(h)
+	\end{equation}
+	for all $h\in H^2_N(\Omega)$, where
+	\begin{equation*}
+	\avg(h) :=	 \frac{1}{|\Omega|} \int_\Omega h ~dx,
+	\end{equation*}
+	and $|\Omega| = \int_\Omega 1 ~dx$ is the Lebesgue measure of $\Omega$.
+\end{lem}
+
+\begin{proof}
+	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\firstgreens_j$ onto $h$, and using the Neumann zero boundary conditions for $\firstgreens_j$ and $h$ to eliminate boundary integral terms.
+\end{proof}
+
+\begin{lem}[Characterization of $\pointinteractionmatrix$]
+	\label{lem:S_matrix_characterizations}
+	We have
+	\begin{equation*}
+	\pointinteractionmatrix_{ij} = \secondgreens_j(x_i).
+	\end{equation*}
+\end{lem}
+
+\begin{proof}
+	We compute
+	\begin{equation*}
+	\secondgreens_j(x_i) = \left(\firstgreens_i, \Delta \secondgreens_j\right)_{L^2(\Omega)} + \avg\left(\secondgreens_j\right)
+	= \left(\firstgreens_i, \firstgreens_j\right)_{L^2(\Omega)} = \pointinteractionmatrix_{ij}.
+	\end{equation*}
+	In the first equality we used Lemma \ref{lem:psi_delta_eval}. In the second equality we used the facts that $\Delta \secondgreens_j = \firstgreens_j$ and $\avg(\secondgreens_j) = \left(1 / |\Omega|\right) \int_\Omega \secondgreens_j = 0$ from the definition of $\secondgreens_j$ in \eqref{eq:theta_eq}. 
+\end{proof}
+
+\begin{thm}[Solution of optimization problem \eqref{eq:wi_optimization_problem_generic}]
+	\label{thm:wi_alg_is_correct}
+	The function $v_*$ given in \eqref{eq:optimal_v} is the unique solution to optimization problem \eqref{eq:wi_optimization_problem_generic}.
+\end{thm}
+
+\begin{proof}
+	Let
+	\begin{equation*}
+	X := \{v \in H^2_N(\Omega) : v(x_i) = \interpolatedvalues_i \text{ for }i=1,\dots,\convrank\}
+	\end{equation*}
+	denote the feasible set for optimization problem \ref{eq:wi_optimization_problem_generic}, and let 
+	\begin{equation*}
+	X_0 := \{v \in H^2_N(\Omega) : v(x_i) = 0 \text{ for }i=1,\dots,\convrank\}
+	\end{equation*}	
+	denote the tangent space to $X$. Note that pointwise values of functions in $H_N^2(\Omega)$ are well-defined since the Sobolev imbedding theorem (see, e.g., Theorem 7.19 in \cite{Arbogast}) implies that $H^2(\Omega)$ is continuously imbedded in the space of continuous functions $C^0(\Omega)$ when $\gdim < 4$, and we are considering $\gdim \in \{1,2,3\}$. The feasible set $X$ is therefore a closed affine subspace of $H^2_N(\Omega)$, the tangent space $X_0$ is a closed subspace of $H^2_N(\Omega)$, and optimization problem \eqref{eq:wi_optimization_problem_generic} is well-defined.
+	
+	The proof now proceeds in three steps. First, we show that $v_*$ is feasible ($v_* \in X$). Second, we show that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} if it satisfies a certain variational equation. Third, we verify that $v_*$ satisfies this variational equation.
+	
+	\paragraph{Feasibility} To show that $v_*$ is feasible (i.e., $v_* \in X$), we must show that $v_* \in H^2_N(\Omega)$ and $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$. We already showed that $v_* \in H^2_N(\Omega)$ in Theorem \ref{thm:wi_no_breakdown}. Using the the definition of $v_*$ in \eqref{eq:optimal_v} and Lemma \ref{lem:S_matrix_characterizations}, we have
+	\begin{equation*}
+	v_*(x_i) = \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \secondgreens_j(x_i)
+	= \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \pointinteractionmatrix_{ij} = \left(\pointinteractionmatrix \bm{\secondgreenscoeff} + \constcoeff \bm{1}\right)_i.
+	\end{equation*}
+	The conditions $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$ may therefore be written in matrix form as
+	$
+	\pointinteractionmatrix \bm{\secondgreenscoeff} + \constcoeff \bm{1} = \bm{\interpolatedvalues}
+	$, and this matrix equation must hold because it is the first block row of system \eqref{eq:interpolation_linear_system} which is solved to compute $\bm{\secondgreenscoeff}$ and $\constcoeff$. So $v_* \in X$.
+	
+	\paragraph{Optimality} Since $X$ is an affine subspace, and $X_0$ is the tangent space to $X$, any $v \in X$ may be written in the form $v = v_* + p$ for some $p \in X_0$. We may therefore reframe optimization problem \ref{eq:wi_optimization_problem_generic} as 
+	\begin{equation}
+	\label{eq:p_optimization}
+	\min_{p \in X_0} J(p),
+	\end{equation}
+	where
+	\begin{equation*}
+	J(p) := \frac{1}{2}||\Delta (v_* + p)||^2.
+	\end{equation*}
+	Showing that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} is equivalent to showing that $0$ is the unique minimizer of \eqref{eq:p_optimization}. 
+	
+	By direct expansion, we have
+	\begin{equation}
+	\label{eq:Ju_expanded}
+	J(p) = J(0) + \left(\Delta u, \Delta p\right)_{L^2(\Omega)} + \frac{1}{2}||\Delta p||^2.
+	\end{equation}
+	Since $p$ has Neumann zero boundary conditions, if $\Delta p = 0$, then $p$ is constant on each connected component of $\Omega$. Furthermore, since $p(x_i)$ is zero for at least one point $x_i$ per connected component of $\Omega$, if $\Delta p = 0$ then $p=0$. Hence, by contrapositive we have
+	\begin{align*}
+	\label{eq:contrapositive_laplacian_zero}
+	p \neq 0 \quad \implies \quad& 0 < ||\Delta p||_{L^2(\Omega)}\\
+	\implies \quad& J(0) < J(p) + \left(\Delta v_*, \Delta p\right)_{L^2(\Omega)}.
+	\end{align*}
+	If $v_*$ satisfies the following variational equation,
+	\begin{equation}
+	\label{eq:variational_up}
+	(\Delta v_*, \Delta p)_{L^2(\Omega)} = 0 \quad \text{for all~} p \in X_0,
+	\end{equation} 
+	then
+	\begin{equation*}
+	p \neq 0 \quad \implies \quad J(0) < J(p).
+	\end{equation*}
+	Showing that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} therefore reduces to showing that $v_*$ satisfies variational equation \eqref{eq:variational_up}. 
+	
+	\paragraph{Variational equation} To show that $v_*$ satisfies variational equation \eqref{eq:variational_up}, notice that
+	\begin{align*}
+	(\Delta v_*, \Delta p)_{L^2(\Omega)} =& \sum_{i=1}^\convrank \secondgreenscoeff_i(\Delta \secondgreens_i, \Delta p)_{L^2(\Omega)} \\
+	=& \sum_{i=1}^\convrank \secondgreenscoeff_i \left(p(x_i) - \avg\left(p\right)\right) \\
+	=& -\avg\left(p\right) \sum_{i=1}^\convrank \secondgreenscoeff_i. 
+	\end{align*}
+	In the first line we used the definition of $\secondgreens_i$ and the fact that the Laplacian of a constant is zero. In the second line we used Lemma \ref{lem:psi_delta_eval}. In the third line we used the fact that $p(x_i)=0$ because $p \in X_0$. Hence variational equation \eqref{eq:variational_up} holds if $\sum_{i=1}^\convrank \secondgreenscoeff_i = 0$, which may be written in matrix form as $\bm{1}^T \bm{\secondgreenscoeff} = 0$. This must hold because it is the second block row in system \eqref{eq:interpolation_linear_system}.
+\end{proof}
+
+
+\begin{thm}[Poisson weighting functions are optimal]
+	\label{thm:smoothest_interpolant}
+	Let 
+	\begin{equation}
+	\label{eq:conv_kernel_pc}
+	\convkernel_x^\text{pc}(y) := \sum_{i=1}^\convrank \convkernel_i(y)w_i(x)
+	\end{equation}
+	denote the local convolution kernel for the product-convolution approximation, and let $\horizinterpolant_y^\text{pc}$ be the reinterpretation of $\convkernel_x^\text{pc}(y)$ as a function of $x$ instead of $y$. That is,
+	\begin{equation*}
+	\horizinterpolant_y^\text{pc}(x) := \convkernel_x^\text{pc}(y).
+	\end{equation*}
+	Then for each $y \in \Omega$, the function $\horizinterpolant_y^\text{pc}$ is the unique solution to the following optimization problem:
+	\begin{equation}
+	\label{eq:uy_optimization_problem}
+	\begin{aligned}
+	\min_{\horizinterpolant \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta \horizinterpolant}_{L^2(\Omega)}^2 \\
+	\text{such that} &\quad \horizinterpolant(x_i) = \convkernel_i(y), \quad i=1,\dots,\convrank.
+	\end{aligned}
+	\end{equation}
+\end{thm}
+
+\begin{proof}
+	The optimization problem that $w_i$ solves, and optimization problem \eqref{eq:uy_optimization_problem}, both take the form of optimization problem \eqref{eq:wi_optimization_problem_generic}, but with different constraint data. Let $\mathcal{T}:\bm{b} \mapsto v_*$ denote the solution operator for optimization problem \eqref{eq:wi_optimization_problem_generic} as a function of the constraint data,  $\bm{b}$. The mapping $\mathcal{T}$ is a linear operator because the procedure we presented for solving optimization problem \eqref{eq:wi_optimization_problem_generic} is linear in the constraint data, and we proved that this procedure always yields the unique solution of optimization problem \eqref{eq:wi_optimization_problem_generic} in Theorem \ref{thm:wi_no_breakdown} and Theorem \ref{thm:wi_alg_is_correct}.
+	
+	The constraint data for the optimization problem that $w_i$ solves is the unit vector $\bm{e}^{(i)}=(0,\dots,0,1,0,\dots,0) \in \mathbb{R}^\convrank$ which has $i$th component equal to one, and all other components equal to zero. Hence
+	\begin{equation*}
+	\label{eq:wi_via_solution_operator}
+	w_i = \mathcal{T}\left(\bm{e}^{(i)}\right).
+	\end{equation*}
+	The constraint data for optimization problem \eqref{eq:uy_optimization_problem} is the vector $(\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))$, so the solution, $\theta_*$, to optimization problem \eqref{eq:uy_optimization_problem} is given by
+	\begin{equation*}
+	\theta_* = \mathcal{T}\left((\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))\right).
+	\end{equation*}
+	Using the definition of $\horizinterpolant_y^\text{pc}(x)$ and linearity of $\mathcal{T}$, we have
+	\begin{align*}
+	\horizinterpolant_y^\text{pc}(x) &= \sum_{i=1}^\convrank \convkernel_i(y)w_i(x) \\
+	&= \sum_{i=1}^\convrank \convkernel_i(y)\mathcal{T}\left(\bm{e}^{(i)}\right)(x) \\
+	&= \mathcal{T}\left(\sum_{i=1}^\convrank \convkernel_i(y) \bm{e}^{(i)} \right)(x) \\
+	&= \mathcal{T}\left((\convkernel_1(y), \convkernel_2(y), \dots, \convkernel_\convrank(y))\right)(x) = \theta_*(x).
+	\end{align*}
+	Thus $\horizinterpolant_y^\text{pc}$ is the unique solution to optimization problem \eqref{eq:uy_optimization_problem}.
+\end{proof}
+
+\begin{prop}[Poisson weighting functions sum to one]
+	\label{thm:wi_sum_to_one}
+	We have
+	\begin{equation*}
+	\sum_{i=1}^\convrank w_i(x) = 1
+	\end{equation*}
+	for all $x \in \Omega$.
+\end{prop}
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	{	
+		\Input{Sample points $\{x_i\}_{i=1}^\convrank$, domain geometry $\Omega$}
+		\Output{Weighting functions $\{w_i\}_{i=1}^\convrank$}
+		
+		\For{$k=1,2, \dots, \convrank$}{
+			
+			Solve the Neumann Poisson problem \eqref{eq:psi_eq} for $\firstgreens_k$.
+			
+			Solve the Neumann Poisson problem \eqref{eq:theta_eq} for $\secondgreens_k$.
+			
+		}
+		
+		Form the $\convrank \times \convrank$ matrix $\pointinteractionmatrix$ given in \eqref{eq:S_matrix}.
+		
+		\For{$i=1,2,\dots,\convrank$}{
+			Solve the linear system
+			\begin{equation*}
+			\begin{bmatrix}
+			\pointinteractionmatrix & \bm{1} \\ \bm{1}^T & 0
+			\end{bmatrix}
+			\begin{bmatrix}
+			\bm{\secondgreenscoeff}^{(i)} \\ \constcoeff^{(i)}
+			\end{bmatrix}
+			=
+			\begin{bmatrix}
+			\bm{e}^{(i)} \\ 0
+			\end{bmatrix}.
+			\end{equation*}
+			for $\bm{\secondgreenscoeff}^{(i)}=(\secondgreenscoeff_1^{(i)}, \secondgreenscoeff_2^{(i)}, \dots, \secondgreenscoeff_\convrank^{(i)})$ and $\constcoeff^{(i)}$. Here $\bm{1} = (1,1,\dots,1) \in \mathbb{R}^\convrank$, and $\bm{e}^{(i)} = (0,\dots,0,1,0,\dots,0)\in \mathbb{R}^\convrank$ is the unit vector with $i^\text{th}$ component equal to one and all other components equal to zero.
+			
+			Form the weighting function $w_i$ given by
+			\begin{equation*}
+			w_i(x) = \constcoeff^{(i)} + \sum_{k=1}^\convrank \secondgreenscoeff_k^{(i)} \secondgreens_k(x).
+			\end{equation*}
+			
+		}
+	}
+	\caption{Compute weighting functions $w_i$, $i=1,\dots,\convrank$.}
+	\label{alg:weighting_functions_incremental}
+\end{algorithm2e}
+
+
+
+\subsubsection{Interpolation onto local regular grids}
+\label{sec:convolution_kernel_regular_grid}
+
+To convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), we will need to evaluate $\convkernel_{x_i}(z)$ for a large number of points $z$. Per \eqref{eq:varphi_eval}, evaluating $\convkernel_{x_i}(z)$ requires evaluating $\combresponse_k(z+x_i)$. In computations, $\combresponse_k$ will be a finite element function formed on an irregular mesh, and $z+x_i$ will typically not be a gridpoint of the mesh. Evaluating $\combresponse_k(z+x_i)$ therefore requires finding which mesh cell that $z+x_i$ is in, then evaluating several polynomial functions to evaluate the finite element function on that cell. Although this procedure is asymptotically scalable, it is slow in practice \cite{FEMEVALSLOW}. 
+
+To speed up evaluation of $\convkernel_{x_i}$, we interpolate $\convkernel_{x_i}$ onto a regular rectilinear grid on a coordinate axis aligned box that just barely contains the ellipsoid $E_{x_i}$. We transfer the function $\convkernel_{x_i}$ from the irregular mesh to the regular grid by evaluating $\convkernel_{x_i}$ at all gridpoints in the regular grid, using the slow process described in the previous paragraph. This is an upfront cost which is done ``offline.'' After $\convkernel_{x_i}$ has been transferred to the regular grid, we use fast regular grid interpolation to perform all subsequent ``online'' evaluations of $\convkernel_{x_i}$. This yields a substantial overall speedup because the number of finite element function evaluations required to transfer the functions $\convkernel_{x_i}$ to the regular grid is $O(\fedim)$, while the number of kernel evaluations required to convert $\AopPc$ to H-matrix format is $O(k \fedim \log \fedim)$. Here $\fedim$ is the number of degrees of freedom in the finite element space used to discretize $\combresponse_k$, and $\hmatrixrank$ is the H-matrix rank. Furthermore, transferring $\convkernel_{x_i}$ to a regular grid requires evaluating $\convkernel_{x_i}$ at a predetermined and highly structured collection of points. This structure allows for faster determination of which mesh cell that a point is in, and allows one to evaluate the finite element function at all regular gridpoints in parallel. In contrast, constructing the H-matrix requires evaluating $\convkernel_{x_i}$ at an unpredictable sequence of scattered points, which is an expensive task for finite element function evaluation, but a cheap task for regular grid interpolation. 
+Having $\convkernel_{x_i}$ stored on a regular grid also simplifies the implementation of the method that we use to handle boundary artifacts, which will be described in Section \ref{sec:boundary_extension}.
+
+We incur interpolation error when transferring $\convkernel_{x_i}$ from the irregular mesh to the regular grid. To limit this interpolation error, the density of the regular grid should be as dense or denser than the local density of the finite element mesh. In our numerical results, the distance between neighboring points in the regular grid is chosen to be half the minimum distance between any pair of finite element Lagrange nodes that are contained in $E_{x_i}$. The grid transfer procedure is illustrated in Figure FIG. 
+
+When $x_i$ is near a boundary, it may occur that some gridpoints for the regular grid are in locations where $\convkernel_{x_i}$ is undefined. In this case, we store a placeholder value for $\convkernel_{x_i}$ at those gridpoints. We use the IEEE standard value of ``NaN'' (not a number) for this placeholder. In the next section (Section \ref{sec:boundary_extension}) we replace these NaN values with more appropriate values.
+
+
+\subsubsection{Addressing boundary artifacts}
+\label{sec:boundary_extension}
+
+Evaluating the kernel for our product-convolution approximation, $\AkerPc(y,x)$, requires evaluating $\convkernel_{x_i}(y-x)$. But $\convkernel_{x_i}(y-x)$ is undefined  when $y - x + x_i$ is outside $\Omega$, which may occur even if $x \in \Omega$ and $y \in \Omega$. The default approach to deal with this problem is to extend $\convkernel_{x_i}$ by zero wherever it is undefined. But this leads to substantial errors, known as boundary artifacts, which are especially significant when the sample point $x_i$ is near the boundary of the domain. In this case, the impulse response is artificially chopped off by the domain boundary. See Figure FIG for an illustration. 
+
+While $\convkernel_{x_i}$ may be undefined at a point $z$, often there is a sample point $x_j$ that is near $x_i$, but further away from the boundary than $x_i$, such that $\convkernel_{x_j}$ is well defined at $z$. To address boundary artifacts, we fill in missing/undefined portions of convolution kernels using information from other convolution kernels associated with the $k$ nearest sample points (we use $k=8$ in our numerical results). Kernels associated with nearer sample points are given precedence over kernels associated with farther away sample points. 
+
+In detail, let $p_1, p_2, \dots, p_k$ be the $k$ nearest sample points to $x_i$, ordered by nearness, including $x_i$ itself. That is, $p_1=x_i$, $p_2$ is the nearest neighbor to $x_i$, $p_3$ is the second nearest neighbor to $x_i$, and so on. Also, recall from the previous section (Section \ref{sec:convolution_kernel_regular_grid}) that the functions $\convkernel_{x_i}$ are stored on regular rectilinear grids. To extend $\convkernel_{x_i}$, we form an expanded regular rectilinear grid that has the same grid spacing as the grid used for $\convkernel_{x_i}$, and contains that grid as a subgrid, but is large enough to contain the boxes associated with all of the neighbor kernels, $\convkernel_{p_1}, \convkernel_{p_2}, \dots, \convkernel_{p_k}$ (recall that the functions $\convkernel_{x_i}$ are all centered at zero). We initialize an extended convolution kernel, $\convkernel_{x_i}^E$, to zero on this expanded grid. Then we interpolate the functions $\convkernel_{p_j}$ onto this expanded grid in reverse order. First we interpolate $\convkernel_{p_k}$ onto the grid, then $\convkernel_{p_{k-1}}$, and so on until the last step in which we interpolate the original kernel $\convkernel_{p_1} = \convkernel_{x_i}$. At each step, we overwrite existing values of $\convkernel_{x_i}^E$ with new values from the kernel currently being interpolated, except when the new value of $\convkernel_{p_j}$ is undefined (``NaN''). At gridpoints where the kernel being interpolated is undefined, we leave $\convkernel_{x_i}^E$ unchanged. In this way, we fill in undefined values of $\convkernel_{x_i}$ with values from successively further and further away kernels. This process is illustrated in Figure FIG. To avoid notational clutter, and since we will henceforth only work with the extended kernel, $\convkernel_{x_i}^E$, in the remainder of this paper the symbol $\convkernel_{x_i}$ refers to $\convkernel_{x_i}^E$.
 
 \section*{Acknowledgments}
 We thank J.J. Alger, Longfei Gao, Mathew Hu, and Rami Nammour for helpful discussions. Georg Stadler (domain geometry help)
