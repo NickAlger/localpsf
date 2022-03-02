@@ -63,7 +63,7 @@
 \section{Introduction}
 \label{sec:intro}
 
-We present a fast matrix free method for approximating locally translation-invariant operators, $\Aop$, that have locally supported non-negative integral kernels. Such operators arise throughout computational science. Examples include Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps), covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained optimization and inverse problems.
+We present a fast matrix free method for approximating operators, $\Aop$, that have locally supported non-negative impulse responses. Such operators arise throughout computational science. Examples include Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps), covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained optimization and inverse problems.
 
 Let $\Omega \subset \mathbb{R}^d$ be a bounded domain (in applications typically $\gdim=1$, $2$, or $3$). We consider integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ of the form
 \begin{equation}
@@ -419,11 +419,13 @@ We repeat the process to construct several batches of points $\pointbatch_1, \po
 \subsection{Impulse response batches}
 \label{sec:get_impulse_response}
 
-We compute convolution kernels $\convkernel_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$. That is,
+We compute impulse responses $\impulseresponse_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the following weighted sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$:
 \begin{equation*}
-	\diraccomb_k := \sum_{x_i \in \pointbatch_k} \delta_{x_i}.
+	\diraccomb_k := \sum_{x_i \in \pointbatch_k} \delta_{x_i} / V(x_i).
 \end{equation*}
-For each batch $\pointbatch_k$, we compute the action of $\Aop$ on the associated Dirac comb:
+The support of an impulse response is estimated to be contained within an ellipsoid, but this is just an approximation. A small portion of the impulse response will reside outside of the ellipsoid. If the impulse responses vary widely in scale, this neglected portion of an impulse response at a point $x_i$ with large $V(x_i)$ could overwhelm nearby impulse responses at points $x_j$ with small $V(x_j)$. Each point source is weighted by $1/V(x_i)$ so that the impulse responses within a batch are all comparable in scale.
+
+For each batch $\pointbatch_k$, we compute the \emph{impulse response batch}, $\eta_k$, by applying $\Aop$ to the associated Dirac comb:
 \begin{equation}
 	\label{eq:dirac_comb_H_action}
 	\combresponse_k := \left(\Aop \diraccomb_k^*\right)^*.
@@ -431,18 +433,18 @@ For each batch $\pointbatch_k$, we compute the action of $\Aop$ on the associate
 By linearity, the resulting function $\combresponse_k$ may be written as follows:
 \begin{equation}
 	\label{eq:phi_b}
-	\combresponse_k = \left(\Aop \left(\sum_{x_i \in \pointbatch_k} \delta_{x_i}\right)^*\right)^* = \sum_{x_i \in \pointbatch_k} \left(\Aop \delta_{x_i}^*\right)^* = \sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i}.
+	\combresponse_k = \left(\Aop \left(\sum_{x_i \in \pointbatch_k} \delta_{x_i}/V(x_i)\right)^*\right)^* = \sum_{x_i \in \pointbatch_k} \left(\Aop \delta_{x_i}^*\right)^* / V(x_i) = \sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i} / V(x_i).
 \end{equation}
 Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\impulseresponse_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\impulseresponse_j$ do not overlap when $i \neq j$, from \eqref{eq:convolution_kernel} and \eqref{eq:phi_b} we have (approximately)
 \begin{equation}
 \label{eq:varphi_eval}
-	\convkernel_{x_i}(z) = \impulseresponse_i(z+x_i) = 
+	\impulseresponse_{x_i}(z) = 
 	\begin{cases}
-		\combresponse_k(z+x_i), & z+x_i \in E_{x_i} \\
+		V(x_i)\combresponse_k(z), & z \in E_{x_i} \\
 		0, & \text{otherwise}
 	\end{cases}
 \end{equation}
-for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the convolution kernels $\convkernel_{x_i}$ associated with every point $x_i \in \pointbatch_k$. 
+for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the impulse responses $\impulseresponse_{x_i}$ associated with every point $x_i \in \pointbatch_k$. 
 
 
 
