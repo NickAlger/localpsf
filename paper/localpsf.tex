@@ -47,7 +47,10 @@
 %	require evaluating the integral kernel $O(N \log N)$ times, but this is not feasible 
 	are infeasible for large-scale problems in which the operator is only accessible via matrix-vector products (``matrix-free''), because these methods require evaluating the integral kernel of the operator at a large number of points. We overcome this problem by computing impulse responses of the operator and its transpose at a collection of scattered points, then interpolating these known impulse responses to evaluate entries of the integral kernel at other points where the impulse response is not known. 
 %	We improve upon classical product-convolution approximations by translating with respect the estimated mean of the impulse response, rather than the location of the impulse response point source. 
-	Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. We construct a-priori ellipsoid estimates of the supports of the impulse responses (i.e., support ellipsoids are estimated \emph{before} any impulse responses have been computed). By solving an ellipsoid packing problem, we choose as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problems with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. We are able to form high quality approximations of high rank operators using only a small number of operator-vector products.
+	Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. 
+%	We construct a-priori ellipsoid estimates of the supports of the impulse responses (i.e., support ellipsoids are estimated \emph{before} any impulse responses have been computed). 
+	By solving an ellipsoid packing problem, we choose as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. 
+	We apply the method to approximate Hessians in large-scale PDE-constrained inverse problems with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. We are able to form high quality approximations of high rank operators using only a small number of operator-vector products.
 \end{abstract}
 
 % REQUIRED
@@ -160,11 +163,11 @@ denote the spatially varying mean and covariance of $\widehat{\impulseresponse}_
 
 Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
-Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section SECTION, but the key idea is something that we call \emph{local mean-displacement invariance}, which is the widely applicable assumption that
+Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section SECTION, but the key principle behind the interpolation is an assumption that we call \emph{local mean-displacement invariance}. Specifically, we make the assumption that
 \begin{equation}
 \Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
 \end{equation}
-if $x_i$ is close to $x$. This is shown in Figure FIG, and discussed in greater detail in Section SEC. We approximate $\phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for the $k$-nearest points $x_i$ to $x$. Here $k$ is a user-defined parameter; we use $k=10$. The weights in the linear combination are determined via radial basis function interpolation.
+if $x_i$ is close to $x$. This is shown in Figure FIG, and discussed in greater detail in Section SEC. We approximate $\phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for the a small number of sample points $x_i$ near $x$. The weights in the linear combination are determined via radial basis function interpolation.
 
 The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall H-matrix approximation proceeds as follows:
 \begin{equation*}
@@ -248,9 +251,9 @@ Conventional H-matrix construction methods require access to matrix entries of t
 Product-convolution type approximations of Hessians have been used in a seismic inverse problem in \cite{GEORGSEISMICPRODCONV}, and in an advection-diffusion inverse problem in \cite{PRODCONVMYPAPER}. In \cite{DEMANETSEISMIC}, matrix probing \cite{MATRIXPROBING} is used to approximate the Hessian in a seismic inverse problem as the sum of simple pseudodifferential operators. Although it is not explicitly mentioned, the approximation in \cite{DEMANETSEISMIC} could be interpreted as a convolution-product interpolation, which is like a product-convolution approximation, except the order of pointwise multiplications and convolutions is reversed in \eqref{eq:product_convolution}.
 
 
-\section{Constructing the product-convolution H-matrix approximation}
+\section{Method}
 \label{sec:method}
-In this section we describe how we choose the sample points, $x_i$ (Section \ref{sec:sample_point_selection}), how we form the convolution kernels, $\convkernel_i$ (Section \ref{sec:get_impulse_response}), and how we form the weighting functions, $w_i$ (Section \ref{sec:weighting_functions}), for the product-convolution approximation, $\AopPc \approx \Aop$, given in \eqref{eq:product_convolution}. We also describe how we convert $\AopPc$ to H-matrix format (Section \ref{sec:H_matrix_conversion}), and (optionally) how we modify the resulting H-matrix, $\AmatPc$, to force it to be symmetric positive semi-definite (Section \ref{sec:make_spd}). The complete algorithm for constructing $\AmatPc$ is shown in Algorithm \ref{alg:construct_Atilde}. 
+In this section we describe how we compute the impulse response moments $V,\mu,\Sigma$ and use these moments to estimate the supports of the impulse responses $\phi_x$, how we choose the sample points $x_i$ (Section \ref{sec:sample_point_selection}), how we compute the impulse response batches $\phi_{x_i}$ (Section \ref{sec:get_impulse_response}), how we interpolate impulse response to approximate integral kernel entries $\Phi(y,x)$, and how we construct the H-matrix approximation $\mathbf{A}_h$ of the operator $\mathcal{A}$ after the problem has been discretized with finite elements. We also describe how to (optionally) modify $\mathbf{A}_h$ to force it to be symmetric positive semi-definite. The complete algorithm is shown in Algorithm \ref{alg:construct_Atilde}. 
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -285,19 +288,13 @@ In this section we describe how we choose the sample points, $x_i$ (Section \ref
 \end{algorithm2e}
 
 
-\subsection{Sample point selection}
-\label{sec:sample_point_selection}
-
-We choose sample points, $x_i$, in batches. A greedy algorithm is used to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other. We ensure that the points $x_i$ are well separated from each other by forming a-priori estimates of the supports of the functions $\impulseresponse_x$ (Section \ref{eq:mean_and_covariance_estimation}). The support of $\impulseresponse_x$ is estimated to be contained within an ellipsoid, so the process of choosing batches of points is an ellipsoid packing problem (Section \ref{sec:greedy_point_selection}). 
-
-
-\subsubsection{Impulse response moments and support estimation}
+\subsection{Impulse response moments and support estimation}
 \label{eq:mean_and_covariance_estimation}
 
 Because of the non-negative impulse response property, for each $x \in \Omega$, the impulse response $\impulseresponse_x$ is a non-negative function $y \mapsto \impulseresponse_x(y)$. Hence, $\impulseresponse_x$ is a scaled probability distribution. Let $\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy$ denote the scaling factor (the ``volume'' of $\impulseresponse_x$), let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
 \begin{equation}
-	\label{eq:support_ellipsoid}
-	E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
+\label{eq:support_ellipsoid}
+E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
 \end{equation}
 where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\impulseresponse}_x$ (see Figure FIG). The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, the cost of our algorithm will depend on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
 
@@ -308,26 +305,26 @@ The ellipsoid $E_x$ is not immediately available. To determine $E_x$, we must co
 	\label{thm:vol_mean_cov}
 	Let $\spatialvol:\Omega \rightarrow \mathbb{R}$, $\spatialmean:\Omega \rightarrow \mathbb{R}^\gdim$, and $\spatialcov:\Omega \rightarrow \mathbb{R}^{\gdim \times \gdim}$, be the following functions:
 	\begin{equation*}
-		\spatialvol(x) := \int_{\Omega} \impulseresponse_x(y) dy, \qquad
-		\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
-		\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
+	\spatialvol(x) := \int_{\Omega} \impulseresponse_x(y) dy, \qquad
+	\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
+	\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
 	\end{equation*}
 	where $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denotes the normalized version of $\impulseresponse_x$, $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$. Let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
 	\begin{equation*}
-		C(x) := 1, \qquad
-		L^i(x) := x^i, \qquad
-		Q^{ij}(x) = x^i x^j.
+	C(x) := 1, \qquad
+	L^i(x) := x^i, \qquad
+	Q^{ij}(x) = x^i x^j.
 	\end{equation*}
 	Let $f/g$ denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The following results hold:
 	\begin{subequations}
 		\label{eq:vol_mean_var}
 		\begin{align}
-			\spatialvol =& \left(\Aop^T C\right)^* \\
-			\spatialmean^i =& \left(\Aop^T L^i\right)^* / \spatialvol \\
-			\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
+		\spatialvol =& \left(\Aop^T C\right)^* \\
+		\spatialmean^i =& \left(\Aop^T L^i\right)^* / \spatialvol \\
+		\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
 		\end{align}
 	\end{subequations}
-	 for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$.
+	for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$.
 \end{theorem}
 
 The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}. The proof is straightforward, and follows directly from the definitions.
@@ -343,7 +340,7 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 		\tcp{Compute scaling factor $\spatialvol$}
 		
 		Form constant function $C(x)=1$
-
+		
 		Compute $\spatialvol = \left(\Aop^T C\right)^*$
 		
 		\tcp{Compute mean $\spatialmean$}
@@ -360,7 +357,7 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 				Compute $\spatialcov^{ij} = \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j$
 				
 				Set $\spatialcov^{ji} = \spatialcov^{ij}$
-			
+				
 			}
 		}
 		
@@ -370,19 +367,30 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 \end{algorithm2e}
 
 
-\subsubsection{Greedy ellipsoid packing}
-\label{sec:greedy_point_selection}
 
-We use a greedy ellipsoid packing algorithm to choose batches of sample points, $\pointbatch_k$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\impulseresponse_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\Aop$ to the Dirac comb associated with all sample points in a batch, we will recover the impulse responses for all sample points in that batch.
+\subsection{Sample point selection via greedy ellipsoid packing}
+\label{sec:sample_point_selection}
+
+We choose sample points, $x_i$, in batches $\pointbatch_k$. 
+%A greedy algorithm is used to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other. We ensure that the points $x_i$ are well separated from each other by forming a-priori estimates of the supports of the functions $\impulseresponse_x$ (Section \ref{eq:mean_and_covariance_estimation}). The support of $\impulseresponse_x$ is estimated to be contained within an ellipsoid, so the process of choosing batches of points is an ellipsoid packing problem (Section \ref{sec:greedy_point_selection}). 
+We use a greedy ellipsoid packing algorithm to choose as many points as possible per batch, while ensuring that there is no overlap between the support ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch.
+%to choose batches of sample points, $\pointbatch_k$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. 
+%These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\impulseresponse_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\Aop$ to the Dirac comb associated with all sample points in a batch, we will recover the impulse responses for all sample points in that batch.
 
 We start with a finite set of candidate points $P$. To build $\pointbatch_k$, first we initialize $\pointbatch_k$ as an empty set. Then we select a candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
 \begin{equation*}
 \max_{p \in P} \min_{x \in \pointbatch_1 \cup \dots \cup \pointbatch_{k-1}} \|p - x\|.
 \end{equation*}
 Candidate points for the first batch are chosen arbitrarily from $P$.
-Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in \pointbatch_k$, then we add $p$ to $\pointbatch_k$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
+Once $p$ is selected, we remove $p$ from $P$. Then we perform the following two checks:
+\begin{enumerate}
+	\item We check whether $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in \pointbatch_k$.
+	\item We make sure that $V(p)$ is not too small, in the sense $V(p) > \tau V_\text{max}$, where $V_\text{max}$ is the largest value of $V(q)$ over all points $q$ in the initial set of candidate points, and $\tau$ is a small threshold parameter (we use $\tau=10^{-5}$).
+\end{enumerate}
+If $p$ passes both these checks (i.e., if $p$ is sufficiently far from the other points and $V(p)$ is not too small) then we add $p$ to $\pointbatch_k$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
 
-We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, except those points in previously chosen batches.
+We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem.
+%, except those points in previously chosen batches.
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -419,18 +427,19 @@ We repeat the process to construct several batches of points $\pointbatch_1, \po
 \subsection{Impulse response batches}
 \label{sec:get_impulse_response}
 
-We compute impulse responses $\impulseresponse_{x_i}$ in batches by applying $\Aop$ to a small number Dirac combs. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the following weighted sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$:
+We compute impulse responses $\impulseresponse_{x_i}$ in batches by applying $\Aop$ to a Dirac combs. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the following weighted sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$:
 \begin{equation*}
 	\diraccomb_k := \sum_{x_i \in \pointbatch_k} \delta_{x_i} / V(x_i).
 \end{equation*}
-The support of an impulse response is estimated to be contained within an ellipsoid, but this is just an approximation. A small portion of the impulse response will reside outside of the ellipsoid. If the impulse responses vary widely in scale, this neglected portion of an impulse response at a point $x_i$ with large $V(x_i)$ could overwhelm nearby impulse responses at points $x_j$ with small $V(x_j)$. Each point source is weighted by $1/V(x_i)$ so that the impulse responses within a batch are all comparable in scale.
-
-For each batch $\pointbatch_k$, we compute the \emph{impulse response batch}, $\eta_k$, by applying $\Aop$ to the associated Dirac comb:
+We compute the \emph{impulse response batch}, $\eta_k$, by applying $\Aop$ to the Dirac comb:
 \begin{equation}
 	\label{eq:dirac_comb_H_action}
 	\combresponse_k := \left(\Aop \diraccomb_k^*\right)^*.
 \end{equation}
-By linearity, the resulting function $\combresponse_k$ may be written as follows:
+Each point source $\delta_{x_i}$ is scaled by $1/V(x_i)$ so that the resulting scaled impulse responses within a batch are all comparable in magnitude. The support of an impulse response is estimated to be contained within an ellipsoid, but this is just an approximation. A small portion of the impulse response will reside outside of the ellipsoid. Without this scaling, the neglected portion of an impulse response corresponding to a point $x_i$ could overwhelm the impulse response corresponding to a nearby point $x_j$, when $V(x_i)$ is much larger than $V(x_j)$. We are not in danger of dividing by zero here, because our ellipsoid packing procedure from Section SEC excludes $x_i$ from consideration to be a sample point if $V(x_i)$ is smaller than a predetermined threshold.
+
+
+By linearity, the impulse response batch $\combresponse_k$ may be written as follows:
 \begin{equation}
 	\label{eq:phi_b}
 	\combresponse_k = \left(\Aop \left(\sum_{x_i \in \pointbatch_k} \delta_{x_i}/V(x_i)\right)^*\right)^* = \sum_{x_i \in \pointbatch_k} \left(\Aop \delta_{x_i}^*\right)^* / V(x_i) = \sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i} / V(x_i).
@@ -459,7 +468,7 @@ It follows from inspection that
 \begin{equation*}
 \Phi(y,x) = f_{y,x}(x),
 \end{equation*}
-and from the discussion in Section SEC, we expect that $\Phi(y,x) \approx f_{y,x}(x')$ when $x'$ is close to $x$. The factor $\frac{V(x)}{V(x_i)}$, which was not discussed in Section SEC, is a form of preconditioning that improves the quality of this approximation in situations where $V(x)$ varies rapidly.
+and from the discussion in Section SEC, we expect that $\Phi(y,x) \approx f_{y,x}(x')$ when $x'$ is close to $x$. The factor $\frac{V(x)}{V(x_i)}$, which was not discussed in Section SEC, is a form of preconditioning that improves the quality of this approximation in situations where $V(x)$ varies rapidly. 
 %, as is commonly the case for many operators of practical interest. In the Hessian for the Stokes inverse problem, for example, we observe that $V(x)$ varies over six orders of magnitude.
 %As discussed in Section SECTION, we make the approximation
 %\begin{equation*}
