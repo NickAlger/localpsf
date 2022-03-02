@@ -212,7 +212,7 @@ Approximation \eqref{eq:translate1} follows from the assumption that $\Phi$ is s
 %\end{equation}
 %where $\phi_{x_i}$ are known impulse responses at a collection of points $x_i$ scattered throughout $\Omega$, and $w_i$ are smooth weighting functions that interpolate the $\phi_{x_i}$. 
 %In problems of practical interest, \eqref{eq:translate1} typically holds \emph{asymptotically} in the limit as $x'$ approaches $x$. 
-However, even if $\Phi$ is smooth (which is typically the case asymptotically) the relevant Lipschitz constant for continuity, and hence the required rank in the low rank approximation, can be large, which makes algorithms based on assumption \eqref{eq:translate1} computationally expensive. This is the case, for example, for Hessians in PDE constrained inverse problems with highly informative data. As the data become more informative, typically the ``mass'' of $\Phi(y,x)$ concentrates nearer and nearer to the ``diagonal'' $y=x$, the Lipschitz constant increases, and the required rank in the approximation blows up.
+However, even if $\Phi$ is smooth (which is typically the case asymptotically) the relevant Lipschitz constant for continuity, and hence the required rank in the low rank approximation, can be large, which makes algorithms based on assumption \eqref{eq:translate1} computationally expensive. This is the case, for example, for Hessians in PDE constrained inverse problems with highly informative data. As the data become more informative, typically the ``mass'' of $\Phi(y,x)$ concentrates nearer and nearer to the ``diagonal'' $y=x$, the Lipschitz constant increases, and the required rank in the approximation increases.
 %Moreover, if $\Aop$ is numerically low rank, then one would typically use more accurate and robust matrix-free methods for forming low-rank approximations, such as randomized SVD or Lanczos.
 
 Operators that satisfy \eqref{eq:translate2} are called ``locally translation-invariant'' because integral kernel entries $\Phi(y,x)$ for such operators are approximately invariant under translation of $x$ and $y$ by the same displacement, i.e., $x \rightarrow x+h$ and $y \rightarrow y+h$. Locally translation-invariant operators act like convolutions locally, and can therefore be well-approximated by so-called product-convolution approximations---weighted sums of convolution operators with spatially varying weights. Product-convolution approximations can be high-rank even if the number of convolution operators used in the approximation is small.
@@ -377,20 +377,19 @@ We use a greedy ellipsoid packing algorithm to choose as many points as possible
 %to choose batches of sample points, $\pointbatch_k$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. 
 %These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\impulseresponse_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\Aop$ to the Dirac comb associated with all sample points in a batch, we will recover the impulse responses for all sample points in that batch.
 
-We start with a finite set of candidate points $P$. To build $\pointbatch_k$, first we initialize $\pointbatch_k$ as an empty set. Then we select a candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
+We start with a finite set of candidate points $P$ and build $\pointbatch_k$ incrementally with points selected from $P$. For simplicity of explanation, here $B_k$ and $P$ are mutable sets that we add points to and remove points from. First we initialize $\pointbatch_k$ as an empty set. Then we select the candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
 \begin{equation*}
 \max_{p \in P} \min_{x \in \pointbatch_1 \cup \dots \cup \pointbatch_{k-1}} \|p - x\|.
 \end{equation*}
-Candidate points for the first batch are chosen arbitrarily from $P$.
+Candidate points for the first batch are chosen randomly from $P$.
 Once $p$ is selected, we remove $p$ from $P$. Then we perform the following two checks:
 \begin{enumerate}
 	\item We check whether $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in \pointbatch_k$.
-	\item We make sure that $V(p)$ is not too small, in the sense $V(p) > \tau V_\text{max}$, where $V_\text{max}$ is the largest value of $V(q)$ over all points $q$ in the initial set of candidate points, and $\tau$ is a small threshold parameter (we use $\tau=10^{-5}$).
+	\item We make sure that $V(p)$ is not too small, by checking whether $V(p) > \tau V_\text{max}$. Here $V_\text{max}$ is the largest value of $V(q)$ over all points $q$ in the initial set of candidate points, and $\tau$ is a small threshold parameter (we use $\tau=10^{-5}$).
 \end{enumerate}
-If $p$ passes both these checks (i.e., if $p$ is sufficiently far from the other points and $V(p)$ is not too small) then we add $p$ to $\pointbatch_k$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
+If $p$ passes both these checks (i.e., if $p$ is sufficiently far from other points in the batch, and $V(p)$ is not too small) then we add $p$ to $\pointbatch_k$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We check whether $E_p \cap E_q = \{\}$ using the ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
 
-We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem.
-%, except those points in previously chosen batches.
+We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, except for points in previously chosen batches.
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -436,9 +435,6 @@ We compute the \emph{impulse response batch}, $\eta_k$, by applying $\Aop$ to th
 	\label{eq:dirac_comb_H_action}
 	\combresponse_k := \left(\Aop \diraccomb_k^*\right)^*.
 \end{equation}
-Each point source $\delta_{x_i}$ is scaled by $1/V(x_i)$ so that the resulting scaled impulse responses within a batch are all comparable in magnitude. The support of an impulse response is estimated to be contained within an ellipsoid, but this is just an approximation. A small portion of the impulse response will reside outside of the ellipsoid. Without this scaling, the neglected portion of an impulse response corresponding to a point $x_i$ could overwhelm the impulse response corresponding to a nearby point $x_j$, when $V(x_i)$ is much larger than $V(x_j)$. We are not in danger of dividing by zero here, because our ellipsoid packing procedure from Section SEC excludes $x_i$ from consideration to be a sample point if $V(x_i)$ is smaller than a predetermined threshold.
-
-
 By linearity, the impulse response batch $\combresponse_k$ may be written as follows:
 \begin{equation}
 	\label{eq:phi_b}
@@ -454,6 +450,12 @@ Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approxim
 	\end{cases}
 \end{equation}
 for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the impulse responses $\impulseresponse_{x_i}$ associated with every point $x_i \in \pointbatch_k$. 
+
+Each point source $\delta_{x_i}$ in the Dirac comb is scaled by $1/V(x_i)$ so that the resulting scaled impulse responses within $\eta_k$ are comparable in magnitude. Note that we are not in danger of dividing by zero here, because our ellipsoid packing procedure from Section SEC excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold. Without this scaling, the portion of $\phi_{x_i}$ outside of $E_{x_i}$, which we neglect, could overwhelm $\phi_{x_j}$ for a nearby point $x_j$ simply because $V(x_i)$ is much larger than $V(x_j)$. 
+
+%Note that the support of $\impulseresponse_{x_i}$ is estimated to be contained within the ellipsoid $E_{x_i}$, but this is just an approximation. 
+%%The impulse response $\impulseresponse_{x_i}$ may be nonzero inside the ellipsoid $E_{x_j}$ associated with another point $x_j$ in the batch, and this will cause error in our recovery of $\phi_{x_j}$. 
+%Without this scaling, the neglected portion of an impulse response corresponding to a point $x_i$ could overwhelm the impulse response corresponding to a nearby point $x_j$ if $V(x_i)$ is much larger than $V(x_j)$. 
 
 
 
