@@ -202,7 +202,15 @@ Let $x$ and $x'$ be points in $\Omega$ that are close to each other, and conside
 	\phi_x(y) &\approx \phi_{x'}(y-x+x') \label{eq:translate2}\\
 	\phi_x(y) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right). \label{eq:translate3}
 \end{align}
-Approximations \eqref{eq:translate1} and \eqref{eq:translate2} are standard. Approximation \eqref{eq:translate3}, which we use,  is new. We call operators that satisfy \eqref{eq:translate3} ``locally mean-displacement invariant.'' These approximations are illustrated in Figure FIG.
+Approximations \eqref{eq:translate1} and \eqref{eq:translate2} are standard. Approximation \eqref{eq:translate3}, which we use, is new. We call operators that satisfy \eqref{eq:translate3} ``locally mean-displacement invariant.'' We illustrate local mean-displacement invariance in Figure \ref{fig:mean_displacement_invariance}.
+
+\begin{figure}
+	\begin{center}
+		\includegraphics[scale=1.0]{mean_displacement_invariance.pdf}
+	\end{center}
+	\caption{An operator is locally mean-displacement invariant if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \mu(x) + \mu(x')\right)$ when $x$ is close to $x'$.}
+	\label{fig:mean_displacement_invariance}
+\end{figure}
 
 Approximation \eqref{eq:translate1} follows from the assumption that $\Phi$ is smooth. Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank interpolative factorization of $\Phi$.
 % of the form
@@ -229,7 +237,7 @@ Operators that satisfy \eqref{eq:translate2} are called ``locally translation-in
 %Here $f \ast g$ denotes convolution, and $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$ (i.e., $\left(f \cdot g\right)(x) = f(x) g(x)$). Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. Product-convolution approximations can be high-rank even if $r$ is small.
 
 
-We use approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x_i)$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x_i)-\mu(x) \approx x_i - x$, so again \eqref{eq:translate3} holds. Furthermore, approximation \eqref{eq:translate3} can hold in situations where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, \eqref{eq:translate3} will hold when an operator is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case (see Figure FIG). Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires $y \in \Omega_2$ and $-x+x' \in \Omega_1$ to be added together. 
+We use approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x_i)$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x_i)-\mu(x) \approx x_i - x$, so again \eqref{eq:translate3} holds. Furthermore, approximation \eqref{eq:translate3} can hold in situations where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, \eqref{eq:translate3} will hold when an operator is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case. Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires $y \in \Omega_2$ and $-x+x' \in \Omega_1$ to be added together. 
 
 
 
@@ -451,7 +459,7 @@ Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approxim
 \end{equation}
 for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the impulse responses $\impulseresponse_{x_i}$ associated with every point $x_i \in \pointbatch_k$. 
 
-Each point source $\delta_{x_i}$ in the Dirac comb is scaled by $1/V(x_i)$ so that the resulting scaled impulse responses within $\eta_k$ are comparable in magnitude. Note that we are not in danger of dividing by zero here, because our ellipsoid packing procedure from Section SEC excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold. Without this scaling, the portion of $\phi_{x_i}$ outside of $E_{x_i}$, which we neglect, will overwhelm $\phi_{x_j}$ for a nearby point $x_j$ if $V(x_i)$ is much larger than $V(x_j)$. 
+Each point source $\delta_{x_i}$ in the Dirac comb is scaled by $1/V(x_i)$ so that the resulting scaled impulse responses within $\eta_k$ are comparable in magnitude. Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section SEC excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold. Without this scaling, the portion of $\phi_{x_i}$ outside of $E_{x_i}$, which we neglect, may overwhelm $\phi_{x_j}$ for a nearby point $x_j$ if $V(x_i)$ is much larger than $V(x_j)$. 
 
 %Note that the support of $\impulseresponse_{x_i}$ is estimated to be contained within the ellipsoid $E_{x_i}$, but this is just an approximation. 
 %%The impulse response $\impulseresponse_{x_i}$ may be nonzero inside the ellipsoid $E_{x_j}$ associated with another point $x_j$ in the batch, and this will cause error in our recovery of $\phi_{x_j}$. 
