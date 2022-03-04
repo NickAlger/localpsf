@@ -507,7 +507,7 @@ The idea here is that $\Phi(y,x) \approx f_i$ when $x_i$ is near $x$, so we appr
 at the point $x$. To see that $\Phi(y,x) \approx f_i$, recall from Section \ref{eq:local_mean_displacement_invariance} that $\Phi(y,x) \approx \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ if $x_i$ is near $x$. Inclusion of the extra factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} is a form of preconditioning that makes this approximation more robust in the case where $V(x)$ varies widely. 
 %Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section \ref{sec:sample_point_selection} excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold.
 
-\subsubsection{Radial basis function interpolation}
+%\subsubsection{Radial basis function interpolation}
 
 We use the following radial basis function interpolation scheme:
 %The approximation $\widetilde{\Phi}(y,x)$ is the value of this interpolation at $x$.
@@ -550,7 +550,7 @@ We use the following radial basis function interpolation scheme:
 \begin{equation}
 \Phi(y,x) \approx \widetilde{\Phi}(y,x) := \sum_{i=1}^k w_i~ b\left(\|x-x_i\|\right),
 \end{equation}
-where $b_i$ are radial basis functions and $w_i$ are weights. The vector of weights, $w = (w_1, w_2, \dots, w_k)^T$, is found as the solution to the $k \times k$ linear system
+Here $b_i$ are radial basis functions and $w_i$ are weights. The vector of weights, $w = (w_1, w_2, \dots, w_k)^T$, is found as the solution to the $k \times k$ linear system
 \begin{equation}
 Bw = f,
 \end{equation}
@@ -600,7 +600,7 @@ evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires determining which
 
 \subsubsection{Improvement for symmetric operators}
 \label{sec:symmetric_improvements}
-If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$. Let $\{y_i\}_{i=1}^k$ be the $k$ nearest sample points to $y$, excluding points $y_i$ such that $x - \mu(y) + \mu(y_i) \notin \Omega$. We could form an alternative approximation of $\Phi(y,x)$ by performing the same interpolation as before, but with $x$ and $y$ taking opposite roles. We combine both of these interpolation schemes to improve the approximation accuracy at negligible additional cost. The two interpolation schemes are combined by placing function values 
+If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$. Let $\{y_i\}_{i=1}^k$ be the $k$ nearest sample points to $y$, excluding points $y_i$ such that $x - \mu(y) + \mu(y_i) \notin \Omega$. We could form an alternative approximation of $\Phi(y,x)$ by performing the same interpolation as before, but with $x$ and $y$ taking opposite roles. Both of these interpolation schemes can be combined to improve the approximation accuracy at negligible additional cost. We combine these interpolation schemes by placing function values 
 \begin{equation*}
 \left(\widehat{f}_x\right)_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right), \qquad i=1,\dots,k,
 \end{equation*}
@@ -608,7 +608,7 @@ at the points $x_i-x$, placing function values
 \begin{equation*}
 \left(\widehat{f}_y\right)_i := \frac{V(y)}{V(y_i)}\phi_{y_i}\left(x - \mu(y) + \mu(y_i)\right), \qquad i=1,\dots,k,
 \end{equation*}
-at the points $y_i-y$, and using radial basis functions to interpolate the combination of these $2k$ points and values at zero.
+at the points $y_i-y$, and interpolating the combination of these $2k$ points and values at zero.
 
 In detail, define 
 \begin{equation*}
