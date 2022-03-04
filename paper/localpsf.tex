@@ -196,6 +196,7 @@ When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be indefinit
 %The novel contributions of our method are in the way that we form the product-convolution approximation ($\Aop \rightarrow \AopPc$). This is the part of the method where we use the four properties of $\Aop$ described above. Fast conversion of the discretized version of $\AopPc$ to H-matrix format ($\AopPc \rightarrow \AmatPc$) is possible because integral kernel entries for $\AopPc$ are easily accessible (unlike integral kernel entries for $\Aop$). Once in H-matrix format, one may use H-matrix methods to perform further useful linear algebra operations involving $\AmatPc$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems.
 
 \subsection{Local mean-displacement invariance}
+\label{eq:local_mean_displacement_invariance}
 
 Let $x$ and $x'$ be points in $\Omega$ that are close to each other, and consider the following three approximations, ordered by increasing level of sophistication:
 \begin{align}
@@ -484,22 +485,24 @@ Each point source $\delta_{x_i}$ in the Dirac comb is scaled by $1/V(x_i)$ so th
 \subsection{Approximate integral kernel entries}
 \label{sec:approximate_kernel_entries}
 
-In Section \ref{sec:intro} we noted that the integral kernel, $\Aker$, is inaccessible. Here we describe how we compute approximate kernel entries,
+%In Section \ref{sec:intro} we noted that computing $\Aker\left(y,x\right)$ is computationally costly. 
+This section describes how we compute approximate kernel entries
 \begin{equation*}
-\widetilde{\Phi}(y,x) \approx \Phi(y,x),
+\widetilde{\Phi}(y,x) \approx \Phi(y,x).
 \end{equation*}
-for arbitrary pairs of points $(y,x) \subset \Omega \times \Omega$ via interpolation.
+%for arbitrary pairs of points $(y,x) \subset \Omega \times \Omega$.
 % while Section \ref{sec:approximate_kernel_entries} we showed how we can cheaply evaluate approximate kernel entries at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$.
-To that end, we define the function
+Let
 \begin{equation}
 \label{eq:fxyxp}
 f_{y,x}(x') := \frac{V(x)}{V(x')}\phi_{x_i}\left(y - \mu(x) + \mu(x')\right).
 \end{equation}
-It follows from inspection that 
-\begin{equation*}
-\Phi(y,x) = f_{y,x}(x),
-\end{equation*}
-and from the discussion in Section SEC, we expect that $\Phi(y,x) \approx f_{y,x}(x')$ when $x'$ is close to $x$. The factor $\frac{V(x)}{V(x_i)}$, which was not discussed in Section SEC, is a form of preconditioning that improves the quality of this approximation in situations where $V(x)$ varies rapidly. 
+It follows from inspection that $\Phi(y,x) = f_{y,x}(x)$,
+and from the discussion in Section \ref{eq:local_mean_displacement_invariance}, we expect 
+$
+\Phi(y,x) \approx f_{y,x}(x')
+$
+when $x'$ is close to $x$. The factor $\frac{V(x)}{V(x_i)}$, which was not discussed in Section \ref{eq:local_mean_displacement_invariance}, is a form of preconditioning that improves the quality of this approximation in situations where $V(x)$ varies rapidly. 
 %, as is commonly the case for many operators of practical interest. In the Hessian for the Stokes inverse problem, for example, we observe that $V(x)$ varies over six orders of magnitude.
 %As discussed in Section SECTION, we make the approximation
 %\begin{equation*}
