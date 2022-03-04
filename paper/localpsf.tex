@@ -202,7 +202,7 @@ Let $x$ and $x'$ be points in $\Omega$ that are close to each other, and conside
 	\phi_x(y) &\approx \phi_{x'}(y-x+x') \label{eq:translate2}\\
 	\phi_x(y) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right). \label{eq:translate3}
 \end{align}
-Approximations \eqref{eq:translate1} and \eqref{eq:translate2} are standard. Approximation \eqref{eq:translate3}, which we use, is new. We call operators that satisfy \eqref{eq:translate3} ``locally mean-displacement invariant.'' We illustrate local mean-displacement invariance in Figure \ref{fig:mean_displacement_invariance}.
+We use approximation \eqref{eq:translate3}, which we call ``locally mean-displacement invariance.'' This is illustrated in Figure \ref{fig:mean_displacement_invariance}.
 
 \begin{figure}
 	\begin{center}
@@ -261,7 +261,7 @@ Product-convolution type approximations of Hessians have been used in a seismic 
 
 \section{Method}
 \label{sec:method}
-In this section we describe how we compute the impulse response moments $V,\mu,\Sigma$ and use these moments to estimate the supports of the impulse responses $\phi_x$, how we choose the sample points $x_i$ (Section \ref{sec:sample_point_selection}), how we compute the impulse response batches $\phi_{x_i}$ (Section \ref{sec:get_impulse_response}), how we interpolate impulse response to approximate integral kernel entries $\Phi(y,x)$, and how we construct the H-matrix approximation $\mathbf{A}_h$ of the operator $\mathcal{A}$ after the problem has been discretized with finite elements. We also describe how to (optionally) modify $\mathbf{A}_h$ to force it to be symmetric positive semi-definite. The complete algorithm is shown in Algorithm \ref{alg:construct_Atilde}. 
+In this section we describe how we compute the impulse response moments $V,\mu,\Sigma$ and use these moments to estimate the supports of the impulse responses $\phi_x$ (Section \ref{eq:mean_and_covariance_estimation}), the greedy ellipsoid packing procedure we use to choose batches of sample points $x_i$ (Section \ref{sec:sample_point_selection}), how we compute impulse responses, $\phi_{x_i}$, in batches (Section \ref{sec:get_impulse_response}), how we interpolate the $\phi_{x_i}$ to approximate integral kernel entries $\Phi(y,x)$ (Section \ref{sec:approximate_kernel_entries}), finite element discretization of $\Phi$ (Section \ref{sec:finite_element_kernel}), and how we construct the H-matrix approximation $\mathbf{A}_h$ of the operator $\mathcal{A}$. We also describe how to (optionally) modify $\mathbf{A}_h$ to force it to be symmetric positive semi-definite. The complete algorithm is shown in Algorithm \ref{alg:construct_Atilde}. 
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -296,28 +296,39 @@ In this section we describe how we compute the impulse response moments $V,\mu,\
 \end{algorithm2e}
 
 
-\subsection{Impulse response moments and support estimation}
+\subsection{Impulse response support ellipsoids}
 \label{eq:mean_and_covariance_estimation}
 
-Because of the non-negative impulse response property, for each $x \in \Omega$, the impulse response $\impulseresponse_x$ is a non-negative function $y \mapsto \impulseresponse_x(y)$. Hence, $\impulseresponse_x$ is a scaled probability distribution. Let $\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy$ denote the scaling factor (the ``volume'' of $\impulseresponse_x$), let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
+%Because of the non-negative impulse response property, for each $x \in \Omega$, the impulse response $\impulseresponse_x$ is a non-negative function $y \mapsto \impulseresponse_x(y)$. Hence, $\impulseresponse_x$ is a scaled probability distribution. Let $\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy$ denote the scaling factor (the ``volume'' of $\impulseresponse_x$), let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. 
+
+We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
 \begin{equation}
 \label{eq:support_ellipsoid}
 E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
 \end{equation}
-where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\impulseresponse}_x$ (see Figure FIG). The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, the cost of our algorithm will depend on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
+where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\impulseresponse}_x$.
 
-The ellipsoid $E_x$ is not immediately available. To determine $E_x$, we must compute the scalar $\spatialvol(x)$, the length-$\gdim$ vector $\spatialmean(x)$, and the $\gdim \times \gdim$ matrix $\spatialcov(x)$ (recall $\gdim \in \{1,2,3\}$ is the spatial dimension of $\Omega$). The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because and it requires one operator action of $\Aop$ per point $x$ that we wish to evaluate $E_x$ at, and we will need to evaluate $E_x$ at a large number of points. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Theorem \ref{thm:vol_mean_cov} and summarize the method in Algorithm \ref{alg:varhpi_mean_cov}.
+The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
+
+
+\section{Impulse response moments}
+
+%The ellipsoid $E_x$ is not immediately available. 
+To determine $E_x$, we must compute the scalar $\spatialvol(x)$, the length-$\gdim$ vector $\spatialmean(x)$, and the $\gdim \times \gdim$ matrix $\spatialcov(x)$.
+%(recall $\gdim$ is the spatial dimension of $\Omega$).
+The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because it requires one operator action of $\Aop$ per point $x$ that we wish to determine $E_x$ at, and we will need to determine $E_x$ at a large number of points. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Theorem \ref{thm:vol_mean_cov} and summarize the method for computing these moments in Algorithm \ref{alg:varhpi_mean_cov}.
 
 
 \begin{theorem}[Impulse response moments]
 	\label{thm:vol_mean_cov}
-	Let $\spatialvol:\Omega \rightarrow \mathbb{R}$, $\spatialmean:\Omega \rightarrow \mathbb{R}^\gdim$, and $\spatialcov:\Omega \rightarrow \mathbb{R}^{\gdim \times \gdim}$, be the following functions:
-	\begin{equation*}
-	\spatialvol(x) := \int_{\Omega} \impulseresponse_x(y) dy, \qquad
-	\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
-	\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
-	\end{equation*}
-	where $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denotes the normalized version of $\impulseresponse_x$, $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$. Let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
+%	Let $\spatialvol:\Omega \rightarrow \mathbb{R}$, $\spatialmean:\Omega \rightarrow \mathbb{R}^\gdim$, and $\spatialcov:\Omega \rightarrow \mathbb{R}^{\gdim \times \gdim}$, be the following functions:
+%	\begin{equation*}
+%	\spatialvol(x) := \int_{\Omega} \impulseresponse_x(y) dy, \qquad
+%	\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
+%	\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
+%	\end{equation*}
+%	where $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denotes the normalized version of $\impulseresponse_x$, $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	
+	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$. Let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
 	\begin{equation*}
 	C(x) := 1, \qquad
 	L^i(x) := x^i, \qquad
@@ -381,15 +392,16 @@ The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs
 
 We choose sample points, $x_i$, in batches $\pointbatch_k$. 
 %A greedy algorithm is used to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other. We ensure that the points $x_i$ are well separated from each other by forming a-priori estimates of the supports of the functions $\impulseresponse_x$ (Section \ref{eq:mean_and_covariance_estimation}). The support of $\impulseresponse_x$ is estimated to be contained within an ellipsoid, so the process of choosing batches of points is an ellipsoid packing problem (Section \ref{sec:greedy_point_selection}). 
-We use a greedy ellipsoid packing algorithm to choose as many points as possible per batch, while ensuring that there is no overlap between the support ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch.
+We use a greedy ellipsoid packing algorithm to choose as many points as possible per batch, while ensuring that there is no overlap between the support ellipsoids, $E_{x_i}$, associated with the sample points within a batch.
 %to choose batches of sample points, $\pointbatch_k$, such that there is no overlap between the ellipsoids, $E_{x_i}$, associated with the sample points, $x_i$, within a batch. 
 %These sample point batches will be used in Section \ref{sec:get_impulse_response} to compute many impulse responses of $\Aop$ using only a small number of operator actions of $\Aop$. The support of $\impulseresponse_x$ is (approximately) contained in the ellipsoid $E_x$, so by applying $\Aop$ to the Dirac comb associated with all sample points in a batch, we will recover the impulse responses for all sample points in that batch.
 
-We start with a finite set of candidate points $P$ and build $\pointbatch_k$ incrementally with points selected from $P$. For simplicity of explanation, here $B_k$ and $P$ are mutable sets that we add points to and remove points from. First we initialize $\pointbatch_k$ as an empty set. Then we select the candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
-\begin{equation*}
-\max_{p \in P} \min_{x \in \pointbatch_1 \cup \dots \cup \pointbatch_{k-1}} \|p - x\|.
-\end{equation*}
-Candidate points for the first batch are chosen randomly from $P$.
+We start with a finite set of candidate points $P$ and build $\pointbatch_k$ incrementally with points selected from $P$. For simplicity of explanation, here $\pointbatch_k$ and $P$ are mutable sets that we add points to and remove points from. First we initialize $\pointbatch_k$ as an empty set. Then we select the candidate point $p \in P$ that is the farthest away from all points in previous sample point batches $S_1 \cup S_2 \cup \dots \cup S_{k-1}$. 
+%That is, $p$ is a maximizer of the following optimization problem:
+%\begin{equation*}
+%\max_{p \in P} \min_{x \in \pointbatch_1 \cup \dots \cup \pointbatch_{k-1}} \|p - x\|.
+%\end{equation*}
+Candidate points for the first batch $S_1$ are chosen randomly from $P$.
 Once $p$ is selected, we remove $p$ from $P$. Then we perform the following two checks:
 \begin{enumerate}
 	\item We check whether $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in \pointbatch_k$.
@@ -434,32 +446,37 @@ We repeat the process to construct several batches of points $\pointbatch_1, \po
 \subsection{Impulse response batches}
 \label{sec:get_impulse_response}
 
-We compute impulse responses $\impulseresponse_{x_i}$ in batches by applying $\Aop$ to a Dirac combs. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the following weighted sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$:
+We compute impulse responses $\impulseresponse_{x_i}$ in batches by applying $\Aop$ to Dirac combs. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the following weighted sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$:
 \begin{equation*}
 	\diraccomb_k := \sum_{x_i \in \pointbatch_k} \delta_{x_i} / V(x_i).
 \end{equation*}
 We compute the \emph{impulse response batch}, $\eta_k$, by applying $\Aop$ to the Dirac comb:
 \begin{equation}
 	\label{eq:dirac_comb_H_action}
-	\combresponse_k := \left(\Aop \diraccomb_k^*\right)^*.
+	\combresponse_k := \left(\Aop \diraccomb_k^*\right)^*
+	=\sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i} / V(x_i).
 \end{equation}
-By linearity, the impulse response batch $\combresponse_k$ may be written as follows:
-\begin{equation}
-	\label{eq:phi_b}
-	\combresponse_k = \left(\Aop \left(\sum_{x_i \in \pointbatch_k} \delta_{x_i}/V(x_i)\right)^*\right)^* = \sum_{x_i \in \pointbatch_k} \left(\Aop \delta_{x_i}^*\right)^* / V(x_i) = \sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i} / V(x_i).
-\end{equation}
-Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\impulseresponse_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\impulseresponse_j$ do not overlap when $i \neq j$, from \eqref{eq:convolution_kernel} and \eqref{eq:phi_b} we have (approximately)
+The last equality in \eqref{eq:dirac_comb_H_action} follows from linearity and the definition of $\impulseresponse_{x_i}$ in \eqref{eq:impulse_response_delta_action}.
+%\begin{equation}
+%\label{eq:phi_b}
+%\combresponse_k = \sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i} / V(x_i).
+%\end{equation}
+%\begin{equation}
+%	\label{eq:phi_b}
+%	\combresponse_k = \left(\Aop \left(\sum_{x_i \in \pointbatch_k} \delta_{x_i}/V(x_i)\right)^*\right)^* = \sum_{x_i \in \pointbatch_k} \left(\Aop \delta_{x_i}^*\right)^* / V(x_i) = \sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i} / V(x_i).
+%\end{equation}
+Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\impulseresponse_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\impulseresponse_j$ do not overlap when $i \neq j$, we have (approximately)
 \begin{equation}
 \label{eq:varphi_eval}
-	\impulseresponse_{x_i}(z) = 
+	\impulseresponse_{x_i}(z) / V(x_i) = 
 	\begin{cases}
-		V(x_i)\combresponse_k(z), & z \in E_{x_i} \\
+		\combresponse_k(z), & z \in E_{x_i} \\
 		0, & \text{otherwise}
 	\end{cases}
 \end{equation}
-for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover the impulse responses $\impulseresponse_{x_i}$ associated with every point $x_i \in \pointbatch_k$. 
+for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, $\xi_k \mapsto \left(\Aop \diraccomb_k^*\right)^*$, we recover the impulse responses $\impulseresponse_{x_i}$ associated with every point $x_i \in \pointbatch_k$. 
 
-Each point source $\delta_{x_i}$ in the Dirac comb is scaled by $1/V(x_i)$ so that the resulting scaled impulse responses within $\eta_k$ are comparable in magnitude. Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section SEC excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold. Without this scaling, the portion of $\phi_{x_i}$ outside of $E_{x_i}$, which we neglect, may overwhelm $\phi_{x_j}$ for a nearby point $x_j$ if $V(x_i)$ is much larger than $V(x_j)$. 
+Each point source $\delta_{x_i}$ in the Dirac comb is scaled by $1/V(x_i)$ so that the resulting scaled impulse responses within $\eta_k$ are comparable in magnitude. Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section \ref{sec:sample_point_selection} excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold. Without this scaling, the portion of $\phi_{x_i}$ outside of $E_{x_i}$, which we neglect, may overwhelm $\phi_{x_j}$ for a nearby point $x_j$ if $V(x_i)$ is much larger than $V(x_j)$. 
 
 %Note that the support of $\impulseresponse_{x_i}$ is estimated to be contained within the ellipsoid $E_{x_i}$, but this is just an approximation. 
 %%The impulse response $\impulseresponse_{x_i}$ may be nonzero inside the ellipsoid $E_{x_j}$ associated with another point $x_j$ in the batch, and this will cause error in our recovery of $\phi_{x_j}$. 
@@ -468,8 +485,15 @@ Each point source $\delta_{x_i}$ in the Dirac comb is scaled by $1/V(x_i)$ so th
 
 
 \subsection{Approximate integral kernel entries}
+\label{sec:approximate_kernel_entries}
 
-Here we describe how we compute approximate kernel entries $\Phi(y,x)$ for arbitrary pairs of points $(y,x) \subset \Omega \times \Omega$. To that end, we define the function
+In Section \ref{sec:intro} we noted that the integral kernel, $\Aker$, is inaccessible. Here we describe how we compute approximate kernel entries,
+\begin{equation*}
+\widetilde{\Phi}(y,x) \approx \Phi(y,x),
+\end{equation*}
+for arbitrary pairs of points $(y,x) \subset \Omega \times \Omega$.
+% while Section \ref{sec:approximate_kernel_entries} we showed how we can cheaply evaluate approximate kernel entries at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$.
+To that end, we define the function
 \begin{equation}
 \label{eq:fxyxp}
 f_{y,x}(x') := \frac{V(x)}{V(x')}\phi_{x_i}\left(y - \mu(x) + \mu(x')\right).
@@ -486,11 +510,11 @@ and from the discussion in Section SEC, we expect that $\Phi(y,x) \approx f_{y,x
 %\end{equation*}
 %if $x'$ is close to $x$. Hence, w
 
-We approximate $\Phi(y,x)$ by performing radial basis function interpolation of the function $f_{y,x}(x')$ in the variable $x'$. The data used in the interpolation are the following (point,value) pairs
+We evaluate the approximate kernel entry $\widetilde{\Phi}(y,x)$ by performing radial basis function interpolation of the function $f_{y,x}(x')$ in the variable $x'$. The data used in the interpolation are the following (point,value) pairs
 \begin{equation}
 \left(x_i, f_{y,x}(x_i)\right), \qquad i=1,\dots,k,
 \end{equation}
-and $(x, f_{y,x}(x))$ is the (point,value) pair we approximate via interpolation.
+and $(x, f_{y,x}(x)) = (x,\Phi(y,x))$ is the (point,value) pair we approximate via interpolation.
 Here $\{x_i\}_{i=1}^k \subset \Omega$ are the $k$ nearest sample points to $x$, excluding sample points for which $f_{y,x}(x_i)$ is not defined.
 %a collection of sample points at which the impulse response $\phi_{x_i}$ is known.
 %. Specifically, we interpolate $(\text{point}, \text{value})$ pairs $(x_i, f_i)$ at the point $x$, where $x_i$ are sample points, and $f_i$ are given as follows:
@@ -500,13 +524,13 @@ Here $\{x_i\}_{i=1}^k \subset \Omega$ are the $k$ nearest sample points to $x$, 
 %\end{equation}
 %We must perform a new interpolation every time we evaluate $\Phi(y,x)$ at a new pair of points $(y,x)$, and constructing the H-matrix approximation of $\Phi$ requires evaluating $\Phi(y,x)$ at a large number of pairs of points $(y,x)$. 
 %Interpolation using all sample points $x_i$ is too expensive, so we only use the $k$ nearest sample points to $x$, excluding sample points for which $f_{y,x}(x_i)$ is not defined. 
-In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree [CITE] of all sample points. 
+In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree \cite{kdtree} of all sample points. 
 
-From the definition of $f_{y,x}$ in \eqref{eq:fxyxp}, we see that $f_{y,x}(x_i)$ is only defined if $y - \mu(x) + \mu(x_i) \in \Omega$, because $\phi_x$ is only defined on $\Omega$. But it may happen that $y - \mu(x) + \mu(x_i) \notin \Omega$, even if $y,x,x_i \in \Omega$. In this case, the point $x_i$ is considered invalid, and not used in the interpolation, even if it is close to $x$. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) [CITE] of the mesh cells used to discretize the problem.
+From the definition of $f_{y,x}$ in \eqref{eq:fxyxp}, we see that $f_{y,x}(x_i)$ is only defined if $y - \mu(x) + \mu(x_i) \in \Omega$, because $\phi_x$ is only defined on $\Omega$. But it may happen that $y - \mu(x) + \mu(x_i) \notin \Omega$, even if $y,x,x_i \in \Omega$. In this case, the point $x_i$ is considered invalid, and not used in the interpolation, even if it is close to $x$. We check whether $x_i$ is valid (i.e., whether $y - \mu(x) + \mu(x_i) \in \Omega$) by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem.
 
-We approximate $\Phi(y,x)$ using radial basis function interpolation of the following form:
+Having found the $k$ nearest valid sample points $x_i$ to $x$, we approximate $\Phi(y,x)$ using radial basis function interpolation of the following form:
 \begin{equation}
-\Phi(y,x) = f_{y,x}(x) \approx \sum_{i=1}^k w_i~ b\left(\|x-x_i\|\right),
+\widetilde{\Phi}(y,x) := \sum_{i=1}^k w_i~ b\left(\|x-x_i\|\right),
 \end{equation}
 where $b_i$ are radial basis functions, and $w_i$ are weights. The vector of weights, $w = (w_1, w_2, \dots, w_k)^T$, is found as the solution to the $k \times k$ linear system
 \begin{equation}
@@ -514,9 +538,13 @@ Bw = f,
 \end{equation}
 where the coefficient matrix $B \in \mathbb{R}^{k \times k}$ has entries 
 \begin{equation*}
-B_{ij} = b\left(\|x_i - x_j\|\right),
+B_{ij} := b\left(\|x_i - x_j\|\right), \qquad i,j=1,\dots,k,
 \end{equation*}
-and the right hand side vector $f \in \mathbb{R}^k$ has entries $f_i = f_{y,x}(x_i)$, $i=1,\dots,k$. We use polyharmonic spline radial basis functions [CITE], which are defined as follows:
+and the right hand side vector $f \in \mathbb{R}^k$ has entries 
+\begin{equation*}
+f_i = f_{y,x}(x_i), \qquad i=1,\dots,k.
+\end{equation*}
+We use polyharmonic spline radial basis functions \cite{polyspline}, which are defined as follows:
 \begin{equation}
 b_i(r) := \begin{cases}
 r^d, & d=1,3,5,\dots \\
@@ -532,64 +560,65 @@ for $r>0$, and $b_i(0):=0$.
 
 %In order to compute $f_{y,x}(x_i)$, we must evaluate $\impulseresponse_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$, and we do this by evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$. Here $b$ is the index of the batch that contains the sample point $x_i$, and $\eta_b$ is the corresponding impulse response batch function that we have computed and stored.  
 %Although it is typically recommended that one avoid evaluating finite element functions at arbitrary points [CITE], here we have no choice. 
-We evaluate $f_{y,x}(x_i)$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
+To generate the right hand side vector $f$, we evaluate $f_{y,x}(x_i)$ at the points $x_i$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
 \begin{equation}
 \label{eq:ellipsoid_check93}
 (y - \mu(x))^T \Sigma^{-1}(x) (y - \mu(x))  \le \tau^2.
 \end{equation}
 If \eqref{eq:ellipsoid_check93} does not hold, then $y - \mu(x) + \mu(x_i) \notin E_{x_i}$ (i.e., $y - \mu(x) + \mu(x_i)$ is outside the estimated support of $\impulseresponse_{x_i}$), so we set $f_{y,x}(x_i)=0$ for the purpose of interpolation. If \eqref{eq:ellipsoid_check93} does hold, then $y - \mu(x) + \mu(x_i) \in E_{x_i}$. In this case, we look up the batch index $b$ for the batch of sample points that contains $x_i$, and evaluate
 \begin{equation}
-f_{y,x}(x_i) = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right) = V(x)\eta_b\left(y - \mu(x) + \mu(x_i)\right),
+f_{y,x}(x_i) = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right) = V(x)\eta_b\left(y - \mu(x) + \mu(x_i)\right).
 \end{equation}
-where $\eta_b$ is the impulse response batch function that we have computed and stored.
+Recall from Section \ref{sec:get_impulse_response} that $\eta_b$ is the impulse response batch that we have computed and stored.
 Evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires some care, because the point $y - \mu(x) + \mu(x_i)$ is typically not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints.
 To evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, we determine which mesh cell contains $y - \mu(x) + \mu(x_i)$, then we evaluate the relevant finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $y - \mu(x) + \mu(x_i)$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. 
 
 \subsubsection{Improvements based on symmetry}
+\label{sec:symmetric_improvements}
 If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$. Let $\{y_i\}_{i=1}^k$ be the $k$ nearest sample points to $y$, excluding points $y_i$ such that $x - \mu(y) + \mu(y_i) \notin \Omega$. We could form an alternative approximation of $\Phi(y,x)$ by interpolating the (point, value) pairs
 \begin{equation}
 \label{eq:phi_mu_shift_y}
 \left(y_i,f_{x,y}(y_i)\right), \qquad i=1,\dots,k,
 \end{equation}
-in the same manner as before, but with $x$ and $y$ now taking opposite roles. We improve the interpolation accuracy at negligible additional cost by combining both of these approximations. Specifically, we combine both approximations by placing function values 
+in the same manner as before, but with $x$ and $y$ now taking opposite roles. We combine both of these interpolation schemes to improve the approximation accuracy at negligible additional. The two interpolation schemes are combined by placing function values 
 \begin{equation*}
-\left(\widetilde{f}_x\right)_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right), \qquad i=1,\dots,k,
+\left(\widehat{f}_x\right)_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right), \qquad i=1,\dots,k,
 \end{equation*}
 at the points $x_i-x$, placing function values
 \begin{equation*}
-\left(\widetilde{f}_y\right)_i := \frac{V(y)}{V(y_i)}\phi_{y_i}\left(x - \mu(y) + \mu(y_i)\right), \qquad i=1,\dots,k,
+\left(\widehat{f}_y\right)_i := \frac{V(y)}{V(y_i)}\phi_{y_i}\left(x - \mu(y) + \mu(y_i)\right), \qquad i=1,\dots,k,
 \end{equation*}
-at the points $y_i-y$, and interpolating the combination of all $2k$ of these points and values at zero.
+at the points $y_i-y$, and interpolating the combination of these $2k$ points and values at zero.
 
 In detail, define 
 \begin{equation*}
-\widetilde{x_i} := x_i - x \qquad \text{and} \qquad \widetilde{y_i} := y_i - y.
+\widehat{x_i} := x_i - x \qquad \text{and} \qquad \widehat{y_i} := y_i - y.
 \end{equation*}
 and let
 \begin{equation*}
-\widetilde{B} = \begin{bmatrix}
-\widetilde{B}_{xx} & \widetilde{B}_{xy} \\
-\widetilde{B}_{yx} & \widetilde{B}_{xx}
-\end{bmatrix}, \qquad \widetilde{w} = \begin{bmatrix}\widetilde{w}_x \\ \widetilde{w}_y\end{bmatrix}, \qquad \widetilde{f} = \begin{bmatrix}
-\widetilde{f}_x \\ \widetilde{f}_y
+\widehat{B} = \begin{bmatrix}
+\widehat{B}_{xx} & \widehat{B}_{xy} \\
+\widehat{B}_{yx} & \widehat{B}_{xx}
+\end{bmatrix}, \qquad \widehat{w} = \begin{bmatrix}\widehat{w}_x \\ \widehat{w}_y\end{bmatrix}, \qquad \widehat{f} = \begin{bmatrix}
+\widehat{f}_x \\ \widehat{f}_y
 \end{bmatrix},
 \end{equation*}
-be a $2k \times 2k$ block matrix and $2k \times 1$ block vectors, respectively, with the block entries of $\widetilde{B}$ be given by
+be a $2k \times 2k$ block matrix and $2k \times 1$ block vectors, respectively, with the block entries of $\widehat{B}$ be given by
 \begin{align*}
-\left(\widetilde{B}_{xx}\right)_{ij} = b\left(\|\widetilde{x}_i - \widetilde{x}_j\|\right), &\qquad
-\left(\widetilde{B}_{xy}\right)_{ij} = b\left(\|\widetilde{x}_i - \widetilde{y}_j\|\right), \\
-\left(\widetilde{B}_{yx}\right)_{ij} = b\left(\|\widetilde{y}_i - \widetilde{x}_j\|\right), &\qquad \left(\widetilde{B}_{yy}\right)_{ij} = b\left(\|\widetilde{y}_i - \widetilde{y}_j\|\right),
+\left(\widehat{B}_{xx}\right)_{ij} = b\left(\|\widehat{x}_i - \widehat{x}_j\|\right), &\qquad
+\left(\widehat{B}_{xy}\right)_{ij} = b\left(\|\widehat{x}_i - \widehat{y}_j\|\right), \\
+\left(\widehat{B}_{yx}\right)_{ij} = b\left(\|\widehat{y}_i - \widehat{x}_j\|\right), &\qquad \left(\widehat{B}_{yy}\right)_{ij} = b\left(\|\widehat{y}_i - \widehat{y}_j\|\right),
 \end{align*}
 for $i,j=1,\dots,k$. We approximate $\Phi(y,x)$ as follows:
 \begin{equation}
-\Phi(y,x) \approx \sum_{i=1}^k \left(w_x\right)_i~ b\left(\|\widetilde{x}_i\|\right) + \sum_{i=1}^k \left(w_y\right)_i~ b\left(\|\widetilde{y}_i\|\right),
+\widetilde{\Phi}(y,x) := \sum_{i=1}^k \left(w_x\right)_i~ b\left(\|\widehat{x}_i\|\right) + \sum_{i=1}^k \left(w_y\right)_i~ b\left(\|\widehat{y}_i\|\right),
 \end{equation}
-where $\widetilde{w}$ is the solution of the following regularized least-squares problem,
+where $\widehat{w}$ is the solution of the following regularized least-squares problem,
 \begin{equation*}
-\min_{\widetilde{w}} \frac{1}{2}\|\widetilde{B} \widetilde{w} - \widetilde{f}\|^2 + \frac{\alpha}{2}\|\widetilde{w}\|^2,
+\min_{\widehat{w}} \frac{1}{2}\|\widehat{B} \widehat{w} - \widehat{f}\|^2 + \frac{\alpha}{2}\|\widehat{w}\|^2,
 \end{equation*}
 for a small regularization parameter $\alpha$. 
-We solve the regularized least squares problem by QR factorization of the block $4k \times 2k$ matrix $\begin{bmatrix}\widetilde{B} & I\end{bmatrix}^T$. We regularize the problem because of numerical issues that arise if there are points $\widetilde{x}_i$ and $\widetilde{y}_j$ in the interpolation that are very close to each other, a situation that arises often in practice. Indeed, situations where $\widetilde{x}_i = \widetilde{y}_j$ are inevitable when a regular grid is used to discretize the problem. In this case, $\widetilde{B}$ is (nearly) singular, so it is numerically ill-advised to solve the standard interpolation equation $\widetilde{B} \widetilde{w} = \widetilde{f}$. 
+We solve the regularized least squares problem by QR factorization of the block $4k \times 2k$ matrix $\begin{bmatrix}\widehat{B} & I\end{bmatrix}^T$. We regularize the problem because of numerical issues that arise if there are points $\widehat{x}_i$ and $\widehat{y}_j$ in the interpolation that are very close to each other, a situation that arises often in practice. Indeed, situations where $\widehat{x}_i = \widehat{y}_j$ are inevitable when a regular grid is used to discretize the problem. In this case, $\widehat{B}$ is (nearly) singular, so it is numerically ill-advised to solve the standard interpolation equation $\widehat{B} \widehat{w} = \widehat{f}$. 
 
 %In principle, this equation is still solvable if $\left(\widetilde{f}_x\right)_i = \left(\widetilde{f}_x\right)_j$, which should hold in principle. However, errors incurred at any stage of the approximation process, particularly the assumption that the support of $\phi_x$ is contained in the ellipsoid $E_x$, will cause small discrepancies between $\left(\widetilde{f}_x\right)_i$ and $\left(\widetilde{f}_x\right)_j$, and these errors get amplified by the ill-conditioning.
 
@@ -626,83 +655,88 @@ We solve the regularized least squares problem by QR factorization of the block 
 
 
 
-\subsection{Discretization and hierarchical matrix construction}
-\label{sec:H_matrix_conversion}
+%\subsection{Discretization and hierarchical matrix construction}
+%\label{sec:H_matrix_conversion}
+%
+%Here we discuss how we construct an H-matrix representation of our product-convolution approximation, after discretizing the problem with finite elements. 
 
-Here we discuss how we construct an H-matrix representation of our product-convolution approximation, after discretizing the problem with finite elements. 
 
-
-\subsubsection{Finite element discretization of the integral kernel}
+\subsection{Finite element discretization of the integral kernel}
+\label{sec:finite_element_kernel}
 
 Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, and let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space. Further, let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise.
 
-In Section \ref{sec:intro} we noted that the original integral kernel, $\Aker$, is inaccessible, while in Equation \eqref{eq:kernel_entries}  we saw that the integral kernel for our product-convolution approximation, $\AkerPc \approx \Aker$, is accessible, and may be cheaply evaluated at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$ via the following formula:
-\begin{equation}
-	\label{eq:eval_y_x}
-	\AkerPc(y,x) = \sum_{i=1}^\convrank w_i(x) \convkernel_{x_i}(y-x).
-\end{equation}
-We now define a further approximation, $\AkerPcMesh \approx \AkerPc$, as follows:
+We now define a further approximation, $\widetilde{\Phi}^h \approx \widetilde{\Phi}$, as follows:
 \begin{equation}
 	\label{eq:defn_of_Akerpcmesh}
-	\AkerPcMesh(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \AkerPc(p_i,p_j) \febasis_i(y) \febasis_j(x).
+	\widetilde{\Phi}^h(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \widetilde{\Phi}(p_i,p_j) \febasis_i(y) \febasis_j(x).
 \end{equation}
-The kernel $\AkerPcMesh$ is the interpolation of $\AkerPc$ onto $V_h \otimes V_h$. Error in the overall kernel approximation, $\AkerPcMesh \approx \Aker$, arises both because of error in the product-convolution approximation, and because of finite element discretization error incurred from interpolation onto $V_h \otimes V_h$. 
+The kernel $\widetilde{\Phi}^h$ is the interpolation of $\widetilde{\Phi}$ onto $V_h \otimes V_h$. Error in the overall kernel approximation, $\widetilde{\Phi}^h \approx \Aker$, arises both because of error in the product-convolution approximation, and because of finite element discretization error incurred from interpolation onto $V_h \otimes V_h$. 
 
-Replacing $\Aker$ with $\AkerPcMesh$ within the definition of $\Aop$ in \eqref{eq:kernel_representation} yields the following operator approximation, $\AopPcMesh$:
+Let $u_h \in V_h$ and $v_h \in V_h$, and let $\bm{u}$ and $\bm{v}$ be the coefficient vectors for $u_h$ and $v_h$, respectively, with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$. I.e., 
+\begin{equation}
+\label{eq:fem_coeff_basis}
+u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x),
+\end{equation}
+and similar for $v_h$. Replacing $\Aker$ with $\widetilde{\Phi}^h$ within the definition of $\Aop$ in \eqref{eq:kernel_representation}, then performing straightforward but tedious algebraic manipulations, yields the following approximation:
 \begin{equation}
 	\label{eq:kernel_representation_pcmesh}
-	(\AopPcMesh u)(v) := \int_\Omega \int_\Omega v(y) \AkerPcMesh(y,x) u(x) dx dy.
+	(\Aop u_h)(v_h) \approx \int_\Omega \int_\Omega v_h(y) \Phi^h(y,x) u_h(x) dx dy
+	= \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u}.
 \end{equation}
-While $\AopPcMesh$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\AopPcMesh$ to functions in the finite element space. That is, $\AopPcMesh : V_h \rightarrow V_h'$. Let $u_h \in V_h$ and $v_h \in V_h$, and let $\bm{u}$ and $\bm{v}$ be the coefficient vectors for $u_h$ and $v_h$, respectively, with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$. I.e., 
-\begin{equation}
-	\label{eq:fem_coeff_basis}
-	u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x),
-\end{equation}
-and similar for $v_h$. Further, let $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ be the finite element mass matrix, and let $\AkerPcMat \in \mathbb{R}^{\fedim \times \fedim}$ be following matrix of approximate kernel entries:
+%While $\Aop$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\Aop$ to functions in the finite element space. 
+where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the following matrix of approximate kernel entries:
 \begin{equation}
 	\label{eq:Akerpcmat_entries}
-	\left(\AkerPcMat\right)_{ij} := \AkerPcMesh(p_i, p_j).
+	\mathbf{\Phi}_{ij} := \widetilde{\Phi}(p_i, p_j),
 \end{equation}
-Using \eqref{eq:defn_of_Akerpcmesh}, \eqref{eq:kernel_representation_pcmesh}, \eqref{eq:fem_coeff_basis}, and \eqref{eq:Akerpcmat_entries}, the definition of the mass matrix, and performing algebraic manipulations, it is straightforward but tedious to show that
+and $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ is the finite element mass matrix which has entries
 \begin{equation*}
-	\left(\AopPcMesh u_h \right)(v_h) = \bm{v}^T \bm{M} \AkerPcMat \bm{M} \bm{u}.
+\bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx.
 \end{equation*}
-The finite element matrix representation of $\AopPcMesh$, which we denote by $\AmatPc$, is therefore given by
+%Using \eqref{eq:defn_of_Akerpcmesh}, \eqref{eq:kernel_representation_pcmesh}, \eqref{eq:fem_coeff_basis}, and \eqref{eq:Akerpcmat_entries}, the definition of the mass matrix, and performing algebraic manipulations, it is straightforward but tedious to show that
+%\begin{equation*}
+%	\left(\AopPcMesh u_h \right)(v_h) = \bm{v}^T \bm{M} \AkerPcMat \bm{M} \bm{u}.
+%\end{equation*}
+The finite element matrix representation of of our approximation of $\Aop$ is therefore given by
 \begin{equation}
 	\label{eq:Amatpc_defn}
-	\AmatPc := \bm{M} \AkerPcMat \bm{M}.
+	\mathbf{A} := \bm{M} \mathbf{\Phi} \bm{M}.
 \end{equation}
 
 
-\subsubsection{Hierarchical matrix construction}
+\subsection{Hierarchical matrix construction}
 
-We form an H-matrix representation of $\AmatPc$ by converting $\AkerPcMat$ and $\bm{M}$ to H-matrix format, then using fast H-matrix methods to multiply these matrices according to \eqref{eq:Amatpc_defn}. Once $\AmatPc$ is in H-matrix format, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
+We form our H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by converting $\mathbf{\Phi}$ and $\bm{M}$ to H-matrix format, then using fast H-matrix methods to multiply these matrices according to \eqref{eq:Amatpc_defn}. Once $\mathbf{A}_H$ is formed, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
-We convert $\AkerPcMat$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{HLIBPRO}. Although $\AkerPcMat$ is a dense $\fedim \times \fedim$ matrix, constructing the H-matrix approximation of $\AkerPcMat$ only requires evaluation of $O(\hmatrixrank^2 \fedim \log \fedim)$ entries of $\AkerPc$, and these entries are computed via the formula in Equation \eqref{eq:eval_y_x}. Here $\hmatrixrank$ is the rank of the highest-rank block in the H-matrix. A dense representation of $\AkerPcMat$ is never formed. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. We convert $\bm{M}$ to H-matrix format using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\AkerPcMat$. 
+We convert $\mathbf{\Phi}$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{HLIBPRO}. Although $\mathbf{\Phi}$ is a dense $\fedim \times \fedim$ matrix, constructing the H-matrix approximation only requires evaluation of $O(\hmatrixrank^2 \fedim \log \fedim)$ entries of $\mathbf{\Phi}$, and these entries are computed via interpolation procedure described in Section \ref{sec:approximate_kernel_entries}. Here $\hmatrixrank$ is the rank of the highest-rank block in the H-matrix. A dense representation of $\mathbf{\Phi}$ is never formed. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. We convert $\bm{M}$ to H-matrix format using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\mathbf{\Phi}$. 
 
 
 \subsection{Rational positive semi-definite modification}
 \label{sec:make_spd}
 
-In many problems of practical interest (e.g., Hessian approximation) $\Amat$ is symmetric positive semi-definite. However, $\AmatPc$ is generally non-symmetric and indefinite because of errors in the product-convolution approximation. 
-This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms, such as the conjugate gradient method, to perform further useful operations involving $\AmatPc$.
-In this section we describe a method for modifying $\AmatPc$ to make it symmetric positive semi-definite.
+In many problems of practical interest (e.g., Hessian approximation) $\Aop$ is symmetric positive semi-definite. However, $\mathbf{A}_H$ is generally non-symmetric and indefinite because of approximation error. 
+This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms, such as the conjugate gradient method, to perform further useful operations involving $\mathbf{A}_H$.
+In this section we describe a method for modifying $\mathbf{A}_H$ to make it symmetric positive semi-definite.
 
-First, we use fast H-matrix addition to symmetrize $\AmatPc$:
+Because of the modified interpolation for symmetric matrices described in Section \ref{sec:symmetric_improvements}, $\mathbf{A}_H$ is nearly (but not completely) symmetric. We further symmetrize $\mathbf{A}_H$ as follows:
 \begin{equation*}
-	\AmatPcSym := \frac{1}{2}\left(\AmatPc + \AmatPc^T\right).
+	\mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
 \end{equation*}
-Then we modify $\AmatPcSym$ to make it positive semi-definite by forming a rational matrix function of the following form: 
+This step is fast because adding H-matrices is a comparatively inexpensive operation.
+
+We modify $\mathbf{A}_H^{\text{sym}}$ to make it positive semi-definite by forming a rational matrix function of the following form: 
 \begin{equation}
 	\label{eq:rational_matrix_function}
-	\AmatPcSymPlus := \ratcoeff_0 \bm{I} + \ratcoeff_1 \AmatPcSym + \ratcoeff_2 \left(\AmatPcSym + \ratpole \bm{I}\right)^{-1},
+	\mathbf{A}_H^{\text{sym}+} := \ratcoeff_0 \bm{I} + \ratcoeff_1 \mathbf{A}_H^{\text{sym}} + \ratcoeff_2 \left(\mathbf{A}_H^{\text{sym}} + \ratpole \bm{I}\right)^{-1},
 \end{equation}
-where $\bm{I}$ is the identity matrix which has the same shape as $\AmatPcSym$. Approximation \eqref{eq:rational_matrix_function} may be written as $\AmatPcSymPlus = \ratfct(\AmatPcSym)$, where $\ratfct$ is the following rational function:
+where $\bm{I}$ is the identity matrix which has the same shape as $\mathbf{A}_H^{\text{sym}}$. Approximation \eqref{eq:rational_matrix_function} may be written as $\mathbf{A}_H^{\text{sym}+} = \ratfct(\mathbf{A}_H^{\text{sym}})$, where $\ratfct$ is the following scalar rational function:
 \begin{equation}
 	\label{eq:rational_function_scalar}
-	\ratfct(\lambda) := \ratcoeff_0 + \ratcoeff_1 \lambda + \frac{\ratcoeff_2}{\lambda+\ratpole}.
+	\ratfct(\lambda) := \ratcoeff_0 + \ratcoeff_1 \lambda + \frac{\ratcoeff_2}{\lambda+\ratpole},
 \end{equation}
-The scalars $\ratcoeff_0$, $\ratcoeff_1$, $\ratcoeff_2$, and $\ratpole$ are chosen so that the moderate and large positive eigenvalues of $\AmatPcSymPlus$ approximately equal the corresponding moderate and large positive eigenvalues of $\AmatPcSym$, while the negative and small positive eigenvalues of $\AmatPcSym$ are modified so that $\AmatPcSymPlus$ is positive semi-definite. Later in this section we will explain how $\ratcoeff_0$, $\ratcoeff_1$, $\ratcoeff_2$, and $\ratpole$ are chosen and how our choice of these scalars affects the spectral properties of $\AmatPcSymPlus$. In Figure FIG we illustrate $\ratfct(\lambda)$. Forming $\AmatPcSymPlus$ requires computing an H-matrix inverse, $\left(\AmatPcSym + \ratpole \bm{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is computationally acceptable because $\AmatPcSym + \ratpole \bm{I}$ is an H-matrix. Inversion of H-matrices is a routine procedure which only requires $O(\fedim \log(\fedim)^2)$ work \cite{Hmatrixinverse}.
+which is extended to matrices by functional calculus.
+The scalars $\ratcoeff_0$, $\ratcoeff_1$, $\ratcoeff_2$, and $\ratpole$ are chosen so that the moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym}+}$ approximately equal the corresponding moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$, while the negative and small positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$ are modified so that $\mathbf{A}_H^{\text{sym}+}$ is positive semi-definite. Later in this section we will explain how $\ratcoeff_0$, $\ratcoeff_1$, $\ratcoeff_2$, and $\ratpole$ are chosen and how our choice of these scalars affects the spectral properties of $\mathbf{A}_H^{\text{sym}+}$. In Figure FIG we illustrate $\ratfct(\lambda)$. Forming $\mathbf{A}_H^{\text{sym}+}$ requires computing an H-matrix inverse, $\left(\mathbf{A}_H^{\text{sym}} + \ratpole \bm{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is computationally acceptable because $\mathbf{A}_H^{\text{sym}} + \ratpole \bm{I}$ is an H-matrix. Inversion of H-matrices is a routine procedure which only requires $O(\fedim \log(\fedim)^2)$ work \cite{Hmatrixinverse}.
 
 We choose $\ratcoeff_0, \ratcoeff_1, \ratcoeff_2$, and $\ratpole$, to be the solution to the following system of equations:
 \begin{subequations}
@@ -714,9 +748,9 @@ We choose $\ratcoeff_0, \ratcoeff_1, \ratcoeff_2$, and $\ratpole$, to be the sol
 		\ratfct(\lambda_\text{max}) &= \lambda_\text{max}, \label{eq:desired_property_4}
 	\end{align}
 \end{subequations}
-where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\AmatPcSym$, respectively. We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. We assume that $\lambda_\text{min} < 0$; if $\lambda_\text{min} \ge 0$, then $\AmatPcSym$ is already positive semi-definite, so we do not need to modify it with a rational function. We also require $\ratpole > |\lambda_\text{min}|$, so that the pole of $\ratfct$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. We describe how we solve system \eqref{eq:four_eq_system} in Appendix \ref{app:solve_rational_system}. Solving \eqref{eq:four_eq_system} reduces to solving a smooth one-dimensional optimization problem, which is computationally trivial. 
+where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\mathbf{A}_H^{\text{sym}}$, respectively. We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. We assume that $\lambda_\text{min} < 0$; if $\lambda_\text{min} \ge 0$, then $\mathbf{A}_H^{\text{sym}}$ is already positive semi-definite, so we do not need to modify it with a rational function. We also require $\ratpole > |\lambda_\text{min}|$, so that the pole of $\ratfct$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. We describe how we solve system \eqref{eq:four_eq_system} in Appendix \ref{app:solve_rational_system}. Solving \eqref{eq:four_eq_system} reduces to solving a smooth one-dimensional optimization problem, which is computationally trivial. 
 
-Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\ratpole > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\AmatPcSymPlus$ contains the null-space of $\AmatPcSym$. This is important when the operator $\Aop$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\AmatPcSymPlus$ to be close to the corresponding moderate and large positive eigenvalues of $\AmatPcSym$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\AmatPcSym$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\AmatPcSym$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $\ratfct(\lambda_\text{min})$, then the positive eigenvalues of $\AmatPcSymPlus$ will be closer to the corresponding positive eigenvalues of $\AmatPcSym$ (good), but the erroneous negative eigenvalues of $\AmatPcSym$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
+Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\ratpole > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\mathbf{A}_H^{\text{sym+}}$ contains the null-space of $\mathbf{A}_H^{\text{sym}}$. This is important when the operator $\Aop$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym+}}$ to be close to the corresponding moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\mathbf{A}_H^{\text{sym}}$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $\ratfct(\lambda_\text{min})$, then the positive eigenvalues of $\mathbf{A}_H^{\text{sym+}}$ will be closer to the corresponding positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$ (good), but the erroneous negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
 
 
 \subsection{Computational cost}
