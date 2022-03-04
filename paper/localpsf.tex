@@ -498,19 +498,18 @@ f_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right), \qquad i
 \end{equation}
 %for arbitrary pairs of points $(y,x) \subset \Omega \times \Omega$.
 % while Section \ref{sec:approximate_kernel_entries} we showed how we can cheaply evaluate approximate kernel entries at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$.
-where $\{x_i\}_{i=1}^k$ are the $k$ nearest sample points to $x$, excluding sample points for which $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is undefined. That is, sample points such that $y-\mu(x)+\mu(x_i) \notin \Omega$. One should choose a small $k$; in numerical experiments we use $k=10$. We find the $k$ nearest sample points by querying a precomputed KD-tree \cite{kdtree} of all sample points. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem. 
-Per the discussion in Section \ref{eq:local_mean_displacement_invariance}, if we ignore the factor $\frac{V(x)}{V(x_i)}$, then $\Phi(y,x) \approx f_i$ when $x_i$ is close to $x$. The factor $\frac{V(x)}{V(x_i)}$, which was not discussed in Section \ref{eq:local_mean_displacement_invariance}, is a form of preconditioning that improves this approximation if $V(x)$ varies widely. 
+where $\{x_i\}_{i=1}^k$ are the $k$ nearest sample points to $x$, excluding sample points for which $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is undefined. That is, excluding sample points such that $y-\mu(x)+\mu(x_i) \notin \Omega$. The number $k$ is a small user defined parameter; in numerical experiments we use $k=10$. We find the $k$ nearest sample points by querying a precomputed KD-tree \cite{kdtree} of all sample points. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem. 
 
-We approximate $\Phi(y,x)$
-%compute the approximate kernel entry,
-%\begin{equation*}
-%\widetilde{\Phi}(y,x) \approx \Phi(y,x)
-%\end{equation*}
-by interpolating the (point,value) pairs
+The idea here is that $\Phi(y,x) \approx f_i$ when $x_i$ is near $x$, so we approximate $\Phi(y,x)$ by interpolating the (point,value) pairs
 \begin{equation}
-\left(x_i, f_i\right), \qquad i=1,\dots,k
+\left(x_i, f_i\right), \qquad i=1,\dots,k,
 \end{equation}
-at the point $x$. This is done using the following radial basis function interpolation scheme:
+at the point $x$. To see that $\Phi(y,x) \approx f_i$, recall from Section \ref{eq:local_mean_displacement_invariance} that $\Phi(y,x) \approx \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ if $x_i$ is near $x$. Inclusion of the extra factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} is a form of preconditioning that makes this approximation more robust in the case where $V(x)$ varies widely. 
+%Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section \ref{sec:sample_point_selection} excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold.
+
+\subsubsection{Radial basis function interpolation}
+
+We use the following radial basis function interpolation scheme:
 %The approximation $\widetilde{\Phi}(y,x)$ is the value of this interpolation at $x$.
 %In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree \cite{kdtree} of all sample points. 
 %
