@@ -474,7 +474,7 @@ Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approxim
 \end{equation}
 for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, $\xi_k \mapsto \left(\Aop \diraccomb_k^*\right)^*$, we recover the impulse responses $\impulseresponse_{x_i}$ associated with every point $x_i \in \pointbatch_k$. 
 
-Each point source $\delta_{x_i}$ in the Dirac comb is scaled by $1/V(x_i)$ so that the resulting scaled impulse responses within $\eta_k$ are comparable in magnitude. Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section \ref{sec:sample_point_selection} excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold. Without this scaling, the portion of $\phi_{x_i}$ outside of $E_{x_i}$, which we neglect, may overwhelm $\phi_{x_j}$ for a nearby point $x_j$ if $V(x_i)$ is much larger than $V(x_j)$. 
+Each point source $\delta_{x_i}$ is scaled by $1/V(x_i)$ so that the resulting scaled impulse responses within $\eta_k$ are comparable in magnitude. Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section \ref{sec:sample_point_selection} excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold. Without this scaling, the portion of $\phi_{x_i}$ outside of $E_{x_i}$, which we neglect, may overwhelm $\phi_{x_j}$ for a nearby point $x_j$ if $V(x_i)$ is much larger than $V(x_j)$. 
 
 %Note that the support of $\impulseresponse_{x_i}$ is estimated to be contained within the ellipsoid $E_{x_i}$, but this is just an approximation. 
 %%The impulse response $\impulseresponse_{x_i}$ may be nonzero inside the ellipsoid $E_{x_j}$ associated with another point $x_j$ in the batch, and this will cause error in our recovery of $\phi_{x_j}$. 
@@ -597,7 +597,7 @@ as per \eqref{eq:fxyxp} and \eqref{eq:varphi_eval}.
 %Evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires care, because
  
 Note that $y - \mu(x) + \mu(x_i)$ is generally not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Hence,
-evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, requires determining which mesh cell contains $y - \mu(x) + \mu(x_i)$, then evaluating the relevant finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $y - \mu(x) + \mu(x_i)$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. 
+evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires determining which mesh cell contains $y - \mu(x) + \mu(x_i)$, then evaluating finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $y - \mu(x) + \mu(x_i)$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. 
 
 \subsubsection{Improvement for symmetric operators}
 \label{sec:symmetric_improvements}
@@ -609,7 +609,7 @@ at the points $x_i-x$, placing function values
 \begin{equation*}
 \left(\widehat{f}_y\right)_i := \frac{V(y)}{V(y_i)}\phi_{y_i}\left(x - \mu(y) + \mu(y_i)\right), \qquad i=1,\dots,k,
 \end{equation*}
-at the points $y_i-y$, and interpolating the combination of these $2k$ points and values at zero.
+at the points $y_i-y$, and using radial basis functions to interpolate the combination of these $2k$ points and values at zero.
 
 In detail, define 
 \begin{equation*}
