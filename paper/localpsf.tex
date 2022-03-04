@@ -547,7 +547,7 @@ at the point $x$ using radial basis function interpolation.
 %From the definition of $f_{y,x}$ in \eqref{eq:fxyxp}, we see that $f_{y,x}(x_i)$ is only defined if $y - \mu(x) + \mu(x_i) \in \Omega$, because $\phi_x$ is only defined on $\Omega$. But it may happen that $y - \mu(x) + \mu(x_i) \notin \Omega$, even if $y,x,x_i \in \Omega$. In this case, the point $x_i$ is considered invalid, and not used in the interpolation, even if it is close to $x$. We check whether $x_i$ is valid (i.e., whether $y - \mu(x) + \mu(x_i) \in \Omega$) by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem.
 %\subsubsection{Radial basis function interpolation details}
 %Having found the $k$ nearest valid sample points $x_i$ to $x$, we approximate $\Phi(y,x)$ using radial basis function interpolation of the following form:
-In detail, we form the approximation $\widetilde{\Phi}(y,x) \approx \Phi(y,x)$ as follows:
+In detail, we form $\widetilde{\Phi}(y,x) \approx \Phi(y,x)$ as follows:
 \begin{equation}
 \widetilde{\Phi}(y,x) := \sum_{i=1}^k w_i~ b\left(\|x-x_i\|\right).
 \end{equation}
@@ -568,7 +568,7 @@ We use polyharmonic spline radial basis functions \cite{polyspline}, which are d
 \begin{equation}
 b_i(r) := \begin{cases}
 r^d, & d=1,3,5,\dots \\
-r^d \log r & d=2,4,6,\dots
+r^d \log r, & d=2,4,6,\dots
 \end{cases}
 \end{equation}
 for $r>0$, and $b_i(0):=0$. For more details on radial basis function interpolation and polyharmonic splines, see \cite{rbf}.
@@ -624,7 +624,7 @@ and let
 \widehat{f}_x \\ \widehat{f}_y
 \end{bmatrix},
 \end{equation*}
-be a $2k \times 2k$ block matrix and $2k \times 1$ block vectors, respectively, with the block entries of $\widehat{B}$ be given by
+be a $2k \times 2k$ block matrix and $2k \times 1$ block vectors, respectively, with the block entries of $\widehat{B}$ given by
 \begin{align*}
 \left(\widehat{B}_{xx}\right)_{ij} = b\left(\|\widehat{x}_i - \widehat{x}_j\|\right), &\qquad
 \left(\widehat{B}_{xy}\right)_{ij} = b\left(\|\widehat{x}_i - \widehat{y}_j\|\right), \\
