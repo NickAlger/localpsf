@@ -151,9 +151,10 @@ The impulse response $\impulseresponse_x$ may be interpreted as a scaled probabi
 \spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy
 \end{equation*}
 denote the spatially varying scaling factor (the ``volume'' of $\impulseresponse_x$), let 
-\begin{equation*}
+\begin{equation}
+\label{eq:scaled_impulse_response}
 \widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)
-\end{equation*}
+\end{equation}
 denote the normalized version of $\impulseresponse_x$, and let $\mu:\Omega \rightarrow \mathbb{R}^d$, $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d},$
 \begin{equation*}
 \spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
@@ -167,7 +168,7 @@ Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we a
 \begin{equation}
 \Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
 \end{equation}
-if $x_i$ is close to $x$. This is shown in Figure FIG, and discussed in greater detail in Section SEC. We approximate $\phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for the a small number of sample points $x_i$ near $x$. The weights in the linear combination are determined via radial basis function interpolation.
+if $x_i$ is close to $x$. This is shown in Figure FIG. We approximate $\phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for the a small number of sample points $x_i$ near $x$. The weights in the linear combination are determined via radial basis function interpolation.
 
 The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall H-matrix approximation proceeds as follows:
 \begin{equation*}
@@ -269,7 +270,7 @@ In this section we describe how we compute the impulse response moments $V,\mu,\
 	\SetKwInOut{Output}{Output}
 	{	
 		\Input{Linear operator $\Aop$, parameter $\text{max\_batches}$}
-		\Output{H-matrix $\AmatPc$ (optionally, $\AmatPcSymPlus$)}
+		\Output{H-matrix $\mathbf{A}_H$ (optionally, $\mathbf{A}_H^{\text{sym}+}$)}
 		
 		Compute $\spatialvol$, $\spatialmean$, and $\spatialcov$ using Algorithm \ref{alg:varhpi_mean_cov}.
 		
@@ -280,15 +281,11 @@ In this section we describe how we compute the impulse response moments $V,\mu,\
 			
 		}
 
-		Form convolution kernels, $\convkernel_{x_i}$, on regular grids (Section \ref{sec:convolution_kernel_regular_grid})
-	
-		Modify convolution kernels to address boundary artifacts (Section \ref{sec:boundary_extension})
-	
-		Compute all weighting functions $w_i$ using Algorithm 
+		Form H-matrix approximation $\mathbf{\Phi}_H$ of integral kernel (Section \ref{sec:h_matrix_construction_short})
 
-		Form H-matrix $\AmatPc$ (Section \ref{sec:H_matrix_conversion})
+		Form H-matrix approximation $\mathbf{A}_H$ of $\Aop$ (Section \ref{sec:h_matrix_construction_short})
 		
-		(optional) Modify $\AmatPc$ to make $\AmatPcSymPlus$ (Section \ref{sec:make_spd})
+		(optional) Modify $\mathbf{A}_H$ to make $\mathbf{A}_H^{\text{sym}+}$ (Section \ref{sec:make_spd})
 		
 	}
 	\caption{Construct product-convolution H-matrix}
@@ -454,9 +451,9 @@ We compute the \emph{impulse response batch}, $\eta_k$, by applying $\Aop$ to th
 \begin{equation}
 	\label{eq:dirac_comb_H_action}
 	\combresponse_k := \left(\Aop \diraccomb_k^*\right)^*
-	=\sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i} / V(x_i).
+	=\sum_{x_i \in \pointbatch_k} \widehat{\impulseresponse}_{x_i}.
 \end{equation}
-The last equality in \eqref{eq:dirac_comb_H_action} follows from linearity and the definition of $\impulseresponse_{x_i}$ in \eqref{eq:impulse_response_delta_action}.
+The last equality in \eqref{eq:dirac_comb_H_action} follows from linearity and the definition of $\widehat{\impulseresponse}_{x_i}$ in \eqref{eq:scaled_impulse_response} and \eqref{eq:impulse_response_delta_action}.
 %\begin{equation}
 %\label{eq:phi_b}
 %\combresponse_k = \sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i} / V(x_i).
@@ -468,7 +465,7 @@ The last equality in \eqref{eq:dirac_comb_H_action} follows from linearity and t
 Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\impulseresponse_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\impulseresponse_j$ do not overlap when $i \neq j$, we have (approximately)
 \begin{equation}
 \label{eq:varphi_eval}
-	\impulseresponse_{x_i}(z) / V(x_i) = 
+	\impulseresponse_{x_i}(z) / V(x_i) = \widehat{\impulseresponse}_{x_i}(z) =
 	\begin{cases}
 		\combresponse_k(z), & z \in E_{x_i} \\
 		0, & \text{otherwise}
@@ -666,7 +663,7 @@ We solve the regularized least squares problem by QR factorization of the block 
 
 Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, and let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space. Further, let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise.
 
-We now define a further approximation, $\widetilde{\Phi}^h \approx \widetilde{\Phi}$, as follows:
+We define a further approximation, $\widetilde{\Phi}^h \approx \widetilde{\Phi}$, as follows:
 \begin{equation}
 	\label{eq:defn_of_Akerpcmesh}
 	\widetilde{\Phi}^h(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \widetilde{\Phi}(p_i,p_j) \febasis_i(y) \febasis_j(x).
@@ -706,6 +703,7 @@ The finite element matrix representation of of our approximation of $\Aop$ is th
 
 
 \subsection{Hierarchical matrix construction}
+\label{sec:h_matrix_construction_short}
 
 We form our H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by converting $\mathbf{\Phi}$ and $\bm{M}$ to H-matrix format, then using fast H-matrix methods to multiply these matrices according to \eqref{eq:Amatpc_defn}. Once $\mathbf{A}_H$ is formed, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
