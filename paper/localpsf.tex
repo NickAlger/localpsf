@@ -535,14 +535,16 @@ where $b_i$ are radial basis functions, and $w_i$ are weights. The vector of wei
 \begin{equation}
 Bw = f,
 \end{equation}
-where the coefficient matrix $B \in \mathbb{R}^{k \times k}$ has entries 
-\begin{equation*}
-B_{ij} := b\left(\|x_i - x_j\|\right), \qquad i,j=1,\dots,k,
-\end{equation*}
-and the right hand side vector $f \in \mathbb{R}^k$ has entries 
-\begin{equation*}
-f_i = f_{y,x}(x_i), \qquad i=1,\dots,k.
-\end{equation*}
+where the coefficient matrix $B \in \mathbb{R}^{k \times k}$ and right hand side vector $f \in \mathbb{R}^k$ have entries 
+\begin{align*}
+B_{ij} :=& b\left(\|x_i - x_j\|\right),\\
+f_i :=& f_{y,x}(x_i),
+\end{align*}
+for $i,j=1,\dots,k$.
+% has entries 
+%\begin{equation*}
+%f_i = f_{y,x}(x_i), \qquad i=1,\dots,k.
+%\end{equation*}
 We use polyharmonic spline radial basis functions \cite{polyspline}, which are defined as follows:
 \begin{equation}
 b_i(r) := \begin{cases}
@@ -562,18 +564,19 @@ for $r>0$, and $b_i(0):=0$.
 
 %\subsubsection{Evaluating $f_{y,x}(x_i)$}
 
-To generate the right hand side vector $f$, we evaluate $f_{y,x}(x_i)$ at the points $x_i$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
+We evaluate $f_{y,x}(x_i)$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
 \begin{equation}
 \label{eq:ellipsoid_check93}
 (y - \mu(x))^T \Sigma^{-1}(x) (y - \mu(x))  \le \tau^2.
 \end{equation}
-If \eqref{eq:ellipsoid_check93} does not hold, then $y - \mu(x) + \mu(x_i) \notin E_{x_i}$ (i.e., $y - \mu(x) + \mu(x_i)$ is outside the estimated support of $\impulseresponse_{x_i}$), so we set $f_{y,x}(x_i)=0$ for the purpose of interpolation. If \eqref{eq:ellipsoid_check93} does hold, then $y - \mu(x) + \mu(x_i) \in E_{x_i}$. In this case, we look up the batch index $b$ for the batch of sample points that contains $x_i$, and evaluate
+If \eqref{eq:ellipsoid_check93} does not hold, then $y - \mu(x) + \mu(x_i)$ is outside the estimated support of $\impulseresponse_{x_i}$, so we set $f_{y,x}(x_i)=0$ for the purpose of interpolation. If \eqref{eq:ellipsoid_check93} does hold, then we look up the batch index $b$ for such that $x_i \in S_b$, and evaluate
 \begin{equation}
 f_{y,x}(x_i) = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right) = V(x)\eta_b\left(y - \mu(x) + \mu(x_i)\right).
 \end{equation}
 %Recall from Section \ref{sec:get_impulse_response} that $\eta_b$ is the impulse response batch that we have computed and stored.
-Evaluating the impulse response batch $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires some care, because the point $y - \mu(x) + \mu(x_i)$ is generally not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints.
-To evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, we determine which mesh cell contains $y - \mu(x) + \mu(x_i)$, then we evaluate the relevant finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $y - \mu(x) + \mu(x_i)$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. 
+%Evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires care, because 
+When the problem is discretized with finite elements, $y - \mu(x) + \mu(x_i)$ is generally not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints.
+To evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, we therefore determine which mesh cell contains $y - \mu(x) + \mu(x_i)$, then we evaluate the relevant finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $y - \mu(x) + \mu(x_i)$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. 
 
 \subsubsection{Improved interpolation for symmetric operators}
 \label{sec:symmetric_improvements}
