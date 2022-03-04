@@ -599,7 +599,7 @@ as per \eqref{eq:fxyxp} and \eqref{eq:varphi_eval}.
 Note that $y - \mu(x) + \mu(x_i)$ is generally not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Hence,
 evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, requires determining which mesh cell contains $y - \mu(x) + \mu(x_i)$, then evaluating the relevant finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $y - \mu(x) + \mu(x_i)$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. 
 
-\subsubsection{Improved interpolation for symmetric operators}
+\subsubsection{Improvement for symmetric operators}
 \label{sec:symmetric_improvements}
 If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$. Let $\{y_i\}_{i=1}^k$ be the $k$ nearest sample points to $y$, excluding points $y_i$ such that $x - \mu(y) + \mu(y_i) \notin \Omega$. We could form an alternative approximation of $\Phi(y,x)$ by performing the same interpolation as before, but with $x$ and $y$ taking opposite roles. We combine both of these interpolation schemes to improve the approximation accuracy at negligible additional cost. The two interpolation schemes are combined by placing function values 
 \begin{equation*}
@@ -739,46 +739,6 @@ We form our H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by converti
 
 We convert $\mathbf{\Phi}$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{HLIBPRO}. Although $\mathbf{\Phi}$ is a dense $\fedim \times \fedim$ matrix, constructing the H-matrix approximation only requires evaluation of $O(\hmatrixrank^2 \fedim \log \fedim)$ entries of $\mathbf{\Phi}$, and these entries are computed via interpolation procedure described in Section \ref{sec:approximate_kernel_entries}. Here $\hmatrixrank$ is the rank of the highest-rank block in the H-matrix. A dense representation of $\mathbf{\Phi}$ is never formed. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. We convert $\bm{M}$ to H-matrix format using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\mathbf{\Phi}$. 
 
-
-\subsection{Rational positive semi-definite modification}
-\label{sec:make_spd}
-
-In many problems of practical interest (e.g., Hessian approximation) $\Aop$ is symmetric positive semi-definite. However, $\mathbf{A}_H$ is generally non-symmetric and indefinite because of approximation error. 
-This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms, such as the conjugate gradient method, to perform further useful operations involving $\mathbf{A}_H$.
-In this section we describe a method for modifying $\mathbf{A}_H$ to make it symmetric positive semi-definite.
-
-Because of the modified interpolation for symmetric matrices described in Section \ref{sec:symmetric_improvements}, $\mathbf{A}_H$ is nearly (but not completely) symmetric. We further symmetrize $\mathbf{A}_H$ as follows:
-\begin{equation*}
-	\mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
-\end{equation*}
-This step is fast because adding H-matrices is a comparatively inexpensive operation.
-
-We modify $\mathbf{A}_H^{\text{sym}}$ to make it positive semi-definite by forming a rational matrix function of the following form: 
-\begin{equation}
-	\label{eq:rational_matrix_function}
-	\mathbf{A}_H^{\text{sym}+} := \ratcoeff_0 \bm{I} + \ratcoeff_1 \mathbf{A}_H^{\text{sym}} + \ratcoeff_2 \left(\mathbf{A}_H^{\text{sym}} + \ratpole \bm{I}\right)^{-1},
-\end{equation}
-where $\bm{I}$ is the identity matrix which has the same shape as $\mathbf{A}_H^{\text{sym}}$. Approximation \eqref{eq:rational_matrix_function} may be written as $\mathbf{A}_H^{\text{sym}+} = \ratfct(\mathbf{A}_H^{\text{sym}})$, where $\ratfct$ is the following scalar rational function:
-\begin{equation}
-	\label{eq:rational_function_scalar}
-	\ratfct(\lambda) := \ratcoeff_0 + \ratcoeff_1 \lambda + \frac{\ratcoeff_2}{\lambda+\ratpole},
-\end{equation}
-which is extended to matrices by functional calculus.
-The scalars $\ratcoeff_0$, $\ratcoeff_1$, $\ratcoeff_2$, and $\ratpole$ are chosen so that the moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym}+}$ approximately equal the corresponding moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$, while the negative and small positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$ are modified so that $\mathbf{A}_H^{\text{sym}+}$ is positive semi-definite. Later in this section we will explain how $\ratcoeff_0$, $\ratcoeff_1$, $\ratcoeff_2$, and $\ratpole$ are chosen and how our choice of these scalars affects the spectral properties of $\mathbf{A}_H^{\text{sym}+}$. In Figure FIG we illustrate $\ratfct(\lambda)$. Forming $\mathbf{A}_H^{\text{sym}+}$ requires computing an H-matrix inverse, $\left(\mathbf{A}_H^{\text{sym}} + \ratpole \bm{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is computationally acceptable because $\mathbf{A}_H^{\text{sym}} + \ratpole \bm{I}$ is an H-matrix. Inversion of H-matrices is a routine procedure which only requires $O(\fedim \log(\fedim)^2)$ work \cite{Hmatrixinverse}.
-
-We choose $\ratcoeff_0, \ratcoeff_1, \ratcoeff_2$, and $\ratpole$, to be the solution to the following system of equations:
-\begin{subequations}
-	\label{eq:four_eq_system}
-	\begin{align}
-		\ratfct(0) &= 0 \label{eq:desired_property_1} \\
-		\ratfct'(0) &= 0 \label{eq:desired_property_2} \\
-		\ratfct(\lambda_\text{min}) &= |\lambda_\text{min}| \label{eq:desired_property_3} \\
-		\ratfct(\lambda_\text{max}) &= \lambda_\text{max}, \label{eq:desired_property_4}
-	\end{align}
-\end{subequations}
-where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\mathbf{A}_H^{\text{sym}}$, respectively. We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. We assume that $\lambda_\text{min} < 0$; if $\lambda_\text{min} \ge 0$, then $\mathbf{A}_H^{\text{sym}}$ is already positive semi-definite, so we do not need to modify it with a rational function. We also require $\ratpole > |\lambda_\text{min}|$, so that the pole of $\ratfct$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. We describe how we solve system \eqref{eq:four_eq_system} in Appendix \ref{app:solve_rational_system}. Solving \eqref{eq:four_eq_system} reduces to solving a smooth one-dimensional optimization problem, which is computationally trivial. 
-
-Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\ratpole > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\mathbf{A}_H^{\text{sym+}}$ contains the null-space of $\mathbf{A}_H^{\text{sym}}$. This is important when the operator $\Aop$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym+}}$ to be close to the corresponding moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\mathbf{A}_H^{\text{sym}}$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $\ratfct(\lambda_\text{min})$, then the positive eigenvalues of $\mathbf{A}_H^{\text{sym+}}$ will be closer to the corresponding positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$ (good), but the erroneous negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
 
 
 \subsection{Computational cost}
@@ -970,7 +930,47 @@ where $v := \Phi^T\left(\spatialmean_p - \spatialmean_q\right)$. We compute the 
 \end{algorithm2e}
 
 
-\section{Solving for rational function scalars}
+\subsection{Rational positive semi-definite modification}
+\label{sec:make_spd}
+
+In many problems of practical interest (e.g., Hessian approximation) $\Aop$ is symmetric positive semi-definite. However, $\mathbf{A}_H$ is generally non-symmetric and indefinite because of approximation error. 
+This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms, such as the conjugate gradient method, to perform further useful operations involving $\mathbf{A}_H$.
+In this section we describe a method for modifying $\mathbf{A}_H$ to make it symmetric positive semi-definite.
+
+Because of the modified interpolation for symmetric matrices described in Section \ref{sec:symmetric_improvements}, $\mathbf{A}_H$ is nearly (but not completely) symmetric. We further symmetrize $\mathbf{A}_H$ as follows:
+\begin{equation*}
+\mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
+\end{equation*}
+This step is fast because adding H-matrices is a comparatively inexpensive operation.
+
+We modify $\mathbf{A}_H^{\text{sym}}$ to make it positive semi-definite by forming a rational matrix function of the following form: 
+\begin{equation}
+\label{eq:rational_matrix_function}
+\mathbf{A}_H^{\text{sym}+} := \ratcoeff_0 \bm{I} + \ratcoeff_1 \mathbf{A}_H^{\text{sym}} + \ratcoeff_2 \left(\mathbf{A}_H^{\text{sym}} + \ratpole \bm{I}\right)^{-1},
+\end{equation}
+where $\bm{I}$ is the identity matrix which has the same shape as $\mathbf{A}_H^{\text{sym}}$. Approximation \eqref{eq:rational_matrix_function} may be written as $\mathbf{A}_H^{\text{sym}+} = \ratfct(\mathbf{A}_H^{\text{sym}})$, where $\ratfct$ is the following scalar rational function:
+\begin{equation}
+\label{eq:rational_function_scalar}
+\ratfct(\lambda) := \ratcoeff_0 + \ratcoeff_1 \lambda + \frac{\ratcoeff_2}{\lambda+\ratpole},
+\end{equation}
+which is extended to matrices by functional calculus.
+The scalars $\ratcoeff_0$, $\ratcoeff_1$, $\ratcoeff_2$, and $\ratpole$ are chosen so that the moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym}+}$ approximately equal the corresponding moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$, while the negative and small positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$ are modified so that $\mathbf{A}_H^{\text{sym}+}$ is positive semi-definite. Later in this section we will explain how $\ratcoeff_0$, $\ratcoeff_1$, $\ratcoeff_2$, and $\ratpole$ are chosen and how our choice of these scalars affects the spectral properties of $\mathbf{A}_H^{\text{sym}+}$. In Figure FIG we illustrate $\ratfct(\lambda)$. Forming $\mathbf{A}_H^{\text{sym}+}$ requires computing an H-matrix inverse, $\left(\mathbf{A}_H^{\text{sym}} + \ratpole \bm{I}\right)^{-1}$. While explicit computation of matrix inverses should usually be avoided, here it is computationally acceptable because $\mathbf{A}_H^{\text{sym}} + \ratpole \bm{I}$ is an H-matrix. Inversion of H-matrices is a routine procedure which only requires $O(\fedim \log(\fedim)^2)$ work \cite{Hmatrixinverse}.
+
+We choose $\ratcoeff_0, \ratcoeff_1, \ratcoeff_2$, and $\ratpole$, to be the solution to the following system of equations:
+\begin{subequations}
+	\label{eq:four_eq_system}
+	\begin{align}
+	\ratfct(0) &= 0 \label{eq:desired_property_1} \\
+	\ratfct'(0) &= 0 \label{eq:desired_property_2} \\
+	\ratfct(\lambda_\text{min}) &= |\lambda_\text{min}| \label{eq:desired_property_3} \\
+	\ratfct(\lambda_\text{max}) &= \lambda_\text{max}, \label{eq:desired_property_4}
+	\end{align}
+\end{subequations}
+where $\lambda_\text{min}$ and $\lambda_\text{max}$ are the smallest and largest eigenvalues of $\mathbf{A}_H^{\text{sym}}$, respectively. We estimate $\lambda_\text{min}$ and $\lambda_\text{max}$ using the implicitly restarted Lanczos method \cite{lanczos,scipy}. We assume that $\lambda_\text{min} < 0$; if $\lambda_\text{min} \ge 0$, then $\mathbf{A}_H^{\text{sym}}$ is already positive semi-definite, so we do not need to modify it with a rational function. We also require $\ratpole > |\lambda_\text{min}|$, so that the pole of $\ratfct$ is not in $[\lambda_\text{min},\lambda_\text{max}]$. We describe how we solve system \eqref{eq:four_eq_system} in Appendix \ref{app:solve_rational_system}. Solving \eqref{eq:four_eq_system} reduces to solving a smooth one-dimensional optimization problem, which is computationally trivial. 
+
+Together, equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, \eqref{eq:desired_property_3},  and \eqref{eq:desired_property_4}, and the condition $\ratpole > |\lambda_\text{min}|$, imply that $\ratfct(0)=0$ is the unique minimum of $\ratfct$ on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that $\ratfct$ is non-negative on $[\lambda_\text{min},\lambda_\text{max}]$, which implies that  $\AmatPcSymPlus$ is positive semi-definite. Furthermore, \eqref{eq:desired_property_1} implies that the null space of $\mathbf{A}_H^{\text{sym+}}$ contains the null-space of $\mathbf{A}_H^{\text{sym}}$. This is important when the operator $\Aop$ has a large (or infinite) dimensional null space, or a spectrum that clusters at zero. Hessians in ill-posed distributed parameter inverse problems typically have both of these properties. Equation \eqref{eq:desired_property_4} forces the moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym+}}$ to be close to the corresponding moderate and large positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$. I.e., $\ratfct$ modifies the ``important'' part of the spectrum of $\mathbf{A}_H^{\text{sym}}$ as little as possible. Equation \eqref{eq:desired_property_3} ensures that the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$, which result from error in the product-convolution approximation, do not get amplified in magnitude by the function $\ratfct$. There is a tradeoff: if we choose a larger value for $\ratfct(\lambda_\text{min})$, then the positive eigenvalues of $\mathbf{A}_H^{\text{sym+}}$ will be closer to the corresponding positive eigenvalues of $\mathbf{A}_H^{\text{sym}}$ (good), but the erroneous negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ will be amplified in magnitude (bad). This is shown in Figure FIG. We find that $\ratfct(\lambda_\text{min})=|\lambda_\text{min}|$ is an appropriate balance between these competing interests.
+
+\subsection{Solving for rational function scalars}
 \label{app:solve_rational_system}
 
 Using the definition of $\ratfct$ in \eqref{eq:rational_function_scalar}, and basic calculus and linear algebra, we may write Equations \eqref{eq:desired_property_1}, \eqref{eq:desired_property_2}, and \eqref{eq:desired_property_4} in the following matrix form:
