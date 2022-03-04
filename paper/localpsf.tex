@@ -488,7 +488,7 @@ In Section \ref{sec:intro} we noted that the integral kernel, $\Aker$, is inacce
 \begin{equation*}
 \widetilde{\Phi}(y,x) \approx \Phi(y,x),
 \end{equation*}
-for arbitrary pairs of points $(y,x) \subset \Omega \times \Omega$.
+for arbitrary pairs of points $(y,x) \subset \Omega \times \Omega$ via interpolation.
 % while Section \ref{sec:approximate_kernel_entries} we showed how we can cheaply evaluate approximate kernel entries at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$.
 To that end, we define the function
 \begin{equation}
@@ -507,7 +507,7 @@ and from the discussion in Section SEC, we expect that $\Phi(y,x) \approx f_{y,x
 %\end{equation*}
 %if $x'$ is close to $x$. Hence, w
 
-We evaluate the approximate kernel entry $\widetilde{\Phi}(y,x)$ by performing radial basis function interpolation of the function $f_{y,x}(x')$ in the variable $x'$. The data used in the interpolation are the following (point,value) pairs
+We evaluate $\widetilde{\Phi}(y,x)$ by performing radial basis function interpolation of the function $f_{y,x}(x')$ in the variable $x'$. The data used in the interpolation are the following (point,value) pairs
 \begin{equation}
 \left(x_i, f_{y,x}(x_i)\right), \qquad i=1,\dots,k,
 \end{equation}
@@ -524,6 +524,8 @@ Here $\{x_i\}_{i=1}^k \subset \Omega$ are the $k$ nearest sample points to $x$, 
 In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree \cite{kdtree} of all sample points. 
 
 From the definition of $f_{y,x}$ in \eqref{eq:fxyxp}, we see that $f_{y,x}(x_i)$ is only defined if $y - \mu(x) + \mu(x_i) \in \Omega$, because $\phi_x$ is only defined on $\Omega$. But it may happen that $y - \mu(x) + \mu(x_i) \notin \Omega$, even if $y,x,x_i \in \Omega$. In this case, the point $x_i$ is considered invalid, and not used in the interpolation, even if it is close to $x$. We check whether $x_i$ is valid (i.e., whether $y - \mu(x) + \mu(x_i) \in \Omega$) by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem.
+
+\subsubsection{Radial basis function interpolation}
 
 Having found the $k$ nearest valid sample points $x_i$ to $x$, we approximate $\Phi(y,x)$ using radial basis function interpolation of the following form:
 \begin{equation}
@@ -557,6 +559,9 @@ for $r>0$, and $b_i(0):=0$.
 
 %In order to compute $f_{y,x}(x_i)$, we must evaluate $\impulseresponse_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$, and we do this by evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$. Here $b$ is the index of the batch that contains the sample point $x_i$, and $\eta_b$ is the corresponding impulse response batch function that we have computed and stored.  
 %Although it is typically recommended that one avoid evaluating finite element functions at arbitrary points [CITE], here we have no choice. 
+
+%\subsubsection{Evaluating $f_{y,x}(x_i)$}
+
 To generate the right hand side vector $f$, we evaluate $f_{y,x}(x_i)$ at the points $x_i$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
 \begin{equation}
 \label{eq:ellipsoid_check93}
@@ -566,11 +571,11 @@ If \eqref{eq:ellipsoid_check93} does not hold, then $y - \mu(x) + \mu(x_i) \noti
 \begin{equation}
 f_{y,x}(x_i) = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right) = V(x)\eta_b\left(y - \mu(x) + \mu(x_i)\right).
 \end{equation}
-Recall from Section \ref{sec:get_impulse_response} that $\eta_b$ is the impulse response batch that we have computed and stored.
-Evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires some care, because the point $y - \mu(x) + \mu(x_i)$ is typically not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints.
+%Recall from Section \ref{sec:get_impulse_response} that $\eta_b$ is the impulse response batch that we have computed and stored.
+Evaluating the impulse response batch $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires some care, because the point $y - \mu(x) + \mu(x_i)$ is generally not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints.
 To evaluate $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$, we determine which mesh cell contains $y - \mu(x) + \mu(x_i)$, then we evaluate the relevant finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $y - \mu(x) + \mu(x_i)$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. 
 
-\subsubsection{Improvements based on symmetry}
+\subsubsection{Improved interpolation for symmetric operators}
 \label{sec:symmetric_improvements}
 If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$. Let $\{y_i\}_{i=1}^k$ be the $k$ nearest sample points to $y$, excluding points $y_i$ such that $x - \mu(y) + \mu(y_i) \notin \Omega$. We could form an alternative approximation of $\Phi(y,x)$ by interpolating the (point, value) pairs
 \begin{equation}
@@ -615,7 +620,7 @@ where $\widehat{w}$ is the solution of the following regularized least-squares p
 \min_{\widehat{w}} \frac{1}{2}\|\widehat{B} \widehat{w} - \widehat{f}\|^2 + \frac{\alpha}{2}\|\widehat{w}\|^2,
 \end{equation*}
 for a small regularization parameter $\alpha$. 
-We solve the regularized least squares problem by QR factorization of the block $4k \times 2k$ matrix $\begin{bmatrix}\widehat{B} & I\end{bmatrix}^T$. We regularize the problem because of numerical issues that arise if there are points $\widehat{x}_i$ and $\widehat{y}_j$ in the interpolation that are very close to each other, a situation that arises often in practice. Indeed, situations where $\widehat{x}_i = \widehat{y}_j$ are inevitable when a regular grid is used to discretize the problem. In this case, $\widehat{B}$ is (nearly) singular, so it is numerically ill-advised to solve the standard interpolation equation $\widehat{B} \widehat{w} = \widehat{f}$. 
+We solve the regularized least squares problem by QR factorization of the block $4k \times 2k$ matrix $\begin{bmatrix}\widehat{B} & I\end{bmatrix}^T$. We regularize the problem because of numerical issues that arise if there are points $\widehat{x}_i$ and $\widehat{y}_j$ in the interpolation that are very close to each other, a situation that arises often in practice. Indeed, situations where $\widehat{x}_i = \widehat{y}_j$ are inevitable when a regular grid is used to discretize the problem. In this case, $\widehat{B}$ is (nearly) singular, so it is numerically ill-advised to solve the standard (un-regularized) interpolation equation $\widehat{B} \widehat{w} = \widehat{f}$. 
 
 %In principle, this equation is still solvable if $\left(\widetilde{f}_x\right)_i = \left(\widetilde{f}_x\right)_j$, which should hold in principle. However, errors incurred at any stage of the approximation process, particularly the assumption that the support of $\phi_x$ is contained in the ellipsoid $E_x$, will cause small discrepancies between $\left(\widetilde{f}_x\right)_i$ and $\left(\widetilde{f}_x\right)_j$, and these errors get amplified by the ill-conditioning.
 
