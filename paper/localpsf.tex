@@ -145,6 +145,57 @@ where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and 
 The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Conventionally, either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is therefore the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because our method can form high-rank approximations of an operator using a small number of matrix-vector products.
 
 
+\subsection{Local mean-displacement invariance}
+\label{eq:local_mean_displacement_invariance}
+
+Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and consider the following three approximations, ordered by increasing level of sophistication:
+\begin{align}
+\phi_x(y) &\approx \phi_{x'}(y) \label{eq:translate1}\\
+\phi_x(y) &\approx \phi_{x'}(y-x+x') \label{eq:translate2}\\
+\phi_x(y) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right). \label{eq:translate3}
+\end{align}
+Approximation \eqref{eq:translate1} says that $\phi_x$ can be approximated by $\phi_{x'}$ when $x$ and $x'$ are close. 
+%This approximation follows from the assumption that $\Phi$ is smooth. 
+Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank interpolative factorization of $\Phi$.
+% of the form
+%\begin{equation}
+%	\label{eq:low_rank_interpolation}
+%	\Phi(y,x) \approx \sum_{i=1}^r w_i(x) \phi_{x_i}(y)
+%\end{equation}
+%where $\phi_{x_i}$ are known impulse responses at a collection of points $x_i$ scattered throughout $\Omega$, and $w_i$ are smooth weighting functions that interpolate the $\phi_{x_i}$. 
+%In problems of practical interest, \eqref{eq:translate1} typically holds \emph{asymptotically} in the limit as $x'$ approaches $x$. 
+However, 
+%even if $\Phi$ is smooth (which is typically the case asymptotically),
+%the relevant Lipschitz constant for continuity, and hence 
+the required rank in the low rank approximation can be large, which makes algorithms based on assumption \eqref{eq:translate1} computationally expensive. This is the case, for example, for Hessians in PDE constrained inverse problems with highly informative data, as discussed in Section \ref{sec:PDE_hessian_motivation}. 
+%As the data become more informative, typically the ``mass'' of $\Phi(y,x)$ concentrates nearer and nearer to the ``diagonal'' $y=x$, the Lipschitz constant increases, and the required rank in the approximation increases.
+%Moreover, if $\Aop$ is numerically low rank, then one would typically use more accurate and robust matrix-free methods for forming low-rank approximations, such as randomized SVD or Lanczos.
+
+Operators that satisfy \eqref{eq:translate2} are called ``locally translation-invariant'' because integral kernel entries $\Phi(y,x)$ for such operators are approximately invariant under translation of $x$ and $y$ by the same displacement, i.e., $x \rightarrow x+h$ and $y \rightarrow y+h$. Locally translation-invariant operators act like convolutions locally, and can therefore be well-approximated by so-called product-convolution approximations---weighted sums of convolution operators with spatially varying weights. Product-convolution approximations can be high-rank even if the number of convolution operators used in the approximation is small.
+
+% Kernels for locally translation invariant operators can be well-approximated by decompositions of the form
+%\begin{equation}
+%	\Phi(y,x) \approx \sum_{i=1}^r w_i(x) \phi_{x_i}(y-x)
+%\end{equation}
+%which correspond to operator approximations of the form
+%\begin{equation}
+%\label{eq:product_convolution}
+%\left(\Aop~u\right)(v) \approx \left( v,~ \sum_{i=1}^\convrank \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)}.
+%\end{equation}
+%Here $f \ast g$ denotes convolution, and $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$ (i.e., $\left(f \cdot g\right)(x) = f(x) g(x)$). Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. Product-convolution approximations can be high-rank even if $r$ is small.
+
+\begin{figure}
+	\begin{center}
+		\includegraphics[scale=1.0]{mean_displacement_invariance.pdf}
+	\end{center}
+	\caption{An operator is locally mean-displacement invariant if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \mu(x) + \mu(x')\right)$ when $x$ is close to $x'$.}
+	\label{fig:mean_displacement_invariance}
+\end{figure}
+
+
+Our method is based on approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. We call \eqref{eq:translate3} ``local mean-displacement invariance,'' and illustrate \eqref{eq:translate3} in Figure \ref{fig:mean_displacement_invariance}. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x')$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x')-\mu(x) \approx x' - x$, so again \eqref{eq:translate3} holds. But approximation \eqref{eq:translate3} can hold in situations where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, because the expected value is a linear operator, \eqref{eq:translate3} will hold when an $\Aop$ is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case. Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires vectors in $\Omega_2$ and $\Omega_1$ to be added together. 
+
+
 \subsection{Overview of the method}
 The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative impulse response property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
 \begin{equation*}
@@ -164,11 +215,13 @@ denote the spatially varying mean and covariance of $\widehat{\impulseresponse}_
 
 Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
-Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section SECTION, but the key principle behind the interpolation is an assumption that we call \emph{local mean-displacement invariance}. Specifically, we make the assumption that
-\begin{equation}
-\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
-\end{equation}
-if $x_i$ is close to $x$. This is shown in Figure FIG. We approximate $\phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for the a small number of sample points $x_i$ near $x$. The weights in the linear combination are determined via radial basis function interpolation.
+Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section \ref{sec:approximate_kernel_entries}, but the key principle behind the interpolation is the local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
+%Specifically, we make the assumption that
+%\begin{equation}
+%\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
+%\end{equation}
+%if $x_i$ is close to $x$. This is shown in Figure \ref{fig:mean_displacement_invariance}. Motivation for this assumption is discussed in Section \ref{eq:local_mean_displacement_invariance}. 
+We approximate $\Phi(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for a collection of sample points $x_i$ near $x$. The weights in the linear combination are determined via preconditioned radial basis function interpolation.
 
 The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall H-matrix approximation proceeds as follows:
 \begin{equation*}
@@ -176,9 +229,15 @@ The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us
 \end{equation*}
 One may use H-matrix methods to perform further useful linear algebra operations involving $\mathbf{A}_H$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. WHY DO THESE OPERATIONS: KRYLOV SOLVERS, SAMPLING STRATEGIES, CAN'T DO WITH A. These H-matrix methods are fast and scale well to large problems.
 
-Often we are interested in approximating operators $\Aop$ that are symmetric, or symmetric positive semi-definite. If $\Aop$ is symmetric, impulse responses of $\Aop$ are also impulse responses of $\Aop^T$, which may be interpolated in the variable $y$ instead of $x$ to yield a different approximation of $\Phi(y,x)$. In this case, we combine information from impulse responses of both $\Aop$ and $\Aop^T$ in the interpolation procedure for approximating $\Phi(y,x)$, to get a more accurate approximation at negligible additional cost. Intuitively, impulse responses of $\Aop$ can be thought of as ``columns'' of $\Phi$, impulse responses of $\Aop^T$ can be thought of as ``rows'' of $\Phi$, and $\Phi(y,x)$ can be thought of as an unknown entry of $\Phi$. When $\Aop$ is symmetric, computing a column of $\Aop$ also gives us a row of $\Aop$ for free, so we approximate $\Phi(y,x)$ using information from a combination of known columns and known rows, rather than just known columns.
+%Often we are interested in approximating operators $\Aop$ that are symmetric, or symmetric positive semi-definite. 
 
-When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be indefinite due to errors in the approximation. In this case, we modify the H-matrix representation of $\mathbf{A}_H$ to make it positive semi-definite, by applying a specially chosen rational matrix function to $\mathbf{A}_H$.
+If $\Aop$ is symmetric, we take advantage of symmetry to construct a more accurate approximation at negligible additional cost. In this case, 
+%impulse responses of $\Aop$ are also impulse responses of $\Aop^T$, which may be interpolated in the variable $y$ instead of $x$ to yield a different approximation of $\Phi(y,x)$. 
+we combine information from impulse responses of both $\Aop$ and $\Aop^T$ in the interpolation procedure.
+% for approximating $\Phi(y,x)$, to get a more accurate approximation at negligible additional cost.
+Intuitively, impulse responses of $\Aop$ can be thought of as ``columns'' of $\Phi$, impulse responses of $\Aop^T$ can be thought of as ``rows'' of $\Phi$, and $\Phi(y,x)$ can be thought of as an unknown entry of $\Phi$. Therefore, when $\Aop$ is symmetric, computing a column of $\Aop$ also gives us a row of $\Aop$ for free, so we approximate $\Phi(y,x)$ using information from a combination of known columns and rows, rather than just known columns.
+
+When $\Aop$ is positive semi-definite, $\mathbf{A}_H$ may be indefinite due to errors in the approximation. In this case, we modify the H-matrix representation of $\mathbf{A}_H$ to make it positive semi-definite, by applying a specially chosen rational matrix function to $\mathbf{A}_H$. This is described in Appendix \ref{sec:make_spd}.
 
 %Forming the H-matrix approximation $\boldsymbol{\Phi}_H$ requires evaluating kernel entries, $\Phi(y,x)$, at arbitrary points $(y,x)$, and this is done by interpolating the known impulse responses $\{\impulseresponse_{x_i}\}_{i=1}^r, \{\impulseresponse'_{y_i}\}_{i=1}^r$. 
 %
@@ -194,54 +253,6 @@ When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be indefinit
 %We will define product-convolution approximations in Section \ref{sec:prodconv_intro}. H-matrices are discussed in Appendix \ref{app:h_matrix}. Our method is summarized in Section \ref{sec:overview_intro}, and described in detail in Section \ref{sec:method}. 
 %
 %The novel contributions of our method are in the way that we form the product-convolution approximation ($\Aop \rightarrow \AopPc$). This is the part of the method where we use the four properties of $\Aop$ described above. Fast conversion of the discretized version of $\AopPc$ to H-matrix format ($\AopPc \rightarrow \AmatPc$) is possible because integral kernel entries for $\AopPc$ are easily accessible (unlike integral kernel entries for $\Aop$). Once in H-matrix format, one may use H-matrix methods to perform further useful linear algebra operations involving $\AmatPc$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems.
-
-\subsection{Local mean-displacement invariance}
-\label{eq:local_mean_displacement_invariance}
-
-Let $x$ and $x'$ be points in $\Omega$ that are close to each other, and consider the following three approximations, ordered by increasing level of sophistication:
-\begin{align}
-	\phi_x(y) &\approx \phi_{x'}(y) \label{eq:translate1}\\
-	\phi_x(y) &\approx \phi_{x'}(y-x+x') \label{eq:translate2}\\
-	\phi_x(y) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right). \label{eq:translate3}
-\end{align}
-We use approximation \eqref{eq:translate3}, which we call ``locally mean-displacement invariance.'' This is illustrated in Figure \ref{fig:mean_displacement_invariance}.
-
-\begin{figure}
-	\begin{center}
-		\includegraphics[scale=1.0]{mean_displacement_invariance.pdf}
-	\end{center}
-	\caption{An operator is locally mean-displacement invariant if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \mu(x) + \mu(x')\right)$ when $x$ is close to $x'$.}
-	\label{fig:mean_displacement_invariance}
-\end{figure}
-
-Approximation \eqref{eq:translate1} follows from the assumption that $\Phi$ is smooth. Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank interpolative factorization of $\Phi$.
-% of the form
-%\begin{equation}
-%	\label{eq:low_rank_interpolation}
-%	\Phi(y,x) \approx \sum_{i=1}^r w_i(x) \phi_{x_i}(y)
-%\end{equation}
-%where $\phi_{x_i}$ are known impulse responses at a collection of points $x_i$ scattered throughout $\Omega$, and $w_i$ are smooth weighting functions that interpolate the $\phi_{x_i}$. 
-%In problems of practical interest, \eqref{eq:translate1} typically holds \emph{asymptotically} in the limit as $x'$ approaches $x$. 
-However, even if $\Phi$ is smooth (which is typically the case asymptotically) the relevant Lipschitz constant for continuity, and hence the required rank in the low rank approximation, can be large, which makes algorithms based on assumption \eqref{eq:translate1} computationally expensive. This is the case, for example, for Hessians in PDE constrained inverse problems with highly informative data. As the data become more informative, typically the ``mass'' of $\Phi(y,x)$ concentrates nearer and nearer to the ``diagonal'' $y=x$, the Lipschitz constant increases, and the required rank in the approximation increases.
-%Moreover, if $\Aop$ is numerically low rank, then one would typically use more accurate and robust matrix-free methods for forming low-rank approximations, such as randomized SVD or Lanczos.
-
-Operators that satisfy \eqref{eq:translate2} are called ``locally translation-invariant'' because integral kernel entries $\Phi(y,x)$ for such operators are approximately invariant under translation of $x$ and $y$ by the same displacement, i.e., $x \rightarrow x+h$ and $y \rightarrow y+h$. Locally translation-invariant operators act like convolutions locally, and can therefore be well-approximated by so-called product-convolution approximations---weighted sums of convolution operators with spatially varying weights. Product-convolution approximations can be high-rank even if the number of convolution operators used in the approximation is small.
-
-% Kernels for locally translation invariant operators can be well-approximated by decompositions of the form
-%\begin{equation}
-%	\Phi(y,x) \approx \sum_{i=1}^r w_i(x) \phi_{x_i}(y-x)
-%\end{equation}
-%which correspond to operator approximations of the form
-%\begin{equation}
-%\label{eq:product_convolution}
-%\left(\Aop~u\right)(v) \approx \left( v,~ \sum_{i=1}^\convrank \convkernel_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)}.
-%\end{equation}
-%Here $f \ast g$ denotes convolution, and $f \cdot g$ denotes pointwise multiplication of the functions $f$ and $g$ (i.e., $\left(f \cdot g\right)(x) = f(x) g(x)$). Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. Product-convolution approximations can be high-rank even if $r$ is small.
-
-
-We use approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x_i)$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x_i)-\mu(x) \approx x_i - x$, so again \eqref{eq:translate3} holds. Furthermore, approximation \eqref{eq:translate3} can hold in situations where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, because the expected value is a linear operator, \eqref{eq:translate3} will hold when an $\Aop$ is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case. Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires $y \in \Omega_2$ and $-x+x' \in \Omega_1$ to be added together. 
-
-
 
 
 \subsection{Existing work}
@@ -263,7 +274,7 @@ Product-convolution type approximations of Hessians have been used in a seismic 
 
 \section{Method}
 \label{sec:method}
-In this section we describe how we compute the impulse response moments $V,\mu,\Sigma$ and use these moments to estimate the supports of the impulse responses $\phi_x$ (Section \ref{eq:mean_and_covariance_estimation}), the greedy ellipsoid packing procedure we use to choose batches of sample points $x_i$ (Section \ref{sec:sample_point_selection}), how we compute impulse responses, $\phi_{x_i}$, in batches (Section \ref{sec:get_impulse_response}), how we interpolate the $\phi_{x_i}$ to approximate integral kernel entries $\Phi(y,x)$ (Section \ref{sec:approximate_kernel_entries}), finite element discretization of $\Phi$ (Section \ref{sec:finite_element_kernel}), and how we construct the H-matrix approximation $\mathbf{A}_h$ of the operator $\mathcal{A}$. We also describe how to (optionally) modify $\mathbf{A}_h$ to force it to be symmetric positive semi-definite. The complete algorithm is shown in Algorithm \ref{alg:construct_Atilde}. 
+In this section we describe how we compute the impulse response moments $V,\mu,\Sigma$ and use these moments to estimate the supports of the impulse responses $\phi_x$ (Section \ref{sec:moments}), the greedy ellipsoid packing procedure we use to choose batches of sample points $x_i$ (Section \ref{sec:sample_point_selection}), how we compute impulse responses, $\phi_{x_i}$, in batches (Section \ref{sec:get_impulse_response}), how we interpolate the $\phi_{x_i}$ to approximate integral kernel entries $\Phi(y,x)$ (Section \ref{sec:approximate_kernel_entries}), finite element discretization of $\Phi$ (Section \ref{sec:finite_element_kernel}), and how we construct the H-matrix approximation $\mathbf{A}_h$ of the operator $\mathcal{A}$. We also describe how to (optionally) modify $\mathbf{A}_h$ to force it to be symmetric positive semi-definite. The complete algorithm is shown in Algorithm \ref{alg:construct_Atilde}. 
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -310,6 +321,7 @@ The quantity $\tau$ is a parameter that must be chosen by the user of the algori
 
 
 \section{Impulse response moments}
+\label{sec:moments}
 
 %The ellipsoid $E_x$ is not immediately available. 
 To determine $E_x$, we must compute the scalar $\spatialvol(x)$, the length-$\gdim$ vector $\spatialmean(x)$, and the $\gdim \times \gdim$ matrix $\spatialcov(x)$.
@@ -504,7 +516,7 @@ The idea here is that $\Phi(y,x) \approx f_i$ when $x_i$ is near $x$, so we appr
 \begin{equation}
 \left(x_i, f_i\right), \qquad i=1,\dots,k,
 \end{equation}
-at the point $x$. To see that $\Phi(y,x) \approx f_i$, recall from Section \ref{eq:local_mean_displacement_invariance} that $\Phi(y,x) \approx \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ if $x_i$ is near $x$. Inclusion of the extra factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} is a form of preconditioning that makes this approximation more robust in the case where $V(x)$ varies widely. 
+at the point $x$. To see that $\Phi(y,x) \approx f_i$, recall from Section \ref{eq:local_mean_displacement_invariance} that $\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ if $x_i$ is near $x$. Inclusion of the extra factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} is a form of preconditioning that makes this approximation more robust in the case where $V(x)$ varies widely. 
 %Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section \ref{sec:sample_point_selection} excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold.
 
 %\subsubsection{Radial basis function interpolation}
