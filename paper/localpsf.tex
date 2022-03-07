@@ -221,13 +221,13 @@ Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we a
 %\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
 %\end{equation}
 %if $x_i$ is close to $x$. This is shown in Figure \ref{fig:mean_displacement_invariance}. Motivation for this assumption is discussed in Section \ref{eq:local_mean_displacement_invariance}. 
-We approximate $\Phi(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for a collection of sample points $x_i$ near $x$. The weights in the linear combination are determined via preconditioned radial basis function interpolation.
+We approximate $\Phi(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for a collection of sample points $x_i$ near $x$. The weights are determined by preconditioned radial basis function interpolation.
 
 The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall H-matrix approximation proceeds as follows:
 \begin{equation*}
 \Aop \longrightarrow V, \mu, \Sigma \longrightarrow \{\impulseresponse_{x_i}\}_{i=1}^r \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
 \end{equation*}
-One may use H-matrix methods to perform further useful linear algebra operations involving $\mathbf{A}_H$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. WHY DO THESE OPERATIONS: KRYLOV SOLVERS, SAMPLING STRATEGIES, CAN'T DO WITH A. These H-matrix methods are fast and scale well to large problems.
+One may use H-matrix methods to perform further useful linear algebra operations involving $\mathbf{A}_H$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. WHY DO THESE OPERATIONS: KRYLOV SOLVERS, SAMPLING STRATEGIES, CAN'T DO WITH A.
 
 %Often we are interested in approximating operators $\Aop$ that are symmetric, or symmetric positive semi-definite. 
 
@@ -262,19 +262,34 @@ For background on product-convolution approximations, we recommend reading the f
 
 We build upon the class of product convolution approximations in which the functions, $\convkernel_i$, are impulse responses of $\Aop$ to point sources at a collection of points $x_i$ \cite{PRODCONVLIST}. A popular choice for methods in this class is to choose the points $x_i$ to be nodes in a regular grid, and interpolate the functions $\convkernel_i$ with piecewise linear interpolation \cite{NAGY}, or splines \cite{PRODCONVSPLINES}. With a regular grid, a large number of points $x_i$ is typically required to achieve an accurate product-convolution approximation. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. But even with adaptive refinement, many matrix vector products with $\Aop$ may be required. In this paper, rather than using adaptive refinement, we instead reduce the computational cost by picking points $x_i$ such that many $\convkernel_i$ are computed with each matrix vector product. 
 
-Our method of estimating the support of the functions $\convkernel_i$ was inspired by resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\convkernel_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\convkernel_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\convkernel_p$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\Aop^T$ with random noise functions, we use specific constant, linear, and quadratic functions. Our method estimates the support of $\convkernel_p$ more accurately and reliably than resolution analysis, but our method requires that $\Aop$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
+Our method of estimating the support of the functions $\convkernel_i$ was inspired by resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\convkernel_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\convkernel_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\convkernel_p$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\Aop^T$ with random noise functions, we use polynomial functions. Our method estimates the support of $\convkernel_p$ more accurately and reliably than resolution analysis, but our method requires that $\Aop$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
 
-Matrix-vector products with product-convolution approximations can be performed using the fast Fourier transform if the problem is discretized on a regular grid \cite{PRODCONVFFT}. The product-convolution approximation can then replace the original operator when using Krylov methods to solve linear systems with the original operator as the coefficient operator \cite{PRODCONVKRYLOV}. However, for complex geometries, problems are rarely discretized using regular grids, so we cannot easily use the fast Fourier transform. Furthermore, in big-data inverse problems the required number of Krylov iterations is large \cite{MYDISSERTATION,OTHERS}. Thus, after constructing the product-convolution approximation, it is desirable to convert the product-convolution approximation to other matrix formats that are amenable to fast linear algebra operations. Wavelet compression methods have been used for this purpose \cite{PRODCONVWAVELETS}. Here we follow our previous work \cite{PRODCONVMYPAPER}, in which we convert the product-convolution approximation to H-matrix format. 
+Matrix-vector products with product-convolution approximations can be performed using the fast Fourier transform if the problem is discretized on a regular grid \cite{PRODCONVFFT}. The product-convolution approximation can then replace the original operator when using Krylov methods to solve linear systems with the original operator as the coefficient operator \cite{PRODCONVKRYLOV}. However, for complex geometries, problems are rarely discretized using regular grids, so we cannot easily use the fast Fourier transform. Furthermore, in big-data inverse problems the required number of Krylov iterations is large \cite{MYDISSERTATION,OTHERS}. Thus, after constructing the product-convolution approximation, it is desirable to convert the product-convolution approximation to other matrix formats that are amenable to fast linear algebra operations. Wavelet compression methods have been used for this purpose \cite{PRODCONVWAVELETS}. Here we follow our previous work \cite{PRODCONVMYPAPER}, in which we converted product-convolution approximations into H-matrix format. 
 
 Conventional H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. There are matrix-free methods for H-matrix approximation \cite{LEXINGPEELINGPROCESS}, and these methods have been used to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{ILONAHMATRIX,NOEMIHMATRIX}. While these matrix-free H-matrix construction methods are asymptotically scalable in theory, the required number of matrix vector products can be large in practice. 
 
 
-Product-convolution type approximations of Hessians have been used in a seismic inverse problem in \cite{GEORGSEISMICPRODCONV}, and in an advection-diffusion inverse problem in \cite{PRODCONVMYPAPER}. In \cite{DEMANETSEISMIC}, matrix probing \cite{MATRIXPROBING} is used to approximate the Hessian in a seismic inverse problem as the sum of simple pseudodifferential operators. Although it is not explicitly mentioned, the approximation in \cite{DEMANETSEISMIC} could be interpreted as a convolution-product interpolation, which is like a product-convolution approximation, except the order of pointwise multiplications and convolutions is reversed in \eqref{eq:product_convolution}.
+Product-convolution type approximations of Hessians have been used in a seismic inverse problem in \cite{GEORGSEISMICPRODCONV}, and in an advection-diffusion inverse problem in \cite{PRODCONVMYPAPER}. In \cite{DEMANETSEISMIC}, matrix probing \cite{MATRIXPROBING} is used to approximate the Hessian in a seismic inverse problem as the sum of simple pseudodifferential operators. Although it is not explicitly mentioned, the approximation in \cite{DEMANETSEISMIC} could be interpreted as a convolution-product approximation (a product-convolution approximation of the transpose of the operator).
+%, which is like a product-convolution approximation, except the order of pointwise multiplications and convolutions is reversed in \eqref{eq:product_convolution}.
 
 
 \section{Method}
 \label{sec:method}
-In this section we describe how we compute the impulse response moments $V,\mu,\Sigma$ and use these moments to estimate the supports of the impulse responses $\phi_x$ (Section \ref{sec:moments}), the greedy ellipsoid packing procedure we use to choose batches of sample points $x_i$ (Section \ref{sec:sample_point_selection}), how we compute impulse responses, $\phi_{x_i}$, in batches (Section \ref{sec:get_impulse_response}), how we interpolate the $\phi_{x_i}$ to approximate integral kernel entries $\Phi(y,x)$ (Section \ref{sec:approximate_kernel_entries}), finite element discretization of $\Phi$ (Section \ref{sec:finite_element_kernel}), and how we construct the H-matrix approximation $\mathbf{A}_h$ of the operator $\mathcal{A}$. We also describe how to (optionally) modify $\mathbf{A}_h$ to force it to be symmetric positive semi-definite. The complete algorithm is shown in Algorithm \ref{alg:construct_Atilde}. 
+In this section we detail our method for computing the H-matrix approximation, $\mathbf{A}_H$, of $\Aop$. This section is organized as follows:
+\begin{description}
+	\item[Section \ref{eq:mean_and_covariance_estimation}:] We describe our ellipsoid estimate for the support of $\phi_x$.
+	\item[Section \ref{sec:moments}:] We show how to compute $V,\mu,\Sigma$.
+	\item[Section \ref{sec:sample_point_selection}:] We present the greedy ellipsoid packing procedure used to choose batches, $\pointbatch_b$, of sample points $x_i$.
+	\item[Section \ref{sec:get_impulse_response}:] We describe how to compute $\phi_{x_i}$'s, in batches, $\eta_b$.
+	\item[Section \ref{sec:approximate_kernel_entries}:] We show how we interpolate $\phi_{x_i}$'s to approximate $\Phi(y,x)$.
+	\item[Section \ref{sec:finite_element_kernel}:] We discuss finite element discretization of $\Phi$.
+	\item[Section \ref{sec:h_matrix_construction_short}:] We describe how we construct the H-matrices $\mathbf{\Phi}_H$ and $\mathbf{A}_H$.
+	\item[Section \ref{sec:overall_cost}:] We review the total computational cost to construct $\mathbf{A}_H$, and list the cost to perform further linear algebra tasks involving $\mathbf{A}_H$ using H-matrix methods.
+\end{description}
+The optional method for making $\mathbf{A}_H$ positive semi-definite is described in Appendix \ref{sec:make_spd}. The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \ref{alg:construct_Atilde}. 
+
+%we compute the impulse response moments $V,\mu,\Sigma$ and use these moments to estimate the supports of the impulse responses $\phi_x$ (Section \ref{sec:moments}), the greedy ellipsoid packing procedure we use to choose batches of sample points $x_i$ (Section \ref{sec:sample_point_selection}), how we compute impulse responses, $\phi_{x_i}$, in batches (Section \ref{sec:get_impulse_response}), how we interpolate the $\phi_{x_i}$ to approximate integral kernel entries $\Phi(y,x)$ (Section \ref{sec:approximate_kernel_entries}), finite element discretization of $\Phi$ (Section \ref{sec:finite_element_kernel}), and how we construct the H-matrix approximation $\mathbf{A}_h$ of the operator $\mathcal{A}$. We also describe how to (optionally) modify $\mathbf{A}_H$ to force it to be symmetric positive semi-definite. 
+%The complete algorithm is shown in Algorithm \ref{alg:construct_Atilde}. 
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -289,7 +304,7 @@ In this section we describe how we compute the impulse response moments $V,\mu,\
 		\For{$k=1,2,\dots,\text{max\_batches}$}{
 			Choose a batch of sample points, $\pointbatch_k$, using Algorithm \ref{alg:point_choice}
 			
-			Compute $\combresponse_k$ by applying $\Aop$ to the dirac comb for $\pointbatch_k$ (Section \ref{sec:get_impulse_response})
+			Compute $\combresponse_k$ by applying $\Aop$ to the Dirac comb for $\pointbatch_k$ (Section \ref{sec:get_impulse_response})
 			
 		}
 
@@ -320,7 +335,7 @@ where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points withi
 The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
 
 
-\section{Impulse response moments}
+\subsection{Impulse response moments}
 \label{sec:moments}
 
 %The ellipsoid $E_x$ is not immediately available. 
@@ -753,6 +768,7 @@ We convert $\mathbf{\Phi}$ into H1 matrix format using the standard geometrical 
 
 
 \subsection{Computational cost}
+\label{sec:overall_cost}
 
 \begin{itemize}
 	\item computational complexity in terms of PDE solves:
