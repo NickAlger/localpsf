@@ -530,13 +530,13 @@ f_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right), \qquad i
 \end{equation}
 %for arbitrary pairs of points $(y,x) \subset \Omega \times \Omega$.
 % while Section \ref{sec:approximate_kernel_entries} we showed how we can cheaply evaluate approximate kernel entries at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$.
-where $\{x_i\}_{i=1}^k$ are the $k$ nearest sample points to $x$, excluding sample points for which $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is undefined. We approximate $\Phi(y,x)$ by interpolating the (point,value) pairs
+where $\{x_i\}_{i=1}^k$ are the $k$ nearest sample points to $x$, excluding sample points for which $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is undefined. Here $k$ is a small user defined parameter; e.g., $k=10$. We approximate $\Phi(y,x)$ by interpolating the (point,value) pairs
 \begin{equation}
 \left(x_i, f_i\right), \qquad i=1,\dots,k,
 \end{equation}
-at the point $x$. The idea here is that $\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ (see Section \ref{eq:local_mean_displacement_invariance}), so we approximate $\Phi(y,x)$ by interpolating the values $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$. Inclusion of the factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} is a form of preconditioning that makes this approximation more robust in the case where $V(x)$ varies widely.
+at the point $x$. The idea is that $\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ per the discussion in Section \ref{eq:local_mean_displacement_invariance}, so we approximate $\Phi(y,x)$ by interpolating the values $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$. Inclusion of the factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} is a form of preconditioning that makes this approximation more robust if $V(x)$ varies widely.
 
-To find the $k$ nearest sample points to $x$, we query a precomputed KD-tree \cite{kdtree} of all sample points. The number $k$ is a small user defined parameter; in numerical experiments we use $k=10$. The function $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is defined if and only if $y-\mu(x)+\mu(x_i) \in \Omega$. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem. 
+To find the $k$ nearest sample points to $x$, we query a precomputed KD-tree \cite{kdtree} of all sample points. The quantity $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is defined if and only if $y-\mu(x)+\mu(x_i) \in \Omega$. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem. 
 %Since $\Phi(y,x) \approx f_i$ when $x_i$ is near $x$, we approximate $\Phi(y,x)$ by interpolating the (point,value) pairs
 %\begin{equation}
 %\left(x_i, f_i\right), \qquad i=1,\dots,k,
@@ -618,16 +618,20 @@ for $r>0$, and $b_i(0):=0$. Polyharmonic spline radial basis function interpolat
 
 %\subsubsection{Evaluating $f_{y,x}(x_i)$}
 
-We evaluate $f_i$ via the following process. First, we determine whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ by checking if
-\begin{equation}
-\label{eq:ellipsoid_check93}
-(y - \mu(x_i))^T \Sigma^{-1}(x_i) (y - \mu(x_i))  \le \tau^2.
-\end{equation}
-If \eqref{eq:ellipsoid_check93} does not hold, then $y - \mu(x) + \mu(x_i)$ is outside the estimated support of $\impulseresponse_{x_i}$, so we set $f_i=0$. If \eqref{eq:ellipsoid_check93} does hold, then we look up the batch index $b$ such that $x_i \in S_b$, and evaluate
+To evaluate $f_i$, we check whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ using \eqref{eq:support_ellipsoid}. If $y - \mu(x) + \mu(x_i) \notin E_{x_i}$, then
+% by checking if
+%\begin{equation}
+%\label{eq:ellipsoid_check93}
+%(y - \mu(x_i))^T \Sigma^{-1}(x_i) (y - \mu(x_i))  \le \tau^2.
+%\end{equation}
+%If \eqref{eq:ellipsoid_check93} does not hold, 
+then $y - \mu(x) + \mu(x_i)$ is outside the estimated support of $\impulseresponse_{x_i}$, so we set $f_i=0$.
+% If \eqref{eq:ellipsoid_check93} does hold, then 
+If $y - \mu(x) + \mu(x_i) \in E_{x_i}$, we look up the batch index $b$ such that $x_i \in S_b$, and evaluate
 \begin{equation}
 f_i = V(x)\eta_b\left(y - \mu(x) + \mu(x_i)\right),
 \end{equation}
-as per \eqref{eq:fxyxp} and \eqref{eq:varphi_eval}.
+per \eqref{eq:fxyxp} and \eqref{eq:varphi_eval}.
 %Recall from Section \ref{sec:get_impulse_response} that $\eta_b$ is the impulse response batch that we have computed and stored.
 %Evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires care, because
  
