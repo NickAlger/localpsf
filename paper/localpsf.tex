@@ -193,7 +193,7 @@ Operators that satisfy \eqref{eq:translate2} are called ``locally translation-in
 \end{figure}
 
 
-Our method is based on approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. We call \eqref{eq:translate3} ``local mean-displacement invariance,'' and illustrate \eqref{eq:translate3} in Figure \ref{fig:mean_displacement_invariance}. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x')$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x')-\mu(x) \approx x' - x$, so again \eqref{eq:translate3} holds. But approximation \eqref{eq:translate3} can hold in situations where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, because the expected value is a linear operator, \eqref{eq:translate3} will hold when an $\Aop$ is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case. Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires vectors in $\Omega_2$ and $\Omega_1$ to be added together. 
+Our method is based on approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. We call \eqref{eq:translate3} ``local mean-displacement invariance,'' and illustrate \eqref{eq:translate3} in Figure \ref{fig:mean_displacement_invariance}. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x')$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x')-\mu(x) \approx x' - x$, so again \eqref{eq:translate3} holds. But approximation \eqref{eq:translate3} can hold in situations where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, because the expected value commutes with affine transformations, \eqref{eq:translate3} will hold when an $\Aop$ is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case. Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires vectors in $\Omega_2$ and $\Omega_1$ to be added together. 
 
 
 \subsection{Overview of the method}
@@ -512,6 +512,11 @@ Each point source $\delta_{x_i}$ is scaled by $1/V(x_i)$ so that the resulting s
 \subsection{Approximate integral kernel entries $\widetilde{\Phi}(y,x)$}
 \label{sec:approximate_kernel_entries}
 
+%Recall from Section \ref{eq:local_mean_displacement_invariance} that if $x'$ is near $x$, then
+%\begin{equation*}
+%\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}\left(y - \mu(x) + \mu(x')\right).
+%\end{equation*}
+
 %In Section \ref{sec:intro} we noted that computing $\Aker\left(y,x\right)$ is computationally costly. 
 %This section describes how we compute approximate kernel entries
 %\begin{equation*}
@@ -525,18 +530,22 @@ f_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right), \qquad i
 \end{equation}
 %for arbitrary pairs of points $(y,x) \subset \Omega \times \Omega$.
 % while Section \ref{sec:approximate_kernel_entries} we showed how we can cheaply evaluate approximate kernel entries at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$.
-where $\{x_i\}_{i=1}^k$ are the $k$ nearest sample points to $x$, excluding sample points for which $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is undefined. That is, excluding sample points such that $y-\mu(x)+\mu(x_i) \notin \Omega$. The number $k$ is a small user defined parameter; in numerical experiments we use $k=10$. We find the $k$ nearest sample points by querying a precomputed KD-tree \cite{kdtree} of all sample points. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem. 
-
-The idea here is that $\Phi(y,x) \approx f_i$ when $x_i$ is near $x$, so we approximate $\Phi(y,x)$ by interpolating the (point,value) pairs
+where $\{x_i\}_{i=1}^k$ are the $k$ nearest sample points to $x$, excluding sample points for which $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is undefined. We approximate $\Phi(y,x)$ by interpolating the (point,value) pairs
 \begin{equation}
 \left(x_i, f_i\right), \qquad i=1,\dots,k,
 \end{equation}
-at the point $x$. To see that $\Phi(y,x) \approx f_i$, recall from Section \ref{eq:local_mean_displacement_invariance} that $\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ if $x_i$ is near $x$. Inclusion of the extra factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} is a form of preconditioning that makes this approximation more robust in the case where $V(x)$ varies widely. 
-%Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section \ref{sec:sample_point_selection} excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold.
+at the point $x$. The idea here is that $\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ (see Section \ref{eq:local_mean_displacement_invariance}), so we approximate $\Phi(y,x)$ by interpolating the values $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$. Inclusion of the factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} is a form of preconditioning that makes this approximation more robust in the case where $V(x)$ varies widely.
 
+To find the $k$ nearest sample points to $x$, we query a precomputed KD-tree \cite{kdtree} of all sample points. The number $k$ is a small user defined parameter; in numerical experiments we use $k=10$. The function $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is defined if and only if $y-\mu(x)+\mu(x_i) \in \Omega$. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem. 
+%Since $\Phi(y,x) \approx f_i$ when $x_i$ is near $x$, we approximate $\Phi(y,x)$ by interpolating the (point,value) pairs
+%\begin{equation}
+%\left(x_i, f_i\right), \qquad i=1,\dots,k,
+%\end{equation}
+%at the point $x$. To see that $\Phi(y,x) \approx f_i$, recall from Section \ref{eq:local_mean_displacement_invariance} that $\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ if $x_i$ is near $x$. Inclusion of the extra factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} is a form of preconditioning that makes this approximation more robust in the case where $V(x)$ varies widely. 
+%Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section \ref{sec:sample_point_selection} excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold.
 %\subsubsection{Radial basis function interpolation}
 
-We use the following radial basis function interpolation scheme:
+For interpolation, we use the following radial basis function scheme:
 %The approximation $\widetilde{\Phi}(y,x)$ is the value of this interpolation at $x$.
 %In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree \cite{kdtree} of all sample points. 
 %
@@ -577,7 +586,7 @@ We use the following radial basis function interpolation scheme:
 \begin{equation}
 \Phi(y,x) \approx \widetilde{\Phi}(y,x) := \sum_{i=1}^k w_i~ b\left(\|x-x_i\|\right),
 \end{equation}
-Here $b_i$ are radial basis functions and $w_i$ are weights. The vector of weights, $w = (w_1, w_2, \dots, w_k)^T$, is found as the solution to the $k \times k$ linear system
+where $b_i$ are radial basis functions and $w_i$ are weights. The vector of weights, $w = (w_1, w_2, \dots, w_k)^T$, is found as the solution to the $k \times k$ linear system
 \begin{equation}
 Bw = f,
 \end{equation}
@@ -590,14 +599,14 @@ and $f \in \mathbb{R}^k$ has entries $f_i$ from \eqref{eq:fxyxp}.
 %\begin{equation*}
 %f_i = f_{y,x}(x_i), \qquad i=1,\dots,k.
 %\end{equation*}
-We use polyharmonic spline radial basis functions \cite{polyspline}, which are defined as follows:
+We use polyharmonic spline radial basis functions \cite{polyspline}:
 \begin{equation}
 b_i(r) := \begin{cases}
 r^d, & d=1,3,5,\dots \\
 r^d \log r, & d=2,4,6,\dots
 \end{cases}
 \end{equation}
-for $r>0$, and $b_i(0):=0$. Polyharmonic spline radial basis function interpolation yields the smoothest interpolant of the given points and values, in a certain least-squares sense. For more details on radial basis function interpolation and polyharmonic splines, see \cite{rbf}.
+for $r>0$, and $b_i(0):=0$. Polyharmonic spline radial basis function interpolation yields the smoothest interpolant of the given points and values, in a least-squares sense. For more details on radial basis function interpolation and polyharmonic splines, see \cite{rbf}.
 %\begin{equation}
 %	f_i = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right).
 %\end{equation}
