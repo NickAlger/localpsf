@@ -231,9 +231,11 @@ One may use H-matrix methods to perform further useful linear algebra operations
 
 %Often we are interested in approximating operators $\Aop$ that are symmetric, or symmetric positive semi-definite. 
 
-If $\Aop$ is symmetric, we take advantage of symmetry to construct a more accurate approximation at negligible additional cost. In this case, 
+If $\Aop$ is symmetric, we take advantage of symmetry to construct a more accurate approximation at negligible additional cost
+%. In this case, 
 %impulse responses of $\Aop$ are also impulse responses of $\Aop^T$, which may be interpolated in the variable $y$ instead of $x$ to yield a different approximation of $\Phi(y,x)$. 
-we combine information from impulse responses of both $\Aop$ and $\Aop^T$ in the interpolation procedure.
+%we combine 
+by combining information from impulse responses of both $\Aop$ and $\Aop^T$ in the interpolation procedure.
 % for approximating $\Phi(y,x)$, to get a more accurate approximation at negligible additional cost.
 Intuitively, impulse responses of $\Aop$ can be thought of as ``columns'' of $\Phi$, impulse responses of $\Aop^T$ can be thought of as ``rows'' of $\Phi$, and $\Phi(y,x)$ can be thought of as an unknown entry of $\Phi$. Therefore, when $\Aop$ is symmetric, computing a column of $\Aop$ also gives us a row of $\Aop$ for free, so we approximate $\Phi(y,x)$ using information from a combination of known columns and rows, rather than just known columns.
 
