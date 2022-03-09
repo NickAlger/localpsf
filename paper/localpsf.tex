@@ -196,7 +196,9 @@ Operators that satisfy \eqref{eq:translate2} are called ``locally translation-in
 Our method is based on approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. We call \eqref{eq:translate3} ``local mean-displacement invariance,'' and illustrate \eqref{eq:translate3} in Figure \ref{fig:mean_displacement_invariance}. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x')$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x')-\mu(x) \approx x' - x$, so again \eqref{eq:translate3} holds. But approximation \eqref{eq:translate3} can hold in situations where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, because the expected value commutes with affine transformations, \eqref{eq:translate3} will hold when an $\Aop$ is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case. Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires vectors in $\Omega_2$ and $\Omega_1$ to be added together. 
 
 
-\subsection{Overview of the method}
+\subsection{Outline of the method}
+\label{sec:intro_overview}
+
 The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative impulse response property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
 \begin{equation*}
 \spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy
@@ -277,7 +279,11 @@ Product-convolution type approximations of Hessians have been used in a seismic 
 
 \section{Method}
 \label{sec:method}
-In this section we detail our method for computing the H-matrix approximation, $\mathbf{A}_H$, of $\Aop$. This section is organized as follows:
+In this section we detail our method for computing the H-matrix approximation, $\mathbf{A}_H$, of $\Aop$, as outlined in Section \ref{sec:intro_overview}.
+%The supports of the impulse responses $\phi_x$ are estimated to be contained within ellipsoids (Section \ref{eq:mean_and_covariance_estimation}). The shapes of the ellipsoids depend on spatially varying volume, mean, and covariance functions, $V,\mu,\Sigma$, which we calculate by applying $\Aop$ to a small number of polynomial functions (Section \ref{sec:moments}). We use the ellipsoid support estimates in a greedy ellipsoid packing procedure to choose batches, $\pointbatch_b$, of sample points $x_i$ (Section \ref{sec:sample_point_selection}). Batches, $\eta_b$, of impulse responses, $\phi_{x_i}$, are computed by applying $\Aop$ to Dirac combs associated with the batches of sample points $S_b$. The impulse response batch $\eta_b$ contains the information about all impulse responses $\phi_{x_i}$ associated with points $x_i \in S_b$. Hence, once a small number of impulse response batches $\eta_b$ are computed, they can be used to perform pointwise evaluations $z \mapsto \phi_{x_i}(z)$ for a large number of impulse responses, $\phi_{x_i}$ (Section \ref{sec:get_impulse_response}).
+%
+%In Section \ref{eq:mean_and_covariance_estimation} we describe our ellipsoid estimate for the support of $\phi_x$. The ellipsoid shape depends on the functions $V,\mu,\Sigma$. We show how to compute these functions in Section \ref{sec:moments}. The ellipsoid support estimates are then used in a greedy ellipsoid packing procedure to choose batches, $\pointbatch_b$, of sample points $x_i$ (Section \ref{sec:sample_point_selection}).
+This section is organized as follows:
 \begin{description}
 	\item[Section \ref{eq:mean_and_covariance_estimation}:] We describe our ellipsoid estimate for the support of $\phi_x$.
 	\item[Section \ref{sec:moments}:] We show how to compute $V,\mu,\Sigma$.
@@ -927,43 +933,43 @@ We use the adaptive cross method to form low rank approximations for each admiss
 
 \section{Fast ellipsoid intersection test}
 \label{sec:fast_ellipsoid_intersection_test}
-The procedure for choosing sample points relies on quickly determining whether two ellipsoids intersect. Let $E_p$ and $E_q$ be the ellipsoids defined as
+The procedure for choosing sample points relies on quickly determining whether two ellipsoids intersect. Let $E_1$ and $E_2$ be the ellipsoids defined as
 \begin{align*}
-	E_p :=& \{x : (x - \spatialmean_p)^T \spatialcov_p^{-1} (x - \spatialmean_p) \le \tau^2\} \\
-	E_q :=& \{x : (x - \spatialmean_q)^T \spatialcov_q^{-1} (x - \spatialmean_q) \le \tau^2\}, \\
+	E_1 :=& \{x : (x - \spatialmean_1)^T \spatialcov_1^{-1} (x - \spatialmean_1) \le \tau^2\} \\
+	E_2 :=& \{x : (x - \spatialmean_2)^T \spatialcov_2^{-1} (x - \spatialmean_2) \le \tau^2\}, \\
 \end{align*}
-where $\spatialmean_p, \spatialmean_q \in \mathbb{R}^\gdim$, and $\spatialcov_p, \spatialcov_q \in \mathbb{R}^{\gdim \times \gdim}$ are positive definite. Let $K$ be the following one dimensional convex function:
+where $\spatialmean_1, \spatialmean_2 \in \mathbb{R}^\gdim$, and $\spatialcov_1, \spatialcov_2 \in \mathbb{R}^{\gdim \times \gdim}$ are positive definite. Let $K$ be the following one dimensional convex function:
 \begin{equation*}
-	K(s) := 1 - \frac{1}{\tau^2} (\spatialmean_p - \spatialmean_q)^T \left(\frac{1}{1-s}\spatialcov_p + \frac{1}{s}\spatialcov_q\right)^{-1}(\spatialmean_p - \spatialmean_q)	
+	K(s) := 1 - \frac{1}{\tau^2} (\spatialmean_1 - \spatialmean_2)^T \left(\frac{1}{1-s}\spatialcov_1 + \frac{1}{s}\spatialcov_2\right)^{-1}(\spatialmean_1 - \spatialmean_2)	
 \end{equation*}
-In \cite{ELLIPSOIDINTERSECT} it is shown that $E_p \cap E_q = \{\}$ if and only if $K(s) < 0$ for some $s\in (0,1)$. We check whether $E_p$ and $E_q$ intersect by minimizing $K(s)$ on $(0,1)$. If $K(s^*) <0$ at the minimizer $s^*$, then $E_p \cap E_q = \{\}$. Otherwise $E_p \cap E_q \neq \{\}$.
+In \cite{ELLIPSOIDINTERSECT} it is shown that $E_1 \cap E_2 = \{\}$ if and only if $K(s) < 0$ for some $s\in (0,1)$. We check whether $E_1$ and $E_2$ intersect by minimizing $K(s)$ on $(0,1)$. If $K(s^*) <0$ at the minimizer $s^*$, then $E_1 \cap E_2 = \{\}$. Otherwise $E_1 \cap E_2 \neq \{\}$.
 
 The function $K(s)$ may be evaluated quickly for many $s$ by pre-computing the solution to the generalized eigenvalue problem
 \begin{equation*}
-	\spatialcov_p P = \spatialcov_q P \Lambda,
+	\spatialcov_1 P = \spatialcov_2 P \Lambda,
 \end{equation*}
-where $P \in \mathbb{R}^{\gdim \times \gdim}$ is the matrix of generalized eigenvectors (which may be non-orthogonal), and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_\gdim)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. The matrix $P$ simultaneously diagonalizes $\spatialcov_p$ and $\spatialcov_q$, in the sense that $P^T\spatialcov_p P = \Lambda$, and $P^T\spatialcov_q P = I$, where $I$ is the $\gdim \times \gdim$ identity matrix. Using this diagonalization, and some algebraic manipulations, we may write $K(s)$ as
+where $P \in \mathbb{R}^{\gdim \times \gdim}$ is the matrix of generalized eigenvectors (which may be non-orthogonal), and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_\gdim)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. The matrix $P$ simultaneously diagonalizes $\spatialcov_1$ and $\spatialcov_2$, in the sense that $P^T\spatialcov_1 P = \Lambda$, and $P^T\spatialcov_2 P = I$, where $I$ is the $\gdim \times \gdim$ identity matrix. Using this diagonalization, and some algebraic manipulations, we may write $K(s)$ as
 \begin{equation}
 	\label{eq:Ks_generalized}
 	K(s) = 1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2,
 \end{equation}
-where $v := \Phi^T\left(\spatialmean_p - \spatialmean_q\right)$. We compute the generalized eigenvalue decomposition of $\spatialcov_p$ and $\spatialcov_q$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's algorithm \cite{BRENT} (any fast 1 dimensional convex optimization routine may be used). The resulting algorithm for checking whether $E_p$ and $E_q$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
+where $v := \Phi^T\left(\spatialmean_1 - \spatialmean_2\right)$. We compute the generalized eigenvalue decomposition of $\spatialcov_1$ and $\spatialcov_2$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's algorithm \cite{BRENT} (any fast 1 dimensional convex optimization routine may be used). The resulting algorithm for checking whether $E_1$ and $E_2$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
 	\SetKwInOut{Input}{Input}
 	\SetKwInOut{Output}{Output}
 	\SetKwProg{Fn}{Function}{}{}
-	\Input{Ellipsoid $E_p$ with mean $\spatialmean_p$ and covariance $\spatialcov_p/\tau^2$\\
-		Ellipsoid $E_q$ with mean $\spatialmean_q$ and covariance $\spatialcov_q/\tau^2$ 
+	\Input{Ellipsoid $E_1$ with mean $\spatialmean_1$ and covariance $\spatialcov_1/\tau^2$\\
+		Ellipsoid $E_2$ with mean $\spatialmean_2$ and covariance $\spatialcov_2/\tau^2$ 
 	}
 	
-	\Output{Boolean $\text{ellipsoids\_intersect}$ which is true if $E_p \cap E_q \neq \{\}$ and false otherwise}
+	\Output{Boolean $\text{ellipsoids\_intersect}$ which is true if $E_1 \cap E_2 \neq \{\}$ and false otherwise}
 	
 	
-	Solve generalized eigenvalue problem $\spatialcov_p P = \spatialcov_q P \Lambda$
+	Solve generalized eigenvalue problem $\spatialcov_1 P = \spatialcov_2 P \Lambda$
 		
-	$v \gets P^T\left(\spatialmean_p - \spatialmean_q\right)$
+	$v \gets P^T\left(\spatialmean_1 - \spatialmean_2\right)$
 		
 	$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
 		
