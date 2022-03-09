@@ -526,19 +526,23 @@ Each point source $\delta_{x_i}$ is scaled by $1/V(x_i)$ so that the resulting s
 %\end{equation*}
 %for arbitrary pairs of points $(y,x) \in \Omega \times \Omega$. 
 Given $(y,x)\in \Omega \times \Omega$, let
+\begin{equation*}
+	z_i := y - \mu(x) + \mu(x_i), \qquad i=1,\dots,k,
+\end{equation*}
+where $\{x_i\}_{i=1}^k$ are the $k$ nearest sample points to $x$, excluding sample points $x_i$ for which $z_i \notin \Omega$. Here $k$ is a small user defined parameter; e.g., $k=10$. Further, let
 \begin{equation}
 \label{eq:fxyxp}
-f_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right), \qquad i=1,\dots,k,
+f_i := \frac{V(x)}{V(x_i)}\phi_{x_i}\left(z_i\right), \qquad i=1,\dots,k,
 \end{equation}
 %for arbitrary pairs of points $(y,x) \subset \Omega \times \Omega$.
 % while Section \ref{sec:approximate_kernel_entries} we showed how we can cheaply evaluate approximate kernel entries at arbitrary pairs of points $(y,x) \in \Omega \times \Omega$.
-where $\{x_i\}_{i=1}^k$ are the $k$ nearest sample points to $x$, excluding sample points for which $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is undefined. Here $k$ is a small user defined parameter; e.g., $k=10$. We approximate $\Phi(y,x)$ by interpolating the (point,value) pairs
+Note that $f_i$ is well-defined, because $\phi_{x_i}\left(z_i\right)$ is defined if and only if $z_i \in \Omega$, and $V(x_i)>0$ by our sample point picking procedure in Section \ref{sec:sample_point_selection}. We approximate $\Phi(y,x)$ by interpolating the (point,value) pairs
 \begin{equation}
 \left(x_i, f_i\right), \qquad i=1,\dots,k,
 \end{equation}
-at the point $x$. The idea is that $\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ per the discussion in Section \ref{eq:local_mean_displacement_invariance}, so we approximate $\Phi(y,x)$ by interpolating the values $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$. Inclusion of the factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} is a form of preconditioning that makes this approximation more robust if $V(x)$ varies widely.
+at the point $x$. The idea is that $\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}\left(z_i\right)$ per the discussion in Section \ref{eq:local_mean_displacement_invariance}, so we approximate $\Phi(y,x)$ by interpolating the values $\phi_{x_i}\left(z_i\right)$. The factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} preconditions the approximation to make it more robust if $V(x)$ varies widely.
 
-To find the $k$ nearest sample points to $x$, we query a precomputed KD-tree \cite{kdtree} of all sample points. The quantity $\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right)$ is defined if and only if $y-\mu(x)+\mu(x_i) \in \Omega$. We check whether $y - \mu(x) + \mu(x_i) \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem. 
+To find the $k$ nearest sample points to $x$, we query a precomputed KD-tree \cite{kdtree} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem. 
 %Since $\Phi(y,x) \approx f_i$ when $x_i$ is near $x$, we approximate $\Phi(y,x)$ by interpolating the (point,value) pairs
 %\begin{equation}
 %\left(x_i, f_i\right), \qquad i=1,\dots,k,
@@ -547,7 +551,7 @@ To find the $k$ nearest sample points to $x$, we query a precomputed KD-tree \ci
 %Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section \ref{sec:sample_point_selection} excludes $x_i$ from consideration as a sample point if $V(x_i)$ is smaller than a predetermined threshold.
 %\subsubsection{Radial basis function interpolation}
 
-For interpolation, we use the following radial basis function scheme:
+Interpolation is performed using the following radial basis function scheme:
 %The approximation $\widetilde{\Phi}(y,x)$ is the value of this interpolation at $x$.
 %In numerical experiments we use $k=10$. The $k$ nearest sample points are found by querying a precomputed KD-tree \cite{kdtree} of all sample points. 
 %
@@ -608,7 +612,7 @@ r^d, & d=1,3,5,\dots \\
 r^d \log r, & d=2,4,6,\dots
 \end{cases}
 \end{equation}
-for $r>0$, and $b_i(0):=0$. Polyharmonic spline radial basis function interpolation yields the smoothest interpolant of the given points and values, in a least-squares sense. For more details on radial basis function interpolation and polyharmonic splines, see \cite{rbf}.
+for $r>0$, and $b_i(0):=0$. This yields the smoothest interpolant of the given points and values, in a least-squares sense. For more details on radial basis function interpolation and polyharmonic splines, see \cite{rbf}.
 %\begin{equation}
 %	f_i = \frac{V(x)}{V(x_i)}\phi_{x_i}\left(y - \mu(x) + \mu(x_i)\right).
 %\end{equation}
@@ -620,25 +624,25 @@ for $r>0$, and $b_i(0):=0$. Polyharmonic spline radial basis function interpolat
 
 %\subsubsection{Evaluating $f_{y,x}(x_i)$}
 
-To evaluate $f_i$, we check whether $y - \mu(x) + \mu(x_i) \in E_{x_i}$ using \eqref{eq:support_ellipsoid}. If $y - \mu(x) + \mu(x_i) \notin E_{x_i}$, then
+To evaluate $f_i$, we check whether $z_i \in E_{x_i}$ using \eqref{eq:support_ellipsoid}. If $z_i \notin E_{x_i}$, then
 % by checking if
 %\begin{equation}
 %\label{eq:ellipsoid_check93}
 %(y - \mu(x_i))^T \Sigma^{-1}(x_i) (y - \mu(x_i))  \le \tau^2.
 %\end{equation}
 %If \eqref{eq:ellipsoid_check93} does not hold, 
-then $y - \mu(x) + \mu(x_i)$ is outside the estimated support of $\impulseresponse_{x_i}$, so we set $f_i=0$.
+then $z_i$ is outside the estimated support of $\impulseresponse_{x_i}$, so we set $f_i=0$.
 % If \eqref{eq:ellipsoid_check93} does hold, then 
-If $y - \mu(x) + \mu(x_i) \in E_{x_i}$, we look up the batch index $b$ such that $x_i \in S_b$, and evaluate
+If $z_i \in E_{x_i}$, we look up the batch index $b$ such that $x_i \in S_b$, and evaluate $f_i$ via the formula
 \begin{equation}
-f_i = V(x)\eta_b\left(y - \mu(x) + \mu(x_i)\right),
+f_i = V(x)\eta_b\left(z_i\right),
 \end{equation}
-per \eqref{eq:fxyxp} and \eqref{eq:varphi_eval}.
+per \eqref{eq:varphi_eval}.
 %Recall from Section \ref{sec:get_impulse_response} that $\eta_b$ is the impulse response batch that we have computed and stored.
 %Evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires care, because
  
-Note that $y - \mu(x) + \mu(x_i)$ is generally not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Hence,
-evaluating $\eta_b\left(y - \mu(x) + \mu(x_i)\right)$ requires determining which mesh cell contains $y - \mu(x) + \mu(x_i)$, then evaluating finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $y - \mu(x) + \mu(x_i)$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $y - \mu(x) + \mu(x_i) \in \Omega$. 
+Note that $z_i$ is generally not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Hence,
+evaluating $\eta_b\left(z_i\right)$ requires determining which mesh cell contains $z_i$, then evaluating finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $z_i$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $z_i \in \Omega$. 
 
 \subsubsection{Improvement for symmetric operators}
 \label{sec:symmetric_improvements}
@@ -769,21 +773,27 @@ and $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ is the finite element mass ma
 The finite element matrix representation of of our approximation of $\Aop$ is therefore given by
 \begin{equation}
 	\label{eq:Amatpc_defn}
-	\mathbf{A} := \bm{M} \mathbf{\Phi} \bm{M}.
+	\mathbf{A} = \bm{M} \mathbf{\Phi} \bm{M}.
 \end{equation}
 
 
 \subsection{Hierarchical matrix construction}
 \label{sec:h_matrix_construction_short}
 
-We form our H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by converting $\mathbf{\Phi}$ and $\bm{M}$ to H-matrix format, then using fast H-matrix methods to multiply these matrices according to \eqref{eq:Amatpc_defn}. Once $\mathbf{A}_H$ is formed, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
+We form our H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by forming H-matrix representations $\mathbf{\Phi}_H$ and $\bm{M}_H$ of $\mathbf{\Phi}$ and $\bm{M}$, respectively, then using fast H-matrix methods to multiply these matrices per \eqref{eq:Amatpc_defn} to form
+\begin{equation*}
+\mathbf{A}_H = \bm{M}_H \mathbf{\Phi}_H \bm{M}_H.
+\end{equation*}
+Once $\mathbf{A}_H$ is formed, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
 
-We convert $\mathbf{\Phi}$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{HLIBPRO}. Although $\mathbf{\Phi}$ is a dense $\fedim \times \fedim$ matrix, constructing the H-matrix approximation only requires evaluation of $O(\hmatrixrank^2 \fedim \log \fedim)$ entries $\mathbf{\Phi}_{ij} = \widetilde{\Phi}(p_i, p_j)$, and these entries are computed via the procedure described in Section \ref{sec:approximate_kernel_entries}. Here $\hmatrixrank$ is the rank of the highest-rank block in the H-matrix. A dense representation of $\mathbf{\Phi}$ is never formed. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. We convert $\bm{M}$ to H-matrix format using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\mathbf{\Phi}$. 
+We form $\mathbf{\Phi}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{HLIBPRO}. Although $\mathbf{\Phi}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Phi}_H$ only requires evaluation of $O(\hmatrixrank^2 \fedim \log \fedim)$ entries $\mathbf{\Phi}_{ij} = \widetilde{\Phi}(p_i, p_j)$, and these entries are computed via the procedure described in Section \ref{sec:approximate_kernel_entries}. Here $\hmatrixrank$ is the rank of the highest-rank block in the H-matrix. A dense representation of $\mathbf{\Phi}$ is never formed. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. We form $\bm{M}_H$ using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\mathbf{\Phi}$. 
 
 
 
 \subsection{Computational cost}
 \label{sec:overall_cost}
+
+Computing $V$, $\mu$, and $\Sigma$ require $1$, $d$, and $d(d+1)/2$ operator actions of $\Aop$, respectively. Computing the impulse response batches $\eta_b$ requires one operator action of $\Aop$ per batch. Picking the sample points 
 
 \begin{itemize}
 	\item computational complexity in terms of PDE solves:
@@ -863,7 +873,7 @@ The process of constructing an H-matrix representation of $\mathbf{\Phi}$ procee
 
 We use recursive hyperplane splitting to hierarchically cluster the degrees of freedom associated with the columns and rows of the matrix into a \emph{column cluster tree} and a \emph{row cluster tree}, respectively. Here we describe construction of the column cluster tree; the row cluster tree is constructed similarly. 
 
-Since we use finite elements to discretize the problem, the $i^\text{th}$ column of $\AkerPcMat$ corresponds to the Lagrange node in $\mathbb{R}^\gdim$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^\gdim$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which is called the column cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
+Since we use finite elements to discretize the problem, the $i^\text{th}$ column of $\mathbf{\Phi}$ corresponds to the Lagrange node in $\mathbb{R}^\gdim$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^\gdim$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which is called the column cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
 
 A depth-first search ordering of the column cluster tree leaves is then generated. When the columns of the matrix are permuted into this depth-first ordering, the columns associated with each cluster in the cluster tree are contiguous.
 
@@ -875,29 +885,29 @@ In the same way, the degrees of freedom associated with the rows of the matrix a
 
 We partition the matrix into a recursive hierarchy of mostly low rank blocks called the \emph{block cluster tree}. The idea is that a block of the matrix is likely to be low rank if the point cloud associated with the rows of the block is far away from the point cloud associated with the columns of the block. This is reasonable to expect here because of the locality property of $\Aop$. Indeed, locality implies that many blocks of the matrix corresponding to far away point cloud clusters will be rank zero.
 
-After reordering the rows and columns of $\AkerPcMat$ via the depth-first ordering described above, we partition the reordered version of $\AkerPcMat$ into a tree of $2 \times 2$ block matrices recursively. We use a geometric admissibility condition (discussed below) to decide which blocks to subdivide, and use the cluster trees for the rows and columns to determine how to subdivide those blocks. For the first stage of subdivision, let $r_1$ and $r_2$ be the children row clusters for the root of the row cluster tree, let $\colcluster_1$ and $\colcluster_2$ be the children column clusters for the root of the column cluster tree. The matrix $\AkerPcMat$ is partitioned into blocks as follows:
+After reordering the rows and columns of $\mathbf{\Phi}$ via the depth-first ordering described above, we partition the reordered version of $\mathbf{\Phi}$ into a tree of $2 \times 2$ block matrices recursively. We use a geometric admissibility condition (discussed below) to decide which blocks to subdivide, and use the cluster trees for the rows and columns to determine how to subdivide those blocks. For the first stage of subdivision, let $r_1$ and $r_2$ be the children row clusters for the root of the row cluster tree, let $\colcluster_1$ and $\colcluster_2$ be the children column clusters for the root of the column cluster tree. The matrix $\mathbf{\Phi}$ is partitioned into blocks as follows:
 \begin{equation*}
 	\begin{bmatrix}
-		\left(\AkerPcMat\right)_{11} & \left(\AkerPcMat\right)_{12} \\
-		\left(\AkerPcMat\right)_{21} & \left(\AkerPcMat\right)_{22},
-	\end{bmatrix}
+		\mathbf{\Phi}_{11} & \mathbf{\Phi}_{12} \\
+		\mathbf{\Phi}_{21} & \mathbf{\Phi}_{22}
+	\end{bmatrix},
 \end{equation*}
-where $\left(\AkerPcMat\right)_{11}$ denotes the block of $\AkerPcMat$ with rows $r_1$ and columns $\colcluster_1$, $\left(\AkerPcMat\right)_{12}$ denotes the block of $\AkerPcMat$ with rows $r_1$ and columns $\colcluster_2$, and so on for $\left(\AkerPcMat\right)_{21}$ and $\left(\AkerPcMat\right)_{22}$.
+where $\mathbf{\Phi}_{11}$ denotes the block of $\mathbf{\Phi}$ with rows $r_1$ and columns $\colcluster_1$, $\mathbf{\Phi}_{12}$ denotes the block of $\mathbf{\Phi}$ with rows $r_1$ and columns $\colcluster_2$, and so on for $\mathbf{\Phi}_{21}$ and $\mathbf{\Phi}_{22}$.
 
-We now loop through the four blocks, $\left(\AkerPcMat\right)_{11}$, $\left(\AkerPcMat\right)_{12}$, $\left(\AkerPcMat\right)_{21}$, and $\left(\AkerPcMat\right)_{22}$, and decide which blocks should be subdivided further. For the purpose of explanation, consider $\left(\AkerPcMat\right)_{12}$. If
+We now loop through the four blocks, $\mathbf{\Phi}_{11}$, $\mathbf{\Phi}_{12}$, $\mathbf{\Phi}_{21}$, and $\mathbf{\Phi}_{22}$, and decide which blocks should be subdivided further. For the purpose of explanation, consider $\mathbf{\Phi}_{12}$. If
 \begin{equation}
 	\label{eq:weak_admissibility_cond}
 	\dist\left(r_1, \colcluster_2\right) \ge \weakadmconst \min\left(\diam\left(r_1\right), \diam\left(\colcluster_2\right)\right),
 \end{equation}
-then we mark $\left(\AkerPcMat\right)_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, \colcluster_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $\colcluster_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(\colcluster_2\right)$ is the analogous diameter associated with the column cluster $\colcluster_2$. Here the quantity $\weakadmconst$ is a scalar constant; we use $\weakadmconst=2.0$. Basically, if the point clouds associated with $r_1$ and $\colcluster_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\left(\AkerPcMat\right)_{11}$ and $\left(\AkerPcMat\right)_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
+then we mark $\mathbf{\Phi}_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, \colcluster_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $\colcluster_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(\colcluster_2\right)$ is the analogous diameter associated with the column cluster $\colcluster_2$. Here the quantity $\weakadmconst$ is a scalar constant; we use $\weakadmconst=2.0$. Basically, if the point clouds associated with $r_1$ and $\colcluster_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\mathbf{\Phi}_{11}$ and $\mathbf{\Phi}_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
 
-Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\AkerPcMat$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree, which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
+Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\mathbf{\Phi}$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree, which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
 
 
 \subsubsection{Adaptive cross low rank approximation of blocks}
 \label{sec:adaptive_cross}
 
-Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method \cite{ACA}. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\AkerPcMat$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
+Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method \cite{ACA}. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\mathbf{\Phi}$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
 \begin{itemize}
 	\item Let $C \in \mathbb{R}^{m \times \hmatrixrank}$ be a matrix consisting of a subset of $\hmatrixrank$ columns of $X$, such that the span of the columns in $C$ approximates the column space of $X$. 
 	\item Let $R\in\mathbb{R}^{\hmatrixrank \times m}$ be a subset of the rows of $X$, such that the span of the rows in $R$ approximates the row space of $X$.
@@ -912,7 +922,7 @@ where $U^+$ is the pseudoinverse of $U$ \cite{CUR}. The quality of approximation
 
 In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible. This may be done via either the maxvol procedure \cite{GOODSUBMATRIX}, or via QR factorization. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $a \hmatrixrank$ columns of $X$ and $a\hmatrixrank$ rows of $X$, where $a$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. For more details on adaptive cross low rank approximation, see \cite{ACA}. The key point is that the adaptive cross method allows us to form a rank-$\hmatrixrank$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(m\hmatrixrank)$ entries of that block.
 
-We use the adaptive cross method to form low rank approximations for each admissible block of $\AkerPcMat$. We directly compute all entries of the small dense blocks of $\AkerPcMat$ that are not admissible. This process requires us to compute $O(\hmatrixrank^2 \fedim \log \fedim)$ entries of $\AkerPcMat$, which is relatively cheap compared to the operator actions of $\Aop$ that are required to form the product-convolution approximation.
+We use the adaptive cross method to form low rank approximations for each admissible block of $\mathbf{\Phi}$. We directly compute all entries of the small dense blocks of $\mathbf{\Phi}$ that are not admissible. This process requires us to compute $O(\hmatrixrank^2 \fedim \log \fedim)$ entries of $\mathbf{\Phi}$, which is relatively cheap compared to the operator actions of $\Aop$ that are required to form the product-convolution approximation.
 
 
 \section{Fast ellipsoid intersection test}
@@ -951,9 +961,9 @@ where $v := \Phi^T\left(\spatialmean_p - \spatialmean_q\right)$. We compute the 
 	\Output{Boolean $\text{ellipsoids\_intersect}$ which is true if $E_p \cap E_q \neq \{\}$ and false otherwise}
 	
 	
-	Solve generalized eigenvalue problem $\spatialcov_p \Phi = \spatialcov_q \Phi \Lambda$
+	Solve generalized eigenvalue problem $\spatialcov_p P = \spatialcov_q P \Lambda$
 		
-	$v \gets \Phi^T\left(\spatialmean_p - \spatialmean_q\right)$
+	$v \gets P^T\left(\spatialmean_p - \spatialmean_q\right)$
 		
 	$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
 		
