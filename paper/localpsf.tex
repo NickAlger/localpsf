@@ -87,7 +87,7 @@ be the \emph{impulse response} of $\Aop$ at $x$. The function $\impulseresponse_
 \end{equation}
 where $\delta_x$ is the the point source (delta distribution) centered at $x$, $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying the operator $\Aop$ to $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\sigma \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\sigma^* \in L^2(\Omega)$ such that $\sigma(v) = \left(\sigma^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is formally defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Aker$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}.
 
-In this paper we form hierarchical matrix approximations of operators $\Aop$ with locally supported, non-negative impulse responses that are accessible matrix-free.
+In this paper we form hierarchical matrix approximations, $\mathbf{A}_H$, of operators $\Aop$ that satisfy the following three properties:
 \begin{description}
 	\item[Locally supported impulse responses:] For all $x\in \Omega$, the support of $\impulseresponse_x$ is contained (or approximately contained) in a localized region.
 	\item[Non-negative impulse responses:] We have
@@ -102,6 +102,7 @@ In this paper we form hierarchical matrix approximations of operators $\Aop$ wit
 	for arbitrary functions $u$ and $v$. After discretization (see Appendix \ref{app:discretized_operations}), $\Aop$ becomes a dense matrix, $\bm{A}$, that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means that one can perform matrix-vector products of $\bm{A}$ and $\bm{A}^T$ with arbitrary vectors, but one cannot easily\footnote{One could compute $\bm{v} = \bm{A}\bm{e}_j$, where $\bm{e}_j=(0,\dots,0,1,0,\dots,0)$ is the unit vector which has $j^\text{th}$ component equal to one and all other components equal to zero, then extract $\bm{A}_{ij} = \bm{v}_i$. However, this process is wasteful because one computes the entire vector $\bm{v}$, then discards all but one component.} access matrix entries $\bm{A}_{ij}$. In applications, applying $\bm{A}$ to a vector may involve iteratively solving a large linear system, timestepping, or performing some other nontrivial computational procedure. 
 	%For example, in reduced space approaches to PDE-constrained optimization and inverse problems, Hessian information is available only through the application of the Hessian to vectors, and one such Hessian application requires solving two PDEs \cite{HESSIANADJOINT}. 
 \end{description} 
+Once the hierarchical matrix approximation $\mathbf{A}_H$ is constructed, one may use H-matrix methods to perform further useful linear algebra operations involving $\mathbf{A}_H$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. WHY DO THESE OPERATIONS: KRYLOV SOLVERS, SAMPLING STRATEGIES, CAN'T DO WITH A.
 
 % approximate operators which possess the following properties:
 % 
@@ -152,19 +153,21 @@ The impulse response $\impulseresponse_x$ may be interpreted as a scaled probabi
 \begin{equation*}
 \spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy
 \end{equation*}
-denote the spatially varying scaling factor (the ``volume'' of $\impulseresponse_x$), let 
-\begin{equation}
-\label{eq:scaled_impulse_response}
-\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)
-\end{equation}
-denote the normalized version of $\impulseresponse_x$, and let $\mu:\Omega \rightarrow \mathbb{R}^d$, $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d},$
+denote the spatially varying scaling factor,
+%, let 
+%\begin{equation}
+%\label{eq:scaled_impulse_response}
+%\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)
+%\end{equation}
+%denote the normalized version of $\impulseresponse_x$. 
+and let $\mu:\Omega \rightarrow \mathbb{R}^d$, $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d},$
 \begin{equation*}
-\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
-\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
+\spatialmean(x) := \mathbb{E}(\impulseresponse_x / V(x)), \qquad
+\spatialcov(x) := \Var(\impulseresponse_x /V(x)),
 \end{equation*}
-denote the spatially varying mean and covariance of $\widehat{\impulseresponse}_x$, respectively.
+to be the spatially varying mean and covariance of the normalized version of $\impulseresponse_x$, respectively. For each point $x$, imagine $\phi_x$ as a pile of sand. The scalar $V(x)$ is the mass of the sand pile, the vector $\mu(x)$ is the center of mass of the sand pile, and the matrix $\Sigma(x)$ contains information about how wide the sand pile is in each spatial direction. Throughout this paper we will use these spatially varying moment functions extensively.
 
-\subsection{Volume preconditioned local mean-displacement invariance}
+\subsection{Local mean-displacement invariance}
 \label{eq:local_mean_displacement_invariance}
 
 Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and consider the following four approximations, ordered by increasing level of sophistication:
@@ -172,7 +175,8 @@ Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and con
 \phi_x(y) &\approx \phi_{x'}(y) \label{eq:translate1}\\
 \phi_x(y) &\approx \phi_{x'}(y-x+x') \label{eq:translate2}\\
 \phi_x(y) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right) \label{eq:translate3}\\
-\frac{\phi_x(y)}{V(x)} &\approx \frac{\phi_{x'}\left(y-\mu(x)+\mu(x')\right)}{V(x')}. \label{eq:translate4}
+\phi_x(y)/V(x) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right) / V(x'). \label{eq:translate4}
+%\frac{\phi_x(y)}{V(x)} &\approx \frac{\phi_{x'}\left(y-\mu(x)+\mu(x')\right)}{V(x')}. \label{eq:translate4}
 \end{align}
 Approximation \eqref{eq:translate1} says that $\phi_x$ can be approximated by $\phi_{x'}$ when $x$ and $x'$ are close. 
 %This approximation follows from the assumption that $\Phi$ is smooth. 
@@ -187,7 +191,7 @@ Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank
 However, 
 %even if $\Phi$ is smooth (which is typically the case asymptotically),
 %the relevant Lipschitz constant for continuity, and hence 
-the required rank in the low rank approximation can be large, which makes algorithms based on assumption \eqref{eq:translate1} computationally expensive. This is the case for Hessians in PDE constrained inverse problems with highly informative data, as discussed in Section \ref{sec:PDE_hessian_motivation}. 
+the required rank in the low rank approximation can be large, which makes algorithms based on \eqref{eq:translate1} computationally expensive. This is the case for Hessians in PDE constrained inverse problems with highly informative data, as discussed in Section \ref{sec:PDE_hessian_motivation}. 
 %As the data become more informative, typically the ``mass'' of $\Phi(y,x)$ concentrates nearer and nearer to the ``diagonal'' $y=x$, the Lipschitz constant increases, and the required rank in the approximation increases.
 %Moreover, if $\Aop$ is numerically low rank, then one would typically use more accurate and robust matrix-free methods for forming low-rank approximations, such as randomized SVD or Lanczos.
 
@@ -213,27 +217,28 @@ Operators that satisfy \eqref{eq:translate2} are called ``locally translation-in
 \end{figure}
 
 
-Our method is based on approximation \eqref{eq:translate3}, which is an improvement upon \eqref{eq:translate1} and \eqref{eq:translate2} that generalizes both. We call \eqref{eq:translate3} ``local mean-displacement invariance,'' and illustrate \eqref{eq:translate3} in Figure \ref{fig:mean_displacement_invariance}. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x')$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x')-\mu(x) \approx x' - x$, so again \eqref{eq:translate3} holds. But approximation \eqref{eq:translate3} can hold in situations where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, because the expected value commutes with affine transformations, \eqref{eq:translate3} will hold when an $\Aop$ is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case. Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires vectors in $\Omega_2$ and $\Omega_1$ to be added together. 
+Approximation \eqref{eq:translate3} improves upon \eqref{eq:translate1} and \eqref{eq:translate2}, and generalizes both. On one hand, if \eqref{eq:translate1} holds, then $\mu(x) \approx \mu(x')$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\mu(x')-\mu(x) \approx x' - x$, so again \eqref{eq:translate3} holds. But approximation \eqref{eq:translate3} can hold in situations where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, because the expected value commutes with affine transformations, \eqref{eq:translate3} will hold when an $\Aop$ is locally translation-invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case. Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires vectors in $\Omega_2$ and $\Omega_1$ to be added together.  We call \eqref{eq:translate3} ``local mean-displacement invariance,'' and illustrate \eqref{eq:translate3} in Figure \ref{fig:mean_displacement_invariance}.
 
+We use approximation \eqref{eq:translate4}, which is the same as \eqref{eq:translate3}, except for the extra factors of $1/V(x)$ on the left hand side and $1/V(x')$ on the right hand side. These factors make the approximation more robust if $V(x)$ varies widely. Approximation \eqref{eq:translate4} is equivalent to \eqref{eq:translate3}, but with $\phi_x$ replaced by the its normalized version, $\phi_x/V(x)$. We call \eqref{eq:translate4} ``normalized local mean-displacement invariance.''
 
 \subsection{Outline of the method}
 \label{sec:intro_overview}
 
 In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of polynomial functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$). Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
-Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section \ref{sec:approximate_kernel_entries}, but the key principle behind the interpolation is the local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
+Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section \ref{sec:approximate_kernel_entries}, but the key principle behind the interpolation is the preconditioned local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
 %Specifically, we make the assumption that
 %\begin{equation}
 %\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
 %\end{equation}
 %if $x_i$ is close to $x$. This is shown in Figure \ref{fig:mean_displacement_invariance}. Motivation for this assumption is discussed in Section \ref{eq:local_mean_displacement_invariance}. 
-We approximate $\Phi(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for a collection of sample points $x_i$ near $x$. The weights are determined by preconditioned radial basis function interpolation.
+We approximate $\Phi(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{V(x)}{V(x_i)}\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for a collection of sample points $x_i$ near $x$. The weights are determined by preconditioned radial basis function interpolation.
 
 The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall H-matrix approximation proceeds as follows:
 \begin{equation*}
 \Aop \longrightarrow V, \mu, \Sigma \longrightarrow \{x_i\}_{i=1}^r \longrightarrow \{\impulseresponse_{x_i}\}_{i=1}^r \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
 \end{equation*}
-One may use H-matrix methods to perform further useful linear algebra operations involving $\mathbf{A}_H$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. WHY DO THESE OPERATIONS: KRYLOV SOLVERS, SAMPLING STRATEGIES, CAN'T DO WITH A.
+
 
 %Often we are interested in approximating operators $\Aop$ that are symmetric, or symmetric positive semi-definite. 
 
@@ -341,7 +346,7 @@ We make the approximation that the support of $\impulseresponse_x$ is contained 
 \label{eq:support_ellipsoid}
 E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
 \end{equation}
-where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as $\widehat{\impulseresponse}_x$.
+where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$.
 
 The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
 
@@ -549,7 +554,7 @@ Note that $f_i$ is well-defined, because $\phi_{x_i}\left(z_i\right)$ is defined
 \begin{equation}
 \left(x_i, f_i\right), \qquad i=1,\dots,k,
 \end{equation}
-at the point $x$. The idea is that $\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}\left(z_i\right)$ per the discussion in Section \ref{eq:local_mean_displacement_invariance}, so we approximate $\Phi(y,x)$ by interpolating the values $\phi_{x_i}\left(z_i\right)$. The factor $\frac{V(x)}{V(x_i)}$ in \eqref{eq:fxyxp} preconditions the approximation to make it more robust if $V(x)$ varies widely.
+at the point $x$. The idea is that $\Phi(y,x) = f_i$ per the discussion in Section \ref{eq:local_mean_displacement_invariance}, so we approximate $\Phi(y,x)$ by interpolating the values $f_i$. 
 
 To find the $k$ nearest sample points to $x$, we query a precomputed KD-tree \cite{kdtree} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem. 
 %Since $\Phi(y,x) \approx f_i$ when $x_i$ is near $x$, we approximate $\Phi(y,x)$ by interpolating the (point,value) pairs
