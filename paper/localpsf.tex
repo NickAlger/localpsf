@@ -232,7 +232,7 @@ Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we a
 %\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
 %\end{equation}
 %if $x_i$ is close to $x$. This is shown in Figure \ref{fig:mean_displacement_invariance}. Motivation for this assumption is discussed in Section \ref{eq:local_mean_displacement_invariance}. 
-We approximate $\Phi(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{V(x)}{V(x_i)}\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for a collection of sample points $x_i$ near $x$. The weights are determined by preconditioned radial basis function interpolation.
+We approximate $\Phi(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{V(x)}{V(x_i)}\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for a collection of sample points $x_i$ near $x$. The weights are determined by radial basis function interpolation.
 
 The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall H-matrix approximation proceeds as follows:
 \begin{equation*}
