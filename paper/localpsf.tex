@@ -145,18 +145,38 @@ where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and 
 The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Conventionally, either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is therefore the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because our method can form high-rank approximations of an operator using a small number of matrix-vector products.
 
 
-\subsection{Local mean-displacement invariance}
+\subsection{Impulse response moments}
+\label{sec:intromoments}
+
+The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative impulse response property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
+\begin{equation*}
+\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy
+\end{equation*}
+denote the spatially varying scaling factor (the ``volume'' of $\impulseresponse_x$), let 
+\begin{equation}
+\label{eq:scaled_impulse_response}
+\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)
+\end{equation}
+denote the normalized version of $\impulseresponse_x$, and let $\mu:\Omega \rightarrow \mathbb{R}^d$, $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d},$
+\begin{equation*}
+\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
+\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
+\end{equation*}
+denote the spatially varying mean and covariance of $\widehat{\impulseresponse}_x$, respectively.
+
+\subsection{Volume preconditioned local mean-displacement invariance}
 \label{eq:local_mean_displacement_invariance}
 
-Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and consider the following three approximations, ordered by increasing level of sophistication:
+Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and consider the following four approximations, ordered by increasing level of sophistication:
 \begin{align}
 \phi_x(y) &\approx \phi_{x'}(y) \label{eq:translate1}\\
 \phi_x(y) &\approx \phi_{x'}(y-x+x') \label{eq:translate2}\\
-\phi_x(y) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right). \label{eq:translate3}
+\phi_x(y) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right) \label{eq:translate3}\\
+\frac{\phi_x(y)}{V(x)} &\approx \frac{\phi_{x'}\left(y-\mu(x)+\mu(x')\right)}{V(x')}. \label{eq:translate4}
 \end{align}
 Approximation \eqref{eq:translate1} says that $\phi_x$ can be approximated by $\phi_{x'}$ when $x$ and $x'$ are close. 
 %This approximation follows from the assumption that $\Phi$ is smooth. 
-Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank interpolative factorization of $\Phi$.
+Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank interpolative factorization/Nystrom approximation of $\Phi$ \cite{CUR,NYSTROM}.
 % of the form
 %\begin{equation}
 %	\label{eq:low_rank_interpolation}
@@ -167,7 +187,7 @@ Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank
 However, 
 %even if $\Phi$ is smooth (which is typically the case asymptotically),
 %the relevant Lipschitz constant for continuity, and hence 
-the required rank in the low rank approximation can be large, which makes algorithms based on assumption \eqref{eq:translate1} computationally expensive. This is the case, for example, for Hessians in PDE constrained inverse problems with highly informative data, as discussed in Section \ref{sec:PDE_hessian_motivation}. 
+the required rank in the low rank approximation can be large, which makes algorithms based on assumption \eqref{eq:translate1} computationally expensive. This is the case for Hessians in PDE constrained inverse problems with highly informative data, as discussed in Section \ref{sec:PDE_hessian_motivation}. 
 %As the data become more informative, typically the ``mass'' of $\Phi(y,x)$ concentrates nearer and nearer to the ``diagonal'' $y=x$, the Lipschitz constant increases, and the required rank in the approximation increases.
 %Moreover, if $\Aop$ is numerically low rank, then one would typically use more accurate and robust matrix-free methods for forming low-rank approximations, such as randomized SVD or Lanczos.
 
@@ -199,23 +219,7 @@ Our method is based on approximation \eqref{eq:translate3}, which is an improvem
 \subsection{Outline of the method}
 \label{sec:intro_overview}
 
-The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative impulse response property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
-\begin{equation*}
-\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy
-\end{equation*}
-denote the spatially varying scaling factor (the ``volume'' of $\impulseresponse_x$), let 
-\begin{equation}
-\label{eq:scaled_impulse_response}
-\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)
-\end{equation}
-denote the normalized version of $\impulseresponse_x$, and let $\mu:\Omega \rightarrow \mathbb{R}^d$, $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d},$
-\begin{equation*}
-\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
-\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
-\end{equation*}
-denote the spatially varying mean and covariance of $\widehat{\impulseresponse}_x$, respectively. In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of polynomial functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$). 
-
-Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
+In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of polynomial functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$). Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
 Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section \ref{sec:approximate_kernel_entries}, but the key principle behind the interpolation is the local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
 %Specifically, we make the assumption that
@@ -227,7 +231,7 @@ We approximate $\Phi(y,x) = \phi_x(y)$ by a weighted linear combination of the v
 
 The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall H-matrix approximation proceeds as follows:
 \begin{equation*}
-\Aop \longrightarrow V, \mu, \Sigma \longrightarrow \{\impulseresponse_{x_i}\}_{i=1}^r \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
+\Aop \longrightarrow V, \mu, \Sigma \longrightarrow \{x_i\}_{i=1}^r \longrightarrow \{\impulseresponse_{x_i}\}_{i=1}^r \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
 \end{equation*}
 One may use H-matrix methods to perform further useful linear algebra operations involving $\mathbf{A}_H$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. WHY DO THESE OPERATIONS: KRYLOV SOLVERS, SAMPLING STRATEGIES, CAN'T DO WITH A.
 
@@ -261,12 +265,11 @@ When $\Aop$ is positive semi-definite, $\mathbf{A}_H$ may be indefinite due to e
 
 \subsection{Existing work}
 
-In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\convkernel_i$ and $w_i$ may be arbitrary functions. Product-convolution approximations have been used in a wide variety of fields going back several decades \cite{PRODCONVLIST}.
-For background on product-convolution approximations, we recommend reading the following papers: \cite{PRODCONVGOOD}. 
+%In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\convkernel_i$ and $w_i$ may be arbitrary functions.
+Product-convolution approximations have been used in a wide variety of fields going back several decades \cite{PRODCONVLIST}.
+For background on product-convolution approximations, we recommend reading the following papers: \cite{PRODCONVGOOD}. We build upon the class of product convolution approximations in which the convolution kernels are shifted impulse responses of $\Aop$ to point sources at a collection of points $x_i$ \cite{PRODCONVLIST}. A popular choice for methods in this class is to choose the points $x_i$ to be nodes in a regular grid, and interpolate the convolution operators with piecewise linear interpolation \cite{NAGY}, or splines \cite{PRODCONVSPLINES}. With a regular grid, a large number of points $x_i$ is typically required to achieve an accurate product-convolution approximation. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. But even with adaptive refinement, many matrix vector products with $\Aop$ may be required. In this paper, rather than using adaptive refinement, we instead reduce the computational cost by picking points $x_i$ such that many $\convkernel_i$ are computed with each matrix vector product. 
 
-We build upon the class of product convolution approximations in which the functions, $\convkernel_i$, are impulse responses of $\Aop$ to point sources at a collection of points $x_i$ \cite{PRODCONVLIST}. A popular choice for methods in this class is to choose the points $x_i$ to be nodes in a regular grid, and interpolate the functions $\convkernel_i$ with piecewise linear interpolation \cite{NAGY}, or splines \cite{PRODCONVSPLINES}. With a regular grid, a large number of points $x_i$ is typically required to achieve an accurate product-convolution approximation. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. But even with adaptive refinement, many matrix vector products with $\Aop$ may be required. In this paper, rather than using adaptive refinement, we instead reduce the computational cost by picking points $x_i$ such that many $\convkernel_i$ are computed with each matrix vector product. 
-
-Our method of estimating the support of the functions $\convkernel_i$ was inspired by resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\convkernel_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\convkernel_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\convkernel_p$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\Aop^T$ with random noise functions, we use polynomial functions. Our method estimates the support of $\convkernel_p$ more accurately and reliably than resolution analysis, but our method requires that $\Aop$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
+Our method of estimating the support of the impulse responses was inspired by resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\phi_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\phi_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\phi_p$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\Aop^T$ with random noise functions, we use polynomial functions. Our method estimates the support of $\phi_p$ more accurately and reliably than resolution analysis, but our method requires that $\Aop$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
 
 Matrix-vector products with product-convolution approximations can be performed using the fast Fourier transform if the problem is discretized on a regular grid \cite{PRODCONVFFT}. The product-convolution approximation can then replace the original operator when using Krylov methods to solve linear systems with the original operator as the coefficient operator \cite{PRODCONVKRYLOV}. However, for complex geometries, problems are rarely discretized using regular grids, so we cannot easily use the fast Fourier transform. Furthermore, in big-data inverse problems the required number of Krylov iterations is large \cite{MYDISSERTATION,OTHERS}. Thus, after constructing the product-convolution approximation, it is desirable to convert the product-convolution approximation to other matrix formats that are amenable to fast linear algebra operations. Wavelet compression methods have been used for this purpose \cite{PRODCONVWAVELETS}. Here we follow our previous work \cite{PRODCONVMYPAPER}, in which we converted product-convolution approximations into H-matrix format. 
 
@@ -450,7 +453,7 @@ We repeat the process to construct several batches of points $\pointbatch_1, \po
 	\SetKwInOut{Output}{Output}
 	\SetKwProg{Fn}{Function}{}{}
 	
-	\Input{Finite set of candidate points $P\subset \Omega$, \\spatialmean $\spatialmean(x)$ and covariance $\spatialcov(x)$, \\domain boundary information $\partial \Omega$, \\previous sample point batches $\pointbatch_1, \dots, \pointbatch_{k-1}$}
+	\Input{Finite set of candidate points $P\subset \Omega$, \\spatially varying mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, \\domain boundary information $\partial \Omega$, \\previous sample point batches $\pointbatch_1, \dots, \pointbatch_{k-1}$}
 	\Output{Batch of new sample points $\pointbatch_k$}
 	
 	Initialize empty new batch of sample points, $\pointbatch_k = \{\}$
@@ -776,7 +779,7 @@ and $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ is the finite element mass ma
 %\begin{equation*}
 %	\left(\AopPcMesh u_h \right)(v_h) = \bm{v}^T \bm{M} \AkerPcMat \bm{M} \bm{u}.
 %\end{equation*}
-The finite element matrix representation of of our approximation of $\Aop$ is therefore given by
+The finite element matrix representation of our approximation of $\Aop$ is therefore given by
 \begin{equation}
 	\label{eq:Amatpc_defn}
 	\mathbf{A} = \bm{M} \mathbf{\Phi} \bm{M}.
@@ -1112,22 +1115,26 @@ with bound $\ratpole > |\lambda_\text{min}|$ and initial guess $\ratpole_0 = 2 |
 \section{Background: distributions}
 \label{app:distributions}
 
-Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\Aop$ is extended to distributions $\genericdistribution:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
+%Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. 
+The action of $\Aop$ is extended to distributions $\rho$
+%$\genericdistribution:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ 
+via the formula
 \begin{equation*}
-	\left(\Aop \genericdistribution^*\right)(v) := \int_\Omega v(y) \genericdistribution\left(A(y, \cdot)\right) dy, 
+	\left(\Aop \genericdistribution^*\right)(v) := \int_\Omega v(y) \genericdistribution\left(\Phi(y, \cdot)\right) dy, 
 \end{equation*}
-where $A(y,\cdot)$ is the function $x \mapsto A(y,x)$. This is derived formally as follows:
+where $\Phi(y,\cdot)$ is the function $x \mapsto \Phi(y,x)$. This is derived formally as follows:
 \begin{align*}
-	\left(\Aop \genericdistribution^*\right)(v) &= \int_\Omega \int_\Omega v(y) A(y,x) \textrm{``} \genericdistribution(x) \textrm{''} dx dy \\
-	&= \int_\Omega v(y) \int_\Omega A(y,x) \textrm{``} \genericdistribution(x) \textrm{''} dx \\
-	&= \int_\Omega v(y) \genericdistribution\left(A(y,\cdot)\right) dx.
+	\left(\Aop \genericdistribution^*\right)(v) &= \int_\Omega \int_\Omega v(y) \Phi(y,x) \textrm{``} \genericdistribution(x) \textrm{''} dx dy \\
+	&= \int_\Omega v(y) \int_\Omega \Phi(y,x) \textrm{``} \genericdistribution(x) \textrm{''} dx \\
+	&= \int_\Omega v(y) \genericdistribution\left(\Phi(y,\cdot)\right) dx.
 \end{align*}
 For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, and the action of $\Aop$ on $\delta_x$ is given by
 \begin{equation}
 	\label{eq:appendix_impulse_response}
-	\left(\Aop \delta_x^*\right)(v)	= \int_\Omega v(y) A(y,x) dy.
+	\left(\Aop \delta_x^*\right)(v)	= \int_\Omega v(y) \Phi(y,x) dy.
 \end{equation}
-Recall that the impulse response of $\Aop$ to $\delta_x$, denoted $\impulseresponse_x$, is the Riesz representation of $\Aop \delta_x^*$. From \eqref{eq:appendix_impulse_response} and the definition of the Riesz representation, we have $\impulseresponse_x = A(~\cdot~,x)$. That is, $\impulseresponse_x$ is the function $y \mapsto A(y,x)$.
+Recall that the impulse response of $\Aop$ to $\delta_x$, denoted $\impulseresponse_x$, is the Riesz representation of $\Aop \delta_x^*$. 
+%From \eqref{eq:appendix_impulse_response} and the definition of the Riesz representation, we have $\impulseresponse_x = A(~\cdot~,x)$. That is, $\impulseresponse_x$ is the function $y \mapsto A(y,x)$.
 
 
 \section{Discretization}
