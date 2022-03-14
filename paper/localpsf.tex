@@ -66,22 +66,22 @@
 \section{Introduction}
 \label{sec:intro}
 
-We present a fast matrix free method for approximating operators, $\Aop$, that have locally supported non-negative integral kernels. Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps), covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained optimization and inverse problems.
+We present a fast matrix free method for approximating operators that have locally supported non-negative integral kernels. Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps), covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained optimization and inverse problems.
 
 Let $\Omega \subset \mathbb{R}^d$ be a bounded domain (in applications typically $\gdim=1$, $2$, or $3$) and let $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ be an integral operator of the following form:
 \begin{equation}
 	\label{eq:kernel_representation}
 	(\Aop u)(v) := \int_\Omega \int_\Omega v(y) \Aker(y,x) u(x) dx dy.
 \end{equation}
-Here $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, $\Aop u \in L^2(\Omega)'$ is the linear functional that results from applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. We focus on operators $\Aop$ that are accessible \emph{matrix-free}. One cannot easily compute kernel entries $\Aker(y,x)$. Instead, 
+The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, $\Aop u \in L^2(\Omega)'$ is the linear functional that results from applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. We seek to approximate operators $\Aop$ that are accessible \emph{matrix-free}. That is,
 %access to $\Aop$ is available through ``operator actions.'' That is,
 we have a black-box computational procedure through which we may evaluate the maps
 \begin{equation*}
-u \mapsto\Aop u \quad \text{and} \quad v \mapsto \Aop^Tv
+u \mapsto\Aop u \qquad \text{and} \qquad v \mapsto \Aop^Tv
 \end{equation*} 
-for arbitrary functions $u$ and $v$. 
+for arbitrary functions $u$ and $v$, but we cannot easily compute kernel entries $\Aker(y,x)$. In applications, evaluating these maps may involve iteratively solving a large linear system, timestepping, or performing some other nontrivial computational procedure. After discretization, $\Aop$ becomes a dense matrix that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means one can compute matrix-vector products with the matrix representation of $\Aop$, but cannot easily compute individual matrix entries.
 %After discretization (see Appendix \ref{app:discretized_operations}), $\Aop$ becomes a dense matrix, $\bm{A}$, that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means that one can perform matrix-vector products of $\bm{A}$ and $\bm{A}^T$ with arbitrary vectors, but one cannot easily\footnote{One could compute $\bm{v} = \bm{A}\bm{e}_j$, where $\bm{e}_j=(0,\dots,0,1,0,\dots,0)$ is the unit vector which has $j^\text{th}$ component equal to one and all other components equal to zero, then extract $\bm{A}_{ij} = \bm{v}_i$. However, this process is wasteful because one computes the entire vector $\bm{v}$, then discards all but one component.} access matrix entries $\bm{A}_{ij}$. 
-In applications, evaluating these maps may involve iteratively solving a large linear system, timestepping, or performing some other nontrivial computational procedure. 
+
 %For example, in reduced space approaches to PDE-constrained optimization and inverse problems, Hessian information is available only through the application of the Hessian to vectors, and one such Hessian application requires solving two PDEs \cite{HESSIANADJOINT}. 
 
 Our method belongs to a class of methods that approximate an operator by interpolating impulse responses of the operator associated with a scattered collection of points. The \emph{impulse response} of $\Aop$ associated with the point $x$ is the function $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$, 
@@ -89,7 +89,7 @@ Our method belongs to a class of methods that approximate an operator by interpo
 \label{eq:impulse_response_defn}
 \impulseresponse_x(y) := \Aker(y, x),
 \end{equation} 
-which results from keeping $x$ fixed and reinterpreting $\Phi(y,x)$ as a function of $y$.
+which results from keeping $x$ fixed and viewing $\Phi(y,x)$ as a function of $y$.
 %for a collection of points $x_i$ scattered throughout $\Omega$.
 %Further, let $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$,
 %\begin{equation}
@@ -102,16 +102,16 @@ The function $\impulseresponse_x$ is called the impulse response because straigh
 \label{eq:impulse_response_delta_action}
 \impulseresponse_x = \left( \Aop \delta_x^* \right)^*,
 \end{equation}
-where $\delta_x$ is the the delta distribution (i.e., point source, impulse) centered at $x$, $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying the operator $\Aop$ to $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\sigma \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\sigma^* \in L^2(\Omega)$ such that $\sigma(v) = \left(\sigma^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is formally defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Aker$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}.
+where $\delta_x$ is the the delta distribution (i.e., point source, impulse) centered at $x$, $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying $\Aop$ to the distribution $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\sigma \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\sigma^* \in L^2(\Omega)$ such that $\sigma(v) = \left(\sigma^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Aker$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}.
 
 We assume:
 \begin{itemize}
-	\item The supports of the $\impulseresponse_x$ are contained (or approximately contained) in localized regions.
-	\item The integral kernel is non-negative, i.e., $\Phi(y,x) \ge 0$ for all (or nearly all) $(y,x) \in \Omega \times \Omega$. 
+	\item The supports of the impulse responses $\impulseresponse_x$ are contained (or approximately contained) in localized regions.
+	\item The integral kernel is non-negative in the sense that $$\Phi(y,x) \ge 0$$ for all (or nearly all) $(y,x) \in \Omega \times \Omega$.\footnote{Note that having a non-negative integral kernel is different from positive semi-definiteness. The operator $\Aop$ need not be positive semi-definite to use our method, and positive semi-definite operators need not have a non-negative integral kernel.}
 \end{itemize}
-Because of these assumptions, we are able to estimate the supports of the functions $\phi_x$ a-priori by applying $\Aop$ to a small number of polynomial functions. We use the support estimates to compute $\phi_{x_i}$'s in batches, which allows us to recover $\phi_{x_i}$'s for a large number of points $x_i$ using a small number of operator actions $u \mapsto \Aop u$. The support estimates also allow us to interpolate the impulse responses with a new sophisticated and accurate interpolation scheme.
+Because of these assumptions, we are able to estimate the supports of the impulse responses a-priori by applying $\Aop$ to a small number of polynomial functions. We use the support estimates to compute scattered impulse responses in batches. This allows us to recover $\phi_{x_i}$'s for a large number of points $x_i$ using a small number of operator actions $u \mapsto \Aop u$. The support estimates also allow us to interpolate the impulse responses with a new more sophisticated and accurate interpolation scheme.
 
-The output of our method is a hierarchical matrix (H-matrix) approximation, $\mathbf{A}_H$, of a discretization of $\Aop$. While operator actions of $\Aop$ on a vectors is typically computationally expensive, fast H-matrix methods permit us to perform matrix-vector products with $\mathbf{A}_H$ cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving $\mathbf{A}_H$ that cannot easily be done using $\Aop$, because $\Aop$ is only available matrix-free. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. The ability to perform these operations permits, for example, fast solution of Newton linear systems in optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification.
+The output of our method is a hierarchical matrix (H-matrix) approximation, $\mathbf{A}_H$, of a discretization of $\Aop$. While operator actions of $\Aop$ on vectors are typically computationally expensive, fast H-matrix methods permit us to perform matrix-vector products with $\mathbf{A}_H$ cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving $\mathbf{A}_H$ that cannot easily be done using $\Aop$, because $\Aop$ is only available matrix-free. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification.
 
 
 %
@@ -176,11 +176,11 @@ where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and 
 The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Conventionally, either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is therefore the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because our method can form high rank approximations of an operator using a small number of matrix-vector products.
 
 
-\subsection{Impulse responses and their moments}
+\subsection{Impulse response moments}
 \label{sec:intromoments}
 
 
-The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative impulse response property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
+The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative integral kernel property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
 \begin{equation*}
 \spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy
 \end{equation*}
@@ -196,7 +196,7 @@ and let $\mu:\Omega \rightarrow \mathbb{R}^d$, $\Sigma:\Omega \rightarrow \mathb
 \spatialmean(x) := \mathbb{E}(\impulseresponse_x / V(x)), \qquad
 \spatialcov(x) := \Var(\impulseresponse_x /V(x)),
 \end{equation*}
-to be the spatially varying mean and covariance of the normalized version of $\impulseresponse_x$, respectively. For each point $x$, imagine $\phi_x$ as a pile of sand. The scalar $V(x)$ is the mass of the sand pile, the vector $\mu(x)$ is the center of mass of the sand pile, and the matrix $\Sigma(x)$ contains information about how wide the sand pile is in each spatial direction. Throughout this paper we will use these spatially varying moment functions extensively.
+to be the spatially varying mean and covariance of the normalized version of $\impulseresponse_x$, respectively. Imagine $\phi_x$ as a mound of dirt piled on a localized region in $\Omega$, with $\phi_x(y)$ being the height of the dirt mound at location $y$. The scalar $V(x)$ is the total volume of dirt in the mound, the vector $\mu(x)$ is the center of mass of the dirt mound, and the matrix $\Sigma(x)$ contains information about how wide the dirt mound is in each spatial direction. In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of polynomial functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$).
 
 \subsection{Local mean-displacement invariance}
 \label{eq:local_mean_displacement_invariance}
@@ -255,7 +255,7 @@ We use approximation \eqref{eq:translate4}, which is the same as \eqref{eq:trans
 \subsection{Outline of the method}
 \label{sec:intro_overview}
 
-In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of polynomial functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$). Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
+Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
 Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section \ref{sec:approximate_kernel_entries}, but the key principle behind the interpolation is the preconditioned local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
 %Specifically, we make the assumption that
