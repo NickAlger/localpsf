@@ -109,7 +109,7 @@ We assume:
 	\item The supports of the impulse responses $\impulseresponse_x$ are contained (or approximately contained) in localized regions.
 	\item The integral kernel is non-negative in the sense that $$\Phi(y,x) \ge 0$$ for all (or nearly all) $(y,x) \in \Omega \times \Omega$.\footnote{Note that having a non-negative integral kernel is different from positive semi-definiteness. The operator $\Aop$ need not be positive semi-definite to use our method, and positive semi-definite operators need not have a non-negative integral kernel.}
 \end{itemize}
-Because of these assumptions, we are able to estimate the supports of the impulse responses a-priori by applying $\Aop$ to a small number of polynomial functions. We use the support estimates to compute scattered impulse responses in batches. This allows us to recover $\phi_{x_i}$'s for a large number of points $x_i$ using a small number of operator actions $u \mapsto \Aop u$. The support estimates also allow us to interpolate the impulse responses with a new more sophisticated and accurate interpolation scheme.
+Because of these assumptions, we are able to estimate the supports of the impulse responses a-priori by applying $\Aop$ to a small number of polynomial functions. We use the support estimates to compute scattered impulse responses in batches. This batching allows us to recover many impulse responses using a small number of operator actions $u \mapsto \Aop u$. The support estimates also allow us to interpolate the impulse responses with a new more sophisticated and accurate interpolation scheme.
 
 The output of our method is a hierarchical matrix (H-matrix) approximation, $\mathbf{A}_H$, of a discretization of $\Aop$. While operator actions of $\Aop$ on vectors are typically computationally expensive, fast H-matrix methods permit us to perform matrix-vector products with $\mathbf{A}_H$ cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving $\mathbf{A}_H$ that cannot easily be done using $\Aop$, because $\Aop$ is only available matrix-free. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification.
 
@@ -256,6 +256,26 @@ We use approximation \eqref{eq:translate4}, which is the same as \eqref{eq:trans
 \label{sec:intro_overview}
 
 Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
+
+\begin{figure}
+	\begin{subfigure}{0.32\textwidth}
+		\centering
+		\includegraphics[scale=0.33]{batch1.png}
+%		\caption{Non-symmetric}
+	\end{subfigure}
+	\begin{subfigure}{0.32\textwidth}
+		\centering
+		\includegraphics[scale=0.33]{batch12.png}
+		%		\caption{Non-symmetric}
+	\end{subfigure}
+	\begin{subfigure}{0.32\textwidth}
+		\centering
+		\includegraphics[scale=0.33]{batch19.png}
+%		\caption{Non-symmetric}
+	\end{subfigure}
+	\caption{Batches, $\eta_b$, of normalized impulse responses, $\phi_{x_i}/V(x_i)$, for the Stokes Hessian. Left: 2nd batch. Mid: 13th batch. Right: 19th batch. Brightness scale differs between the subfigures. Black stars indicate the sample point locations, $x_i$. Dashed gray ellipses indicate the support ellipsoids, $E_{x_i}$. The large circle is the boundary of the domain $\Omega$. Early batches tend to have lots of ellipsoids near the boundary, as compared to later batches. This is because our greedy ellipsoid packing algorithm tries to pick sample points that are far away from sample points in previously chosen batches.}
+	\label{fig:batches_intro}
+\end{figure}
 
 Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section \ref{sec:approximate_kernel_entries}, but the key principle behind the interpolation is the preconditioned local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
 %Specifically, we make the assumption that
