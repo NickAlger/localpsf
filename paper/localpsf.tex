@@ -390,9 +390,9 @@ The finite element matrix representation of our approximation of $\Aop$ is there
 \section{Method}
 \label{sec:method}
 
-The results from Section \ref{sec:intromoments} allow us to compute $V$, $\mu$, and $\Sigma$ by applying $\Aop^T$ to a small number of polynomial functions. Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$ (Section \ref{eq:mean_and_covariance_estimation}). This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated to get more batches, until a desired number of impulse responses is reached.
+The results from Section \ref{sec:intromoments} allow us to compute $V$, $\mu$, and $\Sigma$ by applying $\Aop^T$ to a small number of polynomial functions. Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$ (Section \ref{eq:mean_and_covariance_estimation}). This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute the impulse response batch $\eta_b$ by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because these supports do not overlap, we can post-process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
-Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
+Once the impulse response batches $\eta_b$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
 %Specifically, we make the assumption that
 %\begin{equation}
 %\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
@@ -410,13 +410,13 @@ Intuitively, impulse responses of $\Aop$ can be thought of as ``columns'' of $\P
 
 The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method (Section \ref{sec:h_matrix_construction_short}). In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. 
 
-When $\Aop$ is positive semi-definite, $\mathbf{A}_H$ may be indefinite due to errors in the approximation. In this case, we modify the H-matrix representation of $\mathbf{A}_H$ to make it positive semi-definite, by applying a specially chosen rational matrix function to $\mathbf{A}_H$. This is described in Appendix \ref{sec:make_spd}.
+When $\Aop$ is positive semi-definite, $\mathbf{A}_H$ may be indefinite due to errors in the approximation. In this case, one may (optionally) modify the H-matrix representation of $\mathbf{A}_H$ to make it positive semi-definite, by applying a specially chosen rational matrix function to $\mathbf{A}_H$. This is described in Appendix \ref{sec:make_spd}.
 
 Schematically the overall H-matrix approximation proceeds as follows:
 \begin{equation*}
-\Aop \longrightarrow V, \mu, \Sigma \longrightarrow \{x_i\}_{i=1}^r \longrightarrow \underbrace{\{\impulseresponse_{x_i}\}_{i=1}^r}_{\text{as }\eta_b\text{'s}} \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
+\Aop \longrightarrow V, \mu, \Sigma \longrightarrow \underbrace{\{x_i\}_{i=1}^r}_{\text{as }S_b\text{'s}} \longrightarrow \underbrace{\{\impulseresponse_{x_i}\}_{i=1}^r}_{\text{as }\eta_b\text{'s}} \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
 \end{equation*}
-The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \ref{alg:construct_Atilde}. 
+The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \ref{alg:construct_Atilde}. The cost to construct $\mathbf{A}_H$ is discussed in Section \ref{sec:overall_cost}.
 
 
 %Often we are interested in approximating operators $\Aop$ that are symmetric, or symmetric positive semi-definite. 
@@ -819,9 +819,6 @@ We solve the regularized least squares problem by QR factorization of the block 
 %Indeed, situations where $\widehat{x}_i = \widehat{y}_j$ are inevitable when a regular grid is used to discretize the problem. 
 In this case, $\widehat{B}$ is (nearly) singular, so it is ill-advised to solve the un-regularized interpolation system $\widehat{B} \widehat{w} = \widehat{f}$. 
 
-\subsubsection{Cost to evaluate one approximate kernel entry}
-
-In the non-symmetric case, evaluating $\widetilde{\Phi}(y,x)$ requires us to perform one $k$-nearest neighbor query of the KD-tree of sample points, $k$ point collision queries of the AABB-tree of mesh cells, and solve a $k \times k$ linear system. In the symmetric case, we must perform two $k$-nearest neighbor queries of the KD-tree of sample points, $2k$ point collision queries of the AABB-tree of mesh cells, and solve a $4k \times 2k$ linear least squares problem via QR factorization. Both of these cases require $O(k \log r + k \log N_\text{cell} + k^3)$ work, where $r$ is the number of sample points, and $N_\text{cell}$ is the number of cells in the mesh used to discretize the problem. Since $k$ is small, this is cheap.
 
 %In principle, this equation is still solvable if $\left(\widetilde{f}_x\right)_i = \left(\widetilde{f}_x\right)_j$, which should hold in principle. However, errors incurred at any stage of the approximation process, particularly the assumption that the support of $\phi_x$ is contained in the ellipsoid $E_x$, will cause small discrepancies between $\left(\widetilde{f}_x\right)_i$ and $\left(\widetilde{f}_x\right)_j$, and these errors get amplified by the ill-conditioning.
 
@@ -880,6 +877,8 @@ We form $\mathbf{\Phi}_H$ using the standard geometrical clustering/adaptive cro
 
 \subsection{Computational cost}
 \label{sec:overall_cost}
+
+In the non-symmetric case, evaluating $\widetilde{\Phi}(y,x)$ requires us to perform one $k$-nearest neighbor query of the KD-tree of sample points, $k$ point collision queries of the AABB-tree of mesh cells, and solve a $k \times k$ linear system. In the symmetric case, we must perform two $k$-nearest neighbor queries of the KD-tree of sample points, $2k$ point collision queries of the AABB-tree of mesh cells, and solve a $4k \times 2k$ linear least squares problem via QR factorization. Both of these cases require $O(k \log r + k \log N_\text{cell} + k^3)$ work, where $r$ is the number of sample points, and $N_\text{cell}$ is the number of cells in the mesh used to discretize the problem. Since $k$ is small, this is cheap.
 
 Computing $V$, $\mu$, and $\Sigma$ require $1$, $d$, and $d(d+1)/2$ operator actions of $\Aop$, respectively. Computing the impulse response batches $\eta_b$ requires one operator action of $\Aop$ per batch. Picking the sample points 
 
