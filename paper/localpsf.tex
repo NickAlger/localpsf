@@ -84,7 +84,7 @@ for arbitrary functions $u$ and $v$, but we cannot easily compute kernel entries
 
 %For example, in reduced space approaches to PDE-constrained optimization and inverse problems, Hessian information is available only through the application of the Hessian to vectors, and one such Hessian application requires solving two PDEs \cite{HESSIANADJOINT}. 
 
-Our method belongs to a class of methods that approximate an operator by interpolating impulse responses of the operator associated with a scattered collection of points. The \emph{impulse response} of $\Aop$ associated with the point $x$ is the function $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$, 
+Our method, described in Section \ref{sec:method}, belongs to a class of methods that approximate an operator by interpolating impulse responses of the operator associated with a scattered collection of points. The \emph{impulse response} of $\Aop$ associated with the point $x$ is the function $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$, 
 \begin{equation}
 \label{eq:impulse_response_defn}
 \impulseresponse_x(y) := \Aker(y, x),
@@ -109,7 +109,27 @@ We assume:
 	\item The supports of the impulse responses $\impulseresponse_x$ are contained (or approximately contained) in localized regions.
 	\item The integral kernel is non-negative in the sense that $$\Phi(y,x) \ge 0$$ for all (or nearly all) $(y,x) \in \Omega \times \Omega$.\footnote{Note that having a non-negative integral kernel is different from positive semi-definiteness. The operator $\Aop$ need not be positive semi-definite to use our method, and positive semi-definite operators need not have a non-negative integral kernel.}
 \end{itemize}
-Because of these assumptions, we are able to estimate the supports of the impulse responses a-priori by applying $\Aop$ to a small number of polynomial functions. We use the support estimates to compute scattered impulse responses in batches. This batching allows us to recover many impulse responses using a small number of operator actions $u \mapsto \Aop u$. The support estimates also allow us to interpolate the impulse responses with a new more sophisticated and accurate interpolation scheme.
+Because of these assumptions, we are able to estimate the supports of the impulse responses a-priori by applying $\Aop$ to a small number of polynomial functions. We use the support estimates to compute scattered impulse responses in batches (see Figure \ref{fig:batches_intro}). This batching allows us to recover many impulse responses using a small number of operator actions $u \mapsto \Aop u$. The support estimates also allow us to interpolate the impulse responses with a new more sophisticated and accurate interpolation scheme.
+
+\begin{figure}
+	\begin{subfigure}{0.32\textwidth}
+		\centering
+		\includegraphics[scale=0.33]{batch1.png}
+		%		\caption{Non-symmetric}
+	\end{subfigure}
+	\begin{subfigure}{0.32\textwidth}
+		\centering
+		\includegraphics[scale=0.33]{batch12.png}
+		%		\caption{Non-symmetric}
+	\end{subfigure}
+	\begin{subfigure}{0.32\textwidth}
+		\centering
+		\includegraphics[scale=0.33]{batch19.png}
+		%		\caption{Non-symmetric}
+	\end{subfigure}
+	\caption{Batches, $\eta_b$, of normalized impulse responses, $\phi_{x_i}/V(x_i)$, for the Stokes inverse problem Hessian. Left: 2nd batch. Mid: 13th batch. Right: 19th batch. Brightness scale differs between the subfigures. Black stars indicate the sample point locations, $x_i$. Dashed gray ellipses indicate the support ellipsoids, $E_{x_i}$. The large circle is the boundary of the domain $\Omega$. Early batches tend to have lots of ellipsoids near the boundary, as compared to later batches. This is because our greedy ellipsoid packing algorithm tries to pick sample points that are far away from sample points in previously chosen batches.}
+	\label{fig:batches_intro}
+\end{figure}
 
 The output of our method is a hierarchical matrix (H-matrix) approximation, $\mathbf{A}_H$, of a discretization of $\Aop$. While operator actions of $\Aop$ on vectors are typically computationally expensive, fast H-matrix methods permit us to perform matrix-vector products with $\mathbf{A}_H$ cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving $\mathbf{A}_H$ that cannot easily be done using $\Aop$, because $\Aop$ is only available matrix-free. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification.
 
@@ -173,8 +193,26 @@ Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function o
 \end{equation}
 where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $\mathcal{R}(m)$ is a regularization term. The objective function in optimization problem \eqref{eq:minimization_problem} is defined indirectly via the implicit function theorem. As a result, information about the Hessian of the objective function, $\mathcal{H}$, is only accessible via the action of $\mathcal{H}$ action on vectors. In particular, applying $\mathcal{H}$ to a vector requires solving two PDEs \cite{HESSIANACTION}. More accessible approximations of $\mathcal{H}$ are highly desirable, because they allow for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. More accessible Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
 
+
+\subsection{Existing work}
+
 The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term \cite{CCGOPAPERS}. Conventionally, either the Lanczos method or the randomized singular value decomposition \cite{HMTRANDOM} are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is therefore the worst case scenario from a computational perspective (large computational cost) \cite{MYDISSERTATION}. Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because our method can form high rank approximations of an operator using a small number of matrix-vector products.
 
+%In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\convkernel_i$ and $w_i$ may be arbitrary functions.
+Product-convolution approximations have been used in a wide variety of fields going back several decades \cite{PRODCONVLIST}.
+For background on product-convolution approximations, we recommend reading the following papers: \cite{PRODCONVGOOD}. We build upon the class of product convolution approximations in which the convolution kernels are shifted impulse responses of $\Aop$ to point sources at a collection of points $x_i$ \cite{PRODCONVLIST}. A popular choice for methods in this class is to choose the points $x_i$ to be nodes in a regular grid, and interpolate the convolution operators with piecewise linear interpolation \cite{NAGY}, or splines \cite{PRODCONVSPLINES}. With a regular grid, a large number of points $x_i$ is typically required to achieve an accurate product-convolution approximation. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. But even with adaptive refinement, many matrix vector products with $\Aop$ may be required. In this paper, rather than using adaptive refinement, we instead reduce the computational cost by picking points $x_i$ such that many $\convkernel_i$ are computed with each matrix vector product. 
+
+Our method of estimating the support of the impulse responses was inspired by resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\phi_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\phi_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\phi_p$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\Aop^T$ with random noise functions, we use polynomial functions. Our method estimates the support of $\phi_p$ more accurately and reliably than resolution analysis, but our method requires that $\Aop$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
+
+Matrix-vector products with product-convolution approximations can be performed using the fast Fourier transform if the problem is discretized on a regular grid \cite{PRODCONVFFT}. The product-convolution approximation can then replace the original operator when using Krylov methods to solve linear systems with the original operator as the coefficient operator \cite{PRODCONVKRYLOV}. However, for complex geometries, problems are rarely discretized using regular grids, so we cannot easily use the fast Fourier transform. Furthermore, in big-data inverse problems the required number of Krylov iterations is large \cite{MYDISSERTATION,OTHERS}. Thus, after constructing the product-convolution approximation, it is desirable to convert the product-convolution approximation to other matrix formats that are amenable to fast linear algebra operations. Wavelet compression methods have been used for this purpose \cite{PRODCONVWAVELETS}. Here we follow our previous work \cite{PRODCONVMYPAPER}, in which we converted product-convolution approximations into H-matrix format. 
+
+Conventional H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. There are matrix-free methods for H-matrix approximation \cite{LEXINGPEELINGPROCESS}, and these methods have been used to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{ILONAHMATRIX,NOEMIHMATRIX}. While these matrix-free H-matrix construction methods are asymptotically scalable in theory, the required number of matrix vector products can be large in practice. 
+
+
+Product-convolution type approximations of Hessians have been used in a seismic inverse problem in \cite{GEORGSEISMICPRODCONV}, and in an advection-diffusion inverse problem in \cite{PRODCONVMYPAPER}. In \cite{DEMANETSEISMIC}, matrix probing \cite{MATRIXPROBING} is used to approximate the Hessian in a seismic inverse problem as the sum of simple pseudodifferential operators. Although it is not explicitly mentioned, the approximation in \cite{DEMANETSEISMIC} could be interpreted as a convolution-product approximation (a product-convolution approximation of the transpose of the operator).
+%, which is like a product-convolution approximation, except the order of pointwise multiplications and convolutions is reversed in \eqref{eq:product_convolution}.
+
+\section{Preliminaries}
 
 \subsection{Impulse response moments}
 \label{sec:intromoments}
@@ -196,7 +234,41 @@ and let $\mu:\Omega \rightarrow \mathbb{R}^d$, $\Sigma:\Omega \rightarrow \mathb
 \spatialmean(x) := \mathbb{E}(\impulseresponse_x / V(x)), \qquad
 \spatialcov(x) := \Var(\impulseresponse_x /V(x)),
 \end{equation*}
-to be the spatially varying mean and covariance of the normalized version of $\impulseresponse_x$, respectively. Imagine $\phi_x$ as a mound of dirt piled on a localized region in $\Omega$, with $\phi_x(y)$ being the height of the dirt mound at location $y$. The scalar $V(x)$ is the total volume of dirt in the mound, the vector $\mu(x)$ is the center of mass of the dirt mound, and the matrix $\Sigma(x)$ contains information about how wide the dirt mound is in each spatial direction. In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of polynomial functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$).
+to be the spatially varying mean and covariance of the normalized version of $\impulseresponse_x$, respectively. Imagine $\phi_x$ as a mound of dirt piled on a localized region in $\Omega$, with $\phi_x(y)$ being the height of the dirt mound at location $y$. The scalar $V(x)$ is the total volume of dirt in the mound, the vector $\mu(x)$ is the center of mass of the dirt mound, and the matrix $\Sigma(x)$ contains information about how wide the dirt mound is in each spatial direction. 
+
+%The ellipsoid $E_x$ is not immediately available. 
+%(recall $\gdim$ is the spatial dimension of $\Omega$).
+The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because it requires one operator action of $\Aop$ per point $x$, and we will need to know $V(x)$, $\mu(x)$, and $\Sigma(x)$ at a large number of points $x$. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Proposition \ref{thm:vol_mean_cov} and summarize the method for computing these moments in Algorithm \ref{alg:varhpi_mean_cov}.
+
+
+\begin{prop}[Impulse response moments]
+	\label{thm:vol_mean_cov}
+	%	Let $\spatialvol:\Omega \rightarrow \mathbb{R}$, $\spatialmean:\Omega \rightarrow \mathbb{R}^\gdim$, and $\spatialcov:\Omega \rightarrow \mathbb{R}^{\gdim \times \gdim}$, be the following functions:
+	%	\begin{equation*}
+	%	\spatialvol(x) := \int_{\Omega} \impulseresponse_x(y) dy, \qquad
+	%	\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
+	%	\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
+	%	\end{equation*}
+	%	where $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denotes the normalized version of $\impulseresponse_x$, $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	
+	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$. Let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
+	\begin{equation*}
+	C(x) := 1, \qquad
+	L^i(x) := x^i, \qquad
+	Q^{ij}(x) = x^i x^j.
+	\end{equation*}
+	Let $f/g$ denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The following results hold:
+	\begin{subequations}
+		\label{eq:vol_mean_var}
+		\begin{align}
+		\spatialvol =& \left(\Aop^T C\right)^* \\
+		\spatialmean^i =& \left(\Aop^T L^i\right)^* / \spatialvol \\
+		\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
+		\end{align}
+	\end{subequations}
+	for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$.
+\end{prop}
+
+The proof of Proposition \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}. The proof is straightforward, and follows directly from the definitions.
 
 \subsection{Local mean-displacement invariance}
 \label{eq:local_mean_displacement_invariance}
@@ -211,7 +283,7 @@ Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and con
 \end{align}
 Approximation \eqref{eq:translate1} says that $\phi_x$ can be approximated by $\phi_{x'}$ when $x$ and $x'$ are close. 
 %This approximation follows from the assumption that $\Phi$ is smooth. 
-Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank interpolative factorization/Nystrom approximation of $\Phi$ \cite{CUR,NYSTROM}.
+Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank interpolative factorization/Nystrom approximation \cite{CUR,NYSTROM}.
 % of the form
 %\begin{equation}
 %	\label{eq:low_rank_interpolation}
@@ -252,30 +324,56 @@ Approximation \eqref{eq:translate3} improves upon \eqref{eq:translate1} and \eqr
 
 We use approximation \eqref{eq:translate4}, which is the same as \eqref{eq:translate3}, except for the extra factors of $1/V(x)$ on the left hand side and $1/V(x')$ on the right hand side. These factors make the approximation more robust if $V(x)$ varies widely. Approximation \eqref{eq:translate4} is equivalent to \eqref{eq:translate3}, but with $\phi_x$ replaced by the its normalized version, $\phi_x/V(x)$. We call \eqref{eq:translate4} ``normalized local mean-displacement invariance.''
 
-\subsection{Outline of the method}
-\label{sec:intro_overview}
+
+\subsection{Finite element discretization of the integral kernel}
+\label{sec:finite_element_kernel}
+
+Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, and let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space. Further, let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise.
+
+We define a further approximation, $\widetilde{\Phi}^h \approx \widetilde{\Phi}$, as follows:
+\begin{equation}
+\label{eq:defn_of_Akerpcmesh}
+\widetilde{\Phi}^h(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \widetilde{\Phi}(p_i,p_j) \febasis_i(y) \febasis_j(x).
+\end{equation}
+The kernel $\widetilde{\Phi}^h$ is the interpolation of $\widetilde{\Phi}$ onto $V_h \otimes V_h$. Error in the overall kernel approximation, $\widetilde{\Phi}^h \approx \Aker$, arises both because of error in the product-convolution approximation, and because of finite element discretization error incurred from interpolation onto $V_h \otimes V_h$. 
+
+Let $u_h \in V_h$ and $v_h \in V_h$, and let $\bm{u}$ and $\bm{v}$ be the coefficient vectors for $u_h$ and $v_h$, respectively, with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$. I.e., 
+\begin{equation}
+\label{eq:fem_coeff_basis}
+u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x),
+\end{equation}
+and similar for $v_h$. Replacing $\Aker$ with $\widetilde{\Phi}^h$ within the definition of $\Aop$ in \eqref{eq:kernel_representation}, then performing straightforward but tedious algebraic manipulations, yields the following approximation:
+\begin{equation}
+\label{eq:kernel_representation_pcmesh}
+(\Aop u_h)(v_h) \approx \int_\Omega \int_\Omega v_h(y) \Phi^h(y,x) u_h(x) dx dy
+= \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u}.
+\end{equation}
+%While $\Aop$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\Aop$ to functions in the finite element space. 
+where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the following matrix of approximate kernel entries:
+\begin{equation}
+\label{eq:Akerpcmat_entries}
+\mathbf{\Phi}_{ij} := \widetilde{\Phi}(p_i, p_j),
+\end{equation}
+and $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ is the finite element mass matrix which has entries
+\begin{equation*}
+\bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx.
+\end{equation*}
+%Using \eqref{eq:defn_of_Akerpcmesh}, \eqref{eq:kernel_representation_pcmesh}, \eqref{eq:fem_coeff_basis}, and \eqref{eq:Akerpcmat_entries}, the definition of the mass matrix, and performing algebraic manipulations, it is straightforward but tedious to show that
+%\begin{equation*}
+%	\left(\AopPcMesh u_h \right)(v_h) = \bm{v}^T \bm{M} \AkerPcMat \bm{M} \bm{u}.
+%\end{equation*}
+The finite element matrix representation of our approximation of $\Aop$ is therefore given by
+\begin{equation}
+\label{eq:Amatpc_defn}
+\mathbf{A} = \bm{M} \mathbf{\Phi} \bm{M}.
+\end{equation}
+
+
+
+\section{Method}
+\label{sec:method}
 
 Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
-
-\begin{figure}
-	\begin{subfigure}{0.32\textwidth}
-		\centering
-		\includegraphics[scale=0.33]{batch1.png}
-%		\caption{Non-symmetric}
-	\end{subfigure}
-	\begin{subfigure}{0.32\textwidth}
-		\centering
-		\includegraphics[scale=0.33]{batch12.png}
-		%		\caption{Non-symmetric}
-	\end{subfigure}
-	\begin{subfigure}{0.32\textwidth}
-		\centering
-		\includegraphics[scale=0.33]{batch19.png}
-%		\caption{Non-symmetric}
-	\end{subfigure}
-	\caption{Batches, $\eta_b$, of normalized impulse responses, $\phi_{x_i}/V(x_i)$, for the Stokes Hessian. Left: 2nd batch. Mid: 13th batch. Right: 19th batch. Brightness scale differs between the subfigures. Black stars indicate the sample point locations, $x_i$. Dashed gray ellipses indicate the support ellipsoids, $E_{x_i}$. The large circle is the boundary of the domain $\Omega$. Early batches tend to have lots of ellipsoids near the boundary, as compared to later batches. This is because our greedy ellipsoid packing algorithm tries to pick sample points that are far away from sample points in previously chosen batches.}
-	\label{fig:batches_intro}
-\end{figure}
 
 Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section \ref{sec:approximate_kernel_entries}, but the key principle behind the interpolation is the preconditioned local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
 %Specifically, we make the assumption that
@@ -319,25 +417,7 @@ When $\Aop$ is positive semi-definite, $\mathbf{A}_H$ may be indefinite due to e
 %The novel contributions of our method are in the way that we form the product-convolution approximation ($\Aop \rightarrow \AopPc$). This is the part of the method where we use the four properties of $\Aop$ described above. Fast conversion of the discretized version of $\AopPc$ to H-matrix format ($\AopPc \rightarrow \AmatPc$) is possible because integral kernel entries for $\AopPc$ are easily accessible (unlike integral kernel entries for $\Aop$). Once in H-matrix format, one may use H-matrix methods to perform further useful linear algebra operations involving $\AmatPc$, including matrix-matrix addition, matrix-matrix multiplication, matrix-vector products, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems.
 
 
-\subsection{Existing work}
 
-%In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\convkernel_i$ and $w_i$ may be arbitrary functions.
-Product-convolution approximations have been used in a wide variety of fields going back several decades \cite{PRODCONVLIST}.
-For background on product-convolution approximations, we recommend reading the following papers: \cite{PRODCONVGOOD}. We build upon the class of product convolution approximations in which the convolution kernels are shifted impulse responses of $\Aop$ to point sources at a collection of points $x_i$ \cite{PRODCONVLIST}. A popular choice for methods in this class is to choose the points $x_i$ to be nodes in a regular grid, and interpolate the convolution operators with piecewise linear interpolation \cite{NAGY}, or splines \cite{PRODCONVSPLINES}. With a regular grid, a large number of points $x_i$ is typically required to achieve an accurate product-convolution approximation. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. But even with adaptive refinement, many matrix vector products with $\Aop$ may be required. In this paper, rather than using adaptive refinement, we instead reduce the computational cost by picking points $x_i$ such that many $\convkernel_i$ are computed with each matrix vector product. 
-
-Our method of estimating the support of the impulse responses was inspired by resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\phi_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\phi_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\phi_p$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\Aop^T$ with random noise functions, we use polynomial functions. Our method estimates the support of $\phi_p$ more accurately and reliably than resolution analysis, but our method requires that $\Aop$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
-
-Matrix-vector products with product-convolution approximations can be performed using the fast Fourier transform if the problem is discretized on a regular grid \cite{PRODCONVFFT}. The product-convolution approximation can then replace the original operator when using Krylov methods to solve linear systems with the original operator as the coefficient operator \cite{PRODCONVKRYLOV}. However, for complex geometries, problems are rarely discretized using regular grids, so we cannot easily use the fast Fourier transform. Furthermore, in big-data inverse problems the required number of Krylov iterations is large \cite{MYDISSERTATION,OTHERS}. Thus, after constructing the product-convolution approximation, it is desirable to convert the product-convolution approximation to other matrix formats that are amenable to fast linear algebra operations. Wavelet compression methods have been used for this purpose \cite{PRODCONVWAVELETS}. Here we follow our previous work \cite{PRODCONVMYPAPER}, in which we converted product-convolution approximations into H-matrix format. 
-
-Conventional H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. There are matrix-free methods for H-matrix approximation \cite{LEXINGPEELINGPROCESS}, and these methods have been used to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{ILONAHMATRIX,NOEMIHMATRIX}. While these matrix-free H-matrix construction methods are asymptotically scalable in theory, the required number of matrix vector products can be large in practice. 
-
-
-Product-convolution type approximations of Hessians have been used in a seismic inverse problem in \cite{GEORGSEISMICPRODCONV}, and in an advection-diffusion inverse problem in \cite{PRODCONVMYPAPER}. In \cite{DEMANETSEISMIC}, matrix probing \cite{MATRIXPROBING} is used to approximate the Hessian in a seismic inverse problem as the sum of simple pseudodifferential operators. Although it is not explicitly mentioned, the approximation in \cite{DEMANETSEISMIC} could be interpreted as a convolution-product approximation (a product-convolution approximation of the transpose of the operator).
-%, which is like a product-convolution approximation, except the order of pointwise multiplications and convolutions is reversed in \eqref{eq:product_convolution}.
-
-
-\section{Method}
-\label{sec:method}
 In this section we detail our method for computing the H-matrix approximation, $\mathbf{A}_H$, of $\Aop$, as outlined in Section \ref{sec:intro_overview}.
 %The supports of the impulse responses $\phi_x$ are estimated to be contained within ellipsoids (Section \ref{eq:mean_and_covariance_estimation}). The shapes of the ellipsoids depend on spatially varying volume, mean, and covariance functions, $V,\mu,\Sigma$, which we calculate by applying $\Aop$ to a small number of polynomial functions (Section \ref{sec:moments}). We use the ellipsoid support estimates in a greedy ellipsoid packing procedure to choose batches, $\pointbatch_b$, of sample points $x_i$ (Section \ref{sec:sample_point_selection}). Batches, $\eta_b$, of impulse responses, $\phi_{x_i}$, are computed by applying $\Aop$ to Dirac combs associated with the batches of sample points $S_b$. The impulse response batch $\eta_b$ contains the information about all impulse responses $\phi_{x_i}$ associated with points $x_i \in S_b$. Hence, once a small number of impulse response batches $\eta_b$ are computed, they can be used to perform pointwise evaluations $z \mapsto \phi_{x_i}(z)$ for a large number of impulse responses, $\phi_{x_i}$ (Section \ref{sec:get_impulse_response}).
 %
@@ -401,44 +481,7 @@ where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points withi
 
 The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
 
-
-\subsection{Impulse response moments}
-\label{sec:moments}
-
-%The ellipsoid $E_x$ is not immediately available. 
-To determine $E_x$, we must compute the scalar $\spatialvol(x)$, the length-$\gdim$ vector $\spatialmean(x)$, and the $\gdim \times \gdim$ matrix $\spatialcov(x)$.
-%(recall $\gdim$ is the spatial dimension of $\Omega$).
-The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because it requires one operator action of $\Aop$ per point $x$ that we wish to determine $E_x$ at, and we will need to determine $E_x$ at a large number of points. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Proposition \ref{thm:vol_mean_cov} and summarize the method for computing these moments in Algorithm \ref{alg:varhpi_mean_cov}.
-
-
-\begin{prop}[Impulse response moments]
-	\label{thm:vol_mean_cov}
-%	Let $\spatialvol:\Omega \rightarrow \mathbb{R}$, $\spatialmean:\Omega \rightarrow \mathbb{R}^\gdim$, and $\spatialcov:\Omega \rightarrow \mathbb{R}^{\gdim \times \gdim}$, be the following functions:
-%	\begin{equation*}
-%	\spatialvol(x) := \int_{\Omega} \impulseresponse_x(y) dy, \qquad
-%	\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
-%	\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
-%	\end{equation*}
-%	where $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denotes the normalized version of $\impulseresponse_x$, $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	
-	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$. Let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
-	\begin{equation*}
-	C(x) := 1, \qquad
-	L^i(x) := x^i, \qquad
-	Q^{ij}(x) = x^i x^j.
-	\end{equation*}
-	Let $f/g$ denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The following results hold:
-	\begin{subequations}
-		\label{eq:vol_mean_var}
-		\begin{align}
-		\spatialvol =& \left(\Aop^T C\right)^* \\
-		\spatialmean^i =& \left(\Aop^T L^i\right)^* / \spatialvol \\
-		\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
-		\end{align}
-	\end{subequations}
-	for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$.
-\end{prop}
-
-The proof of Proposition \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}. The proof is straightforward, and follows directly from the definitions.
+To determine $E_x$, we must compute the scalar $\spatialvol(x)$, the length-$\gdim$ vector $\spatialmean(x)$, and the $\gdim \times \gdim$ matrix $\spatialcov(x)$. In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of polynomial functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$).
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -797,49 +840,6 @@ In the non-symmetric case, evaluating $\widetilde{\Phi}(y,x)$ requires us to per
 %
 %Here we discuss how we construct an H-matrix representation of our product-convolution approximation, after discretizing the problem with finite elements. 
 
-
-\subsection{Finite element discretization of the integral kernel}
-\label{sec:finite_element_kernel}
-
-Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, and let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space. Further, let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise.
-
-We define a further approximation, $\widetilde{\Phi}^h \approx \widetilde{\Phi}$, as follows:
-\begin{equation}
-	\label{eq:defn_of_Akerpcmesh}
-	\widetilde{\Phi}^h(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \widetilde{\Phi}(p_i,p_j) \febasis_i(y) \febasis_j(x).
-\end{equation}
-The kernel $\widetilde{\Phi}^h$ is the interpolation of $\widetilde{\Phi}$ onto $V_h \otimes V_h$. Error in the overall kernel approximation, $\widetilde{\Phi}^h \approx \Aker$, arises both because of error in the product-convolution approximation, and because of finite element discretization error incurred from interpolation onto $V_h \otimes V_h$. 
-
-Let $u_h \in V_h$ and $v_h \in V_h$, and let $\bm{u}$ and $\bm{v}$ be the coefficient vectors for $u_h$ and $v_h$, respectively, with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$. I.e., 
-\begin{equation}
-\label{eq:fem_coeff_basis}
-u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x),
-\end{equation}
-and similar for $v_h$. Replacing $\Aker$ with $\widetilde{\Phi}^h$ within the definition of $\Aop$ in \eqref{eq:kernel_representation}, then performing straightforward but tedious algebraic manipulations, yields the following approximation:
-\begin{equation}
-	\label{eq:kernel_representation_pcmesh}
-	(\Aop u_h)(v_h) \approx \int_\Omega \int_\Omega v_h(y) \Phi^h(y,x) u_h(x) dx dy
-	= \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u}.
-\end{equation}
-%While $\Aop$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\Aop$ to functions in the finite element space. 
-where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the following matrix of approximate kernel entries:
-\begin{equation}
-	\label{eq:Akerpcmat_entries}
-	\mathbf{\Phi}_{ij} := \widetilde{\Phi}(p_i, p_j),
-\end{equation}
-and $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ is the finite element mass matrix which has entries
-\begin{equation*}
-\bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx.
-\end{equation*}
-%Using \eqref{eq:defn_of_Akerpcmesh}, \eqref{eq:kernel_representation_pcmesh}, \eqref{eq:fem_coeff_basis}, and \eqref{eq:Akerpcmat_entries}, the definition of the mass matrix, and performing algebraic manipulations, it is straightforward but tedious to show that
-%\begin{equation*}
-%	\left(\AopPcMesh u_h \right)(v_h) = \bm{v}^T \bm{M} \AkerPcMat \bm{M} \bm{u}.
-%\end{equation*}
-The finite element matrix representation of our approximation of $\Aop$ is therefore given by
-\begin{equation}
-	\label{eq:Amatpc_defn}
-	\mathbf{A} = \bm{M} \mathbf{\Phi} \bm{M}.
-\end{equation}
 
 
 \subsection{Hierarchical matrix construction}
