@@ -238,37 +238,54 @@ to be the spatially varying mean and covariance of the normalized version of $\i
 
 %The ellipsoid $E_x$ is not immediately available. 
 %(recall $\gdim$ is the spatial dimension of $\Omega$).
-The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because it requires one operator action of $\Aop$ per point $x$, and we will need to know $V(x)$, $\mu(x)$, and $\Sigma(x)$ at a large number of points $x$. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Proposition \ref{thm:vol_mean_cov} and summarize the method for computing these moments in Algorithm \ref{alg:varhpi_mean_cov}.
+The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because it requires one operator action of $\Aop$ per point $x$, and we will need to know $V(x)$, $\mu(x)$, and $\Sigma(x)$ at all points $x$. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. Specifically, let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$, and let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
+\begin{equation*}
+C(x) := 1, \qquad
+L^i(x) := x^i, \qquad
+Q^{ij}(x) = x^i x^j.
+\end{equation*}
+The following results (derived in Appendix \ref{app:proofs}) follow straightforwardly from the definitions:
+\begin{subequations}
+	\label{eq:vol_mean_var}
+	\begin{align}
+	\spatialvol =& \left(\Aop^T C\right)^* \\
+	\spatialmean^i =& \left(\Aop^T L^i\right)^* / \spatialvol \\
+	\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
+	\end{align}
+\end{subequations}
+for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$. Here $f/g$ denotes pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denotes pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
+
+%We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Proposition \ref{thm:vol_mean_cov} and summarize the method for computing these moments in Algorithm \ref{alg:varhpi_mean_cov}.
 
 
-\begin{prop}[Impulse response moments]
-	\label{thm:vol_mean_cov}
-	%	Let $\spatialvol:\Omega \rightarrow \mathbb{R}$, $\spatialmean:\Omega \rightarrow \mathbb{R}^\gdim$, and $\spatialcov:\Omega \rightarrow \mathbb{R}^{\gdim \times \gdim}$, be the following functions:
-	%	\begin{equation*}
-	%	\spatialvol(x) := \int_{\Omega} \impulseresponse_x(y) dy, \qquad
-	%	\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
-	%	\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
-	%	\end{equation*}
-	%	where $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denotes the normalized version of $\impulseresponse_x$, $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	
-	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$. Let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
-	\begin{equation*}
-	C(x) := 1, \qquad
-	L^i(x) := x^i, \qquad
-	Q^{ij}(x) = x^i x^j.
-	\end{equation*}
-	Let $f/g$ denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The following results hold:
-	\begin{subequations}
-		\label{eq:vol_mean_var}
-		\begin{align}
-		\spatialvol =& \left(\Aop^T C\right)^* \\
-		\spatialmean^i =& \left(\Aop^T L^i\right)^* / \spatialvol \\
-		\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
-		\end{align}
-	\end{subequations}
-	for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$.
-\end{prop}
+%\begin{prop}[Impulse response moments]
+%	\label{thm:vol_mean_cov}
+%	%	Let $\spatialvol:\Omega \rightarrow \mathbb{R}$, $\spatialmean:\Omega \rightarrow \mathbb{R}^\gdim$, and $\spatialcov:\Omega \rightarrow \mathbb{R}^{\gdim \times \gdim}$, be the following functions:
+%	%	\begin{equation*}
+%	%	\spatialvol(x) := \int_{\Omega} \impulseresponse_x(y) dy, \qquad
+%	%	\spatialmean(x) := \mathbb{E}(\widehat{\impulseresponse}_x), \qquad
+%	%	\spatialcov(x) := \Var(\widehat{\impulseresponse}_x),
+%	%	\end{equation*}
+%	%	where $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denotes the normalized version of $\impulseresponse_x$, $\mathbb{E}(\widehat{\impulseresponse}_x)$ denotes the mean of $\widehat{\impulseresponse}_x$, and $\Var(\widehat{\impulseresponse}_x)$ denotes the variance of $\widehat{\impulseresponse}_x$.	
+%	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$. Let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
+%	\begin{equation*}
+%	C(x) := 1, \qquad
+%	L^i(x) := x^i, \qquad
+%	Q^{ij}(x) = x^i x^j.
+%	\end{equation*}
+%	Let $f/g$ denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The following results hold:
+%	\begin{subequations}
+%		\label{eq:vol_mean_var}
+%		\begin{align}
+%		\spatialvol =& \left(\Aop^T C\right)^* \\
+%		\spatialmean^i =& \left(\Aop^T L^i\right)^* / \spatialvol \\
+%		\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
+%		\end{align}
+%	\end{subequations}
+%	for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$.
+%\end{prop}
 
-The proof of Proposition \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}. The proof is straightforward, and follows directly from the definitions.
+%The proof of Proposition \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}. The proof is straightforward, and follows directly from the definitions.
 
 \subsection{Local mean-displacement invariance}
 \label{eq:local_mean_displacement_invariance}
@@ -373,9 +390,9 @@ The finite element matrix representation of our approximation of $\Aop$ is there
 \section{Method}
 \label{sec:method}
 
-Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches.'' We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$. Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$. This is illustrated in Figure FIG. The process is repeated to get more batches, until a desired number of impulse responses is reached.
+The results from Section \ref{sec:intromoments} allow us to compute $V$, $\mu$, and $\Sigma$ by applying $\Aop^T$ to a small number of polynomial functions. Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$ (Section \ref{eq:mean_and_covariance_estimation}). This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute one batch of $\impulseresponse_{x_i}$'s by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a collection of points $x_i$ scattered throughout $\Omega$. The batch of points $x_i$ are chosen via a greedy ellipsoid packing algorithm so that the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because these supports do not overlap, we can post-process the response of $\Aop$ to the Dirac comb to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i$ in the batch---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
-Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation. The details of the interpolation will be described in Section \ref{sec:approximate_kernel_entries}, but the key principle behind the interpolation is the preconditioned local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
+Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
 %Specifically, we make the assumption that
 %\begin{equation}
 %\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
@@ -383,23 +400,29 @@ Once the scattered impulse responses $\impulseresponse_{x_i}$ are computed, we a
 %if $x_i$ is close to $x$. This is shown in Figure \ref{fig:mean_displacement_invariance}. Motivation for this assumption is discussed in Section \ref{eq:local_mean_displacement_invariance}. 
 We approximate $\Phi(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{V(x)}{V(x_i)}\phi_{x_i}(y - \mu(x) + \mu(x_i))$ for a collection of sample points $x_i$ near $x$. The weights are determined by radial basis function interpolation.
 
-The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method. In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. Schematically the overall H-matrix approximation proceeds as follows:
-\begin{equation*}
-\Aop \longrightarrow V, \mu, \Sigma \longrightarrow \{x_i\}_{i=1}^r \longrightarrow \{\impulseresponse_{x_i}\}_{i=1}^r \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
-\end{equation*}
-
-
-%Often we are interested in approximating operators $\Aop$ that are symmetric, or symmetric positive semi-definite. 
-
 If $\Aop$ is symmetric, we take advantage of symmetry to construct a more accurate approximation at negligible additional cost
 %. In this case, 
 %impulse responses of $\Aop$ are also impulse responses of $\Aop^T$, which may be interpolated in the variable $y$ instead of $x$ to yield a different approximation of $\Phi(y,x)$. 
 %we combine 
-by combining information from impulse responses of both $\Aop$ and $\Aop^T$ in the interpolation procedure.
+by combining information from impulse responses of both $\Aop$ and $\Aop^T$ in the interpolation procedure (Section \ref{sec:symmetric_improvements}).
 % for approximating $\Phi(y,x)$, to get a more accurate approximation at negligible additional cost.
 Intuitively, impulse responses of $\Aop$ can be thought of as ``columns'' of $\Phi$, impulse responses of $\Aop^T$ can be thought of as ``rows'' of $\Phi$, and $\Phi(y,x)$ can be thought of as an unknown entry of $\Phi$. Therefore, when $\Aop$ is symmetric, computing a column of $\Aop$ also gives us a row of $\Aop$ for free, so we approximate $\Phi(y,x)$ using information from a combination of known columns and rows, rather than just known columns.
 
+The ability to rapidly evaluate approximate kernel entries $\Phi(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Phi}_H$, of $\Phi$, using the conventional adaptive cross H-matrix construction method (Section \ref{sec:h_matrix_construction_short}). In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Phi}_H$ into an H-matrix approximation of $\Aop$, denoted $\mathbf{A}_H$. 
+
 When $\Aop$ is positive semi-definite, $\mathbf{A}_H$ may be indefinite due to errors in the approximation. In this case, we modify the H-matrix representation of $\mathbf{A}_H$ to make it positive semi-definite, by applying a specially chosen rational matrix function to $\mathbf{A}_H$. This is described in Appendix \ref{sec:make_spd}.
+
+Schematically the overall H-matrix approximation proceeds as follows:
+\begin{equation*}
+\Aop \longrightarrow V, \mu, \Sigma \longrightarrow \{x_i\}_{i=1}^r \longrightarrow \underbrace{\{\impulseresponse_{x_i}\}_{i=1}^r}_{\text{as }\eta_b\text{'s}} \longrightarrow \boldsymbol{\Phi}_H \longrightarrow \mathbf{A}_H.
+\end{equation*}
+The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \ref{alg:construct_Atilde}. 
+
+
+%Often we are interested in approximating operators $\Aop$ that are symmetric, or symmetric positive semi-definite. 
+
+
+
 
 %Forming the H-matrix approximation $\boldsymbol{\Phi}_H$ requires evaluating kernel entries, $\Phi(y,x)$, at arbitrary points $(y,x)$, and this is done by interpolating the known impulse responses $\{\impulseresponse_{x_i}\}_{i=1}^r, \{\impulseresponse'_{y_i}\}_{i=1}^r$. 
 %
@@ -418,22 +441,22 @@ When $\Aop$ is positive semi-definite, $\mathbf{A}_H$ may be indefinite due to e
 
 
 
-In this section we detail our method for computing the H-matrix approximation, $\mathbf{A}_H$, of $\Aop$, as outlined in Section \ref{sec:intro_overview}.
+%In this section we detail our method for computing the H-matrix approximation, $\mathbf{A}_H$, of $\Aop$, as outlined in Section \ref{sec:intro_overview}.
 %The supports of the impulse responses $\phi_x$ are estimated to be contained within ellipsoids (Section \ref{eq:mean_and_covariance_estimation}). The shapes of the ellipsoids depend on spatially varying volume, mean, and covariance functions, $V,\mu,\Sigma$, which we calculate by applying $\Aop$ to a small number of polynomial functions (Section \ref{sec:moments}). We use the ellipsoid support estimates in a greedy ellipsoid packing procedure to choose batches, $\pointbatch_b$, of sample points $x_i$ (Section \ref{sec:sample_point_selection}). Batches, $\eta_b$, of impulse responses, $\phi_{x_i}$, are computed by applying $\Aop$ to Dirac combs associated with the batches of sample points $S_b$. The impulse response batch $\eta_b$ contains the information about all impulse responses $\phi_{x_i}$ associated with points $x_i \in S_b$. Hence, once a small number of impulse response batches $\eta_b$ are computed, they can be used to perform pointwise evaluations $z \mapsto \phi_{x_i}(z)$ for a large number of impulse responses, $\phi_{x_i}$ (Section \ref{sec:get_impulse_response}).
 %
 %In Section \ref{eq:mean_and_covariance_estimation} we describe our ellipsoid estimate for the support of $\phi_x$. The ellipsoid shape depends on the functions $V,\mu,\Sigma$. We show how to compute these functions in Section \ref{sec:moments}. The ellipsoid support estimates are then used in a greedy ellipsoid packing procedure to choose batches, $\pointbatch_b$, of sample points $x_i$ (Section \ref{sec:sample_point_selection}).
-This section is organized as follows:
-\begin{description}
-	\item[Section \ref{eq:mean_and_covariance_estimation}:] We describe our ellipsoid estimate for the support of $\phi_x$.
-	\item[Section \ref{sec:moments}:] We show how to compute $V,\mu,\Sigma$.
-	\item[Section \ref{sec:sample_point_selection}:] We present the greedy ellipsoid packing procedure used to choose batches, $\pointbatch_b$, of sample points $x_i$.
-	\item[Section \ref{sec:get_impulse_response}:] We describe how to compute $\phi_{x_i}$'s, in batches, $\eta_b$.
-	\item[Section \ref{sec:approximate_kernel_entries}:] We show how we interpolate $\phi_{x_i}$'s to approximate $\Phi(y,x)$.
-	\item[Section \ref{sec:finite_element_kernel}:] We discuss finite element discretization of $\Phi$.
-	\item[Section \ref{sec:h_matrix_construction_short}:] We describe how we construct the H-matrices $\mathbf{\Phi}_H$ and $\mathbf{A}_H$.
-	\item[Section \ref{sec:overall_cost}:] We review the total computational cost to construct $\mathbf{A}_H$, and list the cost to perform further linear algebra tasks involving $\mathbf{A}_H$ using H-matrix methods.
-\end{description}
-The optional method for making $\mathbf{A}_H$ positive semi-definite is described in Appendix \ref{sec:make_spd}. The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \ref{alg:construct_Atilde}. 
+%This section is organized as follows:
+%\begin{description}
+%	\item[Section \ref{eq:mean_and_covariance_estimation}:] We describe our ellipsoid estimate for the support of $\phi_x$.
+%	\item[Section \ref{sec:moments}:] We show how to compute $V,\mu,\Sigma$.
+%	\item[Section \ref{sec:sample_point_selection}:] We present the greedy ellipsoid packing procedure used to choose batches, $\pointbatch_b$, of sample points $x_i$.
+%	\item[Section \ref{sec:get_impulse_response}:] We describe how to compute $\phi_{x_i}$'s, in batches, $\eta_b$.
+%	\item[Section \ref{sec:approximate_kernel_entries}:] We show how we interpolate $\phi_{x_i}$'s to approximate $\Phi(y,x)$.
+%	\item[Section \ref{sec:finite_element_kernel}:] We discuss finite element discretization of $\Phi$.
+%	\item[Section \ref{sec:h_matrix_construction_short}:] We describe how we construct the H-matrices $\mathbf{\Phi}_H$ and $\mathbf{A}_H$.
+%	\item[Section \ref{sec:overall_cost}:] We review the total computational cost to construct $\mathbf{A}_H$, and list the cost to perform further linear algebra tasks involving $\mathbf{A}_H$ using H-matrix methods.
+%\end{description}
+%The optional method for making $\mathbf{A}_H$ positive semi-definite is described in Appendix \ref{sec:make_spd}. The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \ref{alg:construct_Atilde}. 
 
 %we compute the impulse response moments $V,\mu,\Sigma$ and use these moments to estimate the supports of the impulse responses $\phi_x$ (Section \ref{sec:moments}), the greedy ellipsoid packing procedure we use to choose batches of sample points $x_i$ (Section \ref{sec:sample_point_selection}), how we compute impulse responses, $\phi_{x_i}$, in batches (Section \ref{sec:get_impulse_response}), how we interpolate the $\phi_{x_i}$ to approximate integral kernel entries $\Phi(y,x)$ (Section \ref{sec:approximate_kernel_entries}), finite element discretization of $\Phi$ (Section \ref{sec:finite_element_kernel}), and how we construct the H-matrix approximation $\mathbf{A}_h$ of the operator $\mathcal{A}$. We also describe how to (optionally) modify $\mathbf{A}_H$ to force it to be symmetric positive semi-definite. 
 %The complete algorithm is shown in Algorithm \ref{alg:construct_Atilde}. 
