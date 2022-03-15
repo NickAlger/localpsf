@@ -212,11 +212,16 @@ Conventional H-matrix construction methods require access to matrix entries of t
 Product-convolution type approximations of Hessians have been used in a seismic inverse problem in \cite{GEORGSEISMICPRODCONV}, and in an advection-diffusion inverse problem in \cite{PRODCONVMYPAPER}. In \cite{DEMANETSEISMIC}, matrix probing \cite{MATRIXPROBING} is used to approximate the Hessian in a seismic inverse problem as the sum of simple pseudodifferential operators. Although it is not explicitly mentioned, the approximation in \cite{DEMANETSEISMIC} could be interpreted as a convolution-product approximation (a product-convolution approximation of the transpose of the operator).
 %, which is like a product-convolution approximation, except the order of pointwise multiplications and convolutions is reversed in \eqref{eq:product_convolution}.
 
-\section{Preliminaries}
+\section{Key concepts}
+\label{sec:prerequisites}
+
+In this section we present three key concepts that our method is based on. The method itself will be presented in Section \ref{sec:method}. First, we define moments of the impulse responses $\phi_x$, and show how these moments can be computed efficiently (Section \ref{sec:intromoments}). Our method will use impulse response moments to estimate the supports of the functions $\phi_x$. Second, we describe an impulse response approximation that we call ``normalized local mean displacement invariance'' (Section \ref{sec:local_mean_displacement_invariance}). Our method will interpolate impulse responses using this approximation. Third, we discuss how discretization of continuous functions by finite elements leads to matrix discretizations $\mathbf{A}$ and $\mathbf{\Phi}$ of $\Aop$ and $\Phi$, respectively (Section \ref{sec:finite_element_kernel}). The goal of our method is to compute H-matrix approximations of these matrices. 
+%While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead with minor modifications.
+
+
 
 \subsection{Impulse response moments}
 \label{sec:intromoments}
-
 
 The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative integral kernel property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
 \begin{equation*}
@@ -238,7 +243,7 @@ to be the spatially varying mean and covariance of the normalized version of $\i
 
 %The ellipsoid $E_x$ is not immediately available. 
 %(recall $\gdim$ is the spatial dimension of $\Omega$).
-The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because it requires one operator action of $\Aop$ per point $x$, and we will need to know $V(x)$, $\mu(x)$, and $\Sigma(x)$ at all points $x$. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. Specifically, let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$, and let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
+The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because it requires one operator action of $\Aop$ per point $x$, and our method will need to know $V(x)$, $\mu(x)$, and $\Sigma(x)$ at all points $x$. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. Specifically, let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$, and let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
 \begin{equation*}
 C(x) := 1, \qquad
 L^i(x) := x^i, \qquad
@@ -288,7 +293,7 @@ for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$. Here $f/g$ denotes pointwise division
 %The proof of Proposition \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}. The proof is straightforward, and follows directly from the definitions.
 
 \subsection{Local mean-displacement invariance}
-\label{eq:local_mean_displacement_invariance}
+\label{sec:local_mean_displacement_invariance}
 
 Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and consider the following four approximations, ordered by increasing level of sophistication:
 \begin{align}
@@ -342,7 +347,7 @@ Approximation \eqref{eq:translate3} improves upon \eqref{eq:translate1} and \eqr
 We use approximation \eqref{eq:translate4}, which is the same as \eqref{eq:translate3}, except for the extra factors of $1/V(x)$ on the left hand side and $1/V(x')$ on the right hand side. These factors make the approximation more robust if $V(x)$ varies widely. Approximation \eqref{eq:translate4} is equivalent to \eqref{eq:translate3}, but with $\phi_x$ replaced by the its normalized version, $\phi_x/V(x)$. We call \eqref{eq:translate4} ``normalized local mean-displacement invariance.''
 
 
-\subsection{Finite element discretization of the integral kernel}
+\subsection{Finite element discretization}
 \label{sec:finite_element_kernel}
 
 Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise. For $u_h \in V_h$ we write $\bm{u}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$. I.e., 
@@ -368,7 +373,7 @@ Replacing $\Aker$ with $\Phi^h$ within the definition of $\Aop$ in \eqref{eq:ker
 = \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u}.
 \end{equation}
 %While $\Aop$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\Aop$ to functions in the finite element space. 
-where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the matrix of kernel entries evaluated at pairs of Lagrange nodes:
+where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the dense matrix of kernel entries evaluated at all pairs of Lagrange nodes:
 \begin{equation}
 \label{eq:Akerpcmat_entries}
 \mathbf{\Phi}_{ij} := \Phi(p_i, p_j),
@@ -387,9 +392,13 @@ Our matrix representation of $\Aop$ is therefore given by
 \label{eq:Amatpc_defn}
 \mathbf{A} = \bm{M} \mathbf{\Phi} \bm{M}.
 \end{equation}
-Note that $\mathbf{A}$ is not a Galerkin projection of $\Aop$ onto $V_h$ because of interpolation error in the kernel approximation $\Phi^h \approx \Phi$. 
+Note that $\mathbf{A}$ is not the Galerkin projection of $\Aop$ onto $V_h$ because of the approximation $\Phi^h \approx \Phi$.
+%because of the approximation $\Phi^h \approx \Phi$. 
+Hence, $\mathbf{A}$ may differ slightly from the implicitly defined matrix that performs the mapping $\mathbf{u} \rightarrow \mathbf{v}$ corresponding to the operator action $v=\Aop u$.
 
-%We neglect this interpolation error because it is the same magnitude as the finite element approximation error. 
+%The discrete version of the operator action $v = \Aop u$ is a mapping of vectors $\mathbf{u} \rightarrow \mathbf{v}$, which is done through an implicit computational procedure. Typically the implicitly defined matrix that performs this mapping is the Galerkin projection of $\Aop$ onto $V_h$.
+
+%We neglect this error because it is the same magnitude as the error in finite element approximation of functions $u_h \approx u$. 
 %Note that the matrices $\mathbf{A}$ and $\mathbf{\Phi}$ are dense $N \times N$ matrix that only exist in theory. Building and storing these matrices is computationally intractible. Computing individual matrix entries $\mathbf{A}_{ij}$ and $\mathbf{\Phi}_{ij}$ is computationally expensive. 
 
 
@@ -399,7 +408,7 @@ Note that $\mathbf{A}$ is not a Galerkin projection of $\Aop$ onto $V_h$ because
 
 The results from Section \ref{sec:intromoments} allow us to compute $V$, $\mu$, and $\Sigma$ by applying $\Aop^T$ to a small number of polynomial functions. Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$ (Section \ref{eq:mean_and_covariance_estimation}). This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute the impulse response batch $\eta_b$ by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because these supports do not overlap, we can post-process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
-Once the impulse response batches $\eta_b$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{eq:local_mean_displacement_invariance}.
+Once the impulse response batches $\eta_b$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{sec:local_mean_displacement_invariance}.
 %Specifically, we make the assumption that
 %\begin{equation}
 %\Phi(y,x) = \phi_x(y) \approx \phi_{x_i}(y - \mu(x) + \mu(x_i))
