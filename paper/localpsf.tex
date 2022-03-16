@@ -131,7 +131,7 @@ Because of these assumptions, we are able to estimate the supports of the impuls
 	\label{fig:batches_intro}
 \end{figure}
 
-The output of our method is a hierarchical matrix (H-matrix) approximation, $\mathbf{A}_H$, of a discretization of $\Aop$. While operator actions of $\Aop$ on vectors are typically computationally expensive, fast H-matrix methods permit us to perform matrix-vector products with $\mathbf{A}_H$ cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving $\mathbf{A}_H$ that cannot easily be done using $\Aop$, because $\Aop$ is only available matrix-free. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification.
+The output of our method is a hierarchical matrix (H-matrix) approximation, $\mathbf{A}_H$, of a discretization of $\Aop$. H-matrices are a matrix format in which the matrix is re-ordered then recursively subdivided into blocks, so that many off-diagonal blocks of the matrix are low rank. For more details about H-matrices, see Appendix \ref{app:h_matrix}. While operator actions of $\Aop$ on vectors are typically computationally expensive, fast H-matrix methods permit us to perform matrix-vector products with $\mathbf{A}_H$ cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving $\mathbf{A}_H$ that cannot easily be done using $\Aop$, because $\Aop$ is only available matrix-free. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification.
 
 
 %
@@ -213,11 +213,10 @@ Conventional H-matrix construction methods require access to matrix entries of t
 Product-convolution type approximations of Hessians have been used in a seismic inverse problem in \cite{GEORGSEISMICPRODCONV}, and in an advection-diffusion inverse problem in \cite{PRODCONVMYPAPER}. In \cite{DEMANETSEISMIC}, matrix probing \cite{MATRIXPROBING} is used to approximate the Hessian in a seismic inverse problem as the sum of simple pseudodifferential operators. Although it is not explicitly mentioned, the approximation in \cite{DEMANETSEISMIC} could be interpreted as a convolution-product approximation (a product-convolution approximation of the transpose of the operator).
 %, which is like a product-convolution approximation, except the order of pointwise multiplications and convolutions is reversed in \eqref{eq:product_convolution}.
 
-\section{Key concepts}
+\section{Main concepts}
 \label{sec:prerequisites}
 
-In this section we present the key concepts that our method is based on. The method itself will be presented in Section \ref{sec:method}. First, we define moments of the impulse responses, $\phi_x$, and show how these moments can be computed efficiently (Section \ref{sec:intromoments}). Our method will use these moments extensively. Second, we present ellipsoid shaped a-priori estimates for the supports of the impulse responses (Section \ref{eq:mean_and_covariance_estimation}). Our method will use these ellipsoid estimates to choose sets of impulse responses that can be computed in batches. Third, we describe an impulse response approximation that we call ``normalized local mean displacement invariance'' (Section \ref{sec:local_mean_displacement_invariance}). Our method will interpolate impulse responses using this approximation. Fourth, we discuss how discretization of continuous functions by finite elements leads to matrix discretizations $\mathbf{A}$ and $\mathbf{\Phi}$ of $\Aop$ and $\Phi$, respectively (Section \ref{sec:finite_element_kernel}). The primary function of our method is to compute H-matrix approximations of these matrices. 
-%While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead with minor modifications.
+In this section we present the three main concepts that our method is based on. The method itself will be presented in Section \ref{sec:method}. First, we define moments of the impulse responses, $\phi_x$, and show how these moments can be computed efficiently (Section \ref{sec:intromoments}). Our method will use these moments extensively. Second, we present ellipsoid shaped a-priori estimates for the supports of the impulse responses (Section \ref{eq:mean_and_covariance_estimation}). Our method will use these ellipsoid estimates to choose sets of impulse responses that can be computed in batches. Third, we describe an impulse response approximation that we call ``normalized local mean displacement invariance'' (Section \ref{sec:local_mean_displacement_invariance}). Our method will interpolate impulse responses using this approximation. 
 
 
 
@@ -259,7 +258,44 @@ The following results (derived in Appendix \ref{app:proofs}) follow straightforw
 	\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
 	\end{align}
 \end{subequations}
-for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$. Here $f/g$ denotes pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denotes pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
+for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$. Here $f/g$ denotes pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denotes pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The resulting method form computing $V$, $\mu$, and $\Sigma$ is shown in Algorithm \ref{alg:varhpi_mean_cov}.
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	{	
+		\Input{Operator $\Aop$}
+		\Output{$\spatialvol$, $\spatialmean$, and $\spatialcov$}
+		
+		\tcp{Compute scaling factor $\spatialvol$}
+		
+		Form constant function $C(x)=1$
+		
+		Compute $\spatialvol = \left(\Aop^T C\right)^*$
+		
+		\tcp{Compute mean $\spatialmean$}
+		\For{$i=1,2,\dots,\gdim$}{
+			Form linear function $L^i(x) = x^i$
+			
+			Compute $\spatialmean^i = \left(\Aop^T L^i\right)^* / \spatialvol$
+		}
+		\tcp{Compute covariance $\spatialcov$}
+		\For{$i=1,2,\dots,\gdim$}{
+			\For{$j=1,\dots,i$}{
+				Form quadratic function $Q^{ij}(x) = x^i x^j$
+				
+				Compute $\spatialcov^{ij} = \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j$
+				
+				Set $\spatialcov^{ji} = \spatialcov^{ij}$
+				
+			}
+		}
+		
+	}
+	\caption{Compute scaling factor $\spatialvol$, mean $\spatialmean$, and covariance $\spatialcov$}
+	\label{alg:varhpi_mean_cov}
+\end{algorithm2e}
 
 %We present this efficient method of computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ in Proposition \ref{thm:vol_mean_cov} and summarize the method for computing these moments in Algorithm \ref{alg:varhpi_mean_cov}.
 
@@ -368,66 +404,19 @@ Approximation \eqref{eq:translate3} improves upon \eqref{eq:translate1} and \eqr
 We use approximation \eqref{eq:translate4}, which is the same as \eqref{eq:translate3}, except for the extra factors of $1/V(x)$ on the left hand side and $1/V(x')$ on the right hand side. These factors make the approximation more robust if $V(x)$ varies widely. Approximation \eqref{eq:translate4} is equivalent to \eqref{eq:translate3}, but with $\phi_x$ replaced by the its normalized version, $\phi_x/V(x)$. We call \eqref{eq:translate4} ``normalized local mean-displacement invariance.''
 
 
-\subsection{Finite element discretization}
-\label{sec:finite_element_kernel}
-
-Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise. For $u_h \in V_h$ we write $\bm{u}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$. I.e., 
-\begin{equation}
-\label{eq:fem_coeff_basis}
-u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x).
-\end{equation}
-
-
-%Further, let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise.
-
-%We define the finite element approximation of the kernel, $\Phi^h \approx \Phi$, as follows:
-The interpolation of $\Phi$ onto $V_h \otimes V_h$, which we denote by $\Phi^h$, is given as follows:
-\begin{equation}
-\label{eq:defn_of_Akerpcmesh}
-\Phi(y,x) \approx \Phi^h(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \Phi(p_i,p_j) \febasis_i(y) \febasis_j(x).
-\end{equation}
-%The kernel $\Phi^h$ is the interpolation of $\Phi$ onto $V_h \otimes V_h$. Error in the overall kernel approximation, $\widetilde{\Phi}^h \approx \Aker$, arises both because of error in the product-convolution approximation, and because of finite element discretization error incurred from interpolation onto $V_h \otimes V_h$. 
-Replacing $\Aker$ with $\Phi^h$ within the definition of $\Aop$ in \eqref{eq:kernel_representation}, then performing straightforward algebraic manipulations (see Appendix \ref{app:proofs} for details), yields the following approximation:
-\begin{equation}
-\label{eq:kernel_representation_pcmesh}
-(\Aop u_h)(v_h) \approx \int_\Omega \int_\Omega v_h(y) \Phi^h(y,x) u_h(x) dx dy
-= \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u}.
-\end{equation}
-%While $\Aop$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\Aop$ to functions in the finite element space. 
-where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the dense matrix of kernel entries evaluated at all pairs of Lagrange nodes:
-\begin{equation}
-\label{eq:Akerpcmat_entries}
-\mathbf{\Phi}_{ij} := \Phi(p_i, p_j),
-\end{equation}
-and $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ is the finite element mass matrix which has entries
-\begin{equation*}
-\bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx.
-\end{equation*}
-%Matrix entries $\Phi(p_i, p_j)$ are expensive to compute because $\Aop$ is only available matrix-free.
-%Using \eqref{eq:defn_of_Akerpcmesh}, \eqref{eq:kernel_representation_pcmesh}, \eqref{eq:fem_coeff_basis}, and \eqref{eq:Akerpcmat_entries}, the definition of the mass matrix, and performing algebraic manipulations, it is straightforward but tedious to show that
-%\begin{equation*}
-%	\left(\AopPcMesh u_h \right)(v_h) = \bm{v}^T \bm{M} \AkerPcMat \bm{M} \bm{u}.
-%\end{equation*}
-Our matrix representation of $\Aop$ is therefore given by
-\begin{equation}
-\label{eq:Amatpc_defn}
-\mathbf{A} = \bm{M} \mathbf{\Phi} \bm{M}.
-\end{equation}
-Note that $\mathbf{A}$ is not the Galerkin projection of $\Aop$ onto $V_h$ because of the approximation $\Phi^h \approx \Phi$.
-%because of the approximation $\Phi^h \approx \Phi$. 
-Hence, $\mathbf{A}$ may differ slightly from the implicitly defined matrix that performs the mapping $\mathbf{u} \rightarrow \mathbf{v}$ corresponding to the operator action $v=\Aop u$.
-
-%The discrete version of the operator action $v = \Aop u$ is a mapping of vectors $\mathbf{u} \rightarrow \mathbf{v}$, which is done through an implicit computational procedure. Typically the implicitly defined matrix that performs this mapping is the Galerkin projection of $\Aop$ onto $V_h$.
-
-%We neglect this error because it is the same magnitude as the error in finite element approximation of functions $u_h \approx u$. 
-%Note that the matrices $\mathbf{A}$ and $\mathbf{\Phi}$ are dense $N \times N$ matrix that only exist in theory. Building and storing these matrices is computationally intractible. Computing individual matrix entries $\mathbf{A}_{ij}$ and $\mathbf{\Phi}_{ij}$ is computationally expensive. 
-
-
 
 \section{Method}
 \label{sec:method}
 
-The results from Section \ref{sec:intromoments} allow us to compute $V$, $\mu$, and $\Sigma$ by applying $\Aop^T$ to a small number of polynomial functions, and the results of Section \ref{eq:mean_and_covariance_estimation} permit us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute the impulse response batch $\eta_b$ by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because these supports do not overlap, we can post-process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated to get more batches, until a desired number of impulse responses is reached.
+After discretization with finite elements\footnote{While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead, with minor modifications to our method.} (Section \ref{sec:finite_element_kernel}), $\Aop$ and $\Phi$ become matrices $\mathbf{A}$ and $\mathbf{\Phi}$, respectively. Because $\Aop$ is only available matrix-free and $\Phi$ is only defined implicitly in terms of $\Aop$, the matrices $\mathbf{A}$ and $\mathbf{\Phi}$ are not easily accessible. Directly computing and storing these matrices is computationally intractible. In this section, we present our method for constructing accessible H-matrix approximations, $\mathbf{A}_H$ and $\mathbf{\Phi}_H$ of $\mathbf{A}$ and $\mathbf{\Phi}$, respectively, using a small number of operator actions of $\Aop$ and $\Aop^T$. 
+
+%Fourth, we discuss how discretization of continuous functions by finite elements leads to matrix discretizations $\mathbf{A}$ and $\mathbf{\Phi}$ of $\Aop$ and $\Phi$, respectively (Section \ref{sec:finite_element_kernel}). The primary function of our method is to compute H-matrix approximations of these matrices. 
+%While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead with minor modifications.
+
+\subsection{Overview}
+\label{sec:method_overview}
+
+Algorithm \ref{alg:varhpi_mean_cov} from Section \ref{sec:intromoments} allows us to compute $V$, $\mu$, and $\Sigma$ by applying $\Aop^T$ to a small number of polynomial functions, and \eqref{eq:support_ellipsoid} from Section \ref{eq:mean_and_covariance_estimation} uses $V$, $\mu$, and $\Sigma$ to construct an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute the impulse response batch $\eta_b$ by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because these supports do not overlap, we can post-process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
 Once the impulse response batches $\eta_b$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{sec:local_mean_displacement_invariance}.
 %Specifically, we make the assumption that
@@ -528,43 +517,60 @@ The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \re
 
 
 
-\begin{algorithm2e}
-	\SetAlgoNoLine
-	\SetKwInOut{Input}{Input}
-	\SetKwInOut{Output}{Output}
-	{	
-		\Input{Operator $\Aop$}
-		\Output{$\spatialvol$, $\spatialmean$, and $\spatialcov$}
-		
-		\tcp{Compute scaling factor $\spatialvol$}
-		
-		Form constant function $C(x)=1$
-		
-		Compute $\spatialvol = \left(\Aop^T C\right)^*$
-		
-		\tcp{Compute mean $\spatialmean$}
-		\For{$i=1,2,\dots,\gdim$}{
-			Form linear function $L^i(x) = x^i$
-			
-			Compute $\spatialmean^i = \left(\Aop^T L^i\right)^* / \spatialvol$
-		}
-		\tcp{Compute covariance $\spatialcov$}
-		\For{$i=1,2,\dots,\gdim$}{
-			\For{$j=1,\dots,i$}{
-				Form quadratic function $Q^{ij}(x) = x^i x^j$
-				
-				Compute $\spatialcov^{ij} = \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j$
-				
-				Set $\spatialcov^{ji} = \spatialcov^{ij}$
-				
-			}
-		}
-		
-	}
-	\caption{Compute scaling factor $\spatialvol$, mean $\spatialmean$, and covariance $\spatialcov$}
-	\label{alg:varhpi_mean_cov}
-\end{algorithm2e}
+\subsection{Finite element discretization}
+\label{sec:finite_element_kernel}
 
+Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise. For $u_h \in V_h$ we write $\bm{u}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$. I.e., 
+\begin{equation}
+\label{eq:fem_coeff_basis}
+u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x).
+\end{equation}
+
+
+%Further, let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise.
+
+%We define the finite element approximation of the kernel, $\Phi^h \approx \Phi$, as follows:
+The interpolation of $\Phi$ onto $V_h \otimes V_h$, which we denote by $\Phi^h$, is given as follows:
+\begin{equation}
+\label{eq:defn_of_Akerpcmesh}
+\Phi(y,x) \approx \Phi^h(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \Phi(p_i,p_j) \febasis_i(y) \febasis_j(x).
+\end{equation}
+%The kernel $\Phi^h$ is the interpolation of $\Phi$ onto $V_h \otimes V_h$. Error in the overall kernel approximation, $\widetilde{\Phi}^h \approx \Aker$, arises both because of error in the product-convolution approximation, and because of finite element discretization error incurred from interpolation onto $V_h \otimes V_h$. 
+Replacing $\Aker$ with $\Phi^h$ within the definition of $\Aop$ in \eqref{eq:kernel_representation}, then performing straightforward algebraic manipulations (see Appendix \ref{app:proofs} for details), yields the following approximation:
+\begin{equation}
+\label{eq:kernel_representation_pcmesh}
+(\Aop u_h)(v_h) \approx \int_\Omega \int_\Omega v_h(y) \Phi^h(y,x) u_h(x) dx dy
+= \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u}.
+\end{equation}
+%While $\Aop$ is well-defined as a mapping $L^2(\Omega) \rightarrow L^2(\Omega)'$, we are interested in the restriction of $\Aop$ to functions in the finite element space. 
+where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the following dense matrix of kernel entries evaluated at all pairs of Lagrange nodes:
+\begin{equation}
+\label{eq:Akerpcmat_entries}
+\mathbf{\Phi}_{ij} := \Phi(p_i, p_j),
+\end{equation}
+and $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ is the sparse finite element mass matrix which has entries
+\begin{equation*}
+\bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx.
+\end{equation*}
+%Matrix entries $\Phi(p_i, p_j)$ are expensive to compute because $\Aop$ is only available matrix-free.
+%Using \eqref{eq:defn_of_Akerpcmesh}, \eqref{eq:kernel_representation_pcmesh}, \eqref{eq:fem_coeff_basis}, and \eqref{eq:Akerpcmat_entries}, the definition of the mass matrix, and performing algebraic manipulations, it is straightforward but tedious to show that
+%\begin{equation*}
+%	\left(\AopPcMesh u_h \right)(v_h) = \bm{v}^T \bm{M} \AkerPcMat \bm{M} \bm{u}.
+%\end{equation*}
+Our matrix representation, $\mathbf{A}$, of $\Aop$ is therefore given by
+\begin{equation}
+\label{eq:Amatpc_defn}
+\mathbf{A} = \bm{M} \mathbf{\Phi} \bm{M}.
+\end{equation}
+Note that $\mathbf{A}$ is not exactly the Galerkin projection of $\Aop$ onto $V_h$ because of the approximation $\Phi^h \approx \Phi$.
+%because of the approximation $\Phi^h \approx \Phi$. 
+Hence, $\mathbf{A}$ may differ slightly from the implicitly defined matrix that performs the mapping $\mathbf{u} \rightarrow \mathbf{v}$ corresponding to the discrete version of the operator action $v=\Aop u$. 
+%It is computationally intractible to build and store the matrices $\mathbf{A}$ and $\mathbf{\Phi}$, and individual matrix entries $\mathbf{A}_{ij}$ and $\mathbf{\Phi}_{ij}$ are not easily accessible. In the remainder of this section, we show how to build accessible approximations of these matrices.
+
+%The discrete version of the operator action $v = \Aop u$ is a mapping of vectors $\mathbf{u} \rightarrow \mathbf{v}$, which is done through an implicit computational procedure. Typically the implicitly defined matrix that performs this mapping is the Galerkin projection of $\Aop$ onto $V_h$.
+
+%We neglect this error because it is the same magnitude as the error in finite element approximation of functions $u_h \approx u$. 
+%Note that the matrices $\mathbf{A}$ and $\mathbf{\Phi}$ are dense $N \times N$ matrix that only exist in theory. Building and storing these matrices is computationally intractible. Computing individual matrix entries $\mathbf{A}_{ij}$ and $\mathbf{\Phi}_{ij}$ is computationally expensive. 
 
 
 \subsection{Sample point selection via greedy ellipsoid packing}
