@@ -216,7 +216,7 @@ Product-convolution type approximations of Hessians have been used in a seismic 
 \section{Key concepts}
 \label{sec:prerequisites}
 
-In this section we present three key concepts that our method is based on. The method itself will be presented in Section \ref{sec:method}. First, we define moments of the impulse responses $\phi_x$, and show how these moments can be computed efficiently (Section \ref{sec:intromoments}). Our method will use these moments extensively. Second, we describe an impulse response approximation that we call ``normalized local mean displacement invariance'' (Section \ref{sec:local_mean_displacement_invariance}). Our method will interpolate impulse responses using this approximation. Third, we discuss how discretization of continuous functions by finite elements leads to matrix discretizations $\mathbf{A}$ and $\mathbf{\Phi}$ of $\Aop$ and $\Phi$, respectively (Section \ref{sec:finite_element_kernel}). The goal of our method is to compute H-matrix approximations of these matrices. 
+In this section we present the key concepts that our method is based on. The method itself will be presented in Section \ref{sec:method}. First, we define moments of the impulse responses, $\phi_x$, and show how these moments can be computed efficiently (Section \ref{sec:intromoments}). Our method will use these moments extensively. Second, we present ellipsoid shaped a-priori estimates for the supports of the impulse responses (Section \ref{eq:mean_and_covariance_estimation}). Our method will use these ellipsoid estimates to choose sets of impulse responses that can be computed in batches. Third, we describe an impulse response approximation that we call ``normalized local mean displacement invariance'' (Section \ref{sec:local_mean_displacement_invariance}). Our method will interpolate impulse responses using this approximation. Fourth, we discuss how discretization of continuous functions by finite elements leads to matrix discretizations $\mathbf{A}$ and $\mathbf{\Phi}$ of $\Aop$ and $\Phi$, respectively (Section \ref{sec:finite_element_kernel}). The primary function of our method is to compute H-matrix approximations of these matrices. 
 %While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead with minor modifications.
 
 
@@ -292,6 +292,26 @@ for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$. Here $f/g$ denotes pointwise division
 %\end{prop}
 
 %The proof of Proposition \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}. The proof is straightforward, and follows directly from the definitions.
+
+
+\subsection{Impulse response support ellipsoids}
+\label{eq:mean_and_covariance_estimation}
+
+%Because of the non-negative impulse response property, for each $x \in \Omega$, the impulse response $\impulseresponse_x$ is a non-negative function $y \mapsto \impulseresponse_x(y)$. Hence, $\impulseresponse_x$ is a scaled probability distribution. Let $\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy$ denote the scaling factor (the ``volume'' of $\impulseresponse_x$), let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. 
+
+We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
+\begin{equation}
+\label{eq:support_ellipsoid}
+E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
+\end{equation}
+where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$.
+
+The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
+
+%To determine $E_x$, we must compute the scalar $\spatialvol(x)$, the length-$\gdim$ vector $\spatialmean(x)$, and the $\gdim \times \gdim$ matrix $\spatialcov(x)$. In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of polynomial functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$).
+
+
+
 
 \subsection{Local mean-displacement invariance}
 \label{sec:local_mean_displacement_invariance}
@@ -407,7 +427,7 @@ Hence, $\mathbf{A}$ may differ slightly from the implicitly defined matrix that 
 \section{Method}
 \label{sec:method}
 
-The results from Section \ref{sec:intromoments} allow us to compute $V$, $\mu$, and $\Sigma$ by applying $\Aop^T$ to a small number of polynomial functions. Since a probability distribution concentrates within a small number of standard deviations of its mean, knowing $\mu(x)$ and $\Sigma(x)$ permits us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$ (Section \ref{eq:mean_and_covariance_estimation}). This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute the impulse response batch $\eta_b$ by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because these supports do not overlap, we can post-process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated to get more batches, until a desired number of impulse responses is reached.
+The results from Section \ref{sec:intromoments} allow us to compute $V$, $\mu$, and $\Sigma$ by applying $\Aop^T$ to a small number of polynomial functions, and the results of Section \ref{eq:mean_and_covariance_estimation} permit us to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute the impulse response batch $\eta_b$ by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because these supports do not overlap, we can post-process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
 Once the impulse response batches $\eta_b$ are computed, we approximate the integral kernel $\Phi(y,x)$ at arbitrary points $(y,x)$ by interpolation (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{sec:local_mean_displacement_invariance}.
 %Specifically, we make the assumption that
@@ -507,21 +527,6 @@ The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \re
 \end{algorithm2e}
 
 
-\subsection{Impulse response support ellipsoids}
-\label{eq:mean_and_covariance_estimation}
-
-%Because of the non-negative impulse response property, for each $x \in \Omega$, the impulse response $\impulseresponse_x$ is a non-negative function $y \mapsto \impulseresponse_x(y)$. Hence, $\impulseresponse_x$ is a scaled probability distribution. Let $\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy$ denote the scaling factor (the ``volume'' of $\impulseresponse_x$), let $\widehat{\impulseresponse}_x := \impulseresponse_x / \spatialvol(x)$ denote the normalized version of $\impulseresponse_x$, and let $\spatialmean(x)$ and $\spatialcov(x)$ denote the mean and covariance of $\widehat{\impulseresponse}_x$, respectively. 
-
-We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
-\begin{equation}
-\label{eq:support_ellipsoid}
-E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
-\end{equation}
-where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$.
-
-The quantity $\tau$ is a parameter that must be chosen by the user of the algorithm. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
-
-To determine $E_x$, we must compute the scalar $\spatialvol(x)$, the length-$\gdim$ vector $\spatialmean(x)$, and the $\gdim \times \gdim$ matrix $\spatialcov(x)$. In Section \ref{eq:mean_and_covariance_estimation} we will see that it is possible to compute $V(x)$, $\mu(x)$, and $\Sigma(x)$ for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\Aop^T$ to a small number of polynomial functions (three functions if $\gdim=1$, six if $\gdim=2$, ten if $\gdim=3$).
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
