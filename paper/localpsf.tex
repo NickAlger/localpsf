@@ -41,16 +41,18 @@
 % REQUIRED
 \begin{abstract}
 	We present a fast matrix-free method for computing hierarchical matrix (H-matrix) approximations of operators that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in Schur complement methods for solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained inverse problems. 
-	H-matrix approximations are highly desirable because fast H-matrix methods can add, multiply, invert, and factorize H-matrices, compute matrix-vector products, solve linear systems, and perform other useful matrix computations. 
+%	H-matrix approximations are highly desirable because 
+	Fast H-matrix methods can add, multiply, invert, and factorize H-matrices, compute matrix-vector products, solve linear systems, and perform other useful matrix computations. 
 %	The computational cost of these operations is $O(N \log^a N)$, where the matrix is $N\times N$, and $a \in \{1,2,3\}$. 
-	Classical H-matrix construction methods 
+%	Classical H-matrix construction methods 
 %	require evaluating the integral kernel $O(N \log N)$ times, but this is not feasible 
-	are infeasible for large-scale problems in which the operator is only accessible via matrix-vector products (``matrix-free''), because these methods require evaluating the integral kernel of the operator at a large number of points. We overcome this problem by computing impulse responses of the operator and its transpose at a collection of scattered points, then interpolating these known impulse responses to evaluate entries of the integral kernel at other points where the impulse response is not known. 
+%	are infeasible for large-scale problems in which the operator is only accessible via matrix-vector products (``matrix-free''), because these methods require evaluating the integral kernel of the operator at a large number of points. We overcome this problem by c
+	Our method computes impulse responses of the operator at a collection of scattered points, then interpolates these known impulse responses to evaluate entries of the integral kernel at other points where the impulse response is not known. 
 %	We improve upon classical product-convolution approximations by translating with respect the estimated mean of the impulse response, rather than the location of the impulse response point source. 
 	Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. 
 %	We construct a-priori ellipsoid estimates of the supports of the impulse responses (i.e., support ellipsoids are estimated \emph{before} any impulse responses have been computed). 
 	By solving an ellipsoid packing problem, we choose as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. 
-	We apply the method to approximate Hessians in large-scale PDE-constrained inverse problems with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. We are able to form high quality approximations of high rank operators using only a small number of operator-vector products.
+	We apply the method to approximate Hessians in large-scale PDE-constrained inverse problems with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. We are able to form high quality approximations of high rank operators using only a small number of operator actions products.
 \end{abstract}
 
 % REQUIRED
