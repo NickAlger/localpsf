@@ -207,7 +207,7 @@ Product-convolution (PC) approximations are approximations of an operator by wei
 %, including CUR-based low rank approximation \cite{NAGYPSFCUR}.
 For background on PC and PSF methods, we recommend the following papers: \cite{PRODCONVGOOD}. 
 
-Our method is not a PC approximation, but it builds upon a class of PC approximations in which the convolution kernels are shifted impulse responses of $\Aop$ associated with a collection of points $x_i \in \Omega$ \cite{PRODCONVLIST}. A popular choice for PC methods in this class is to choose the $x_i$ to be nodes in a regular grid \cite{NAGY}.
+Our method is not exactly a PC approximation, but it builds upon a class of PC approximations in which the convolution kernels are shifted impulse responses of $\Aop$ associated with a collection of points $x_i \in \Omega$ \cite{PRODCONVLIST}. A popular choice for PC methods in this class is to choose the $x_i$ to be nodes in a regular grid \cite{NAGY}.
 %, and interpolate the convolution operators with piecewise linear interpolation \cite{NAGY}, splines \cite{PRODCONVSPLINES}, or radial basis functions \cite{PRODCONVRBF}. 
 With a regular grid, a large number of $x_i$ are typically required to achieve an accurate approximation. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. But even with adaptive refinement, many $x_i$, and hence operator actions of $\Aop$, are required. 
 
