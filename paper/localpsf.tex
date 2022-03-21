@@ -668,9 +668,9 @@ We compute the \emph{impulse response batch}, $\eta_k$, by applying $\Aop$ to th
 \begin{equation}
 	\label{eq:dirac_comb_H_action}
 	\combresponse_k := \left(\Aop \diraccomb_k^*\right)^*
-	=\sum_{x_i \in \pointbatch_k} \widehat{\impulseresponse}_{x_i}.
+	=\sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i} / V(x_i).
 \end{equation}
-The last equality in \eqref{eq:dirac_comb_H_action} follows from linearity and the definition of $\widehat{\impulseresponse}_{x_i}$ in \eqref{eq:scaled_impulse_response} and \eqref{eq:impulse_response_delta_action}.
+The last equality in \eqref{eq:dirac_comb_H_action} follows from linearity and the definition of $\impulseresponse_{x_i}$ in \eqref{eq:impulse_response_delta_action}.
 %\begin{equation}
 %\label{eq:phi_b}
 %\combresponse_k = \sum_{x_i \in \pointbatch_k} \impulseresponse_{x_i} / V(x_i).
@@ -682,9 +682,9 @@ The last equality in \eqref{eq:dirac_comb_H_action} follows from linearity and t
 Since the points $x_i$ are chosen so that the ellipsoid $E_{x_i}$ that (approximately) supports $\impulseresponse_i$, and the ellipsoid $E_{x_j}$ that (approximately) supports $\impulseresponse_j$ do not overlap when $i \neq j$, we have (approximately)
 \begin{equation}
 \label{eq:varphi_eval}
-	\impulseresponse_{x_i}(z) / V(x_i) = \widehat{\impulseresponse}_{x_i}(z) =
+	\impulseresponse_{x_i}(z) =
 	\begin{cases}
-		\combresponse_k(z), & z \in E_{x_i} \\
+		\combresponse_k(z) V(x_i), & z \in E_{x_i} \\
 		0, & \text{otherwise}
 	\end{cases}
 \end{equation}
