@@ -227,7 +227,7 @@ Since our end goal is constructing an H-matrix, we are freed from strict adheren
 %One must extend the impulse responses outside of the domain where they are undefined, but
 %. Various extension techniques have been used, such as extension by zero, and reflection across the boundary, yet 
 %no known extension technique is fully satisfactory \cite{BOUNDARYETENSION}. 
-In our method we do not have an issue with boundary artifacts because we temporarily exclude impulse responses from the approximation procedure whenever the approximation procedure attempts to evaluate the impulse response at a location where it is undefined. Our approximation cannot be written as a weighted sum of convolution operators, so we cannot apply our approximation to vectors via the FFT. This is fine because our approximation is an H-matrix, which can be applied to vectors even faster.
+In our method we do not have an issue with boundary artifacts because we temporarily exclude impulse responses from the approximation procedure whenever the approximation procedure attempts to evaluate the impulse response at a location where it is undefined. In exchange for these benefits, our approximation cannot be written as a weighted sum of convolution operators, so we cannot apply our approximation to vectors via the FFT. This is fine because our approximation is an H-matrix, which can be applied to vectors even faster.
 
 %MOMENTS PERMIT IMPROVED INTERPOLATION. IMPROVED INTERPOLATION REQUIRES H-MATRIX. H-MATRIX WITH IMPROVED INTERPOLATION ALSO SOLVES BOUNDARY ARTIFACT PROBLEM. ALSO DOESNT REQUIRE REGULAR GRID. ALSO SCALABLE TO LARGE NUMBER OF IMPULSE RESPONSES. FFT HAS FAST MATVEC BUT NOT OTHER OPTIONS.
 
