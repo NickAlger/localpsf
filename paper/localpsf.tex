@@ -131,22 +131,72 @@ where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and 
 
 \subsection{Background}
 
-The most popular matrix-free operator approximation methods are based on low rank approximation \cite{CCGOPAPERS}. This includes the Lanczos method, the randomized singular value decomposition \cite{HMTRANDOM}, and CUR approximation/skeletonization \cite{CUR,MAHONEY}. However, low rank approximation is not suitable for high rank operators, and many operators of practical interest are high rank. In the context of Hessians, methods based on low rank approximation suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator actions are required to form an accurate ``low rank'' approximation \cite{MYDISSERTATION}. 
+The most popular matrix-free operator approximation methods are based on low rank approximation \cite{CCGOPAPERS}. This includes the Lanczos method, the randomized singular value decomposition \cite{HMTRANDOM}, and CUR approximation/skeletonization \cite{CUR,MAHONEY}. However, low rank approximation is not suitable for high rank operators, and often operators of practical interest are high rank. In the context of Hessians, methods based on low rank approximation suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator actions are required to form an accurate ``low rank'' approximation \cite{MYDISSERTATION}. 
 
 Product-convolution (PC) approximations are approximations of an operator by weighted sums of convolution operators with spatially varying weights. A single convolution operator may be high rank, so PC approximations can (where applicable) approximate high rank operators efficiently. PC approximations have been used in a variety of fields going back several decades \cite{PRODCONVLIST}. Often PC methods are known as ``point spread function'' (PSF) methods, particularly in optics and image processing. There, the ``operator'' $\Aop$ is a physical process of distortion and blurring of light rays passing through an optical system such as a telescope or microscope. However, ``PSF'' is sometimes used as an umbrella term to refer to other approximation methods that focus on interpolating impulse responses or impulse response features. For background on PC and PSF methods, we recommend the following papers: \cite{PRODCONVGOOD}. 
 
-Our method is not exactly a PC approximation, but it builds upon a class of PC approximations in which the convolution kernels are shifted impulse responses of $\Aop$ associated with a collection of points $x_i \in \Omega$ \cite{PRODCONVLIST}. A popular choice for PC methods in this class is to choose the $x_i$ to be nodes in a regular grid \cite{NAGY}. With a regular grid, a large number of $x_i$ are typically required to achieve an accurate approximation. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. But even with adaptive refinement, many $x_i$, and hence operator actions of $\Aop$, are required. 
+The method proposed in this paper is not exactly a PC approximation, but it builds upon a class of PC approximations in which the convolution kernels are shifted impulse responses of $\Aop$ associated with a collection of points $x_i \in \Omega$ \cite{PRODCONVLIST}. A common choice for PC methods in this class is to choose the $x_i$ to be nodes in a regular grid \cite{NAGY}. With a regular grid, a large number of $x_i$ are typically required to achieve an accurate approximation. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large \cite{PRODCONVMYPAPER}. However, even with adaptive refinement, many $x_i$, and hence operator actions of $\Aop$, are required. 
 
-In this paper, we reduce the computational cost by picking points $x_i$ in a way that allows many $\phi_{x_i}$ to be computed with each operator action of $\Aop$. This requires us to estimate the supports of the $\phi_x$, \emph{before} we compute them. We were inspired by techniques from resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\phi_x$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $x$. If the width of $\phi_x$ is ten meters, then features of the parameter near $x$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\phi_x$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $x$, where $\zeta$ is a random noise funtion. Rather than probing $\Aop^T$ with random noise functions, we use polynomial functions (see Sections \ref{sec:intromoments} and \ref{eq:mean_and_covariance_estimation}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing, but our method requires that $\Aop$ has a positive integral kernel, while random noise probing does not have this requirement.
+In this paper, we reduce the computational cost further by picking points $x_i$ in a way that allows many $\phi_{x_i}$ to be computed with each operator action of $\Aop$. This requires us to estimate the supports of the $\phi_x$, \emph{before} we compute them. This idea was inspired by techniques from resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\phi_x$ is used to estimate the minimum length scale on which features of the parameter can be inferred near the point $x$. If the width of $\phi_x$ is ten meters, for instance, then features of the parameter near $x$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\phi_x$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $x$, where $\zeta$ is a random noise funtion. Rather than probing $\Aop^T$ with random noise functions, we use polynomial functions (see Sections \ref{sec:intromoments} and \ref{eq:mean_and_covariance_estimation}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing at the cost of the additional constraint that $\Aop$ has a positive integral kernel.
 
-Convolutions can be performed using the fast Fourier transform (FFT) \cite{PRODCONVFFT}, which allows PC approximations to be used as a fast surrogates for $\Aop$. Often it is necessary to perform further linear algebra operations involving $\Aop$, such as solving linear systems with $\Aop$ as the coefficient operator. Conventionally, one performs these linear algebra operations using Krylov methods, replacing $\Aop$ with its PC approximation \cite{PRODCONVKRYLOV}. The Krylov method is accelerated because performing matrix vector products with the product-convolution approximation is typically faster than performing operator actions with $\Aop$. However, there are several problems with this approach. First, the number of Krylov iterations can be large, particularly when $\Aop$ is high-rank. Second, complicated geometries are rarely discretized using regular grids, so using the FFT to perform convolutions requires transferring discretized functions back and forth between the irregular mesh and a regular grid. Third, the computational cost grows with the number of convolution kernels used. Thus, it is desirable to convert the PC approximation to other matrix formats that are amenable to faster linear algebra operations. Wavelet compression methods have been used for this purpose \cite{PRODCONVWAVELETS}, because operators that are amenable to PC approximation are often sparse in the wavelet domain. Convolution-product approximations (transposes of PC approximations) are equivalent to low rank approximation of the pseudo-differential symbol of the operator, so one could perform linear algebra operations involving PC approximations using fast methods for pseudo-differential operator symbol calculus \cite{YINGDEMANET}. Other matrix-free operator approximation methods based on wavelets \cite{HERRMANN} and pseudo-differential operators \cite{DEMANET} do not use PC approximation. Here, we follow our previous work \cite{PRODCONVMYPAPER}, in which we converted PC approximations into H-matrix format. 
+Conventionally, PC approximations are applied to vectors using the fast Fourier transform (FFT) \cite{PRODCONVFFT}, which allows PC approximations to be used as a fast surrogates for $\Aop$. Often it is necessary to perform further linear algebra operations involving $\Aop$, such as solving linear systems with $\Aop$ as the coefficient operator. One may perform these linear algebra operations using Krylov methods, replacing $\Aop$ with its PC approximation \cite{PRODCONVKRYLOV}. The Krylov method is accelerated because performing matrix vector products with the product-convolution approximation is typically faster than performing operator actions with $\Aop$. However, there are several problems with this approach. First, the number of Krylov iterations can be large, particularly when $\Aop$ is high-rank. Second, complicated geometries are rarely discretized using regular grids, so using the FFT to perform convolutions requires transferring discretized functions back and forth between the irregular mesh and a regular grid. Third, the computational cost grows with the number of convolution kernels used. Thus, it is desirable to convert the PC approximation to other matrix formats that are amenable to faster linear algebra operations. Wavelet compression methods have been used for this purpose \cite{PRODCONVWAVELETS}, because operators that are amenable to PC approximation are often sparse in the wavelet domain. 
+While not commonly done, in theory linear algebra operations involving convolution-product approximations (transposes of PC approximations) could be done using fast methods for pseudo-differential operator symbol calculus \cite{YINGDEMANET} since these are equivalent to low rank approximation of the pseudo-differential symbol of the operator. There are other relevant matrix-free operator approximation methods based on wavelets \cite{HERRMANN} and pseudo-differential operators \cite{DEMANET}, however these do not use PC approximation. 
 
-Since our end goal is constructing an H-matrix, we are freed from strict adherence to the PC format. This allows us to modify the PC approach to address well-known deficiencies. PC approximations are based on an assumption of local translation invariance \cite{LOCATRANSLATIONINVARIANCE}, while our method is based on an assumption that we call ``normalized local mean displacement invariance,'' which is more general than local translation invariance, and includes both low rank approximation and local translation invariance as special cases (see Section \ref{sec:local_mean_displacement_invariance}). PC approximations have well-known issues near boundaries called boundary artifacts, which are caused by the boundary artificially ``cutting off'' impulse responses. In our method we do not have an issue with boundary artifacts because we temporarily exclude impulse responses from the approximation procedure whenever the approximation procedure attempts to evaluate the impulse response at a location where it is undefined. In exchange for these benefits, our approximation cannot be written as a weighted sum of convolution operators, so we cannot apply our approximation to vectors via the FFT. This is fine because our approximation is an H-matrix, which can be applied to vectors even faster.
+In this paper, we build on previous work \cite{PRODCONVMYPAPER}, in which we converted PC approximations into H-matrix format. Since our end goal is constructing an H-matrix, we are freed from strict adherence to the PC format. This allows us to modify the PC approach to make the following improvements:
+\begin{itemize}
+\item PC approximations are based on an assumption of local translation invariance \cite{LOCATRANSLATIONINVARIANCE}, while the method we propose is based on an assumption that we call ``normalized local mean displacement invariance.'' This is more general than local translation invariance, and includes both low rank approximation and local translation invariance as special cases (see Section \ref{sec:local_mean_displacement_invariance}). 
+\item PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulse responses. We avoid this issue by temporarily excluding impulse responses from the approximation procedure whenever the approximation procedure attempts to evaluate the impulse response at a location where it is undefined. 
+\end{itemize}
+In exchange for these improvements, the proposed approximation cannot be written as a weighted sum of convolution operators, hence we cannot apply this approximation to vectors via the FFT. However, since our approximation is an H-matrix, it can be applied to vectors efficiently via H-matrix methods.
 
-Since we are building an H-matrix approximation of $\Aop$, it is natural to ask why we need to compute impulse responses and interpolate them. Why not build the H-matrix directly? The reason is that classical H-matrix construction methods \cite{HMATRIXCONSTRUCTION} require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. Our impulse response interpolation lets us quickly compute approximations to matrix entries, which allows us to use these classical H-matrix construction methods. There are newer matrix-free methods for H-matrix approximation based on the so-called ``peeling process'' \cite{LEXINGPEELINGPROCESS}, and these methods have been used to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{ILONAHMATRIX,NOEMIHMATRIX}. While these matrix-free H-matrix construction methods are asymptotically scalable in theory, in practice the required number of matrix vector products is unreasonably large. Matrix-free H-matrix construction methods are currently a topic of considerable research, so future algorithmic improvements may make matrix-free H-matrix methods more feasible in the future. 
+Since we are building an H-matrix approximation of $\Aop$, it is natural to ask why we compute impulse responses and interpolate them. Why not build the H-matrix directly? The reason is that \emph{classical H-matrix construction methods \cite{HMATRIXCONSTRUCTION} require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products}. The impulse response interpolation allows fast evaluation of approximate matrix entries needed by the classical H-matrix construction methods. Latest developments and improvements in matrix-free H-matrix construction and approximation are based on the so-called ``peeling process'' \cite{LEXINGPEELINGPROCESS}. These methods have, for instance, been applied to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{ILONAHMATRIX,NOEMIHMATRIX}. One issue with this approach is that, while these matrix-free H-matrix construction methods are asymptotically scalable in theory, in practice the required number of matrix vector products is large\footnote{DO CALCULATION}. Matrix-free H-matrix construction methods are currently a topic of considerable research, so future algorithmic improvements may make matrix-free H-matrix methods based on the peeling process more feasible in the future. 
 
 
-\section{Main concepts}
+\subsection{Finite element discretization}
+\label{sec:finite_element_kernel}
+
+Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element\footnote{While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead, with minor modifications to our method.} basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise. For $u_h \in V_h$ we write $\bm{u}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$. I.e., 
+\begin{equation}
+\label{eq:fem_coeff_basis}
+u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x).
+\end{equation}
+
+
+The interpolation of $\Phi$ onto $V_h \otimes V_h$, which we denote by $\Phi^h$, is given as follows:
+\begin{equation}
+\label{eq:defn_of_Akerpcmesh}
+\Phi(y,x) \approx \Phi^h(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \Phi(p_i,p_j) \febasis_i(y) \febasis_j(x).
+\end{equation}
+Replacing $\Aker$ with $\Phi^h$ within the definition of $\Aop$ in \eqref{eq:kernel_representation}, then performing straightforward algebraic manipulations (see Appendix \ref{app:proofs} for details), yields the following approximation:
+\begin{equation}
+\label{eq:kernel_representation_pcmesh}
+(\Aop u_h)(v_h) \approx \int_\Omega \int_\Omega v_h(y) \Phi^h(y,x) u_h(x) dx dy
+= \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u}.
+\end{equation}
+where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the following dense matrix of kernel entries evaluated at all pairs of Lagrange nodes:
+\begin{equation}
+\label{eq:Akerpcmat_entries}
+\mathbf{\Phi}_{ij} := \Phi(p_i, p_j),
+\end{equation}
+and $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ is the sparse finite element mass matrix which has entries
+\begin{equation*}
+\bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx.
+\end{equation*}
+Our matrix representation, $\mathbf{A}$, of $\Aop$ is therefore given by
+\begin{equation}
+\label{eq:Amatpc_defn}
+\mathbf{A} = \bm{M} \mathbf{\Phi} \bm{M}.
+\end{equation}
+Note that $\mathbf{A}$ is not exactly the Galerkin projection of $\Aop$ onto $V_h$ because of the approximation $\Phi^h \approx \Phi$. Hence, $\mathbf{A}$ may differ slightly from the implicitly defined matrix that performs the mapping $\mathbf{u} \rightarrow \mathbf{v}$ corresponding to the discrete version of the operator action $v=\Aop u$. 
+
+Because $\Aop$ is only available matrix-free and $\Phi$ is only defined implicitly in terms of $\Aop$, the matrices $\mathbf{A}$ and $\mathbf{\Phi}$ are not easily accessible. Directly computing and storing these matrices is computationally intractible. The primary goal of this paper is building an H-matrix approximation $\mathbf{A}_H$ of $\mathbf{A}$, using a small number of operator actions of $\Aop$ and $\Aop^T$.
+
+%After discretization with finite elements\footnote{While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead, with minor modifications to our method.} (Section \ref{sec:finite_element_kernel}), $\Aop$ and $\Phi$ become large dense matrices $\mathbf{A}$ and $\mathbf{\Phi}$, respectively. 
+
+
+
+
+\section{Efficient matrix-free approximation of operators via impulse response interpolation: main ideas}
 \label{sec:prerequisites}
 
 In this section we present three main concepts that our method is based on. The method itself will be presented in Section \ref{sec:method}. First, we define moments of the impulse responses, $\phi_x$, and show how these moments can be computed efficiently (Section \ref{sec:intromoments}). Our method will use these moments extensively. Second, we present ellipsoid shaped a-priori estimates for the supports of the impulse responses (Section \ref{eq:mean_and_covariance_estimation}). Our method will use these ellipsoid estimates to choose sets of impulse responses that can be computed in batches. Third, we describe a method of approximating impulse responses by other nearby impulse responses, which we call ``normalized local mean displacement invariance'' (Section \ref{sec:local_mean_displacement_invariance}). Our method will interpolate impulse responses using this approximation. 
@@ -265,13 +315,11 @@ We use approximation \eqref{eq:translate4}, which is the same as \eqref{eq:trans
 
 
 
-\section{Method}
+\section{Efficient matrix-free approximation of operators via impulse response interpolation: construction of the H-matrix}
 \label{sec:method}
 
-After discretization with finite elements\footnote{While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead, with minor modifications to our method.} (Section \ref{sec:finite_element_kernel}), $\Aop$ and $\Phi$ become large dense matrices $\mathbf{A}$ and $\mathbf{\Phi}$, respectively. Because $\Aop$ is only available matrix-free and $\Phi$ is only defined implicitly in terms of $\Aop$, the matrices $\mathbf{A}$ and $\mathbf{\Phi}$ are not easily accessible. Directly computing and storing these matrices is computationally intractible. In this section, we present our method for constructing accessible H-matrix approximations, $\mathbf{A}_H$ and $\mathbf{\Phi}_H$ of $\mathbf{A}$ and $\mathbf{\Phi}$, respectively, using a small number of operator actions of $\Aop$ and $\Aop^T$. 
+In this section, we present our method for constructing accessible H-matrix approximations, $\mathbf{A}_H$ and $\mathbf{\Phi}_H$ of $\mathbf{A}$ and $\mathbf{\Phi}$, respectively, using a small number of operator actions of $\Aop$ and $\Aop^T$. 
 
-\subsection{Overview}
-\label{sec:method_overview}
 
 Algorithm \ref{alg:varhpi_mean_cov} from Section \ref{sec:intromoments} allows us to compute $V$, $\mu$, and $\Sigma$ by applying $\Aop^T$ to a small number of polynomial functions, and \eqref{eq:support_ellipsoid} from Section \ref{eq:mean_and_covariance_estimation} uses $V$, $\mu$, and $\Sigma$ to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute the impulse response batch $\eta_b$ by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because these supports do not overlap, we can post-process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated to get more batches, until a desired number of impulse responses is reached.
 
@@ -318,44 +366,6 @@ The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \re
 	\label{alg:construct_Atilde}
 \end{algorithm2e}
 
-
-
-\subsection{Finite element discretization}
-\label{sec:finite_element_kernel}
-
-Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise. For $u_h \in V_h$ we write $\bm{u}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$. I.e., 
-\begin{equation}
-\label{eq:fem_coeff_basis}
-u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x).
-\end{equation}
-
-
-The interpolation of $\Phi$ onto $V_h \otimes V_h$, which we denote by $\Phi^h$, is given as follows:
-\begin{equation}
-\label{eq:defn_of_Akerpcmesh}
-\Phi(y,x) \approx \Phi^h(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \Phi(p_i,p_j) \febasis_i(y) \febasis_j(x).
-\end{equation}
-Replacing $\Aker$ with $\Phi^h$ within the definition of $\Aop$ in \eqref{eq:kernel_representation}, then performing straightforward algebraic manipulations (see Appendix \ref{app:proofs} for details), yields the following approximation:
-\begin{equation}
-\label{eq:kernel_representation_pcmesh}
-(\Aop u_h)(v_h) \approx \int_\Omega \int_\Omega v_h(y) \Phi^h(y,x) u_h(x) dx dy
-= \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u}.
-\end{equation}
-where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the following dense matrix of kernel entries evaluated at all pairs of Lagrange nodes:
-\begin{equation}
-\label{eq:Akerpcmat_entries}
-\mathbf{\Phi}_{ij} := \Phi(p_i, p_j),
-\end{equation}
-and $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ is the sparse finite element mass matrix which has entries
-\begin{equation*}
-\bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx.
-\end{equation*}
-Our matrix representation, $\mathbf{A}$, of $\Aop$ is therefore given by
-\begin{equation}
-\label{eq:Amatpc_defn}
-\mathbf{A} = \bm{M} \mathbf{\Phi} \bm{M}.
-\end{equation}
-Note that $\mathbf{A}$ is not exactly the Galerkin projection of $\Aop$ onto $V_h$ because of the approximation $\Phi^h \approx \Phi$. Hence, $\mathbf{A}$ may differ slightly from the implicitly defined matrix that performs the mapping $\mathbf{u} \rightarrow \mathbf{v}$ corresponding to the discrete version of the operator action $v=\Aop u$. 
 
 
 \subsection{Sample point selection via greedy ellipsoid packing}
