@@ -155,48 +155,58 @@ Since we are building an H-matrix approximation of $\Aop$, it is natural to ask 
 \subsection{Finite element discretization}
 \label{sec:finite_element_kernel}
 
-Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element\footnote{While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead, with minor modifications to our method.} basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise. For $u_h \in V_h$ we write $\bm{u}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$. I.e., 
+In computations, functions are discretized and replaced by finite dimensional vectors, and operators mapping between infinite dimensional spaces are replaced by operators mapping between finite dimensional spaces. In this paper we discretize using finite elements. With minor modifications, our method could be used with other discretization schemes such as finite differences or finite volumes.
+
+Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space under the $L^2$ inner product, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise. Further, let $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ denote the sparse finite element mass matrix which has entries
+\begin{equation*}
+\bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx.
+\end{equation*}
+For $u_h \in V_h \subset L^2(\Omega)$ we write $\bm{u} \in \mathbb{R}^N_\mathbf{M}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$, i.e.,
 \begin{equation}
 \label{eq:fem_coeff_basis}
 u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x).
 \end{equation}
+Linear functionals $\rho_h \in V_h' \supset L^2(\Omega)'$ have coefficient dual vectors $\boldsymbol{\rho}\in \mathbb{R}^N_{\mathbf{M}^{-1}}$, with entries $\left(\boldsymbol{\rho}_h\right)_i = \rho_h(\febasis_i)$ for $i=1,\dots,N$. Here $\mathbb{R}^N_\mathbf{M}$ is the vector space $\mathbb{R}^N$ with the inner product $(\mathbf{u},\mathbf{v})_\mathbf{M} := \mathbf{u}^T \mathbf{M} \mathbf{v}$, and $\mathbb{R}^N_{\mathbf{M}^{-1}}$ is the analogous space with $\mathbf{M}^{-1}$ replacing $\mathbf{M}$. Direct calculation shows that $\mathbf{R}^N_\mathbf{M}$ and $\mathbf{R}^N_{\mathbf{M}^{-1}}$ are isomorphic to $V_h$ and $V_h'$ as Hilbert spaces, respectively, in the sense that $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u}, \mathbf{v}\right)_\mathbf{M}$, $\left(\mu_h, \nu_h\right)_{L^2(\Omega)} = \left(\boldsymbol{\mu}, \boldsymbol{\nu}\right)_{\mathbf{M}^{-1}}$, and $\mu_h(u) = \boldsymbol{\mu}^T\mathbf{u}$, for $u_h,v_h \in V_h$ and $\mu_h, \nu_h \in V_h'$. The Riesz representation $\mu_h^* \in V_h$ of $\mu \in V_h'$ becomes $\boldsymbol{\mu}^* = \mathbf{M}^{-1} \boldsymbol{\mu}$. After Galerkin approximation, the operator $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$ becomes an operator $\mathbf{A}:\mathbb{R}^N_\mathbf{M} \rightarrow \mathbb{R}^N_{\mathbf{M}^{-1}}$ which has matrix entries $\mathbf{A}_{ij} = \left(\Aop \febasis_j\right)(\febasis_i)$. Notice that $\mathbf{A}$ is dense, and computing one matrix entry $\mathbf{A}_{ij}$ requires an action of $\Aop$, which is already computationally expensive (though we get the entire $j$th column as a side effect of computing $\mathbf{A}_{ij}$). Hence methods for approximating $\mathbf{A}$ are computationally intractable if they require accessing scattered matrix entries from many different rows and columns of $\mathbf{A}$. Computing and storing a matrix representation of $\mathbf{A}$ is out of the question.
 
+If functions in $V_h$ are continuous at $x$, then the delta distribution $\delta_x$ is a continuous linear functional on $V_h$, which has a discrete dual vector $\boldsymbol{\delta} \in V_h'$ with entries $\boldsymbol{\delta}_i = \febasis_i(x)$, $i=1,\dots,N$. The Riesz representative of the discrete delta distribution is $\boldsymbol{\delta}^* = \mathbf{M}^{-1} \boldsymbol{\delta}_x$, and the formula for the impulse response from \eqref{eq:impulse_response_delta_action} becomes $\boldsymbol{\impulseresponse}_x = \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_x$.
+
+
+\subsubsection{Discretized integral kernel}
 
 The interpolation of $\Phi$ onto $V_h \otimes V_h$, which we denote by $\Phi^h$, is given as follows:
 \begin{equation}
 \label{eq:defn_of_Akerpcmesh}
 \Phi(y,x) \approx \Phi^h(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \Phi(p_i,p_j) \febasis_i(y) \febasis_j(x).
 \end{equation}
-Replacing $\Aker$ with $\Phi^h$ within the definition of $\Aop$ in \eqref{eq:kernel_representation}, then performing straightforward algebraic manipulations (see Appendix \ref{app:proofs} for details), yields the following approximation:
+Replacing $\Aker$ with $\Phi^h$ within the definition of $\Aop$ in \eqref{eq:kernel_representation}, then performing straightforward algebraic manipulations, yields the following approximation:
 \begin{equation}
 \label{eq:kernel_representation_pcmesh}
 (\Aop u_h)(v_h) \approx \int_\Omega \int_\Omega v_h(y) \Phi^h(y,x) u_h(x) dx dy
-= \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u}.
+= \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u},
 \end{equation}
 where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the following dense matrix of kernel entries evaluated at all pairs of Lagrange nodes:
 \begin{equation}
 \label{eq:Akerpcmat_entries}
 \mathbf{\Phi}_{ij} := \Phi(p_i, p_j),
 \end{equation}
-and $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ is the sparse finite element mass matrix which has entries
-\begin{equation*}
-\bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx.
-\end{equation*}
-Our matrix representation, $\mathbf{A}$, of $\Aop$ is therefore given by
+Based on \eqref{eq:kernel_representation_pcmesh}, we define the following matrix approximation, $\widetilde{\mathbf{A}} \approx \mathbf{A}$ as follows:
 \begin{equation}
 \label{eq:Amatpc_defn}
-\mathbf{A} = \bm{M} \mathbf{\Phi} \bm{M}.
+\widetilde{\mathbf{A}} = \bm{M} \mathbf{\Phi} \bm{M}.
 \end{equation}
-Note that $\mathbf{A}$ is not exactly the Galerkin projection of $\Aop$ onto $V_h$ because of the approximation $\Phi^h \approx \Phi$. Hence, $\mathbf{A}$ may differ slightly from the implicitly defined matrix that performs the mapping $\mathbf{u} \rightarrow \mathbf{v}$ corresponding to the discrete version of the operator action $v=\Aop u$. 
-
-Because $\Aop$ is only available matrix-free and $\Phi$ is only defined implicitly in terms of $\Aop$, the matrices $\mathbf{A}$ and $\mathbf{\Phi}$ are not easily accessible. Directly computing and storing these matrices is computationally intractible. The primary goal of this paper is building an H-matrix approximation $\mathbf{A}_H$ of $\mathbf{A}$, using a small number of operator actions of $\Aop$ and $\Aop^T$.
+Note that $\widetilde{\mathbf{A}}$ differs slightly from $\mathbf{A}$ (the Galerkin projection of $\Aop$ onto $V_h$) because of the approximation $\Phi^h \approx \Phi$. 
+%Hence, $\mathbf{A}$ may differ slightly from the implicitly defined matrix that performs the mapping $\mathbf{u} \rightarrow \mathbf{v}$ corresponding to the discrete version of the operator action $v=\Aop u$. 
+%Because $\Aop$ is only available matrix-free and $\Phi$ is only defined implicitly in terms of $\Aop$, 
+The matrices $\widetilde{\mathbf{A}}$ and $\mathbf{\Phi}$ are, of course, not easily accessible.  
+%The primary goal of this paper is building an H-matrix approximation $\mathbf{A}_H$ of $\widetilde{\mathbf{A}}$, using a small number of operator actions of $\Aop$ and $\Aop^T$.
 
 %After discretization with finite elements\footnote{While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead, with minor modifications to our method.} (Section \ref{sec:finite_element_kernel}), $\Aop$ and $\Phi$ become large dense matrices $\mathbf{A}$ and $\mathbf{\Phi}$, respectively. 
 
+\subsubsection{Lumped mass matrix and discrete kernel non-negativity}
 
 
 
-\section{Efficient matrix-free approximation of operators via impulse response interpolation: main ideas}
+\section{Key innovations}
 \label{sec:prerequisites}
 
 In this section we present three main concepts that our method is based on. The method itself will be presented in Section \ref{sec:method}. First, we define moments of the impulse responses, $\phi_x$, and show how these moments can be computed efficiently (Section \ref{sec:intromoments}). Our method will use these moments extensively. Second, we present ellipsoid shaped a-priori estimates for the supports of the impulse responses (Section \ref{eq:mean_and_covariance_estimation}). Our method will use these ellipsoid estimates to choose sets of impulse responses that can be computed in batches. Third, we describe a method of approximating impulse responses by other nearby impulse responses, which we call ``normalized local mean displacement invariance'' (Section \ref{sec:local_mean_displacement_invariance}). Our method will interpolate impulse responses using this approximation. 
@@ -315,10 +325,10 @@ We use approximation \eqref{eq:translate4}, which is the same as \eqref{eq:trans
 
 
 
-\section{Efficient matrix-free approximation of operators via impulse response interpolation: construction of the H-matrix}
+\section{Method}
 \label{sec:method}
 
-In this section, we present our method for constructing accessible H-matrix approximations, $\mathbf{A}_H$ and $\mathbf{\Phi}_H$ of $\mathbf{A}$ and $\mathbf{\Phi}$, respectively, using a small number of operator actions of $\Aop$ and $\Aop^T$. 
+%In this section, we present our method for constructing accessible H-matrix approximations, $\mathbf{A}_H$ and $\mathbf{\Phi}_H$ of $\mathbf{A}$ and $\mathbf{\Phi}$, respectively, using a small number of operator actions of $\Aop$ and $\Aop^T$. 
 
 
 Algorithm \ref{alg:varhpi_mean_cov} from Section \ref{sec:intromoments} allows us to compute $V$, $\mu$, and $\Sigma$ by applying $\Aop^T$ to a small number of polynomial functions, and \eqref{eq:support_ellipsoid} from Section \ref{eq:mean_and_covariance_estimation} uses $V$, $\mu$, and $\Sigma$ to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute the impulse response batch $\eta_b$ by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because these supports do not overlap, we can post-process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated to get more batches, until a desired number of impulse responses is reached.
