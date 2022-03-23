@@ -253,44 +253,77 @@ The following results (derived in Appendix \ref{app:proofs}) follow straightforw
 	\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
 	\end{align}
 \end{subequations}
-for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$. Here $f/g$ denotes pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denotes pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The resulting method form computing $V$, $\mu$, and $\Sigma$ is shown in Algorithm \ref{alg:varhpi_mean_cov}.
+for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$. Here $f/g$ denotes pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denotes pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The resulting method for computing discretized versions of $V$, $\mu$, and $\Sigma$ is shown in Algorithm \ref{alg:varhpi_mean_cov}.
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
 	\SetKwInOut{Input}{Input}
 	\SetKwInOut{Output}{Output}
 	{	
-		\Input{Operator $\Aop$}
-		\Output{$\spatialvol$, $\spatialmean$, and $\spatialcov$}
+		\Input{Operator $\bm{A}^T$}
+		\Output{$\bm{\spatialvol}\in \mathbb{R}^\fedim$, $\bm{\spatialmean}\in \mathbb{R}^{\gdim \times \fedim}$, and $\bm{\spatialcov} \in \mathbb{R}^{\gdim \times \gdim \times \fedim}$}
 		
-		\tcp{Compute scaling factor $\spatialvol$}
+		Form vector $\bm{C} \in \mathbb{R}^\fedim_{\bm{M}}$ by either projecting or interpolating constant function $C(x)=1$ onto $V_h$
 		
-		Form constant function $C(x)=1$
+		$\bm{\spatialvol} \gets \bm{M}^{-1}\bm{A}^T \bm{C}$
 		
-		Compute $\spatialvol = \left(\Aop^T C\right)^*$
-		
-		\tcp{Compute mean $\spatialmean$}
 		\For{$i=1,2,\dots,\gdim$}{
-			Form linear function $L^i(x) = x^i$
+			Form vector $\bm{L}^i \in \mathbb{R}^\fedim_{\bm{M}}$ by either projecting or interpolating linear function $L^i(x) = x^i$ onto $V_h$
 			
-			Compute $\spatialmean^i = \left(\Aop^T L^i\right)^* / \spatialvol$
+			$\bm{\spatialmean}^i \gets \left(\bm{M}^{-1}\bm{A}^T \bm{L}^i\right) / \bm{\spatialvol}$
 		}
-		\tcp{Compute covariance $\spatialcov$}
 		\For{$i=1,2,\dots,\gdim$}{
 			\For{$j=1,\dots,i$}{
-				Form quadratic function $Q^{ij}(x) = x^i x^j$
+				Form quadratic function $\bm{Q}^{ij} = x^i x^j$
 				
-				Compute $\spatialcov^{ij} = \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j$
+				$\bm{\spatialcov}^{ij} \gets \left(\bm{M}^{-1}\bm{A}^T \bm{Q}^{ij}\right) / \bm{\spatialvol} - \bm{\spatialmean}^i\cdot \bm{\spatialmean}^j$
 				
-				Set $\spatialcov^{ji} = \spatialcov^{ij}$
+				$\bm{\spatialcov}^{ji} \gets \bm{\spatialcov}^{ij}$
 				
 			}
 		}
 		
 	}
-	\caption{Compute scaling factor $\spatialvol$, mean $\spatialmean$, and covariance $\spatialcov$}
+	\caption{Compute discretized scaling factor $\mathbf{V}$, mean $\boldsymbol{\mu}$, and covariance $\boldsymbol{\Sigma}$}
 	\label{alg:varhpi_mean_cov}
 \end{algorithm2e}
+
+%\begin{algorithm2e}
+%	\SetAlgoNoLine
+%	\SetKwInOut{Input}{Input}
+%	\SetKwInOut{Output}{Output}
+%	{	
+%		\Input{Operator $\Aop$}
+%		\Output{$\spatialvol$, $\spatialmean$, and $\spatialcov$}
+%		
+%		\tcp{Compute scaling factor $\spatialvol$}
+%		
+%		Form constant function $C(x)=1$
+%		
+%		Compute $\spatialvol = \left(\Aop^T C\right)^*$
+%		
+%		\tcp{Compute mean $\spatialmean$}
+%		\For{$i=1,2,\dots,\gdim$}{
+%			Form linear function $L^i(x) = x^i$
+%			
+%			Compute $\spatialmean^i = \left(\Aop^T L^i\right)^* / \spatialvol$
+%		}
+%		\tcp{Compute covariance $\spatialcov$}
+%		\For{$i=1,2,\dots,\gdim$}{
+%			\For{$j=1,\dots,i$}{
+%				Form quadratic function $Q^{ij}(x) = x^i x^j$
+%				
+%				Compute $\spatialcov^{ij} = \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j$
+%				
+%				Set $\spatialcov^{ji} = \spatialcov^{ij}$
+%				
+%			}
+%		}
+%		
+%	}
+%	\caption{Compute scaling factor $\spatialvol$, mean $\spatialmean$, and covariance $\spatialcov$}
+%	\label{alg:varhpi_mean_cov}
+%\end{algorithm2e}
 
 
 %\subsection{Impulse response support ellipsoids}
@@ -367,7 +400,7 @@ The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \re
 		\Input{Linear operator $\Aop$, parameter $\text{max\_batches}$}
 		\Output{H-matrix $\mathbf{A}_H$ (optionally, $\mathbf{A}_H^{\text{sym}+}$)}
 		
-		Compute $\spatialvol$, $\spatialmean$, and $\spatialcov$ using Algorithm \ref{alg:varhpi_mean_cov}.
+		Compute $\bm{\spatialvol}$, $\bm{\spatialmean}$, and $\bm{\spatialcov}$ using Algorithm \ref{alg:varhpi_mean_cov}.
 		
 		\For{$k=1,2,\dots,\text{max\_batches}$}{
 			Choose a batch of sample points, $\pointbatch_k$, using Algorithm \ref{alg:point_choice}
@@ -398,7 +431,7 @@ We start with a finite set of candidate points $P$ and build $\pointbatch_k$ inc
 Once $p$ is selected, we remove $p$ from $P$. Then we perform the following two checks:
 \begin{enumerate}
 	\item We check whether $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in \pointbatch_k$.
-	\item We make sure that $V(p)$ is not too small, by checking whether $V(p) > \tau V_\text{max}$. Here $V_\text{max}$ is the largest value of $V(q)$ over all points $q$ in the initial set of candidate points, and $\tau$ is a small threshold parameter (we use $\tau=10^{-5}$).
+	\item We make sure that $V(p)$ is not too small, by checking whether $V(p) > \epsilon V_\text{max}$. Here $V_\text{max}$ is the largest value of $V(q)$ over all points $q$ in the initial set of candidate points, and $\tau$ is a small threshold parameter (we use $\epsilon=10^{-5}$).
 \end{enumerate}
 If $p$ passes both these checks (i.e., if $p$ is sufficiently far from other points in the batch, and $V(p)$ is not too small) then we add $p$ to $\pointbatch_k$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We check whether $E_p \cap E_q = \{\}$ using the ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
 
