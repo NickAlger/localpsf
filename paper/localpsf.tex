@@ -608,6 +608,26 @@ We form $\mathbf{\Phi}_H$ using the standard geometrical clustering/adaptive cro
 
 WORK IN PROGRESS BELOW HERE!!!
 
+\begin{tabular}{lll}
+	Variable name & Approximate size & Variable \\
+	\hline
+	$N$ & $10^3$--$10^9$ & Number of finite element degrees of freedom \\
+	$b$ & $5$--$25$ & number of impulse response batches \\
+	$r$ & $10$--$30$ & H-matrix rank \\
+	$k$ & $5$--$15$ & number of nearest neighbors \\
+	$\{\eta_b\}_{b=1}^\text{num\_batches}$ & $\text{num\_batches}$ actions of $\mathcal{A}$
+\end{tabular}
+
+$k_\text{hmatrix}$, $k_\text{nbrs}$, $k_\text{batches}$
+
+\begin{tabular}{ll}
+	$V$ & $1$ action of $\mathcal{A}^T$ \\
+	$\mu$ & $d$ actions of $\mathcal{A}^T$ \\
+	$\Sigma$ & $d(d+1)/2$ actions of $\mathcal{A}^T$ \\
+	$\{\eta_b\}_{b=1}^\text{num\_batches}$ & $\text{num\_batches}$ actions of $\mathcal{A}$
+\end{tabular}
+
+
 Computing $V$, $\mu$, and $\Sigma$ require $1$, $d$, and $d(d+1)/2$ operator actions of $\Aop$, respectively. Computing the impulse response batches $\eta_b$ requires one operator action of $\Aop$ per batch. Picking the sample points 
 
 In the non-symmetric case, evaluating $\widetilde{\Phi}(y,x)$ requires us to perform one $k$-nearest neighbor query of the KD-tree of sample points, $k$ point collision queries of the AABB-tree of mesh cells, and solve a $k \times k$ linear system. In the symmetric case, we must perform two $k$-nearest neighbor queries of the KD-tree of sample points, $2k$ point collision queries of the AABB-tree of mesh cells, and solve a $4k \times 2k$ linear least squares problem via QR factorization. Both of these cases require $O(k \log r + k \log N_\text{cell} + k^3)$ work, where $r$ is the number of sample points, and $N_\text{cell}$ is the number of cells in the mesh used to discretize the problem. Since $k$ is small, this is cheap.
