@@ -158,12 +158,12 @@ Since we are building an H-matrix approximation of $\Aop$, it is natural to ask 
 In computations, functions are discretized and replaced by finite dimensional vectors, and operators mapping between infinite dimensional spaces are replaced by operators mapping between finite dimensional spaces. In this paper we discretize using continuous Galerkin finite elements satisfying the Kronecker property (defined below). With minor modifications, our method could be used with more general finite element methods, or other discretization schemes such as finite differences or finite volumes.
 
 Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of continuous Galerkin finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space under the $L^2$ inner product, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. We assume that the finite element basis satisfies the Kronecker property, i.e., $\febasis_i(p_i)=1$ and $\febasis_i(p_j)=0$ if $i\neq j$. 
-For $u_h \in V_h \subset L^2(\Omega)$ we write $\bm{u} \in \mathbb{R}^N_\mathbf{M}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$, i.e.,
+For $u_h \in V_h$ we write $\bm{u} \in \mathbb{R}^N_\mathbf{M}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$, i.e.,
 \begin{equation}
 \label{eq:fem_coeff_basis}
 u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x).
 \end{equation}
-Linear functionals $\rho_h \in V_h' \supset L^2(\Omega)'$ have coefficient dual vectors $\boldsymbol{\rho}\in \mathbb{R}^N_{\mathbf{M}^{-1}}$, with entries 
+Linear functionals $\rho_h \in V_h'$ have coefficient dual vectors $\boldsymbol{\rho}\in \mathbb{R}^N_{\mathbf{M}^{-1}}$, with entries 
 \begin{equation*}
 \boldsymbol{\rho}_i = \rho_h(\febasis_i), \qquad i=1,\dots,N. 
 \end{equation*}
