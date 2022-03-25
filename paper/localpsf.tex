@@ -189,6 +189,7 @@ Of course, matrix entries can be computed via a matrix-vector products as $\math
 %\mathbf{A}_{ij} = \left(\mathbf{A}\mathbf{e}_j\right)_i,
 %\end{equation*}
 where $\mathbf{e}_j=(0,\dots,0,1,0,\dots,0)^T$ is the length $N$ unit vector with one in the $j$th coordinate and zeros elsewhere. But computing the matrix-vector product $\mathbf{e}_j \mapsto \mathbf{A}\mathbf{e}_j$ is costly, and therefore wasteful if we do not use other matrix entries in the $j$th column of $\mathbf{A}$. Hence, methods for approximating $\mathbf{A}$ are computationally intractable if they require accessing scattered matrix entries from many different rows and columns of $\mathbf{A}$. 
+
 The operator $A_h:V_h \rightarrow V_h'$ can be written in integral kernel form as
 \begin{equation}
 (A_h u_h)(v_h) := \int_\Omega \int_\Omega v_h(y) \Phi_h(y,x) u_h(x) dx dy
@@ -299,7 +300,7 @@ denote the spatially varying scaling factor, and let $\mu:\Omega \rightarrow \ma
 \spatialmean(x) := \mathbb{E}(\impulseresponse_x / V(x)), \qquad
 \spatialcov(x) := \Var(\impulseresponse_x /V(x)),
 \end{equation*}
-to be the spatially varying mean and covariance of the normalized version of $\impulseresponse_x$, respectively. Imagine $\phi_x$ as a mound of dirt piled on a localized region in $\Omega$, with $\phi_x(y)$ being the height of the dirt mound at location $y$. The scalar $V(x)$ is the total volume of dirt in the mound, the vector $\mu(x)$ is the center of mass of the dirt mound, and the matrix $\Sigma(x)$ contains information about how wide the dirt mound is in each spatial direction. 
+be the spatially varying mean and covariance of the normalized version of $\impulseresponse_x$, respectively. Imagine $\phi_x$ as a mound of dirt piled on a localized region in $\Omega$, with $\phi_x(y)$ being the height of the dirt mound at location $y$. The scalar $V(x)$ is the total volume of dirt in the mound, the vector $\mu(x)$ is the center of mass of the dirt mound, and the matrix $\Sigma(x)$ contains information about how wide the dirt mound is in each spatial direction. 
 
 The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because it requires one operator action of $\Aop$ per point $x$, and our method will need to know $V(x)$, $\mu(x)$, and $\Sigma(x)$ at all points $x$. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. Specifically, let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$, and let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
 \begin{equation*}
