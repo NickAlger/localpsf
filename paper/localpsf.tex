@@ -155,66 +155,129 @@ Since we are building an H-matrix approximation of $\Aop$, it is natural to ask 
 \subsection{Finite element discretization}
 \label{sec:finite_element_kernel}
 
-In computations, functions are discretized and replaced by finite dimensional vectors, and operators mapping between infinite dimensional spaces are replaced by operators mapping between finite dimensional spaces. In this paper we discretize using finite elements. With minor modifications, our method could be used with other discretization schemes such as finite differences or finite volumes.
+In computations, functions are discretized and replaced by finite dimensional vectors, and operators mapping between infinite dimensional spaces are replaced by operators mapping between finite dimensional spaces. In this paper we discretize using continuous Galerkin finite elements satisfying the Kronecker property (defined below). With minor modifications, our method could be used with more general finite element methods, or other discretization schemes such as finite differences or finite volumes.
 
-Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space under the $L^2$ inner product, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. That is, the points such that $\febasis_i(p_j)$ equals one if $i=j$, and zero otherwise. Further, let $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ denote the sparse finite element mass matrix which has entries
-\begin{equation*}
-\bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx.
-\end{equation*}
+Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of continuous Galerkin finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space under the $L^2$ inner product, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. We assume that the finite element basis satisfies the Kronecker property, i.e., $\febasis_i(p_i)=1$ and $\febasis_i(p_j)=0$ if $i\neq j$. 
 For $u_h \in V_h \subset L^2(\Omega)$ we write $\bm{u} \in \mathbb{R}^N_\mathbf{M}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$, i.e.,
 \begin{equation}
 \label{eq:fem_coeff_basis}
 u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x).
 \end{equation}
-Linear functionals $\rho_h \in V_h' \supset L^2(\Omega)'$ have coefficient dual vectors $\boldsymbol{\rho}\in \mathbb{R}^N_{\mathbf{M}^{-1}}$, with entries $\left(\boldsymbol{\rho}_h\right)_i = \rho_h(\febasis_i)$ for $i=1,\dots,N$. Here $\mathbb{R}^N_\mathbf{M}$ is the vector space $\mathbb{R}^N$ with the inner product $(\mathbf{u},\mathbf{v})_\mathbf{M} := \mathbf{u}^T \mathbf{M} \mathbf{v}$, and $\mathbb{R}^N_{\mathbf{M}^{-1}}$ is the analogous space with $\mathbf{M}^{-1}$ replacing $\mathbf{M}$. Direct calculation shows that $\mathbf{R}^N_\mathbf{M}$ and $\mathbf{R}^N_{\mathbf{M}^{-1}}$ are isomorphic to $V_h$ and $V_h'$ as Hilbert spaces, respectively, in the sense that $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u}, \mathbf{v}\right)_\mathbf{M}$, $\left(\rho_h, \nu_h\right)_{L^2(\Omega)} = \left(\boldsymbol{\rho}, \boldsymbol{\nu}\right)_{\mathbf{M}^{-1}}$, and $\rho_h(u) = \boldsymbol{\rho}^T\mathbf{u}$, for $u_h,v_h \in V_h$ and $\rho_h, \nu_h \in V_h'$. The Riesz representation $\rho_h^* \in V_h$ of $\rho \in V_h'$ becomes $\boldsymbol{\rho}^* = \mathbf{M}^{-1} \boldsymbol{\rho}$. 
+Linear functionals $\rho_h \in V_h' \supset L^2(\Omega)'$ have coefficient dual vectors $\boldsymbol{\rho}\in \mathbb{R}^N_{\mathbf{M}^{-1}}$, with entries 
+\begin{equation*}
+\left(\boldsymbol{\rho}_h\right)_i = \rho_h(\febasis_i), \qquad i=1,\dots,N. 
+\end{equation*}
+Here $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ denotes the sparse finite element mass matrix which has entries
+\begin{equation*}
+\bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx, \qquad i,j=1,\dots,N,
+\end{equation*}
+the space $\mathbb{R}^N_\mathbf{M}$ is $\mathbb{R}^N$ with the inner product $(\mathbf{u},\mathbf{v})_\mathbf{M} := \mathbf{u}^T \mathbf{M} \mathbf{v}$, and $\mathbb{R}^N_{\mathbf{M}^{-1}}$ is the analogous space with $\mathbf{M}^{-1}$ replacing $\mathbf{M}$. Direct calculation shows that $\mathbf{R}^N_\mathbf{M}$ and $\mathbf{R}^N_{\mathbf{M}^{-1}}$ are isomorphic to $V_h$ and $V_h'$ as Hilbert spaces, respectively.
+%, in the sense that $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u}, \mathbf{v}\right)_\mathbf{M}$, $\left(\rho_h, \nu_h\right)_{L^2(\Omega)} = \left(\boldsymbol{\rho}, \boldsymbol{\nu}\right)_{\mathbf{M}^{-1}}$, and $\rho_h(u) = \boldsymbol{\rho}^T\mathbf{u}$, for $u_h,v_h \in V_h$ and $\rho_h, \nu_h \in V_h'$. 
 
-After Galerkin approximation, the operator $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$ becomes an operator $\mathbf{A}:\mathbb{R}^N_\mathbf{M} \rightarrow \mathbb{R}^N_{\mathbf{M}^{-1}}$ which has matrix entries $\mathbf{A}_{ij} = \left(\Aop \febasis_j\right)(\febasis_i)$. Notice that $\mathbf{A}$ is dense, and computing one matrix entry $\mathbf{A}_{ij}$ requires an action of $\Aop$, which is already computationally expensive (though we get the entire $j$th column as a side effect of computing $\mathbf{A}_{ij}$). Hence methods for approximating $\mathbf{A}$ are computationally intractable if they require accessing scattered matrix entries from many different rows and columns of $\mathbf{A}$. Computing and storing a matrix representation of $\mathbf{A}$ is out of the question.
 
-If functions in $V_h$ are continuous at $x$, then the delta distribution $\delta_x$ is a continuous linear functional on $V_h$, which has a discrete dual vector $\boldsymbol{\delta} \in V_h'$ with entries $\boldsymbol{\delta}_i = \febasis_i(x)$ for $i=1,\dots,N$. The Riesz representative of the discrete delta distribution is $\boldsymbol{\delta}^* = \mathbf{M}^{-1} \boldsymbol{\delta}_x$, and the formula for the impulse response from \eqref{eq:impulse_response_delta_action} becomes 
+After discretization, the operator $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$ is replaced by an operator $A_h:V_h \rightarrow V_h'$, which becomes an operator
+\begin{equation*}
+\mathbf{A}:\mathbb{R}^N_\mathbf{M} \rightarrow \mathbb{R}^N_{\mathbf{M}^{-1}}
+\end{equation*}
+under the isomorphism discussed above. Our method is agnostic to the computational procedure for approximating $\Aop$ with $\mathbf{A}$. What is important is that we do not have direct access to matrix entries $\mathbf{A}_{ij}$. Rather, we have a computational procedure that allows us to compute matrix-vector products $\mathbf{u}\mapsto \mathbf{A}\mathbf{u}$, and computing these matrix-vector products is costly.
+%, and each of these matrix-vector products is costly to compute. 
+%For example, some computational procedures possess the Galerkin property, in which case $\mathbf{A}_{ij} = \left(\Aop \febasis_j\right)(\febasis_i)$. 
+%Our approximation method is agnostic to the computational procedure for performing these matrix-vector products. 
+%What is important is that $\mathbf{A}$ is dense, only available via matrix-vector products, and each of these matrix-vector products is costly to compute. 
+Of course, matrix entries can be computed via a matrix-vector products as $\mathbf{A}_{ij} = \left(\mathbf{A}\mathbf{e}_j\right)_i$,
+%\begin{equation*}
+%\mathbf{A}_{ij} = \left(\mathbf{A}\mathbf{e}_j\right)_i,
+%\end{equation*}
+where $\mathbf{e}_j=(0,\dots,0,1,0,\dots,0)^T$ is the length $N$ unit vector with one in the $j$th coordinate and zeros elsewhere. But computing the matrix-vector product $\mathbf{e}_j \mapsto \mathbf{A}\mathbf{e}_j$ is costly, and therefore wasteful if we do not use other matrix entries in the $j$th column of $\mathbf{A}$. Hence, methods for approximating $\mathbf{A}$ are computationally intractable if they require accessing scattered matrix entries from many different rows and columns of $\mathbf{A}$. 
+The operator $A_h:V_h \rightarrow V_h'$ can be written in integral kernel form as
+\begin{equation}
+(A_h u_h)(v_h) := \int_\Omega \int_\Omega v_h(y) \Phi_h(y,x) u_h(x) dx dy
+\end{equation}
+for some kernel $\Phi_h$ which may differ from $\Phi$ due to discretization error. Since the functions $V_h$ are continuous at $x$, the delta distribution $\delta_x$ is a continuous linear functional on $V_h$, which has a discrete dual vector $\boldsymbol{\delta}_x \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ with entries $\left(\boldsymbol{\delta}_x\right)_i = \febasis_i(x)$ for $i=1,\dots,N$. Additionally, it is straightforward to show that the Riesz representation, $\rho_h^* \in V_h$, of a functional $\rho \in V_h'$ has coefficient vector
+\begin{equation*}
+\boldsymbol{\rho}^* = \mathbf{M}^{-1} \boldsymbol{\rho}.
+\end{equation*}
+Therefore, the formula for the impulse response from \eqref{eq:impulse_response_delta_action} becomes 
 \begin{equation}
 \label{eq:discrete_kernel}
-\boldsymbol{\impulseresponse}_x = \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_x.
+\boldsymbol{\impulseresponse}_x = \left(A_h \delta_x^*\right)^* =  \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_x,
 \end{equation}
-
-
-\subsubsection{Discretized integral kernel}
-
-The interpolation of $\Phi$ onto $V_h \otimes V_h$, which we denote by $\Phi^h$, is given as follows:
+and the $(y,x)$ kernel entry of $\Phi_h$ may be written as
 \begin{equation}
-\label{eq:defn_of_Akerpcmesh}
-\Phi(y,x) \approx \Phi^h(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \Phi(p_i,p_j) \febasis_i(y) \febasis_j(x).
+\label{eq:approx_kernel_entry_81}
+	\Phi_h(y,x) = \boldsymbol{\delta}_y^T \boldsymbol{\impulseresponse}_x = \boldsymbol{\delta}_y^T \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_x.
 \end{equation}
-Replacing $\Aker$ with $\Phi^h$ within the definition of $\Aop$ in \eqref{eq:kernel_representation}, then performing straightforward algebraic manipulations, yields the following approximation:
-\begin{equation}
-\label{eq:kernel_representation_pcmesh}
-(\Aop u_h)(v_h) \approx \int_\Omega \int_\Omega v_h(y) \Phi^h(y,x) u_h(x) dx dy
-= \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u},
-\end{equation}
-where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the following dense matrix of kernel entries evaluated at all pairs of Lagrange nodes:
+Let $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ be the following dense matrix of kernel entries evaluated at all pairs of Lagrange nodes:
 \begin{equation}
 \label{eq:Akerpcmat_entries}
-\mathbf{\Phi}_{ij} := \Phi(p_i, p_j),
+\mathbf{\Phi}_{ij} := \Phi_h(p_i, p_j).
 \end{equation}
-Based on \eqref{eq:kernel_representation_pcmesh}, we define the following matrix approximation, $\widetilde{\mathbf{A}} \approx \mathbf{A}$ as follows:
+Because of the Kronecker property of the finite element basis, we have $\boldsymbol{\delta}_{p_i} = \mathbf{e}_i$. Thus from \eqref{eq:approx_kernel_entry_81} we have
+$
+	\Phi_h(p_i,p_j) = \left(\mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1}\right)_{ij},
+$
+which implies
 \begin{equation}
-\label{eq:Amatpc_defn}
-\widetilde{\mathbf{A}} = \bm{M} \mathbf{\Phi} \bm{M}.
+\label{eq:boldA}
+	\mathbf{A} = \bm{M} \mathbf{\Phi} \bm{M}.
 \end{equation}
-Note that $\widetilde{\mathbf{A}}$ differs slightly from $\mathbf{A}$ (the Galerkin projection of $\Aop$ onto $V_h$) because of the approximation $\Phi^h \approx \Phi$. 
-%Hence, $\mathbf{A}$ may differ slightly from the implicitly defined matrix that performs the mapping $\mathbf{u} \rightarrow \mathbf{v}$ corresponding to the discrete version of the operator action $v=\Aop u$. 
-%Because $\Aop$ is only available matrix-free and $\Phi$ is only defined implicitly in terms of $\Aop$, 
-The matrices $\widetilde{\mathbf{A}}$ and $\mathbf{\Phi}$ are, of course, not easily accessible.  
-%The primary goal of this paper is building an H-matrix approximation $\mathbf{A}_H$ of $\widetilde{\mathbf{A}}$, using a small number of operator actions of $\Aop$ and $\Aop^T$.
+Broadly, our method will construct an H-matrix approximation of $\mathbf{A}$ by forming H-matrix approximations of $\boldsymbol{\Phi}$ and $\mathbf{M}$ (or a lumped mass version of $\mathbf{M}$), then multiplying these matrices per \eqref{eq:boldA}. The central challenge is that classical H-matrix construction methods require access to arbitrary matrix entries $\mathbf{\Phi}_{ij}$, but these matrix entries are not easily accessible. The bulk of our method is therefore dedicated to forming approximations of these matrix entries that can be evaluated rapidly.
 
-%After discretization with finite elements\footnote{While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead, with minor modifications to our method.} (Section \ref{sec:finite_element_kernel}), $\Aop$ and $\Phi$ become large dense matrices $\mathbf{A}$ and $\mathbf{\Phi}$, respectively. 
+
+%\begin{align*}
+%	\text{continuous} \quad &\longrightarrow \quad \text{discrete} \\
+%	\delta_x \quad &\longrightarrow \quad \boldsymbol{\delta}_x \\
+%	\delta_x^* \quad &\longrightarrow \quad \mathbf{M}^{-1}\boldsymbol{\delta}_x \\
+%	\Aop \delta_x^* \quad &\longrightarrow \quad \mathbf{A}\mathbf{M}^{-1}\boldsymbol{\delta}_x \\
+%	\impulseresponse_x = \left(\Aop \delta_x^*\right)^* \quad &\longrightarrow \quad \mathbf{M}^{-1}\mathbf{A}\mathbf{M}^{-1}\boldsymbol{\delta}_x = \boldsymbol{\impulseresponse}_x \\
+%	\Phi(y,x) \quad &\longrightarrow \quad \boldsymbol{\delta}_y^T\mathbf{M}^{-1}\mathbf{A}\mathbf{M}^{-1}\boldsymbol{\delta}_x
+%\end{align*}
+%Since the Lagrange finite element nodes have the Kronecker property, that is $\febasis_i(p_i) = 1$ and $\febasis_i(p_j) = 1$ for $i \neq j$, the vector $\boldsymbol{\delta}_{p_i}$ is the unit vector with one in the $i$'th component and zeros in all other components. Hence
+%\begin{equation*}
+%	\Phi(p_i,p_j) = \left(\mathbf{M}^{-1}\mathbf{A}\mathbf{M}^{-1}\right)_{ij}
+%\end{equation*}
+
+
+%\subsubsection{Discretized integral kernel}
+%
+%The interpolation of $\Phi$ onto $V_h \otimes V_h$, which we denote by $\Phi^h$, is given as follows:
+%\begin{equation}
+%\label{eq:defn_of_Akerpcmesh}
+%\Phi(y,x) \approx \Phi^h(y,x) := \sum_{i=1}^\fedim \sum_{j=1}^\fedim \Phi(p_i,p_j) \febasis_i(y) \febasis_j(x).
+%\end{equation}
+%Replacing $\Aker$ with $\Phi^h$ within the definition of $\Aop$ in \eqref{eq:kernel_representation}, then performing straightforward algebraic manipulations, yields the following approximation:
+%\begin{equation}
+%\label{eq:kernel_representation_pcmesh}
+%(\Aop u_h)(v_h) \approx \int_\Omega \int_\Omega v_h(y) \Phi^h(y,x) u_h(x) dx dy
+%= \bm{v}^T \bm{M} \mathbf{\Phi} \bm{M} \bm{u},
+%\end{equation}
+%where $\mathbf{\Phi} \in \mathbb{R}^{\fedim \times \fedim}$ is the following dense matrix of kernel entries evaluated at all pairs of Lagrange nodes:
+%\begin{equation}
+%\label{eq:Akerpcmat_entries}
+%\mathbf{\Phi}_{ij} := \Phi(p_i, p_j),
+%\end{equation}
+%Based on \eqref{eq:kernel_representation_pcmesh}, we define the following matrix approximation, $\widetilde{\mathbf{A}} \approx \mathbf{A}$ as follows:
+%\begin{equation}
+%\label{eq:Amatpc_defn}
+%\widetilde{\mathbf{A}} = \bm{M} \mathbf{\Phi} \bm{M}.
+%\end{equation}
+%Note that $\widetilde{\mathbf{A}}$ differs slightly from $\mathbf{A}$ (the Galerkin projection of $\Aop$ onto $V_h$) because of the approximation $\Phi^h \approx \Phi$. 
+%%Hence, $\mathbf{A}$ may differ slightly from the implicitly defined matrix that performs the mapping $\mathbf{u} \rightarrow \mathbf{v}$ corresponding to the discrete version of the operator action $v=\Aop u$. 
+%%Because $\Aop$ is only available matrix-free and $\Phi$ is only defined implicitly in terms of $\Aop$, 
+%The matrices $\widetilde{\mathbf{A}}$ and $\mathbf{\Phi}$ are, of course, not easily accessible.  
+%%The primary goal of this paper is building an H-matrix approximation $\mathbf{A}_H$ of $\widetilde{\mathbf{A}}$, using a small number of operator actions of $\Aop$ and $\Aop^T$.
+%
+%%After discretization with finite elements\footnote{While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead, with minor modifications to our method.} (Section \ref{sec:finite_element_kernel}), $\Aop$ and $\Phi$ become large dense matrices $\mathbf{A}$ and $\mathbf{\Phi}$, respectively. 
 
 \subsubsection{Lumped mass matrix and discrete kernel non-negativity}
 
-At the continuum level, the integral kernel $\Phi$ is assumed to be non-negative. However, per \eqref{eq:discrete_kernel}, when we compute impulse responses we are effectively operating with a discrete integral kernel which has $(y,x)$ entry
-\begin{equation*}
-\boldsymbol{\delta}_y^T \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_x.
-\end{equation*}
-Even if the discretization $\Aop \rightarrow \mathbf{A}$ preserves integral kernel positivity, the inverse mass matrices $\mathbf{M}^{-1}$ will typically contain negative numbers. If there are too many negative numbers, or if the negative numbers are too large, our algorithm will be less robust. We therefore recommend replacing the mass matrix $\mathbf{M}$ with a positive diagonal \emph{lumped mass} approximation, and using the resulting lumped mass matrix everywhere throughout the approximation method. For typical finite element meshes, lumped mass matrix approximations are typically spectrally equivalent to the mass matrix \cite{MASSLUMP2}. In our numerical results, we use the lumped mass matrix constructed by replacing off-diagonal entries of the mass matrix by zero. Other more advanced mass lumping techniques may be used \cite{MASSLUMP2}.
+At the continuum level, the integral kernel $\Phi$ is assumed to be non-negative. However, when we compute impulse responses we are effectively operating with the discrete integral kernel shown in \eqref{eq:approx_kernel_entry_81}.
+%,  which has $(y,x)$ entry
+%\begin{equation*}
+%\boldsymbol{\delta}_y^T \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_x.
+%\end{equation*}
+%Even if the discretization $\Aop \rightarrow \mathbf{A}$ preserves integral kernel non-negativity (which it typically will not), 
+The inverse mass matrices in this formula, $\mathbf{M}^{-1}$, will typically contain negative numbers. If there are too many negative numbers, or if the negative numbers are too large, our algorithm will be less robust. We therefore recommend replacing the mass matrix $\mathbf{M}$ with a positive diagonal \emph{lumped mass} approximation, and using the resulting lumped mass matrix everywhere throughout the approximation method. For typical finite element meshes, lumped mass matrix approximations are spectrally equivalent to the mass matrix \cite{MASSLUMP2}. In our numerical results, we use the lumped mass matrix constructed by replacing off-diagonal entries of the mass matrix by zero. Other more advanced mass lumping techniques may be used \cite{MASSLUMP2}.
 
 
 \section{Key innovations}
@@ -593,7 +656,7 @@ We solve the regularized least squares problem by QR factorization of the block 
 \subsection{Hierarchical matrix construction}
 \label{sec:h_matrix_construction_short}
 
-We form our H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by forming H-matrix representations $\mathbf{\Phi}_H$ and $\bm{M}_H$ of $\mathbf{\Phi}$ and $\bm{M}$, respectively, then using fast H-matrix methods to multiply these matrices per \eqref{eq:Amatpc_defn} to form
+We form our H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by forming H-matrix representations $\mathbf{\Phi}_H$ and $\bm{M}_H$ of $\mathbf{\Phi}$ and $\bm{M}$, respectively, then using fast H-matrix methods to multiply these matrices per \eqref{eq:boldA} to form
 \begin{equation*}
 \mathbf{A}_H = \bm{M}_H \mathbf{\Phi}_H \bm{M}_H.
 \end{equation*}
