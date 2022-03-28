@@ -141,12 +141,12 @@ Latest developments and improvements in matrix-free H-matrix construction and ap
 
 \section{Setting}
 
-Let $\Omega \subset \mathbb{R}^d$ be a bounded domain (in applications typically $\gdim=1$, $2$, or $3$) and let $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ be an integral operator of the following form:
+Let $\Omega \subset \mathbb{R}^d$ be a bounded domain (in applications typically $\gdim=1$, $2$, or $3$). We seek to approximate integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ that may be written in the following form:
 \begin{equation}
 	\label{eq:kernel_representation}
 	(\Aop u)(v) := \int_\Omega \int_\Omega v(y) \Aker(y,x) u(x) dx dy.
 \end{equation}
-The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, $\Aop u \in L^2(\Omega)'$ is the linear functional that results from applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. 
+The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, which is not easily accessible to us. The linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. Here $L^2(\Omega)'$ denotes the topological dual of $L^2(\Omega)$ (space of all continuous linear functionals).
 
 %We seek to approximate operators $\Aop$ that are accessible \emph{matrix-free}. That is, we have a black-box computational procedure through which we may evaluate the maps
 %\begin{equation*}
@@ -154,7 +154,8 @@ The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral
 %\end{equation*} 
 %for arbitrary functions $u$ and $v$, but we cannot easily compute kernel entries $\Aker(y,x)$. In applications, evaluating these maps may involve iteratively solving a large linear system, timestepping, or performing some other nontrivial computational procedure. After discretization, $\Aop$ becomes a dense matrix that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means one can compute matrix-vector products with the matrix representation of $\Aop$, but cannot easily compute individual matrix entries.
 
-Our method, described in Section \ref{sec:method}, belongs to a class of methods that approximate an operator by interpolating impulse responses of the operator associated with a scattered collection of points. The \emph{impulse response} of $\Aop$ associated with the point $x$ is the function $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$, 
+%Our method, described in Section \ref{sec:method}, belongs to a class of methods that approximate an operator by interpolating impulse responses of the operator associated with a scattered collection of points. 
+The \emph{impulse response} of $\Aop$ associated with the point $x$ is the function $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$, 
 \begin{equation}
 \label{eq:impulse_response_defn}
 \impulseresponse_x(y) := \Aker(y, x),
@@ -166,11 +167,7 @@ which results from keeping $x$ fixed and viewing $\Phi(y,x)$ as a function of $y
 \end{equation}
 where $\delta_x$ is the the delta distribution (i.e., point source, impulse) centered at $x$, $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying $\Aop$ to the distribution $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\sigma \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\sigma^* \in L^2(\Omega)$ such that $\sigma(v) = \left(\sigma^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Aker$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}.
 
-We assume:
-\begin{itemize}
-	\item The supports of the impulse responses $\impulseresponse_x$ are contained (or approximately contained) in localized regions.
-	\item The integral kernel is non-negative in the sense that $$\Phi(y,x) \ge 0$$ for all (or nearly all) $(y,x) \in \Omega \times \Omega$.\footnote{Note that having a non-negative integral kernel is different from positive semi-definiteness. The operator $\Aop$ need not be positive semi-definite to use our method, and positive semi-definite operators need not have a non-negative integral kernel.}
-\end{itemize}
+We assume (1) the supports of the impulse responses $\impulseresponse_x$ are contained (or approximately contained) in localized regions, and (2) the integral kernel is non-negative in the sense that $$\Phi(y,x) \ge 0$$ for all (or nearly all) $(y,x) \in \Omega \times \Omega$.\footnote{Note that having a non-negative integral kernel is different from positive semi-definiteness. The operator $\Aop$ need not be positive semi-definite to use our method, and positive semi-definite operators need not have a non-negative integral kernel.}
 Because of these assumptions, we are able to estimate the supports of the impulse responses a-priori by applying $\Aop$ to a small number of polynomial functions. We use the support estimates to compute scattered impulse responses in batches (see Figure \ref{fig:batches_intro}). This batching allows us to recover many impulse responses using a small number of operator actions $u \mapsto \Aop u$. The support estimates also allow us to interpolate the impulse responses with a new more sophisticated and accurate interpolation scheme.
 
 
@@ -183,7 +180,7 @@ Because of these assumptions, we are able to estimate the supports of the impuls
 In computations, functions are discretized and replaced by finite dimensional vectors, and operators mapping between infinite dimensional spaces are replaced by operators mapping between finite dimensional spaces. In this paper we discretize using continuous Galerkin finite elements satisfying the Kronecker property (defined below). With minor modifications, our method could be used with more general finite element methods, or other discretization schemes such as finite differences or finite volumes.
 
 Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of continuous Galerkin finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space under the $L^2$ inner product, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. We assume that the finite element basis satisfies the Kronecker property, i.e., $\febasis_i(p_i)=1$ and $\febasis_i(p_j)=0$ if $i\neq j$. 
-For $u_h \in V_h$ we write $\bm{u} \in \mathbb{R}^N_\mathbf{M}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis $\febasis_1, \dots, \febasis_\fedim$, i.e.,
+For $u_h \in V_h$ we write $\bm{u} \in \mathbb{R}^N_\mathbf{M}$ to denote the coefficient vector for $u_h$ with respect to the finite element basis, i.e.,
 \begin{equation}
 \label{eq:fem_coeff_basis}
 u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x).
