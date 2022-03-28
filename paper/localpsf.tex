@@ -480,7 +480,7 @@ The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \re
 		(optional) Modify $\mathbf{A}_H$ to make $\mathbf{A}_H^{\text{sym}+}$ (Section \ref{sec:make_spd})
 		
 	}
-	\caption{Construct product-convolution H-matrix}
+	\caption{Construct H-matrix approximation}
 	\label{alg:construct_Atilde}
 \end{algorithm2e}
 
@@ -507,7 +507,7 @@ We repeat the process to construct several batches of points $\pointbatch_1, \po
 	\SetKwInOut{Output}{Output}
 	\SetKwProg{Fn}{Function}{}{}
 	
-	\Input{Finite set of candidate points $P\subset \Omega$, \\spatially varying mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, \\domain boundary information $\partial \Omega$, \\previous sample point batches $\pointbatch_1, \dots, \pointbatch_{k-1}$}
+	\Input{Finite set of candidate points $P\subset \Omega$, \\spatially varying mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, \\previous sample point batches $\pointbatch_1, \dots, \pointbatch_{k-1}$}
 	\Output{Batch of new sample points $\pointbatch_k$}
 	
 	Initialize empty new batch of sample points, $\pointbatch_k = \{\}$
@@ -518,7 +518,7 @@ We repeat the process to construct several batches of points $\pointbatch_1, \po
 		Remove $p$ from $P$
 
 	
-		\If{$E_p \cap E_q \neq \{\}$ for all $q \in \pointbatch_k$ and $E_p \cap \partial \Omega = \{\}$}{
+		\If{$E_p \cap E_q \neq \{\}$ for all $q \in \pointbatch_k$}{
 			\tcp{$E_p$ and $E_q$ are the ellipsoids defined in \eqref{eq:support_ellipsoid}}
 			
 			Add $p$ to $\pointbatch_k$
