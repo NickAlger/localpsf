@@ -1557,7 +1557,7 @@ It is important to note that functions in $H^2_N(\Omega)$ only have well-defined
 	
 	The proof now proceeds in three steps. First, we show that $v_*$ is feasible ($v_* \in X$). Second, we show that $v_*$ is the unique minimizer of \eqref{eq:wi_optimization_problem_generic} if it satisfies a certain variational equation. Third, we verify that $v_*$ satisfies this variational equation.
 	
-	\paragraph{Feasibility} To show that $v_*$ is feasible (i.e., $v_* \in X$), we must show that $v_* \in H^2_N(\Omega)$ and $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$. We already showed that $v_* \in H^2_N(\Omega)$ in Theorem \ref{thm:wi_no_breakdown}. Using the the definition of $v_*$ in \eqref{eq:optimal_v} and Lemma \ref{lem:S_matrix_characterizations}, we have
+	\paragraph{Feasibility} To show that $v_*$ is feasible (i.e., $v_* \in X$), we must show that $v_* \in H^2_N(\Omega)$ and $v_*(x_i) = \interpolatedvalues_i$ for $i=1,\dots,\convrank$. We already showed that $v_* \in H^2_N(\Omega)$ in Theorem \ref{thm:wi_no_breakdown}. Using the definition of $v_*$ in \eqref{eq:optimal_v} and Lemma \ref{lem:S_matrix_characterizations}, we have
 	\begin{equation*}
 	v_*(x_i) = \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \secondgreens_j(x_i)
 	= \constcoeff + \sum_{j=1}^\convrank \secondgreenscoeff_j \pointinteractionmatrix_{ij} = \left(\pointinteractionmatrix \bm{\secondgreenscoeff} + \constcoeff \bm{1}\right)_i.
