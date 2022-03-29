@@ -72,8 +72,18 @@ but we do not have any further access to $\Aop$. In particular, we cannot easily
 %\end{equation*} 
 %for arbitrary functions $u$ and $v$, but we cannot easily compute kernel entries $\Aker(y,x)$. In applications, evaluating these maps may involve iteratively solving a large linear system, timestepping, or performing some other nontrivial computational procedure. After discretization, $\Aop$ becomes a dense matrix that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means one can compute matrix-vector products with the matrix representation of $\Aop$, but cannot easily compute individual matrix entries.
 
+\begin{figure}
+	\begin{center}
+		\includegraphics[scale=0.4]{bct1.eps}
+	\end{center}
+	\caption{Hierarchical matrix block structure for the Stokes Hessian. The red blocks (tiny) are dense. All other blocks are low rank.
+	}
+	\label{fig:hmatrix_intro}
+\end{figure}
 
 The output of our method is a hierarchical matrix (H-matrix). H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank (see Figure \ref{fig:hmatrix_intro}). For more details about H-matrices, see Appendix \ref{app:h_matrix}. H-matrix methods permit us to perform matrix-vector products cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving the H-matrix that cannot easily be done using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. Since we are building an H-matrix, it is natural to ask why we do not build the H-matrix directly. The reason is that \emph{classical H-matrix construction methods \cite{HMATRIXCONSTRUCTION} require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products}.
+
+Recently there have been improvements in matrix-free H-matrix construction methods based on the so-called ``peeling process'' \cite{LEXINGPEELINGPROCESS}, which we do not use. These alternative methods have, for instance, been applied to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{ILONAHMATRIX,NOEMIHMATRIX}. One issue with this approach is that, while these methods are asymptotically scalable in theory, in practice the required number of matrix vector products is large\footnote{DO CALCULATION}. Matrix-free H-matrix construction methods are currently a topic of considerable research, so future algorithmic improvements may make matrix-free H-matrix methods based on the peeling process more efficient in the future. 
 
 \begin{figure}
 	\begin{subfigure}{0.32\textwidth}
@@ -95,16 +105,8 @@ The output of our method is a hierarchical matrix (H-matrix). H-matrices are a m
 	\label{fig:batches_intro}
 \end{figure}
 
-The basic idea behind our method is impulse response interpolation. The impulse response, $\phi_x$, associated with a point $x$ is the function that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with collections of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate these impulse responses to approximate arbitrary entries of the operator's integral kernel. This allows fast evaluation of approximate matrix entries, which are needed by the classical H-matrix construction methods.
+The basic idea behind our method is impulse response interpolation. The impulse response, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(v) = \left(\rho^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with collections of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate these impulse responses to approximate arbitrary entries of the operator's integral kernel. This allows fast evaluation of approximate matrix entries, which are needed by the classical H-matrix construction methods.
 
-\begin{figure}
-	\begin{center}
-		\includegraphics[scale=0.5]{bct1.eps}
-	\end{center}
-	\caption{Hierarchical matrix block structure for the Stokes Hessian. Red blocks are dense. All other blocks are low rank.
-	}
-	\label{fig:hmatrix_intro}
-\end{figure}
 
 %\subsection{Motivation: PDE constrained inverse problems}
 %\label{sec:PDE_hessian_motivation}
@@ -149,12 +151,11 @@ While not commonly done, in theory linear algebra operations involving convoluti
 
 In this paper, we build on previous work \cite{PRODCONVMYPAPER}, in which we converted PC approximations into H-matrix format. Since our end goal is constructing an H-matrix, we are freed from strict adherence to the PC format. This allows us to modify the PC approach to make the following improvements:
 \begin{itemize}
-	\item PC approximations are based on an assumption of local translation invariance \cite{LOCATRANSLATIONINVARIANCE}, while the method we propose is based on an assumption that we call ``normalized local mean displacement invariance'' (see Figure \ref{fig:mean_displacement_invariance}). This is more general than local translation invariance, and includes both low rank approximation and local translation invariance as special cases (see Section \ref{sec:local_mean_displacement_invariance}). 
+	\item PC approximations are based on an assumption of local translation invariance \cite{LOCATRANSLATIONINVARIANCE}, while the method we propose is based on an assumption that we call ``local mean displacement invariance'' (see Figure \ref{fig:mean_displacement_invariance}). This is more general than local translation invariance, and includes both low rank approximation and local translation invariance as special cases (see Section \ref{sec:local_mean_displacement_invariance}). 
 	\item PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulse responses. We avoid this issue by temporarily excluding impulse responses from the approximation procedure whenever the approximation procedure attempts to evaluate the impulse response at a location where it is undefined. 
 \end{itemize}
 In exchange for these improvements, the proposed approximation cannot be written as a weighted sum of convolution operators, hence we cannot apply this approximation to vectors via the FFT. However, since our approximation is an H-matrix, it can be applied to vectors efficiently via H-matrix methods.
 
-Recently there have been improvements in matrix-free H-matrix construction methods based on the so-called ``peeling process'' \cite{LEXINGPEELINGPROCESS}, which we do not use. These methods have, for instance, been applied to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{ILONAHMATRIX,NOEMIHMATRIX}. One issue with this approach is that, while these methods are asymptotically scalable in theory, in practice the required number of matrix vector products is large\footnote{DO CALCULATION}. Matrix-free H-matrix construction methods are currently a topic of considerable research, so future algorithmic improvements may make matrix-free H-matrix methods based on the peeling process more efficient in the future. 
 
 
 \section{Setting}
@@ -167,7 +168,8 @@ Let $\Omega \subset \mathbb{R}^d$ be a bounded domain (in applications typically
 The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, which exists in principle but is not easily accessible to us. 
 %We write $L^2(\Omega)'$ to denote the topological dual of $L^2(\Omega)$. 
 %The linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. 
-The action of $\Aop$ may be extended to distributions if the kernel $\Phi$ is sufficiently regular. We derive the extension as follows. Suppose $\rho \in L^2(\Omega)'$, and let $\rho^* \in L^2(\Omega)$ denote the Riesz representative\footnote{Recall that the Riesz representative of a functional $\sigma \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\sigma^* \in L^2(\Omega)$ such that $\sigma(v) = \left(\sigma^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} of $\rho$ with respect to the $L^2(\Omega)$ inner product. We have
+
+The action of $\Aop$ may be extended to distributions if the kernel $\Phi$ is sufficiently regular. We derive the extension as follows. Suppose $\rho \in L^2(\Omega)'$, and let $\rho^* \in L^2(\Omega)$ denote the Riesz representative of $\rho$ with respect to the $L^2(\Omega)$ inner product. We have
 \begin{subequations}
 	\label{eq:extension_to_distributions}
 	\begin{align}
