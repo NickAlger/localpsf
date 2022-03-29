@@ -71,9 +71,9 @@ but we do not have any further access to $\Aop$. In particular, we cannot easily
 %for arbitrary functions $u$ and $v$, but we cannot easily compute kernel entries $\Aker(y,x)$. In applications, evaluating these maps may involve iteratively solving a large linear system, timestepping, or performing some other nontrivial computational procedure. After discretization, $\Aop$ becomes a dense matrix that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means one can compute matrix-vector products with the matrix representation of $\Aop$, but cannot easily compute individual matrix entries.
 
 
-The output of our method is a hierarchical matrix (H-matrix). H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank. For more details about H-matrices, see Appendix \ref{app:h_matrix}. H-matrix methods permit us to perform matrix-vector products extremely cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving the H-matrix that cannot easily be done using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification.
+The output of our method is a hierarchical matrix (H-matrix). H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank. For more details about H-matrices, see Appendix \ref{app:h_matrix}. H-matrix methods permit us to perform matrix-vector products cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving the H-matrix that cannot easily be done using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification.
 
-Since we are building an H-matrix, it is natural to ask why we do not build the H-matrix directly. The reason is that \emph{classical H-matrix construction methods \cite{HMATRIXCONSTRUCTION} require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products}. The basic idea behind our method is constructing the H-matrix via impulse response interpolation. The impulse response, $\phi_x$, associated with a point $x$ is the function that results from applying $\Aop$ to a delta distribution (point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with collections of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate these impulse responses to evaluate arbitrary entries of the operator's integral kernel. This allows fast evaluation of approximate matrix entries needed by classical H-matrix construction methods.
+Since we are building an H-matrix, it is natural to ask why we do not build the H-matrix directly. The reason is that \emph{classical H-matrix construction methods \cite{HMATRIXCONSTRUCTION} require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products}. The basic idea behind our method is constructing the H-matrix via impulse response interpolation. The impulse response, $\phi_x$, associated with a point $x$ is the function that results from applying $\Aop$ to a delta distribution (point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with collections of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate these impulse responses to evaluate arbitrary entries of the operator's integral kernel. This allows fast evaluation of approximate matrix entries, which are needed by the classical H-matrix construction methods.
 
 \begin{figure}
 	\begin{subfigure}{0.32\textwidth}
@@ -113,7 +113,7 @@ Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function o
 \label{eq:minimization_problem}
 \min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + \mathcal{R}(m),
 \end{equation}
-where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $\mathcal{R}(m)$ is a regularization term. The objective function in optimization problem \eqref{eq:minimization_problem} is defined indirectly via the implicit function theorem. As a result, information about the Hessian of the objective function is only accessible via the action of the Hessian on vectors. In particular, applying the Hessian to a vector requires solving two PDEs \cite{HESSIANACTION}. More accessible approximations of the Hessian are highly desirable, because they allow for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. More accessible Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because inverse of the Hessian locally approximates the Bayesian posterior covariance for $m$. 
+where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $\mathcal{R}(m)$ is a regularization term. The objective function in optimization problem \eqref{eq:minimization_problem} is defined indirectly via the implicit function theorem. As a result, information about the Hessian of the objective function is only accessible via the action of the Hessian on vectors. In particular, applying the Hessian to a vector requires solving two linear PDEs which take the form of linearizations of \eqref{eq:state_pde} \cite{HESSIANACTION}. More accessible approximations of the Hessian are highly desirable, because they allow for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. More accessible Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because inverse of the Hessian locally approximates the Bayesian posterior covariance for $m$ \cite{LAPLACEAPPROXIMATION}. 
 
 
 %\subsection{Background}
@@ -127,7 +127,7 @@ The method proposed in this paper is not exactly a PC approximation, but it buil
 In this paper, we reduce the computational cost further by picking points $x_i$ in a way that allows many $\phi_{x_i}$ to be computed with each operator action of $\Aop$. This requires us to estimate the supports of the $\phi_x$, \emph{before} we compute them. This idea was inspired by techniques from resolution analysis in seismic imaging \cite{RESOLUTION}. In resolution analysis, $\Aop$ is the Hessian for a seismic inverse problem, and the width of $\phi_x$ is used to estimate the minimum length scale on which features of the parameter can be inferred near the point $x$. If the width of $\phi_x$ is ten meters, for instance, then features of the parameter near $x$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In \cite{RESOLUTION}, the width of $\phi_x$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $x$, where $\zeta$ is a random noise funtion. Rather than probing $\Aop^T$ with random noise functions, we use polynomial functions (see Section \ref{sec:intromoments}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing at the cost of the additional constraint that $\Aop$ has a positive integral kernel.
 
 Conventionally, PC approximations are applied to vectors using the fast Fourier transform (FFT) \cite{PRODCONVFFT}, which allows PC approximations to be used as a fast surrogates for $\Aop$. Often it is necessary to perform further linear algebra operations involving $\Aop$, such as solving linear systems with $\Aop$ as the coefficient operator. One may perform these linear algebra operations using Krylov methods, replacing $\Aop$ with its PC approximation \cite{PRODCONVKRYLOV}. The Krylov method is accelerated because performing matrix vector products with the product-convolution approximation is typically faster than performing operator actions with $\Aop$. However, there are several problems with this approach. First, the number of Krylov iterations can be large, particularly when $\Aop$ is high-rank. Second, complicated geometries are rarely discretized using regular grids, so using the FFT to perform convolutions requires transferring discretized functions back and forth between the irregular mesh and a regular grid. Third, the computational cost grows with the number of convolution kernels used. Thus, it is desirable to convert the PC approximation to other matrix formats that are amenable to faster linear algebra operations. Wavelet compression methods have been used for this purpose \cite{PRODCONVWAVELETS}, because operators that are amenable to PC approximation are often sparse in the wavelet domain. 
-While not commonly done, in theory linear algebra operations involving convolution-product approximations (transposes of PC approximations) could be done using fast methods for pseudo-differential operator symbol calculus \cite{YINGDEMANET} since these are equivalent to low rank approximation of the pseudo-differential symbol of the operator. There are other relevant matrix-free operator approximation methods based on wavelets \cite{HERRMANN} and pseudo-differential operators \cite{DEMANET}, however these do not use PC approximation. 
+While not commonly done, in theory linear algebra operations involving convolution-product approximations (transposes of PC approximations) could be done using fast methods for pseudo-differential operator symbol calculus \cite{YINGDEMANET} since these are equivalent to low rank approximation of the pseudo-differential symbol of the operator. We also note other relevant matrix-free operator approximation methods based on wavelets \cite{HERRMANN} and pseudo-differential operators \cite{DEMANET} which do not use PC approximation. 
 
 In this paper, we build on previous work \cite{PRODCONVMYPAPER}, in which we converted PC approximations into H-matrix format. Since our end goal is constructing an H-matrix, we are freed from strict adherence to the PC format. This allows us to modify the PC approach to make the following improvements:
 \begin{itemize}
@@ -136,7 +136,7 @@ In this paper, we build on previous work \cite{PRODCONVMYPAPER}, in which we con
 \end{itemize}
 In exchange for these improvements, the proposed approximation cannot be written as a weighted sum of convolution operators, hence we cannot apply this approximation to vectors via the FFT. However, since our approximation is an H-matrix, it can be applied to vectors efficiently via H-matrix methods.
 
-Latest developments and improvements in matrix-free H-matrix construction and approximation are based on the so-called ``peeling process'' \cite{LEXINGPEELINGPROCESS}. These methods have, for instance, been applied to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{ILONAHMATRIX,NOEMIHMATRIX}. One issue with this approach is that, while these matrix-free H-matrix construction methods are asymptotically scalable in theory, in practice the required number of matrix vector products is large\footnote{DO CALCULATION}. Matrix-free H-matrix construction methods are currently a topic of considerable research, so future algorithmic improvements may make matrix-free H-matrix methods based on the peeling process more feasible in the future. 
+Latest developments and improvements in matrix-free H-matrix construction and approximation are based on the so-called ``peeling process'' \cite{LEXINGPEELINGPROCESS}, which we do not use. These methods have, for instance, been applied to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{ILONAHMATRIX,NOEMIHMATRIX}. One issue with this approach is that, while these methods are asymptotically scalable in theory, in practice the required number of matrix vector products is large\footnote{DO CALCULATION}. Matrix-free H-matrix construction methods are currently a topic of considerable research, so future algorithmic improvements may make matrix-free H-matrix methods based on the peeling process more feasible in the future. 
 
 
 \section{Setting}
@@ -146,7 +146,43 @@ Let $\Omega \subset \mathbb{R}^d$ be a bounded domain (in applications typically
 	\label{eq:kernel_representation}
 	(\Aop u)(v) := \int_\Omega \int_\Omega v(y) \Aker(y,x) u(x) dx dy.
 \end{equation}
-The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, which is not easily accessible to us. The linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. Here $L^2(\Omega)'$ denotes the topological dual of $L^2(\Omega)$ (space of all continuous linear functionals).
+The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, which exists in principle but is not easily accessible to us. Here $L^2(\Omega)'$ denotes the topological dual of $L^2(\Omega)$. The linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. 
+
+The action of $\Aop$ may be extended to distributions if the kernel $\Phi$ is sufficiently regular. We derive the extension formally as follows. Suppose $\rho \in L^2(\Omega)'$, and let $\rho^* \in L^2(\Omega)$ denote the Riesz representative\footnote{Recall that the Riesz representative of a functional $\sigma \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\sigma^* \in L^2(\Omega)$ such that $\sigma(v) = \left(\sigma^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} of $\rho$ with respect to the $L^2(\Omega)$ inner product. We have
+\begin{align*}
+\left(\Aop \genericdistribution^*\right)(v) &= \int_\Omega \int_\Omega v(y) \Phi(y,x) \genericdistribution^*(x) dx dy \\
+&= \int_\Omega v(y) \int_\Omega \Phi(y,x) \genericdistribution^*(x) dx \\
+&= \int_\Omega v(y) \genericdistribution\left(\Phi(y,\cdot)\right) dy 
+%= \left(v,\genericdistribution\left(\Phi(y,\cdot)\right)\right)_{L^2(\Omega)},
+\end{align*}
+where $\Phi(y,\cdot)$ denotes the function $x \mapsto \Phi(y,x)$.
+Now let $\mathcal{D}(\Omega) \subset L^2(\Omega)$ be a suitable space of test functions. If instead $\rho:\mathcal{D}(\Omega) \rightarrow \mathbb{R}$ is a distribution, then the Riesz representative of $\rho$ may not exist, so the above derivation does not make sense. However, if $\Phi$ is sufficiently regular such that the function $y \mapsto \rho\left(\Phi(y,~\cdot~)\right)$ is well-defined for almost all $y\in\Omega$, and if this function is in $L^2(\Omega)$, then the last line in the derivation is well-defined. Hence, we use the last line of this derivation to \emph{define} the action of $\Aop$ on the distribution $\rho$ as follows:
+\begin{equation}
+\label{eq:action_on_distribution}
+\left(\Aop \genericdistribution^*\right)(v) := \int_\Omega v(y) \genericdistribution\left(\Phi(y, \cdot)\right) dy.
+\end{equation}
+Here ``$\Aop \genericdistribution^*$'' is an abuse of notation that means the action of $\Aop$ on the distribution $\rho$, per this definition. 
+
+%We assume that $\Phi$ is sufficiently regular such that the action of $\Aop$ on delta distributions is well-defined, because 
+
+
+%This is derived formally as follows:
+%\begin{align*}
+%\left(\Aop \genericdistribution^*\right)(v) &= \int_\Omega \int_\Omega v(y) \Phi(y,x) \textrm{``} \genericdistribution^*(x) \textrm{''} dx dy \\
+%&= \int_\Omega v(y) \int_\Omega \Phi(y,x) \textrm{``} \genericdistribution^*(x) \textrm{''} dx \\
+%&= \int_\Omega v(y) \genericdistribution\left(\Phi(y,\cdot)\right) dx.
+%\end{align*}
+%Here $\textrm{``}\rho^*\textrm{''}$ formally denotes the Riesz representative of $\rho$, which, of course, does not exist if $\rho$ is a pure distribution. 
+
+%an abuse of notation which views $\rho$ as a ``function'' of $x$, rather than a linear functional. That is, $\rho^*$ would be the Riesz representative of $\rho$, but for the obstruction that this Riesz representative does not exist on all of $L^2(\Omega)$.
+
+%For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, and the action of $\Aop$ on $\delta_x$ is given by
+%\begin{equation}
+%\label{eq:appendix_impulse_response}
+%\left(\Aop \delta_x^*\right)(v)	= \int_\Omega v(y) \Phi(y,x) dy.
+%\end{equation}
+%Recall that the impulse response of $\Aop$ to $\delta_x$, denoted $\impulseresponse_x$, is the Riesz representation of $\Aop \delta_x^*$. 
+%From \eqref{eq:appendix_impulse_response} and the definition of the Riesz representation, we have $\impulseresponse_x = A(~\cdot~,x)$. That is, $\impulseresponse_x$ is the function $y \mapsto A(y,x)$.
 
 %We seek to approximate operators $\Aop$ that are accessible \emph{matrix-free}. That is, we have a black-box computational procedure through which we may evaluate the maps
 %\begin{equation*}
@@ -155,20 +191,32 @@ The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral
 %for arbitrary functions $u$ and $v$, but we cannot easily compute kernel entries $\Aker(y,x)$. In applications, evaluating these maps may involve iteratively solving a large linear system, timestepping, or performing some other nontrivial computational procedure. After discretization, $\Aop$ becomes a dense matrix that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means one can compute matrix-vector products with the matrix representation of $\Aop$, but cannot easily compute individual matrix entries.
 
 %Our method, described in Section \ref{sec:method}, belongs to a class of methods that approximate an operator by interpolating impulse responses of the operator associated with a scattered collection of points. 
+Let $\delta_x$ denote the delta distribution\footnote{Recall that the delta distribution $\delta_x:\mathcal{D}(\Omega)\rightarrow \mathbb{R}$ is the linear functional defined by $\delta_x(v) = v(x)$ for all $v\in \mathcal{D}(\Omega)$.} (i.e., point source, impulse) $\delta_x$, centered at the point $x$.
 The \emph{impulse response} of $\Aop$ associated with the point $x$ is the function $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$, 
-\begin{equation}
-\label{eq:impulse_response_defn}
-\impulseresponse_x(y) := \Aker(y, x),
-\end{equation} 
-which results from keeping $x$ fixed and viewing $\Phi(y,x)$ as a function of $y$. The function $\impulseresponse_x$ is called the impulse response because straightforward analysis shows that it may be expressed as follows:
 \begin{equation}
 \label{eq:impulse_response_delta_action}
 \impulseresponse_x = \left( \Aop \delta_x^* \right)^*,
 \end{equation}
-where $\delta_x$ is the the delta distribution (i.e., point source, impulse) centered at $x$, $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying $\Aop$ to the distribution $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product.\footnote{Recall that the Riesz representative of a functional $\sigma \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\sigma^* \in L^2(\Omega)$ such that $\sigma(v) = \left(\sigma^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Aker$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}.
+that is formed by applying $\Aop$ to $\delta_x$, then taking the Riesz representation of the result. Using \eqref{eq:action_on_distribution} and the definition of the delta distribution, we also see that $\phi_x$ is the function
+\begin{equation}
+\label{eq:impulse_response_defn}
+\impulseresponse_x(y) := \Aker(y, x),
+\end{equation} 
+which results from keeping $x$ fixed and viewing $\Phi(y,x)$ as a function of $y$. 
 
-We assume (1) the supports of the impulse responses $\impulseresponse_x$ are contained (or approximately contained) in localized regions, and (2) the integral kernel is non-negative in the sense that $$\Phi(y,x) \ge 0$$ for all (or nearly all) $(y,x) \in \Omega \times \Omega$.\footnote{Note that having a non-negative integral kernel is different from positive semi-definiteness. The operator $\Aop$ need not be positive semi-definite to use our method, and positive semi-definite operators need not have a non-negative integral kernel.}
-Because of these assumptions, we are able to estimate the supports of the impulse responses a-priori by applying $\Aop$ to a small number of polynomial functions. We use the support estimates to compute scattered impulse responses in batches (see Figure \ref{fig:batches_intro}). This batching allows us to recover many impulse responses using a small number of operator actions $u \mapsto \Aop u$. The support estimates also allow us to interpolate the impulse responses with a new more sophisticated and accurate interpolation scheme.
+%The function $\impulseresponse_x$ is called the impulse response because, using \eqref{eq:action_on_distribution} and the definition of the delta function, we have:
+
+%where $\delta_x$ is the the delta distribution (i.e., point source, impulse) centered at $x$, $\Aop \delta_x^* \in L^2(\Omega)'$ is an abuse of notation that denotes the result of applying $\Aop$ to the distribution $\delta_x$, and $\left( \Aop \delta_x^* \right)^* \in L^2(\Omega)$ denotes the Riesz representation of $\Aop \delta_x^*$ with respect to the $L^2$ inner product. 
+
+%Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Aker$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}.
+
+In this paper, we focus on approximating operators that satisfy the following conditions: 
+\begin{enumerate}
+	\item The kernel $\Phi$ is sufficiently regular such that $\phi_x$ is a well-defined function for almost all $x\in \Omega$.
+	\item The supports of the impulse responses $\impulseresponse_x$ are contained (or approximately contained) in localized regions.
+	\item The integral kernel is non-negative in the sense that $$\Phi(y,x) \ge 0$$ for all (or nearly all) $(y,x) \in \Omega \times \Omega$.\footnote{Note that having a non-negative integral kernel is different from positive semi-definiteness. The operator $\Aop$ need not be positive semi-definite to use our method, and positive semi-definite operators need not have a non-negative integral kernel.}
+\end{enumerate}
+Because of these conditions, we are able to estimate the supports of the impulse responses a-priori by applying $\Aop^T$ \footnote{Recall that the transpose of $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ satisfying $\left(\Aop u\right)(v) = \left(\Aop^T v\right)(u)$ for all $u,v\in L^2(\Omega)$.} to a small number of polynomial functions (Section \ref{sec:intromoments}). We use the support estimates to compute scattered impulse responses in batches (Section \ref{sec:get_impulse_response}, also Figure \ref{fig:batches_intro}). This batching allows us to recover many impulse responses using a small number of operator actions $u \mapsto \Aop u$. The support estimates also allow us to interpolate the impulse responses with a new more sophisticated and accurate interpolation scheme (Sections \ref{sec:local_mean_displacement_invariance} and \ref{sec:approximate_kernel_entries}).
 
 
 
@@ -193,7 +241,7 @@ Here $\bm{M} \in \mathbb{R}^{\fedim \times \fedim}$ denotes the sparse finite el
 \begin{equation*}
 \bm{M}_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx, \qquad i,j=1,\dots,N,
 \end{equation*}
-the space $\mathbb{R}^N_\mathbf{M}$ is $\mathbb{R}^N$ with the inner product $(\mathbf{u},\mathbf{v})_\mathbf{M} := \mathbf{u}^T \mathbf{M} \mathbf{v}$, and $\mathbb{R}^N_{\mathbf{M}^{-1}}$ is the analogous space with $\mathbf{M}^{-1}$ replacing $\mathbf{M}$. Direct calculation shows that $\mathbf{R}^N_\mathbf{M}$ and $\mathbf{R}^N_{\mathbf{M}^{-1}}$ are isomorphic to $V_h$ and $V_h'$ as Hilbert spaces, respectively.
+the space $\mathbb{R}^N_\mathbf{M}$ is $\mathbb{R}^N$ with the inner product $(\mathbf{u},\mathbf{v})_\mathbf{M} := \mathbf{u}^T \mathbf{M} \mathbf{v}$, and $\mathbb{R}^N_{\mathbf{M}^{-1}}$ is the analogous space with $\mathbf{M}^{-1}$ replacing $\mathbf{M}$. Direct calculation shows that $\mathbb{R}^N_\mathbf{M}$ and $\mathbb{R}^N_{\mathbf{M}^{-1}}$ are isomorphic to $V_h$ and $V_h'$ as Hilbert spaces, respectively.
 %, in the sense that $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u}, \mathbf{v}\right)_\mathbf{M}$, $\left(\rho_h, \nu_h\right)_{L^2(\Omega)} = \left(\boldsymbol{\rho}, \boldsymbol{\nu}\right)_{\mathbf{M}^{-1}}$, and $\rho_h(u) = \boldsymbol{\rho}^T\mathbf{u}$, for $u_h,v_h \in V_h$ and $\rho_h, \nu_h \in V_h'$. 
 
 
@@ -201,7 +249,7 @@ After discretization, the operator $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$ i
 \begin{equation*}
 \mathbf{A}:\mathbb{R}^N_\mathbf{M} \rightarrow \mathbb{R}^N_{\mathbf{M}^{-1}}
 \end{equation*}
-under the isomorphism discussed above. Our method is agnostic to the computational procedure for approximating $\Aop$ with $\mathbf{A}$. What is important is that we do not have direct access to matrix entries $\mathbf{A}_{ij}$. Rather, we have a computational procedure that allows us to compute matrix-vector products $\mathbf{u}\mapsto \mathbf{A}\mathbf{u}$, and computing these matrix-vector products is costly.
+under the isomorphism discussed above. Our method is agnostic to the computational procedure for approximating $\Aop$ with $\mathbf{A}$. What is important is that we do not have direct access to matrix entries $\mathbf{A}_{ij}$. Rather, we have a computational procedure that allows us to compute matrix-vector products $\mathbf{u}\mapsto \mathbf{A}\mathbf{u}$ and $\mathbf{v}\mapsto \mathbf{A}^T\mathbf{v}$, and computing these matrix-vector products is costly.
 %, and each of these matrix-vector products is costly to compute. 
 %For example, some computational procedures possess the Galerkin property, in which case $\mathbf{A}_{ij} = \left(\Aop \febasis_j\right)(\febasis_i)$. 
 %Our approximation method is agnostic to the computational procedure for performing these matrix-vector products. 
@@ -455,7 +503,7 @@ We use approximation \eqref{eq:translate4}, which is the same as \eqref{eq:trans
 
 
 
-\section{Method}
+\section{Operator approximation algorithm}
 \label{sec:method}
 
 %In this section, we present our method for constructing accessible H-matrix approximations, $\mathbf{A}_H$ and $\mathbf{\Phi}_H$ of $\mathbf{A}$ and $\mathbf{\Phi}$, respectively, using a small number of operator actions of $\Aop$ and $\Aop^T$. 
