@@ -156,16 +156,20 @@ In exchange for these improvements, the proposed approximation cannot be written
 
 Recently there have been improvements in matrix-free H-matrix construction methods based on the so-called ``peeling process'' \cite{LEXINGPEELINGPROCESS}, which we do not use here. These alternative methods have, for instance, been applied to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{ILONAHMATRIX,NOEMIHMATRIX}. One issue with this approach is that, while these methods are asymptotically scalable in theory, in practice the required number of matrix vector products is large\footnote{DO CALCULATION}. Matrix-free H-matrix construction methods are currently a topic of considerable research, so future algorithmic improvements may make matrix-free H-matrix methods based on the peeling process more efficient in the future. 
 
-\section{Setting}
+\section{Preliminaries}
 
 Let $\Omega \subset \mathbb{R}^d$ be a bounded domain (in applications typically $\gdim=1$, $2$, or $3$). We seek to approximate integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ that may be written in the following form:
 \begin{equation}
-	\label{eq:kernel_representation}
-	(\Aop u)(v) := \int_\Omega \int_\Omega v(y) \Aker(y,x) u(x) dx dy.
+\label{eq:kernel_representation}
+(\Aop u)(v) := \int_\Omega \int_\Omega v(y) \Aker(y,x) u(x) dx dy.
 \end{equation}
-The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, which exists in principle but is not easily accessible to us. 
+The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, which exists in principle but is not easily accessible to us. In this section we describe how to extend the action of $\Aop$ to distributions , and define impulse responses (Section \ref{sec:impulse_response_2}). Then we state the conditions on $\Aop$ that our method requires (Section \ref{sec:conditions_2}). Finally, we detail finite element discretization (Section \ref{sec:finite_element_kernel}).
 %We write $L^2(\Omega)'$ to denote the topological dual of $L^2(\Omega)$. 
 %The linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. 
+
+
+\subsection{Action on distributions and impulse responses}
+\label{sec:impulse_response_2}
 
 The action of $\Aop$ may be extended to distributions if the kernel $\Phi$ is sufficiently regular. We derive the extension as follows. Suppose $\rho \in L^2(\Omega)'$, and let $\rho^* \in L^2(\Omega)$ denote the Riesz representative of $\rho$ with respect to the $L^2(\Omega)$ inner product. We have
 \begin{subequations}
@@ -237,7 +241,10 @@ which results from keeping $x$ fixed and viewing $\Phi(y,x)$ as a function of $y
 
 %Note that while the domain of $\Aop$ is defined as $L^2(\Omega)$, which does not contain $\delta_x$, if $\Aker$ is sufficiently regular then the action of $\Aop$ may be extended to distributions. This is described in Appendix \ref{app:distributions}.
 
-In this paper, we focus on approximating operators that satisfy the following conditions: 
+\subsection{Required conditions}
+\label{sec:conditions_2}
+
+We focus on approximating operators that satisfy the following conditions: 
 \begin{enumerate}
 	\item The kernel $\Phi$ is sufficiently regular such that $\phi_x$ is a well-defined function for all $x\in \Omega$.
 	\item The supports of the impulse responses $\impulseresponse_x$ are contained in localized regions.
@@ -368,7 +375,7 @@ Broadly, our method will construct an H-matrix approximation of $\mathbf{A}$ by 
 %
 %%After discretization with finite elements\footnote{While we use finite elements, other discretization schemes such as finite differences or finite volumes could be used instead, with minor modifications to our method.} (Section \ref{sec:finite_element_kernel}), $\Aop$ and $\Phi$ become large dense matrices $\mathbf{A}$ and $\mathbf{\Phi}$, respectively. 
 
-\subsubsection{Lumped mass matrix and discrete kernel non-negativity}
+%\subsubsection{Lumped mass matrix and discrete kernel non-negativity}
 
 At the continuum level, the integral kernel $\Phi$ is assumed to be non-negative. However, when we compute impulse responses we are effectively operating with the discrete integral kernel shown in \eqref{eq:approx_kernel_entry_81}.
 %,  which has $(y,x)$ entry
