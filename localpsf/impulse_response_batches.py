@@ -1,6 +1,7 @@
 import numpy as np
 import dolfin as dl
 import matplotlib.pyplot as plt
+from scipy.spatial import KDTree
 from tqdm.auto import tqdm
 
 from .impulse_response_moments import impulse_response_moments
@@ -14,7 +15,7 @@ class ImpulseResponseBatches:
     def __init__(me, V_in, V_out,
                  apply_A, apply_At,
                  num_initial_batches=5,
-                 tau=2.5,
+                 tau=3.0,
                  max_candidate_points=None,
                  use_lumped_mass_matrix_for_impulse_response_moments=True,
                  num_neighbors=10,
@@ -45,11 +46,17 @@ class ImpulseResponseBatches:
         me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
         me.dof_coords_out = me.V_out.tabulate_dof_coordinates()
 
+        N_out, d_out = me.dof_coords_out.shape
+
+        dof_coords_out_kdtree = KDTree(me.dof_coords_out)
+        closest_distances, _ = dof_coords_out_kdtree.query(me.dof_coords_out, 2)
+        sigma_mins = closest_distances[:,1].reshape((N_out,1)) # shape=(N,1)
+
         me.vertex2dof_out = dl.vertex_to_dof_map(me.V_out)
         me.dof2vertex_out = dl.dof_to_vertex_map(me.V_out)
 
-        eee0, PP = np.linalg.eigh(me.Sigma0)
-        eee = np.max([np.ones(eee0.shape)*sigma_min**2, eee0], axis=0)
+        eee0, PP = np.linalg.eigh(me.Sigma0) # eee0.shape=(N,d), PP.shape=(N,d,d)
+        eee = np.max([np.ones((1,d_out))*sigma_mins**2, eee0], axis=0)
         me.Sigma = np.einsum('nij,nj,nkj->nik', PP, eee, PP)
 
         mesh_vertex_vol   = [me.vol[k]       for k in me.vertex2dof_out]

@@ -7,7 +7,7 @@ import hlibpro_python_wrapper as hpro
 
 class ProductConvolutionKernel:
     def __init__(me, V_in, V_out, apply_A, apply_At, num_row_batches, num_col_batches,
-                 tau_rows=2.5, tau_cols=2.5,
+                 tau_rows=3.0, tau_cols=3.0,
                  num_neighbors_rows=10, num_neighbors_cols=10,
                  symmetric=False, gamma=1e-8, sigma_min=1e-6,
                  max_scale_discrepancy=1e2):
@@ -16,6 +16,7 @@ class ProductConvolutionKernel:
         me.apply_A = apply_A
         me.apply_At = apply_At
         me.max_scale_discrepancy = max_scale_discrepancy
+
 
         me.col_batches = ImpulseResponseBatches(V_in, V_out, apply_A, apply_At,
                                                 num_initial_batches=num_col_batches,
