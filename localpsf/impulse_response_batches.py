@@ -79,10 +79,11 @@ class ImpulseResponseBatches:
         min_vol = np.max(me.vol) / me.max_scale_discrepancy
         good_vol_inds = np.argwhere(me.vol > min_vol).reshape(-1)
 
-        good_Sigma_inds = np.argwhere(np.all(eee0 > sigma_min, axis=1)).reshape(-1)
+        # good_Sigma_inds = np.argwhere(np.all(eee0 > sigma_min, axis=1)).reshape(-1)
         # good_Sigma_inds = np.argwhere(np.linalg.det(me.Sigma0) > sigma_min).reshape(-1)
 
-        me.candidate_inds = np.intersect1d(good_Sigma_inds, good_vol_inds)
+        # me.candidate_inds = np.intersect1d(good_Sigma_inds, good_vol_inds)
+        me.candidate_inds = good_vol_inds
 
         if me.max_candidate_points is not None:
             me.candidate_inds = np.random.permutation(len(me.candidate_inds))[:max_candidate_points]
