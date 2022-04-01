@@ -24,6 +24,7 @@ tau = 2.5 # 4
 gamma = 1e-5
 sigma_min = 1e-6 # 1e-1 # minimum width of support ellipsoid
 num_random_error_matvecs = 50
+use_lumped_mass_matrix=True
 
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
@@ -50,7 +51,7 @@ PCK.col_batches.visualize_impulse_response_batch(0)
 
 ########    CREATE HMATRICES    ########
 
-A_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=True, hmatrix_tol=1e-3)
+A_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=True, hmatrix_tol=1e-3, use_lumped_mass_matrix=use_lumped_mass_matrix)
 
 Phi_pch = extras['A_kernel_hmatrix']
 A_pch_nonsym = extras['A_hmatrix_nonsym']

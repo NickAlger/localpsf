@@ -1,4 +1,5 @@
 import numpy as np
+import dolfin as dl
 
 from .product_convolution_kernel import ProductConvolutionKernel
 
@@ -26,24 +27,40 @@ def make_hmatrix_from_kernel( Phi_pc : ProductConvolutionKernel,
     print('Building A kernel hmatrix')
     A_kernel_hmatrix = Phi_pc.build_hmatrix(bct_kernel,tol=hmatrix_tol)
 
+    extras = {'A_kernel_hmatrix': A_kernel_hmatrix}
+
     print('Making input and output mass matrix hmatrices')
     if use_lumped_mass_matrix:
-        M_in_fenics = Phi_pc.col_batches.ML_in
-        M_out_fenics = Phi_pc.col_batches.ML_out
+        mass_lumps_in_fenics = dl.Vector()
+        Phi_pc.col_batches.ML_in.init_vector(mass_lumps_in_fenics,1)
+        Phi_pc.col_batches.ML_in.get_diagonal(mass_lumps_in_fenics)
+        mass_lumps_in = mass_lumps_in_fenics[:]
+
+        mass_lumps_out_fenics = dl.Vector()
+        Phi_pc.col_batches.ML_out.init_vector(mass_lumps_out_fenics,1)
+        Phi_pc.col_batches.ML_out.get_diagonal(mass_lumps_out_fenics)
+        mass_lumps_out = mass_lumps_out_fenics[:]
+
+        print('Computing A_hmatrix = M_out_hmatrix * A_kernel_hmatrix * M_in_hmatrix')
+        A_hmatrix = A_kernel_hmatrix.copy()
+        A_hmatrix.mul_diag_left(mass_lumps_out)
+        A_hmatrix.mul_diag_right(mass_lumps_in)
+
+        extras['mass_lumps_in'] = mass_lumps_in
+        extras['mass_lumps_out'] = mass_lumps_out
     else:
         M_in_fenics = Phi_pc.col_batches.M_in
         M_out_fenics = Phi_pc.col_batches.M_out
-    M_in_scipy = csr_fenics2scipy(M_in_fenics)
-    M_in_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_in_scipy, bct_in)
-    M_out_scipy = csr_fenics2scipy(M_out_fenics)
-    M_out_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_out_scipy, bct_out)
+        M_in_scipy = csr_fenics2scipy(M_in_fenics)
+        M_in_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_in_scipy, bct_in)
+        M_out_scipy = csr_fenics2scipy(M_out_fenics)
+        M_out_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_out_scipy, bct_out)
 
-    print('Computing A_hmatrix = M_out_hmatrix * A_kernel_hmatrix * M_in_hmatrix')
-    A_hmatrix = M_out_hmatrix * (A_kernel_hmatrix * M_in_hmatrix)
+        print('Computing A_hmatrix = M_out_hmatrix * A_kernel_hmatrix * M_in_hmatrix')
+        A_hmatrix = M_out_hmatrix * (A_kernel_hmatrix * M_in_hmatrix)
 
-    extras = {'A_kernel_hmatrix' : A_kernel_hmatrix,
-              'M_in_hmatrix' : M_in_hmatrix,
-              'M_out_hmatrix' : M_out_hmatrix}
+        extras['M_in_hmatrix'] = M_in_hmatrix
+        extras['M_out_hmatrix'] = M_out_hmatrix
 
     if make_positive_definite:
         A_hmatrix_nonsym = A_hmatrix
