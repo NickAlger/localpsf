@@ -64,7 +64,8 @@ By ``matrix free,'' we mean that we have a black-box computational procedure thr
 \label{eq:eval_maps}
 u \mapsto\Aop u \qquad \text{and} \qquad v \mapsto \Aop^Tv,
 \end{equation} 
-but we do not have any further access to $\Aop$. In particular, we cannot easily access entries of $\Aop$'s integral kernel. In applications, evaluating the maps in \eqref{eq:eval_maps} may involve iteratively solving a large linear system, timestepping, or performing some other costly computational procedure. After discretization, $\Aop$ becomes a dense matrix that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means one can compute matrix-vector products with the matrix representations of $\Aop$ and $\Aop^T$, but cannot easily compute individual matrix entries.
+but we do not have any further access to $\Aop$. In particular, we cannot easily access entries of $\Aop$'s integral kernel. In applications, evaluating the maps in \eqref{eq:eval_maps} may involve iteratively solving a large linear system, timestepping, or performing some other costly computational procedure. 
+%After discretization, $\Aop$ becomes a dense matrix that is typically too large to be built and stored. This property is called ``matrix-free'' because at the discrete level it means one can compute matrix-vector products with the matrix representations of $\Aop$ and $\Aop^T$, but cannot easily compute individual matrix entries.
 
 %We seek to approximate operators $\Aop$ that are accessible \emph{matrix-free}. That is, we have a black-box computational procedure through which we may evaluate the maps
 %\begin{equation*}
@@ -109,26 +110,34 @@ Since our end goal is an H-matrix, it is natural to ask why we do not build the 
 %\subsection{Motivation: PDE constrained inverse problems}
 %\label{sec:PDE_hessian_motivation}
 
-Our motivation for this work is approximation of Hessians in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field, $m$, from noisy observations, 
-\begin{equation*}
-y = f(m, u(m)) + \text{noise},
-\end{equation*}
-which depend on  a state variable $u$. In turn, $u$ depends on $m$ implicitly through the solution of a PDE, which we write generically as follows:
-\begin{equation}
-\label{eq:state_pde}
-0 = g(m,u).
-\end{equation}
-Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function of $m$. In the deterministic approach to inverse problems, one typically finds $m$ as the solution to the minimization problem 
-\begin{equation}
-\label{eq:minimization_problem}
-\min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + \mathcal{R}(m),
-\end{equation}
-where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $\mathcal{R}(m)$ is a regularization term. The objective function in optimization problem \eqref{eq:minimization_problem} is defined indirectly via the implicit function theorem. As a result, information about the Hessian of the objective function is only accessible via the action of the Hessian on vectors. In particular, applying the Hessian to a vector requires solving two linear PDEs which take the form of linearizations of \eqref{eq:state_pde} \cite{HESSIANACTION}. More accessible approximations of the Hessian are highly desirable, because they allow for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. More accessible Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because the inverse of the Hessian locally approximates the Bayesian posterior covariance for $m$ \cite{LAPLACEAPPROXIMATION}. 
+Our motivation is Hessian approximation in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field from noisy observations of a state variable that depends on the parameter implicitly through the solution of a PDE.
+In the deterministic approach to inverse problems, one solves a regularized minimization problem to find the parameter that best fits the data. The objective function in the minimization problem is defined implicitly, so information about the Hessian of the objective function is only accessible via application of the Hessian to vectors \cite{HESSIANACTION}. 
+%In particular, applying the Hessian to a vector requires solving two linear PDEs which take the form of linearizations of \eqref{eq:state_pde} \cite{HESSIANACTION}. 
+More accessible Hessian approximations are highly desirable because they permit fast solution of the minimization problem via Newton-type methods. More accessible Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because the inverse of the Hessian locally approximates the Bayesian posterior covariance for the parameter \cite{LAPLACEAPPROXIMATION}. 
+
+
+%Our motivation for this work is approximation of Hessians in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field, $m$, from noisy observations, 
+%\begin{equation*}
+%y = f(m, u(m)) + \text{noise},
+%\end{equation*}
+%which depend on  a state variable $u$. In turn, $u$ depends on $m$ implicitly through the solution of a PDE, which we write generically as follows:
+%\begin{equation}
+%\label{eq:state_pde}
+%0 = g(m,u).
+%\end{equation}
+%Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function of $m$. In the deterministic approach to inverse problems, one typically finds $m$ as the solution to the minimization problem 
+%\begin{equation}
+%\label{eq:minimization_problem}
+%\min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + \mathcal{R}(m),
+%\end{equation}
+%where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $\mathcal{R}(m)$ is a regularization term. The objective function in optimization problem \eqref{eq:minimization_problem} is defined indirectly via the implicit function theorem. As a result, information about the Hessian of the objective function is only accessible via the action of the Hessian on vectors. In particular, applying the Hessian to a vector requires solving two linear PDEs which take the form of linearizations of \eqref{eq:state_pde} \cite{HESSIANACTION}. More accessible approximations of the Hessian are highly desirable, because they allow for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. More accessible Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because the inverse of the Hessian locally approximates the Bayesian posterior covariance for $m$ \cite{LAPLACEAPPROXIMATION}. 
 
 
 %\subsection{Background}
 
 The most popular matrix-free operator approximation methods are based on low rank approximation \cite{CCGOPAPERS}. This includes the Lanczos method, the randomized singular value decomposition \cite{HMTRANDOM}, and CUR approximation/skeletonization \cite{CUR,MAHONEY}. However, low rank approximation is not suitable for high rank operators, and often operators of practical interest are high rank. In the context of Hessians, methods based on low rank approximation suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator actions are required to form an accurate ``low rank'' approximation \cite{MYDISSERTATION}. 
+
+%Product-convolution (PC) approximations can (where applicable) approximate high rank operators efficiently.
 
 Product-convolution (PC) approximations are approximations of an operator by weighted sums of convolution operators with spatially varying weights. A single convolution operator may be high rank, so PC approximations can (where applicable) approximate high rank operators efficiently. PC approximations have been used in a variety of fields going back several decades \cite{PRODCONVLIST}. Often PC methods are known as ``point spread function'' (PSF) methods, particularly in optics and image processing. There, the ``operator'' $\Aop$ is a physical process of distortion and blurring of light rays passing through an optical system such as a telescope or microscope. However, ``PSF'' is sometimes used as an umbrella term to refer to other approximation methods that focus on interpolating impulse responses or impulse response features. For background on PC and PSF methods, we recommend the following papers: \cite{PRODCONVGOOD}. 
 
@@ -163,6 +172,7 @@ Let $\Omega \subset \mathbb{R}^d$ be a bounded domain (in applications typically
 \label{eq:kernel_representation}
 (\Aop u)(v) := \int_\Omega \int_\Omega v(y) \Aker(y,x) u(x) dx dy.
 \end{equation}
+Here the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(v)$ is the result of applying that linear functional to $v \in L^2(\Omega)$.
 The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, which exists in principle but is not easily accessible to us. In this section we describe how to extend the action of $\Aop$ to distributions, which allows us to define the impulse responses (Section \ref{sec:impulse_response_2}). Then we state the conditions on $\Aop$ that our method requires (Section \ref{sec:conditions_2}). Finally, we detail finite element discretization (Section \ref{sec:finite_element_kernel}).
 %We write $L^2(\Omega)'$ to denote the topological dual of $L^2(\Omega)$. 
 %The linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(v)$ is the scalar that results from applying that linear functional to $v \in L^2(\Omega)$. 
@@ -177,7 +187,7 @@ The action of $\Aop$ may be extended to distributions if the kernel $\Phi$ is su
 	\begin{align}
 		\left(\Aop \genericdistribution^*\right)(v) &= \int_\Omega \int_\Omega v(y) \Phi(y,x) \genericdistribution^*(x) dx ~dy \\
 		&= \int_\Omega v(y) \int_\Omega \Phi(y,x) \genericdistribution^*(x) dx ~dy \\
-		&= \int_\Omega v(y) \genericdistribution\left(\Phi(y,\cdot)\right) dy,
+		&= \int_\Omega v(y) \genericdistribution\left(\Phi(y,\cdot)\right) dy, \label{eq:action_on_distribution}
 	\end{align}
 \end{subequations}
 %\begin{align*}
@@ -187,12 +197,13 @@ The action of $\Aop$ may be extended to distributions if the kernel $\Phi$ is su
 %%= \left(v,\genericdistribution\left(\Phi(y,\cdot)\right)\right)_{L^2(\Omega)},
 %\end{align*}
 where $\Phi(y,\cdot)$ denotes the function $x \mapsto \Phi(y,x)$.
-Now let $\mathcal{D}(\Omega) \subset L^2(\Omega)$ be a suitable space of test functions, and instead suppose $\rho:\mathcal{D}(\Omega) \rightarrow \mathbb{R}$ is a distribution. In this case, the Riesz representative $\rho^*$ may not exist, so the derivation in \eqref{eq:extension_to_distributions} is not valid. However, if $\Phi$ is sufficiently regular such that the function $y \mapsto \rho\left(\Phi(y,~\cdot~)\right)$ is well-defined for almost all $y\in\Omega$, and if this function is in $L^2(\Omega)$, then the last line in the derivation is well-defined. Hence, we use the last line of this derivation to \emph{define} the action of $\Aop$ on the distribution $\rho$ as follows:
-\begin{equation}
-\label{eq:action_on_distribution}
-\left(\Aop \genericdistribution^*\right)(v) := \int_\Omega v(y) \genericdistribution\left(\Phi(y, \cdot)\right) dy.
-\end{equation}
-Since $\genericdistribution^*$ may not exist, here ``$\Aop \genericdistribution^*$'' is simply a notation that means ``the action of $\Aop$ on the distribution $\rho$,'' per \eqref{eq:action_on_distribution}. 
+Now let $\mathcal{D}(\Omega) \subset L^2(\Omega)$ be a suitable space of test functions, and instead suppose $\rho:\mathcal{D}(\Omega) \rightarrow \mathbb{R}$ is a distribution. In this case, the Riesz representative $\rho^*$ may not exist, so the derivation in \eqref{eq:extension_to_distributions} is not valid. However, if $\Phi$ is sufficiently regular such that the function $y \mapsto \rho\left(\Phi(y,~\cdot~)\right)$ is well-defined for almost all $y\in\Omega$, and if this function is in $L^2(\Omega)$, then the the right hand side of \eqref{eq:action_on_distribution} is well-defined. Hence, we \emph{define} the action of $\Aop$ on the distribution $\rho$ to be the right hand side of \eqref{eq:action_on_distribution}. For convenience of notation, we denote this action by ``$\Aop \genericdistribution^*$,'' even if $\rho^*$ does not exist.
+%\begin{equation}
+%\label{eq:action_on_distribution}
+%\left(\Aop \genericdistribution^*\right)(v) := \int_\Omega v(y) \genericdistribution\left(\Phi(y, \cdot)\right) dy.
+%\end{equation}
+%Since $\genericdistribution^*$ may not exist if $\rho$ is a distribution, 
+%We write ``$\Aop \genericdistribution^*$'' to denote ``the action of $\Aop$ on the distribution $\rho$,'' as defined by \eqref{eq:action_on_distribution}. 
 
 %We assume that $\Phi$ is sufficiently regular such that the action of $\Aop$ on delta distributions is well-defined, because 
 
