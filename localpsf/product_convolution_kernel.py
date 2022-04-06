@@ -10,7 +10,7 @@ class ProductConvolutionKernel:
                  tau_rows=3.0, tau_cols=3.0,
                  num_neighbors_rows=10, num_neighbors_cols=10,
                  symmetric=False, gamma=1e-8, sigma_min=1e-6,
-                 max_scale_discrepancy=1e2):
+                 max_scale_discrepancy=1e5):
         me.V_in = V_in
         me.V_out = V_out
         me.apply_A = apply_A
