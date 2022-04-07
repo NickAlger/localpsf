@@ -10,12 +10,14 @@ class ProductConvolutionKernel:
                  tau_rows=3.0, tau_cols=3.0,
                  num_neighbors_rows=10, num_neighbors_cols=10,
                  symmetric=False, gamma=1e-8, sigma_min=1e-6,
-                 max_scale_discrepancy=1e5):
+                 max_scale_discrepancy=1e5,
+                 cols_only=True):
         me.V_in = V_in
         me.V_out = V_out
         me.apply_A = apply_A
         me.apply_At = apply_At
         me.max_scale_discrepancy = max_scale_discrepancy
+        me.cols_only = cols_only
 
 
         me.col_batches = ImpulseResponseBatches(V_in, V_out, apply_A, apply_At,
@@ -25,25 +27,30 @@ class ProductConvolutionKernel:
                                                 sigma_min=sigma_min,
                                                 max_scale_discrepancy=max_scale_discrepancy)
 
-        if symmetric:
-            me.row_batches = me.col_batches
-        else:
-            me.row_batches = ImpulseResponseBatches(V_out, V_in, apply_At, apply_A,
-                                                    num_initial_batches=num_row_batches,
-                                                    tau=tau_rows,
-                                                    num_neighbors=num_neighbors_rows,
-                                                    sigma_min=sigma_min,
-                                                    max_scale_discrepancy=max_scale_discrepancy)
-
         me.col_coords = me.col_batches.dof_coords_in
         me.row_coords = me.col_batches.dof_coords_out
         me.shape = (me.V_out.dim(), me.V_in.dim())
 
-        me.cpp_object = hpro.hpro_cpp.ProductConvolutionKernelRBF(me.col_batches.cpp_object,
-                                                                  me.row_batches.cpp_object,
-                                                                  me.col_coords,
-                                                                  me.row_coords,
-                                                                  gamma)
+        if me.cols_only:
+            me.cpp_object = hpro.hpro_cpp.ProductConvolutionKernelRBFColsOnly(me.col_batches.cpp_object,
+                                                                              me.col_coords,
+                                                                              me.row_coords)
+        else:
+            if symmetric:
+                me.row_batches = me.col_batches
+            else:
+                me.row_batches = ImpulseResponseBatches(V_out, V_in, apply_At, apply_A,
+                                                        num_initial_batches=num_row_batches,
+                                                        tau=tau_rows,
+                                                        num_neighbors=num_neighbors_rows,
+                                                        sigma_min=sigma_min,
+                                                        max_scale_discrepancy=max_scale_discrepancy)
+
+            me.cpp_object = hpro.hpro_cpp.ProductConvolutionKernelRBF(me.col_batches.cpp_object,
+                                                                      me.row_batches.cpp_object,
+                                                                      me.col_coords,
+                                                                      me.row_coords,
+                                                                      gamma)
 
     def __call__(me, yy, xx):
         if len(xx.shape) == 1 and len(yy.shape) == 1:
@@ -79,19 +86,23 @@ class ProductConvolutionKernel:
 
     @property
     def gamma(me):
-        return me.cpp_object.gamma
+        if not me.cols_only:
+            return me.cpp_object.gamma
 
     @gamma.setter
     def gamma(me, new_gamma):
-        me.cpp_object.gamma = new_gamma
+        if not me.cols_only:
+            me.cpp_object.gamma = new_gamma
 
     @property
     def tau_rows(me):
-        return me.row_batches.tau
+        if not me.cols_only:
+            return me.row_batches.tau
 
     @tau_rows.setter
     def tau_rows(me, new_tau):
-        me.row_batches.tau = new_tau
+        if not me.cols_only:
+            me.row_batches.tau = new_tau
 
     @property
     def tau_cols(me):
@@ -103,11 +114,13 @@ class ProductConvolutionKernel:
 
     @property
     def num_neighbors_rows(me):
-        return me.row_batches.num_neighbors
+        if not me.cols_only:
+            return me.row_batches.num_neighbors
 
     @num_neighbors_rows.setter
     def num_neighbors_rows(me, new_num_neighbors):
-        me.row_batches.num_neighbors = new_num_neighbors
+        if not me.cols_only:
+            me.row_batches.num_neighbors = new_num_neighbors
 
     @property
     def num_neighbors_cols(me):
