@@ -15,7 +15,7 @@ class ProductConvolutionKernel:
                  max_scale_discrepancy=1e5,
                  cols_only=True,
                  use_lumped_mass_moments=True,
-                 use_lumped_mass_impulses=False):
+                 use_lumped_mass_impulses=True):
         me.V_in = V_in
         me.V_out = V_out
         me.apply_A = apply_A
