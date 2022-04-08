@@ -11,8 +11,7 @@ def make_hmatrix_from_kernel( Phi_pc : ProductConvolutionKernel,
                               hmatrix_tol=1e-5,
                               bct_admissibility_eta=2.0,
                               cluster_size_cutoff=50,
-                              make_positive_definite=False,
-                              use_lumped_mass_matrix=True ):
+                              make_positive_definite=False):
     print('Making row and column cluster trees')
     dof_coords_in = Phi_pc.V_in.tabulate_dof_coordinates()
     dof_coords_out = Phi_pc.V_out.tabulate_dof_coordinates()
@@ -30,16 +29,9 @@ def make_hmatrix_from_kernel( Phi_pc : ProductConvolutionKernel,
     extras = {'A_kernel_hmatrix': A_kernel_hmatrix}
 
     print('Making input and output mass matrix hmatrices')
-    if use_lumped_mass_matrix:
-        mass_lumps_in_fenics = dl.Vector()
-        Phi_pc.col_batches.ML_in.init_vector(mass_lumps_in_fenics,1)
-        Phi_pc.col_batches.ML_in.get_diagonal(mass_lumps_in_fenics)
-        mass_lumps_in = mass_lumps_in_fenics[:]
-
-        mass_lumps_out_fenics = dl.Vector()
-        Phi_pc.col_batches.ML_out.init_vector(mass_lumps_out_fenics,1)
-        Phi_pc.col_batches.ML_out.get_diagonal(mass_lumps_out_fenics)
-        mass_lumps_out = mass_lumps_out_fenics[:]
+    if Phi_pc.use_lumped_mass_impulses:
+        mass_lumps_out = Phi_pc.MMH_out.mass_lumps_numpy
+        mass_lumps_in = Phi_pc.MMH_in.mass_lumps_numpy
 
         print('Computing A_hmatrix = M_out_hmatrix * A_kernel_hmatrix * M_in_hmatrix')
         A_hmatrix = A_kernel_hmatrix.copy()
@@ -49,11 +41,10 @@ def make_hmatrix_from_kernel( Phi_pc : ProductConvolutionKernel,
         extras['mass_lumps_in'] = mass_lumps_in
         extras['mass_lumps_out'] = mass_lumps_out
     else:
-        M_in_fenics = Phi_pc.col_batches.M_in
-        M_out_fenics = Phi_pc.col_batches.M_out
-        M_in_scipy = csr_fenics2scipy(M_in_fenics)
+        M_in_scipy = Phi_pc.MMH_in.M_scipy
+        M_out_scipy = Phi_pc.MMH_out.M_scipy
+
         M_in_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_in_scipy, bct_in)
-        M_out_scipy = csr_fenics2scipy(M_out_fenics)
         M_out_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(M_out_scipy, bct_out)
 
         print('Computing A_hmatrix = M_out_hmatrix * A_kernel_hmatrix * M_in_hmatrix')

@@ -54,8 +54,7 @@ for num_batches in all_num_batches:
                                    num_neighbors_rows=num_neighbors,
                                    num_neighbors_cols=num_neighbors,
                                    symmetric=True,
-                                   gamma=gamma,
-                                   sigma_min=sigma_min)
+                                   gamma=gamma)
 
     ########    CREATE HMATRIX    ########
 
@@ -189,8 +188,7 @@ PCK = ProductConvolutionKernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_pe
                                num_neighbors_rows=num_neighbors,
                                num_neighbors_cols=num_neighbors,
                                symmetric=True,
-                               gamma=gamma,
-                               sigma_min=sigma_min)
+                               gamma=gamma)
 
 ########    CREATE HMATRICES    ########
 

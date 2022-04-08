@@ -25,12 +25,15 @@ save_dir.mkdir(parents=True, exist_ok=True)
 
 nondefault_HIP_options = {'mesh_h': 2.5e-2} # {'mesh_h': 2e-2}
 
-all_tau = [1.0, 2.0, 3.0, 4.0, 5.0]
+# all_tau = [1.0, 2.0, 3.0, 4.0, 5.0]
+all_tau = [3.0]
 num_neighbors = 10
-gamma = 1e-5
-sigma_min = 1e-6 # 1e-1 # minimum width of support ellipsoid
+# gamma = 1e-5
+# gamma = 1e-2
+gamma=1e-4
 hmatrix_tol=1e-4
 num_random_error_matvecs = 50
+cols_only=False
 
 
 ########    SET UP HEAT INVERSE PROBLEM    ########
@@ -58,8 +61,10 @@ for tau in all_tau:
                                    num_neighbors_rows=num_neighbors,
                                    num_neighbors_cols=num_neighbors,
                                    symmetric=True,
+                                   cols_only=cols_only,
                                    gamma=gamma,
-                                   sigma_min=sigma_min)
+                                   use_lumped_mass_moments=False,
+                                   use_lumped_mass_impulses=False)
 
     while PCK.col_batches.num_sample_points < HIP.V.dim():
         PCK.col_batches.add_one_sample_point_batch()

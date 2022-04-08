@@ -41,7 +41,8 @@ PCK = ProductConvolutionKernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_pe
                                num_neighbors_cols=num_neighbors,
                                symmetric=True,
                                gamma=gamma,
-                               sigma_min=sigma_min)
+                               use_lumped_mass_moments=False,
+                               use_lumped_mass_impulses=False)
 
 
 ########    VISUALIZE IMPULSE RESPONSE BATCHES    ########
@@ -51,7 +52,7 @@ PCK.col_batches.visualize_impulse_response_batch(0)
 
 ########    CREATE HMATRICES    ########
 
-A_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=True, hmatrix_tol=1e-3, use_lumped_mass_matrix=use_lumped_mass_matrix)
+A_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=True, hmatrix_tol=1e-3)
 
 Phi_pch = extras['A_kernel_hmatrix']
 A_pch_nonsym = extras['A_hmatrix_nonsym']

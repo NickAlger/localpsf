@@ -67,8 +67,7 @@ for num_batches in all_batch_sizes:
                                    num_neighbors_rows=num_neighbors,
                                    num_neighbors_cols=num_neighbors,
                                    symmetric=True,
-                                   gamma=gamma,
-                                   sigma_min=sigma_min)
+                                   gamma=gamma)
 
     Hd_hmatrix, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=True, hmatrix_tol=1e-3)
 

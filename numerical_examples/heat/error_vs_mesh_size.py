@@ -56,8 +56,7 @@ for mesh_h in mesh_hh:
                                    num_neighbors_rows=num_neighbors,
                                    num_neighbors_cols=num_neighbors,
                                    symmetric=True,
-                                   gamma=gamma,
-                                   sigma_min=sigma_min)
+                                   gamma=gamma)
 
 
     relative_err_fro = np.inf

@@ -14,33 +14,30 @@ import hlibpro_python_wrapper as hpro
 class ImpulseResponseBatches:
     def __init__(me, V_in, V_out,
                  apply_A, apply_At,
+                 solve_M_in_moments,
+                 solve_M_in_impulses,
+                 solve_M_out_impulses,
                  num_initial_batches=5,
                  tau=3.0,
                  max_candidate_points=None,
-                 use_lumped_mass_matrix_for_impulse_response_moments=True,
-                 num_neighbors=10,
-                 sigma_min=1e-12,
+                 num_neighbors=8,
                  max_scale_discrepancy=1e5):
         me.V_in = V_in
         me.V_out = V_out
         me.apply_A = apply_A
         me.apply_At = apply_At
+        me.solve_M_in_moments = solve_M_in_moments
+        me.solve_M_in_impulses = solve_M_in_impulses
+        me.solve_M_out_impulses = solve_M_out_impulses
         me.max_candidate_points = max_candidate_points
-        me.use_lumped_mass_matrix_for_impulse_response_moments = use_lumped_mass_matrix_for_impulse_response_moments
         me.max_scale_discrepancy = max_scale_discrepancy
 
-        print('Making mass matrices and solvers')
-        me.M_in, me.solve_M_in = make_mass_matrix(me.V_in, make_solver=True)
-        me.ML_in, me.solve_ML_in = make_mass_matrix(me.V_in, lumping='simple', make_solver=True)
-
-        me.M_out, me.solve_M_out = make_mass_matrix(me.V_out, make_solver=True)
-        me.ML_out, me.solve_ML_out = make_mass_matrix(me.V_out, lumping='simple', make_solver=True)
-
         print('Computing impulse response moments')
-        if me.use_lumped_mass_matrix_for_impulse_response_moments:
-            me.vol, me.mu, me.Sigma0 = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_ML_in)
-        else:
-            me.vol, me.mu, me.Sigma0 = impulse_response_moments(me.V_in, me.V_out, me.apply_At, me.solve_M_in)
+        me.vol, me.mu, me.Sigma0, me.bad_inds = impulse_response_moments(me.V_in, me.V_out,
+                                                                         me.apply_At, me.solve_M_in_moments,
+                                                                         max_scale_discrepancy=max_scale_discrepancy)
+
+        me.vol[me.bad_inds] = 0.0
 
         print('Preparing sample point batch stuff')
         me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
@@ -76,14 +73,7 @@ class ImpulseResponseBatches:
                                                               num_neighbors,
                                                               tau )
 
-        min_vol = np.max(me.vol) / me.max_scale_discrepancy
-        good_vol_inds = np.argwhere(me.vol > min_vol).reshape(-1)
-
-        # good_Sigma_inds = np.argwhere(np.all(eee0 > sigma_min, axis=1)).reshape(-1)
-        # good_Sigma_inds = np.argwhere(np.linalg.det(me.Sigma0) > sigma_min).reshape(-1)
-
-        # me.candidate_inds = np.intersect1d(good_Sigma_inds, good_vol_inds)
-        me.candidate_inds = good_vol_inds
+        me.candidate_inds = np.argwhere(np.logical_not(me.bad_inds)).reshape(-1)
 
         if me.max_candidate_points is not None:
             me.candidate_inds = np.random.permutation(len(me.candidate_inds))[:max_candidate_points]
@@ -110,7 +100,8 @@ class ImpulseResponseBatches:
         new_points = me.dof_coords_in[new_inds, :]
         new_vol = me.vol[new_inds]
 
-        phi = get_one_dirac_comb_response(new_points, me.V_in, me.V_out, me.apply_A, me.solve_ML_in, me.solve_ML_out,
+        phi = get_one_dirac_comb_response(new_points, me.V_in, me.V_out, me.apply_A,
+                                          me.solve_M_in_impulses, me.solve_M_out_impulses,
                                           scale_factors=1./new_vol)
 
         phi_vertex = phi.vector()[me.vertex2dof_out].copy()
