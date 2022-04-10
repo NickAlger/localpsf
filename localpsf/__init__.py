@@ -7,3 +7,6 @@ from . import sample_point_batches
 from . import heat_inverse_problem
 from . import visualization
 from . import morozov_discrepancy
+from . import stokes_inverse_problem_cylinder
+from . import op_operations
+# from . import path
