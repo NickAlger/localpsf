@@ -322,3 +322,32 @@ plt.legend(legend)
 
 if save_figures:
     plt.savefig(save_dir / 'relative_residual_vs_krylov_iter.pdf', bbox_inches='tight', dpi=100)
+
+
+####################################################################
+###############    PLOT ALL HESSIAN COLS    ########################
+####################################################################
+
+save_dir = stokes_base_dir / 'all_impulse_responses'
+save_dir.mkdir(parents=True, exist_ok=True)
+
+impulse_function = dl.Function(StokesIP.V)
+
+# Hd_dense = H_dense - R_dense
+
+# sort_inds = np.lexsort(PCK.col_batches.dof_coords_in.T)
+sort_inds = np.arange(StokesIP.N)
+
+plt.figure()
+for ii in tqdm(range(StokesIP.N)):
+    # impulse_function.vector()[:] = Hd_dense[:,ii]
+    ind = sort_inds[ii]
+    ei = np.zeros(StokesIP.N)
+    ei[ind] = 1.
+    # impulse_function.vector()[:] = Hd_hmatrix * ei
+    impulse_function.vector()[:] = StokesIP.apply_Hd_Vsub_numpy(ei)
+    cm = dl.plot(impulse_function)
+    plt.plot(PCK.col_batches.dof_coords_in[ind,0], PCK.col_batches.dof_coords_in[ind,1], '*r')
+    # plt.colorbar(cm)
+    plt.savefig(save_dir / ('impulse'+str(ii)+'.png'), bbox_inches='tight', dpi=200)
+    plt.clf()
