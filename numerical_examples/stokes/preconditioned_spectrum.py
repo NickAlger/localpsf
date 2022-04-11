@@ -12,6 +12,7 @@ from localpsf.positive_definite_modifications import get_negative_eig_correction
 from localpsf.stokes_inverse_problem_cylinder import *
 import dolfin as dl
 
+import scipy.linalg as sla
 import scipy.sparse.linalg as spla
 import scipy.sparse as sps
 
@@ -144,12 +145,7 @@ for kk_batch in range(len(all_batch_sizes)):
                                               matvec=lambda x: StokesIP.apply_H_Vsub_numpy(x) - WO.apply_modified_A(x))
     ee_hmatrix, _ = spla.eigsh(delta_hmatrix_linop, k=num_eigs, M=WO.apply_modified_A_linop,
                                Minv=WO.solve_modified_A_linop, which='LM')
-    # delta_hmatrix_linop = spla.LinearOperator((StokesIP.N, StokesIP.N), matvec=lambda x: StokesIP.apply_H_Vsub_numpy(x) - H_hmatrix * x)
-    # ee_hmatrix, _ = spla.eigsh(delta_hmatrix_linop, k=num_eigs, M=H_hmatrix.as_linear_operator(),
-    #                            Minv=iH_hmatrix.as_linear_operator(), which='LM')
-    # preconditioned_linop = spla.LinearOperator((StokesIP.N, StokesIP.N),
-    #                                            matvec=lambda x: iH_hmatrix * StokesIP.apply_H_Vsub_numpy(x))
-    # ee_hmatrix, _ = spla.eigs(preconditioned_linop, k=num_eigs, which='LM')
+
     abs_ee_hmatrix = np.sort(np.abs(ee_hmatrix))[::-1]
 
     all_ee_hmatrix[kk_batch, :] = ee_hmatrix
@@ -157,11 +153,24 @@ for kk_batch in range(len(all_batch_sizes)):
 
 print('reg preconditioning')
 
-Rinv_linop = spla.LinearOperator((StokesIP.N, StokesIP.N), matvec = lambda x: StokesIP.apply_Rinv_numpy(x))
+use_dense=True
+if use_dense:
+    H_dense = np.zeros((StokesIP.N, StokesIP.N))
+    for k in tqdm(range(H_dense.shape[1])):
+        ek = np.zeros(H_dense.shape[1])
+        ek[k] = 1.0
+        H_dense[:,k] = StokesIP.apply_H_Vsub_numpy(ek)
 
-delta_reg_linop = spla.LinearOperator((StokesIP.N, StokesIP.N), matvec=lambda x: StokesIP.apply_H_Vsub_numpy(x) - R.dot(x))
-ee_reg, _ = spla.eigsh(delta_reg_linop, k=num_eigs, M=R, Minv=Rinv_linop, which='LM')
-abs_ee_reg = np.sort(np.abs(ee_reg))[::-1]
+    R_dense = R.toarray()
+    ee_reg0, _ = sla.eigh(H_dense - R_dense, R_dense)
+    ee_reg = ee_reg0[-num_eigs:]
+    abs_ee_reg = np.abs(ee_reg)[::-1]
+else:
+    Rinv_linop = spla.LinearOperator((StokesIP.N, StokesIP.N), matvec = lambda x: StokesIP.apply_Rinv_numpy(x))
+
+    delta_reg_linop = spla.LinearOperator((StokesIP.N, StokesIP.N), matvec=lambda x: StokesIP.apply_H_Vsub_numpy(x) - R.dot(x))
+    ee_reg, _ = spla.eigsh(delta_reg_linop, k=num_eigs, M=R, Minv=Rinv_linop, which='LM')
+    abs_ee_reg = np.sort(np.abs(ee_reg))[::-1]
 
 
 ########    SAVE DATA    ########
@@ -183,7 +192,7 @@ plt.semilogy(abs_ee_reg)
 for abs_ee_hmatrix in all_abs_ee_hmatrix:
     plt.semilogy(abs_ee_hmatrix)
 
-plt.title(r'Absolute values of eigenvalues of $P^{-1}H-I$')
+plt.title(r'Stokes Hessian: Absolute values of eigenvalues of $P^{-1}H-I$')
 plt.xlabel(r'$i$')
 plt.ylabel(r'$|\lambda_i|$')
 plt.legend(['Reg'] + ['PCH' + str(nB) for nB in all_batch_sizes])
