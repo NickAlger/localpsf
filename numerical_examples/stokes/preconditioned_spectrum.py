@@ -202,3 +202,123 @@ if save_figures:
     plt.savefig(str(save_dir) + '/preconditioned_spectrum.pdf', bbox_inches='tight', dpi=100)
 plt.show()
 plt.close()
+
+
+################################################################
+###############    KRYLOV ITER STUFF    ########################
+################################################################
+
+save_dir = stokes_base_dir / 'error_vs_krylov_iter'
+save_dir.mkdir(parents=True, exist_ok=True)
+
+g0_numpy = StokesIP.g_numpy(StokesIP.x)
+
+# z = np.random.randn(StokesIP.N)
+z = -g0_numpy
+
+Hd_hmatrix = all_Hd_hmatrix[-1]
+H_hmatrix = Hd_hmatrix + R0_hmatrix
+iH_hmatrix = H_hmatrix.inv()
+U = UU[-1]
+E = EE[-1]
+H_hmatrix_linop = H_hmatrix.as_linear_operator()
+iH_hmatrix_linop = iH_hmatrix.as_linear_operator()
+
+WO = WoodburyObject(H_hmatrix_linop.matvec, iH_hmatrix_linop.matvec, U, E, U.T)
+
+Htrue_linop = spla.LinearOperator((StokesIP.N, StokesIP.N), matvec=lambda x: StokesIP.apply_H_Vsub_numpy(x))
+
+print('get truth')
+u0_numpy, info, residuals = custom_cg(Htrue_linop, z,
+                                      M=WO.solve_modified_A_linop,
+                                      tol=1e-11, maxiter=500)
+
+print('none')
+_, _, residuals_None, errors_None = custom_cg(Htrue_linop, z,
+                                              x_true=u0_numpy,
+                                              tol=1e-10, maxiter=500)
+
+print('reg')
+_, _, residuals_Reg, errors_Reg = custom_cg(Htrue_linop, -g0_numpy,
+                                            x_true=u0_numpy,
+                                            M=Rinv_linop,
+                                            tol=1e-10, maxiter=1000)
+
+all_residuals_PCH = list()
+all_errors_PCH = list()
+for kk_batch in range(len(all_batch_sizes)):
+    print('batch size=', all_batch_sizes[kk_batch])
+    Hd_hmatrix = all_Hd_hmatrix[kk_batch]
+    H_hmatrix = Hd_hmatrix + R0_hmatrix
+    iH_hmatrix = H_hmatrix.inv()
+    U = UU[kk_batch]
+    E = EE[kk_batch]
+    H_hmatrix_linop = H_hmatrix.as_linear_operator()
+    iH_hmatrix_linop = iH_hmatrix.as_linear_operator()
+
+    WO = WoodburyObject(H_hmatrix_linop.matvec, iH_hmatrix_linop.matvec, U, E, U.T)
+
+    Htrue_linop = spla.LinearOperator((StokesIP.N, StokesIP.N), matvec=lambda x: StokesIP.apply_H_Vsub_numpy(x))
+
+    _, _, residuals_PCH, errors_PCH = custom_cg(Htrue_linop, z,
+                                                x_true=u0_numpy,
+                                                M=WO.solve_modified_A_linop,
+                                                tol=1e-10, maxiter=500)
+
+    all_residuals_PCH.append(residuals_PCH)
+    all_errors_PCH.append(errors_PCH)
+
+
+all_batch_sizes = np.array(all_batch_sizes)
+residuals_None = np.array(residuals_None)
+errors_None = np.array(errors_None)
+residuals_Reg = np.array(residuals_Reg)
+errors_Reg = np.array(errors_Reg)
+all_residuals_PCH = [np.array(r) for r in all_residuals_PCH]
+all_errors_PCH = [np.array(e) for e in all_errors_PCH]
+
+if save_data:
+    np.savetxt(save_dir / 'all_batch_sizes.txt', all_batch_sizes)
+    np.savetxt(save_dir / 'residuals_None.txt', residuals_None)
+    np.savetxt(save_dir / 'errors_None.txt', errors_None)
+    np.savetxt(save_dir / 'residuals_Reg.txt', residuals_Reg)
+    np.savetxt(save_dir / 'errors_Reg.txt', errors_Reg)
+    for k in range(len(all_batch_sizes)):
+        np.savetxt(save_dir / ('all_residuals_PCH' + str(all_batch_sizes[k]) + '.txt'), all_residuals_PCH[k])
+        np.savetxt(save_dir / ('all_errors_PCH' + str(all_batch_sizes[k]) + '.txt'), all_errors_PCH[k])
+
+
+########    MAKE FIGURES    ########
+
+plt.figure()
+plt.semilogy(errors_Reg)
+plt.semilogy(errors_None)
+legend = ['Reg', 'None']
+for k in range(len(all_batch_sizes)):
+    plt.semilogy(all_errors_PCH[k])
+    legend.append('PCH ' + str(all_batch_sizes[k]))
+
+plt.xlabel('Iteration')
+plt.ylabel('relative l2 error')
+plt.title('Relative error vs. Krylov iteration')
+plt.legend(legend)
+
+if save_figures:
+    plt.savefig(save_dir / 'error_vs_krylov_iter.pdf', bbox_inches='tight', dpi=100)
+
+
+plt.figure()
+plt.semilogy(residuals_Reg)
+plt.semilogy(residuals_None)
+legend = ['Reg', 'None']
+for k in range(len(all_batch_sizes)):
+    plt.semilogy(all_residuals_PCH[k])
+    legend.append('PCH ' + str(all_batch_sizes[k]))
+
+plt.xlabel('Iteration')
+plt.ylabel('relative residual')
+plt.title('Relative residual vs. Krylov iteration')
+plt.legend(legend)
+
+if save_figures:
+    plt.savefig(save_dir / 'relative_residual_vs_krylov_iter.pdf', bbox_inches='tight', dpi=100)
