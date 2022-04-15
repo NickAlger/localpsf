@@ -40,7 +40,7 @@
 
 % REQUIRED
 \begin{abstract}
-	We present a fast matrix-free method for computing hierarchical matrix (H-matrix) approximations of operators that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in Schur complement methods for solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained inverse problems. H-matrix approximations are highly desirable because tereh are fast H-matrix methods to add, multiply, invert, and factorize H-matrices, compute matrix-vector products, solve linear systems, and perform other useful matrix computations. Classical H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. Our method computes impulse responses of the operator at a collection of scattered points, then interpolates these known impulse responses to evaluate entries of the integral kernel at other points where the impulse response is not known, which allows us to construct the H-matrix. Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. By solving an ellipsoid packing problem, we choose as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. 
+	We present a fast matrix-free method for computing hierarchical matrix (H-matrix) approximations of operators that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in Schur complement methods for solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained inverse problems. H-matrix approximations are highly desirable because there are fast H-matrix methods to add, multiply, invert, and factorize H-matrices, compute matrix-vector products, solve linear systems, and perform other useful matrix computations. Classical H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. Our method computes impulse responses of the operator at a collection of scattered points, then interpolates these known impulse responses to evaluate entries of the integral kernel at other points where the impulse response is not known, which allows us to construct the H-matrix. Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. By solving an ellipsoid packing problem, we choose as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. 
 	We apply the method to approximate Hessians in large-scale PDE-constrained inverse problems with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. We are able to form high quality approximations of high rank operators using only a small number of operator applies.
 \end{abstract}
 
@@ -130,7 +130,7 @@ Picking the batches of points $x_i$ requires us to estimate the supports of the 
 
 %Product-convolution (PC) approximations can (where applicable) approximate high rank operators efficiently.
 
-Our impulse response interpolation procedure may be categorized as a ``point spread function'' (PSF) method that is loosely based on so-called ``product-convolution'' (PC) approximations, which are are approximations of an operator by weighted sums of convolution operators with spatially varying weights \cite{PRODCONVLIST}. PC and PSF methods have a long history dating back several decades; for background we recommend the following papers: \cite{PRODCONVGOOD}. While PC approximations are based on an assumption of local translation invariance \cite{LOCATRANSLATIONINVARIANCE}, the method we propose is based on an assumption that we call ``local mean displacement invariance'' (see Figure \ref{fig:mean_displacement_invariance}). This is more general than local translation invariance, and includes both low rank approximation and local translation invariance as special cases (see Section \ref{sec:local_mean_displacement_invariance}). Furthermore, PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulse responses. We avoid this issue by temporarily excluding impulse responses from the approximation procedure whenever the approximation procedure attempts to evaluate the impulse response at a location where it is undefined. 
+Our impulse response interpolation procedure may be categorized as a ``point spread function'' (PSF) method that is loosely based on so-called ``product-convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights \cite{PRODCONVLIST}. PC and PSF methods have a long history dating back several decades; for background we recommend the following papers: \cite{PRODCONVGOOD}. While PC approximations are based on an assumption of local translation invariance \cite{LOCATRANSLATIONINVARIANCE}, the method we propose is based on an assumption that we call ``local mean displacement invariance'' (see Figure \ref{fig:mean_displacement_invariance}). This is more general than local translation invariance, and includes both low rank approximation and local translation invariance as special cases (see Section \ref{sec:local_mean_displacement_invariance}). Furthermore, PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulse responses. We avoid this issue by temporarily excluding impulse responses from the approximation procedure whenever an attempt is made to evaluate the impulse response at a location where it is undefined. 
 
 %A single convolution operator may be high rank, so PC approximations can (where applicable) approximate high rank operators efficiently. 
 %The method proposed in this paper is not exactly a PC approximation, but it builds upon a class of PC approximations in which the convolution kernels are shifted impulse responses of $\Aop$ associated with a collection of scattered points $x_i \in \Omega$ \cite{PRODCONVLIST}. 
@@ -231,7 +231,7 @@ The action of $\Aop$ may be extended to distributions if the kernel $\Phi$ is su
 %%= \left(v,\genericdistribution\left(\Phi(y,\cdot)\right)\right)_{L^2(\Omega)},
 %\end{align*}
 where $\Phi(y,\cdot)$ denotes the function $x \mapsto \Phi(y,x)$.
-Now let $\mathcal{D}(\Omega) \subset L^2(\Omega)$ be a suitable space of test functions, and instead suppose $\rho:\mathcal{D}(\Omega) \rightarrow \mathbb{R}$ is a distribution. In this case, the Riesz representative $\rho^*$ may not exist, so the derivation in \eqref{eq:extension_to_distributions} is not valid. However, if $\Phi$ is sufficiently regular such that the function $y \mapsto \rho\left(\Phi(y,~\cdot~)\right)$ is well-defined for almost all $y\in\Omega$, and if this function is in $L^2(\Omega)$, then the the right hand side of \eqref{eq:action_on_distribution} is well-defined. Hence, we \emph{define} the action of $\Aop$ on the distribution $\rho$ to be the right hand side of \eqref{eq:action_on_distribution}. For convenience of notation, we denote this action by ``$\Aop \genericdistribution^*$,'' even if $\rho^*$ does not exist.
+Now let $\mathcal{D}(\Omega) \subset L^2(\Omega)$ be a suitable space of test functions, and instead suppose $\rho:\mathcal{D}(\Omega) \rightarrow \mathbb{R}$ is a distribution. In this case, the Riesz representative $\rho^*$ may not exist, so the derivation in \eqref{eq:extension_to_distributions} is not valid. However, if $\Phi$ is sufficiently regular such that the function $y \mapsto \rho\left(\Phi(y,~\cdot~)\right)$ is well-defined for almost all $y\in\Omega$, and if this function is in $L^2(\Omega)$, then the right hand side of \eqref{eq:action_on_distribution} is well-defined. Hence, we \emph{define} the action of $\Aop$ on the distribution $\rho$ to be the right hand side of \eqref{eq:action_on_distribution}. For convenience of notation, we denote this action by ``$\Aop \genericdistribution^*$,'' even if $\rho^*$ does not exist.
 %\begin{equation}
 %\label{eq:action_on_distribution}
 %\left(\Aop \genericdistribution^*\right)(v) := \int_\Omega v(y) \genericdistribution\left(\Phi(y, \cdot)\right) dy.
@@ -434,31 +434,62 @@ The inverse mass matrices in this formula, $\mathbf{M}^{-1}$, will typically con
 \section{Key innovations}
 \label{sec:prerequisites}
 
-In this section we present two key innovations that our method is based on. The approximation algorithm will be presented in Section \ref{sec:method}. First, we define moments of the impulse responses, $\phi_x$, show how these moments can be computed efficiently, and use these moments to form ellipsoid shaped a-priori estimates for the supports of the impulse responses (Section \ref{sec:intromoments}). Our method will use these ellipsoid estimates to choose sets of impulse responses that can be computed in batches. Second, we describe an improved method of approximating impulse responses by other nearby impulse responses, which we call ``normalized local mean displacement invariance'' (Section \ref{sec:local_mean_displacement_invariance}). Our method will interpolate impulse responses using this approximation. 
+In this section we present two key innovations that our method is based on.
+%The approximation algorithm will be presented in Section \ref{sec:method}. 
+First, we define moments of the impulse responses, $\phi_x$, show how these moments can be computed efficiently, and use these moments to form ellipsoid shaped a-priori estimates for the supports of the impulse responses (Section \ref{sec:intromoments}). Our method will use these ellipsoid estimates to choose sets of impulse responses that can be computed in batches. Second, we describe an improved method of approximating impulse responses by other nearby impulse responses, which we call ``normalized local mean displacement invariance'' (Section \ref{sec:local_mean_displacement_invariance}). Our method will interpolate impulse responses using this approximation. 
 
 
 
-\subsection{Impulse response moments and support estimation}
+\subsection{Impulse response moments and ellipsoid support estimate}
 \label{sec:intromoments}
 
 The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative integral kernel property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
-\begin{equation*}
+\begin{equation}
+\label{eq:define_vol}
 \spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy
-\end{equation*}
-denote the spatially varying scaling factor, and let $\mu:\Omega \rightarrow \mathbb{R}^d$, $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d},$
-\begin{equation*}
-\spatialmean(x) := \mathbb{E}(\impulseresponse_x / V(x)), \qquad
-\spatialcov(x) := \Var(\impulseresponse_x /V(x)),
-\end{equation*}
-be the spatially varying mean and covariance of the normalized version of $\impulseresponse_x$, respectively. Imagine $\phi_x$ as a mound of dirt piled on a localized region in $\Omega$, with $\phi_x(y)$ being the height of the dirt mound at location $y$. The scalar $V(x)$ is the total volume of dirt in the mound, the vector $\mu(x)$ is the center of mass of the dirt mound, and the matrix $\Sigma(x)$ contains information about how wide the dirt mound is in each spatial direction. 
+\end{equation}
+denote the spatially varying scaling factor, and for $i,j=1,\dots,d$ define $\mu:\Omega \rightarrow \mathbb{R}^d$ and $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}$ as follows:
+\begin{align}
+\spatialmean^i(x) :=& \int_\Omega (\impulseresponse_p(y) / V(x)) y^i ~dy \label{eq:define_mean} \\
+\spatialcov^{ij}(x) :=& \int_\Omega (\impulseresponse_p(y) / V(x)) \left(y^i - \mu^i(x)\right) \left(y^j - \mu^j(x)\right) ~dy, \label{eq:define_cov}
+\end{align}
+where $q^i$ denotes the $i^\text{th}$ component of the vector $q$, and $M^{ij}$ denotes the $(i,j)$ entry of the matrix $M$.
+The vector $\mu(p)\in \mathbb{R}^d$ and the matrix $\Sigma(x) \in \mathbb{R}^{d \times d}$ are the mean and covariance of the normalized version of $\impulseresponse_x$, respectively. Imagine $\phi_x$ as a mound of dirt piled on a localized region in $\Omega$, with $\phi_x(y)$ being the height of the dirt mound at location $y$. The scalar $V(x)$ is the total volume of dirt in the mound, the vector $\mu(x)$ is the center of mass of the dirt mound, and the matrix $\Sigma(x)$ contains information about how wide the dirt mound is in each spatial direction. 
 
-The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. But this direct approach is computationally infeasible because it requires one operator action of $\Aop$ per point $x$, and our method will need to know $V(x)$, $\mu(x)$, and $\Sigma(x)$ at all points $x$. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. Specifically, let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^\gdim\right)$, and let $C$, $\{L^i\}_{i=1}^\gdim$, and ${\{Q^{ij}\}_{i=1}^\gdim}_{j=1}^\gdim$ be the following constant, linear, and quadratic functions:
+The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. However, this direct approach is not feasible because we need to know $V(x)$, $\mu(x)$, and $\Sigma(x)$ before we compute $\phi_x$, in order choose the point $x$. Computing $\phi_x$ in order to determine $V(x)$, $\mu(x)$, and $\Sigma(x)$ would be extremely computationally expensive, and defeat the purpose of our algorithm, which is to reduce the computational cost by computing impulse responses in batches. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ indirectly, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. This may be motivated by analogy to matrices. If $\mathbf{B}\in \mathbb{R}^{N \times N}$ is a matrix with $i$th column $\mathbf{b}_i$ and $\mathbf{f} \in \mathbb{R}^N$, then
+\begin{equation*}
+\mathbf{B}^T \mathbf{f} = \begin{bmatrix}
+\horzbar & \mathbf{b}_1^T & \horzbar \\
+\horzbar & \mathbf{b}_2^T & \horzbar \\
+& \vdots & \\
+\horzbar & \mathbf{b}_N^T & \horzbar
+\end{bmatrix}
+\mathbf{f} = 
+\begin{bmatrix}
+\mathbf{b}_1^T \mathbf{f} \\
+\mathbf{b}_2^T \mathbf{f} \\
+\vdots \\
+\mathbf{b}_N^T \mathbf{f}
+\end{bmatrix}.
+\end{equation*}
+By computing one matrix-vector product of $\mathbf{B}^T$ with $\mathbf{f}$, we compute the inner product of each column of $\mathbf{B}$ with $\mathbf{f}$ simputaneously. The operator case is analogous, with the impulse response $\phi_x$ taking the place of matrix columns. We have
+\begin{equation}
+\label{eq:operator_simultaneous_ips}
+\left(\Aop^T f\right)^*(x) = \int_\Omega K(y,x) f(y) dy = \left(\phi_x, f\right)_{L^2(\Omega)}.
+\end{equation}
+By computing one operator application of $\Aop^T$ on $f$, we compute the inner product of each impulse response $\phi_x$ with $f$, for all points $x$ simultaneously. 
+
+Let $C$, $L^i$, and $Q^{ij}$ be the following constant, linear, and quadratic functions:
 \begin{equation*}
 C(x) := 1, \qquad
 L^i(x) := x^i, \qquad
-Q^{ij}(x) = x^i x^j.
+Q^{ij}(x) = x^i x^j
 \end{equation*}
-The following results (derived in Appendix \ref{app:proofs}) follow straightforwardly from the definitions:
+for $i=1,\dots,d$. Using the definition of $V$ in \eqref{eq:define_vol} and using \eqref{eq:operator_simultaneous_ips}, we have
+\begin{equation*}
+	V(x) = \int_\Omega \phi_x(y) \cdot 1 ~ dy = \left(\phi_x, C\right)_{L^2(\Omega)} = \left(\mathcal{A}^T C\right)^*(x).
+\end{equation*}
+Hence, we may compute $V(x)$ for all $x$ simultaneously by applying $\Aop^T$ to $C$. Analogous manipulations show that $\mu(x)$ may be computed for all points $x$ simultaneously by applying $\Aop^T$ to the functions $L^i$, and $\Sigma(x)$ may be computed for all for all points $x$ simultaneously by applying $\Aop^T$ to the functions $Q^{ij}$. We have
 \begin{subequations}
 	\label{eq:vol_mean_var}
 	\begin{align}
@@ -467,7 +498,7 @@ The following results (derived in Appendix \ref{app:proofs}) follow straightforw
 	\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
 	\end{align}
 \end{subequations}
-for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$. Here $f/g$ denotes pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denotes pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The resulting method for computing discretized versions of $V$, $\mu$, and $\Sigma$ is shown in Algorithm \ref{alg:varhpi_mean_cov}.
+for $i,j=1,\dots, \gdim$. Here $f/g$ denotes pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denotes pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The resulting method for computing discretized versions of $V$, $\mu$, and $\Sigma$ is shown in Algorithm \ref{alg:varhpi_mean_cov}.
 
 \begin{algorithm2e}
 	\SetAlgoNoLine
@@ -544,14 +575,14 @@ for $i=1,\dots, \gdim$, $j=1,\dots,\gdim$. Here $f/g$ denotes pointwise division
 %\label{eq:mean_and_covariance_estimation}
 
 
-We make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
+Next, we make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
 \begin{equation}
 \label{eq:support_ellipsoid}
 E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
 \end{equation}
 where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$.
 
-The quantity $\tau$ is a parameter that must be chosen by the user. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids $\implies$ lower cost), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. We find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
+The quantity $\tau$ is a parameter that must be chosen appropriately. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (the more ellipsoids the better), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. In practice, we find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
 
 
 \subsection{Local mean-displacement invariance}
