@@ -9,8 +9,8 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="1232.9644"
-   height="782.39062"
+   width="1045.0575"
+   height="778.90826"
    id="svg2"
    version="1.1"
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
@@ -23,8 +23,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.5"
-     inkscape:cx="336.35033"
-     inkscape:cy="258.31622"
+     inkscape:cx="772.28986"
+     inkscape:cy="510.0184"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -279,7 +279,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -287,7 +287,7 @@
      id="layer1"
      inkscape:groupmode="layer"
      inkscape:label="Layer 1"
-     transform="translate(683.36676,108.40201)">
+     transform="translate(495.4599,108.45895)">
     <path
        inkscape:connector-curvature="0"
        id="path2987"
@@ -486,10 +486,10 @@
        sodipodi:nodetypes="cccc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:6;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m -673.36676,35.98862 c 48.18374,-90.71907 234.87449,-147.17872 316,-124.000004 231.35136,66.10039 472.22217,116.166629 656,254.000004 146.49182,122.16264 155.55137,182.60624 208,244 38.5311,78.70811 33.335,217.11339 40,260"
+       d="m -495.32513,-103.56773 c 36.64821,-1.648 56.83286,-7.62237 137.95837,15.556346 231.35136,66.10039 472.22217,116.166629 656,254.000004 146.49182,122.16264 161.03333,167.16908 208,244 46.96667,76.83092 33.335,217.11339 40,260"
        id="path4659"
        inkscape:connector-curvature="0"
-       sodipodi:nodetypes="csccc" />
+       sodipodi:nodetypes="csczc" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:178.35528564px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#008000;fill-opacity:1;stroke:none;stroke-width:2.54793262px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"

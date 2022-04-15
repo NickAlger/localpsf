@@ -749,7 +749,7 @@ Note that $f_i$ is well-defined, because $\phi_{x_i}\left(z_i\right)$ is defined
 \begin{equation}
 \left(x_i, f_i\right), \qquad i=1,\dots,k,
 \end{equation}
-at the point $x$. The idea is that $\Phi(y,x) = f_i$ per the discussion in Section \ref{eq:local_mean_displacement_invariance}, so we approximate $\Phi(y,x)$ by interpolating the values $f_i$. 
+at the point $x$. The idea is that $\Phi(y,x) = f_i$ per the discussion in Section \ref{sec:local_mean_displacement_invariance}, so we approximate $\Phi(y,x)$ by interpolating the values $f_i$. 
 
 To find the $k$ nearest sample points to $x$, we query a precomputed KD-tree \cite{kdtree} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{aabbtree} of the mesh cells used to discretize the problem. 
 
@@ -772,13 +772,29 @@ r^d, & d=1,3,5,\dots \\
 r^d \log r, & d=2,4,6,\dots
 \end{cases}
 \end{equation}
-for $r>0$, and $b_i(0):=0$. This yields the smoothest interpolant of the given points and values, in a least-squares sense. For more details on radial basis function interpolation and polyharmonic splines, see \cite{rbf}.
+for $r>0$, and $b_i(0):=0$. This yields the smoothest interpolant of the given points and values, in a least-squares sense. For more details on radial basis function interpolation and polyharmonic splines, see \cite{rbf}. The interpolation procedure is illustrate in Figure \ref{fig:rbf_interpolation}.
+
+\begin{figure}
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[scale=0.22]{interpolation_rbf.pdf}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[scale=0.22]{interpolation_rbf_boundary.pdf}
+		\caption{}
+	\end{subfigure}
+	\caption{(a) To compute the kernel entry $\Phi(y,x)$, we use radial basis functions to interpolate the values $\frac{V(x)}{V(x_i)}\phi_{x_i}(y-\mu(x)-\mu(x_i))$ for the $k$ nearest sample points $x_i$ to $x$. (b) We exclude sample points for which $y-\mu(x)_\mu(x_i)$ is outside of the domain.}
+	\label{fig:rbf_interpolation}
+\end{figure}
 
 To evaluate $f_i$, we check whether $z_i \in E_{x_i}$ using \eqref{eq:support_ellipsoid}. If $z_i \notin E_{x_i}$, then $z_i$ is outside the estimated support of $\impulseresponse_{x_i}$, so we set $f_i=0$. If $z_i \in E_{x_i}$, we look up the batch index $b$ such that $x_i \in S_b$, and evaluate $f_i$ via the formula
 \begin{equation}
 f_i = V(x)\eta_b\left(z_i\right),
 \end{equation}
-per \eqref{eq:varphi_eval}.
+per \eqref{eq:varphi_eval}. 
+
  
 Note that $z_i$ is generally not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Hence,
 evaluating $\eta_b\left(z_i\right)$ requires determining which mesh cell contains $z_i$, then evaluating finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $z_i$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $z_i \in \Omega$. 
