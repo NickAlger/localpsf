@@ -472,7 +472,7 @@ The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatia
 \mathbf{b}_N^T \mathbf{f}
 \end{bmatrix}.
 \end{equation*}
-By computing one matrix-vector product of $\mathbf{B}^T$ with $\mathbf{f}$, we compute the inner product of each column of $\mathbf{B}$ with $\mathbf{f}$ simputaneously. The operator case is analogous, with the impulse response $\phi_x$ taking the place of matrix columns. We have
+By computing one matrix-vector product of $\mathbf{B}^T$ with $\mathbf{f}$, we compute the inner product of each column of $\mathbf{B}$ with $\mathbf{f}$ simultaneously. The operator case is analogous, with the impulse response $\phi_x$ taking the place of matrix columns. We have
 \begin{equation}
 \label{eq:operator_simultaneous_ips}
 \left(\Aop^T f\right)^*(x) = \int_\Omega K(y,x) f(y) dy = \left(\phi_x, f\right)_{L^2(\Omega)}.
@@ -489,7 +489,7 @@ for $i=1,\dots,d$. Using the definition of $V$ in \eqref{eq:define_vol} and usin
 \begin{equation*}
 	V(x) = \int_\Omega \phi_x(y) \cdot 1 ~ dy = \left(\phi_x, C\right)_{L^2(\Omega)} = \left(\mathcal{A}^T C\right)^*(x).
 \end{equation*}
-Hence, we may compute $V(x)$ for all $x$ simultaneously by applying $\Aop^T$ to $C$. Analogous manipulations show that $\mu(x)$ may be computed for all points $x$ simultaneously by applying $\Aop^T$ to the functions $L^i$, and $\Sigma(x)$ may be computed for all for all points $x$ simultaneously by applying $\Aop^T$ to the functions $Q^{ij}$. We have
+Hence, we may compute $V(x)$ for all $x$ simultaneously by applying $\Aop^T$ to $C$. Analogous manipulations show that $\mu(x)$ may be computed for all points $x$ simultaneously by applying $\Aop^T$ to the functions $L^i$, and $\Sigma(x)$ may be computed for all for all points $x$ simultaneously by applying $\Aop^T$ to the functions $Q^{ij}$. To summarize the results of doing this, we have
 \begin{subequations}
 	\label{eq:vol_mean_var}
 	\begin{align}
