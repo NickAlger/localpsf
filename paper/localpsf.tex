@@ -57,7 +57,7 @@
 \section{Introduction}
 \label{sec:intro}
 
-We present a fast \emph{matrix free} method for approximating operators, $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$, that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^d$ is a bounded domain, $d$ is the spatial dimension, and $L^2(\Omega)'$ is the space of continuous linear functionals on $L^2(\Omega)$ (i.e., the topological dual space). Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps) \cite{DTNMAP}, covariance operators in spatial statistics \cite{COVARIANCEOPERATORS}, blurring operators in imaging \cite{BLURRING}, and Hessians in distributed parameter PDE-constrained optimization and inverse problems \cite{PDEHESSIAN}. 
+We present a fast \emph{matrix free} method for approximating operators, $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$, that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^d$ is a bounded domain, $d$ is the spatial dimension, and $L^2(\Omega)'$ is the space of continuous linear functionals on $L^2(\Omega)$ (i.e., the topological dual space). Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{le1997non,saad1999distributed,TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps) \cite{DTNMAP}, covariance operators in spatial statistics \cite{GeogaEtAl20,ChenStein21,LindgrenRueLindstrom11}, blurring operators in imaging \cite{DenisEtAl11,NagyOleary98}, and Hessians in distributed parameter PDE-constrained optimization and inverse problems \cite{AlgerEtAl19,IsaacEtAl15}. 
 
 By ``matrix free,'' we mean that we have a black-box computational procedure through which we may apply $\Aop$ and its transpose\footnote{Recall that the transpose $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(v) = \left(\Aop v\right)(u)$ for all $u,v \in L^2(\Omega)$, where the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(v)$ is the result of applying that linear functional to $v \in L^2(\Omega)$, and similar for the analogous operations with $\Aop^T$. }, $\Aop^T$, to arbitrary functions,
 \begin{equation}
@@ -71,9 +71,9 @@ Our motivation is Hessian approximation in distributed parameter inverse problem
 In the deterministic approach to the inverse problem, one solves a regularized minimization problem to find the parameter that best fits the data. The objective function in the minimization problem is defined implicitly, so information about the Hessian of the objective function is only accessible via application of the Hessian to vectors \cite{HESSIANACTION}. 
 %In particular, applying the Hessian to a vector requires solving two linear PDEs which take the form of linearizations of \eqref{eq:state_pde} \cite{HESSIANACTION}. 
 %More accessible Hessian approximations are highly desirable because they permit fast solution of the minimization problem via Newton-type methods. More accessible Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because the inverse of the Hessian locally approximates the Bayesian posterior covariance for the parameter \cite{LAPLACEAPPROXIMATION}. 
-The most popular matrix-free Hessian approximation methods are based on low rank approximation \cite{CCGOPAPERS}. 
+The most popular matrix-free Hessian approximation methods are based on low rank approximation \cite{BuiEtAl13,CuiEtAl14,FlathEtAl11,PetraEtAl14,SpantiniEtAl15} because there are efficient methods for constructing low rank approximations of a matrix using only matrix-vector products \cite{Cheng05,HalkoMartinssonTropp11}. 
 %This includes the Lanczos method, the randomized singular value decomposition \cite{HMTRANDOM}, and CUR approximation/skeletonization \cite{CUR,MAHONEY}. 
-However, low rank approximation methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator applies are required to form an accurate ``low rank'' approximation \cite{MYDISSERTATION}. High-rank matrix free approximation methods are needed.
+However, low rank approximation methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator applies are required to form an accurate ``low rank'' approximation \cite{Alger19,AlgerEtAl17}. High-rank matrix free approximation methods are needed.
 
 \begin{figure}
 	\begin{center}
@@ -84,7 +84,7 @@ However, low rank approximation methods suffer from a ``data predicament''---if 
 	\label{fig:hmatrix_intro}
 \end{figure}
 
-Our method forms a hierarchical matrix (H-matrix) approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high-rank (see Figure \ref{fig:hmatrix_intro} and Appendix \ref{app:h_matrix}). H-matrix methods permit us to perform matrix-vector products cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving the H-matrix that cannot easily be done using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. Typically, the work and memory required to perform these operations for an $N \times N$ H-matrix scales as $O(r^2 N \log(N)^a)$, where $r$ is the largest rank of the off-diagonal blocks, and $a \in \{0,1,2,3\}$. The exact cost depends on the type of H-matrix used and operation performed; for more details see \cite{HMATRIXCOST}. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
+Our method forms a hierarchical matrix (H-matrix) \cite{Hackbusch99,} approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high-rank (see Figure \ref{fig:hmatrix_intro} and Appendix \ref{app:h_matrix}). H-matrix methods permit us to perform matrix-vector products cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving the H-matrix that cannot easily be done using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. Typically, the work and memory required to perform these operations for an $N \times N$ H-matrix scales as $O(r^2 N \log(N)^a)$, where $r$ is the largest rank of the off-diagonal blocks, and $a \in \{0,1,2,3\}$. The exact cost depends on the type of H-matrix used and operation performed; for more details see \cite{GrasedyckHackbusch03,Hackbusch15}. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
 
 \begin{figure}
 	\begin{subfigure}{0.32\textwidth}
@@ -107,13 +107,13 @@ Our method forms a hierarchical matrix (H-matrix) approximation of a discretized
 \end{figure}
 
 %Since our end goal is an H-matrix, it is natural to ask why we do not build the H-matrix directly using classical H-matrix construction methods. The reason is that 
-Classical H-matrix construction methods \cite{HMATRIXCONSTRUCTION} require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available matrix free. Recently there have been improvements in matrix-free H-matrix construction methods based on the so-called ``peeling process'' \cite{LEXINGPEELINGPROCESS,ILONAHMATRIX,NOEMIHMATRIX}, which we do not use here. 
-%These alternative methods have, for instance, been applied to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{ILONAHMATRIX,NOEMIHMATRIX}. 
-While methods based on the peeling process are asymptotically scalable in theory, in practice the required number of matrix vector products is large\footnote{DO CALCULATION}. Matrix-free H-matrix construction methods are currently a topic of considerable research, so future algorithmic improvements may make matrix-free H-matrix methods based on the peeling process more efficient in the future. 
+Classical H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available matrix free. Recently there have been improvements in matrix-free H-matrix construction methods based on the so-called ``peeling process'' \cite{LinYing11,Martinsson11,Martinsson16,MartinssonTropp20}, which we do not use here. 
+These alternative methods have, been applied to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{AmbartsumyanEtAl20,HartlandEtAl22}. 
+While methods based on the peeling process are asymptotically scalable in theory, in practice the required number of matrix vector products is large. Matrix-free H-matrix construction methods are currently a topic of considerable research, so future algorithmic improvements may make matrix-free H-matrix methods based on the peeling process more efficient in the future. 
 
 We construct the H-matrix using \emph{impulse response interpolation}. The impulse response, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(v) = \left(\rho^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with collections of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate shifted versions of these impulse responses to approximate arbitrary entries of the operator's integral kernel. This allows fast evaluation of approximate matrix entries, which are needed by the classical H-matrix construction methods. 
 
-Picking the batches of points $x_i$ requires us to estimate the supports of the $\phi_x$, \emph{before} we compute them. The idea of estimating the supports of the functions $\phi_x$ a-priori was inspired by techniques from resolution analysis in seismic imaging, in which the width of $\phi_x$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $x$, where $\zeta$ is a random noise funtion  \cite{RESOLUTION}. Rather than probing $\Aop^T$ with random noise functions, we use polynomial functions (see Section \ref{sec:intromoments}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing at the cost of the additional constraint that $\Aop$ has a positive integral kernel.
+Picking the batches of points $x_i$ requires us to estimate the supports of the $\phi_x$, \emph{before} we compute them. The idea of estimating the supports of the functions $\phi_x$ a-priori was inspired by techniques from resolution analysis in seismic imaging, in which the width of $\phi_x$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $x$, where $\zeta$ is a random noise funtion  \cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. Rather than probing $\Aop^T$ with random noise functions, we use polynomial functions (see Section \ref{sec:intromoments}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing at the cost of the additional constraint that $\Aop$ has a positive integral kernel.
 
 %We pick batches of points $x_i$ in such that many $\phi_{x_i}$ are computed with each operator action of $\Aop$. 
 
@@ -130,7 +130,7 @@ Picking the batches of points $x_i$ requires us to estimate the supports of the 
 
 %Product-convolution (PC) approximations can (where applicable) approximate high rank operators efficiently.
 
-Our impulse response interpolation procedure may be categorized as a ``point spread function'' (PSF) method that is loosely based on so-called ``product-convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights \cite{PRODCONVLIST}. PC and PSF methods have a long history dating back several decades; for background we recommend the following papers: \cite{PRODCONVGOOD}. While PC approximations are based on an assumption of local translation invariance \cite{LOCATRANSLATIONINVARIANCE}, the method we propose is based on an assumption that we call ``local mean displacement invariance'' (see Figure \ref{fig:mean_displacement_invariance}). This is more general than local translation invariance, and includes both low rank approximation and local translation invariance as special cases (see Section \ref{sec:local_mean_displacement_invariance}). Furthermore, PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulse responses. We avoid this issue by temporarily excluding impulse responses from the approximation procedure whenever an attempt is made to evaluate the impulse response at a location where it is undefined. 
+Our impulse response interpolation procedure may be categorized as a ``point spread function'' (PSF) method that is loosely based on so-called ``product-convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others),  \cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,NagyOleary98,FishEtAl96,EscandeWeiss12,EscandeWeiss15,EscandeWeiss22}, in which the convolution kernels are constructed from sampling impulse responses of the operator to scattered point sources. For background on PC and PSF methods, we recommend the following papers which provide well-written reviews of the topic: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. While PC approximations are based on an assumption of local translation invariance, the method we propose is based on an assumption that we call ``local mean displacement invariance'' (see Figure \ref{fig:mean_displacement_invariance}). This is more general than local translation invariance, and includes both low rank approximation and local translation invariance as special cases (see Section \ref{sec:local_mean_displacement_invariance}). Furthermore, PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulse responses. We avoid this issue by temporarily excluding impulse responses from the approximation procedure whenever an attempt is made to evaluate the impulse response at a location where it is undefined. 
 
 %A single convolution operator may be high rank, so PC approximations can (where applicable) approximate high rank operators efficiently. 
 %The method proposed in this paper is not exactly a PC approximation, but it builds upon a class of PC approximations in which the convolution kernels are shifted impulse responses of $\Aop$ associated with a collection of scattered points $x_i \in \Omega$ \cite{PRODCONVLIST}. 
@@ -453,10 +453,11 @@ denote the spatially varying scaling factor, and for $i,j=1,\dots,d$ define $\mu
 \spatialmean^i(x) :=& \int_\Omega (\impulseresponse_p(y) / V(x)) y^i ~dy \label{eq:define_mean} \\
 \spatialcov^{ij}(x) :=& \int_\Omega (\impulseresponse_p(y) / V(x)) \left(y^i - \mu^i(x)\right) \left(y^j - \mu^j(x)\right) ~dy, \label{eq:define_cov}
 \end{align}
-where $q^i$ denotes the $i^\text{th}$ component of the vector $q$, and $M^{ij}$ denotes the $(i,j)$ entry of the matrix $M$.
-The vector $\mu(p)\in \mathbb{R}^d$ and the matrix $\Sigma(x) \in \mathbb{R}^{d \times d}$ are the mean and covariance of the normalized version of $\impulseresponse_x$, respectively. Imagine $\phi_x$ as a mound of dirt piled on a localized region in $\Omega$, with $\phi_x(y)$ being the height of the dirt mound at location $y$. The scalar $V(x)$ is the total volume of dirt in the mound, the vector $\mu(x)$ is the center of mass of the dirt mound, and the matrix $\Sigma(x)$ contains information about how wide the dirt mound is in each spatial direction. 
+where $\mu^i(x)$ denotes the $i^\text{th}$ component of the vector $\mu(x)$, and $\Sigma^{ij}(x)$ denotes the $(i,j)$ entry of the matrix $\Sigma(x)$.
+The vector $\mu(x)\in \mathbb{R}^d$ and the matrix $\Sigma(x) \in \mathbb{R}^{d \times d}$ are the mean and covariance of the normalized version of $\impulseresponse_x$, respectively. 
+%Imagine $\phi_x$ as a mound of dirt piled on a localized region in $\Omega$, with $\phi_x(y)$ being the height of the dirt mound at location $y$. The scalar $V(x)$ is the total volume of dirt in the mound, the vector $\mu(x)$ is the center of mass of the dirt mound, and the matrix $\Sigma(x)$ contains information about how wide the dirt mound is in each spatial direction. 
 
-The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to get $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. However, this direct approach is not feasible because we need to know $V(x)$, $\mu(x)$, and $\Sigma(x)$ before we compute $\phi_x$, in order choose the point $x$. Computing $\phi_x$ in order to determine $V(x)$, $\mu(x)$, and $\Sigma(x)$ would be extremely computationally expensive, and defeat the purpose of our algorithm, which is to reduce the computational cost by computing impulse responses in batches. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ indirectly, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions. This may be motivated by analogy to matrices. If $\mathbf{B}\in \mathbb{R}^{N \times N}$ is a matrix with $i$th column $\mathbf{b}_i$ and $\mathbf{f} \in \mathbb{R}^N$, then
+The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to obtain $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. However, this direct approach is not feasible because we need to know $V(x)$, $\mu(x)$, and $\Sigma(x)$ before we compute $\phi_x$, in order choose the point $x$. Computing $\phi_x$ in order to determine $V(x)$, $\mu(x)$, and $\Sigma(x)$ would be extremely computationally expensive, and defeat the purpose of our algorithm, which is to reduce the computational cost by computing impulse responses in batches. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ indirectly, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions (e.g., 6 total operator applies in two spatial dimensions and 10 in three spatial dimensions). This may be motivated by analogy to matrices. If $\mathbf{B}\in \mathbb{R}^{N \times N}$ is a matrix with $i^\text{th}$ column $\mathbf{b}_i$ and $\mathbf{f} \in \mathbb{R}^N$, then
 \begin{equation*}
 \mathbf{B}^T \mathbf{f} = \begin{bmatrix}
 \horzbar & \mathbf{b}_1^T & \horzbar \\
@@ -472,24 +473,24 @@ The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatia
 \mathbf{b}_N^T \mathbf{f}
 \end{bmatrix}.
 \end{equation*}
-By computing one matrix-vector product of $\mathbf{B}^T$ with $\mathbf{f}$, we compute the inner product of each column of $\mathbf{B}$ with $\mathbf{f}$ simultaneously. The operator case is analogous, with the impulse response $\phi_x$ taking the place of matrix columns. We have
+By computing one matrix-vector product of $\mathbf{B}^T$ with $\mathbf{f}$, we compute the inner product of each column of $\mathbf{B}$ with $\mathbf{f}$ simultaneously. The operator case is analogous, with the impulse response $\phi_x$ taking the place of a matrix column. We have
 \begin{equation}
 \label{eq:operator_simultaneous_ips}
 \left(\Aop^T f\right)^*(x) = \int_\Omega K(y,x) f(y) dy = \left(\phi_x, f\right)_{L^2(\Omega)}.
 \end{equation}
-By computing one operator application of $\Aop^T$ on $f$, we compute the inner product of each impulse response $\phi_x$ with $f$, for all points $x$ simultaneously. 
+By computing one operator application of $\Aop^T$ to $f$, we compute the inner product of each impulse response $\phi_x$ with $f$, for all points $x$ simultaneously. 
 
 Let $C$, $L^i$, and $Q^{ij}$ be the following constant, linear, and quadratic functions:
 \begin{equation*}
 C(x) := 1, \qquad
 L^i(x) := x^i, \qquad
-Q^{ij}(x) = x^i x^j
+Q^{ij}(x) := x^i x^j
 \end{equation*}
-for $i=1,\dots,d$. Using the definition of $V$ in \eqref{eq:define_vol} and using \eqref{eq:operator_simultaneous_ips}, we have
+for $i,j=1,\dots,d$. Using the definition of $V$ in \eqref{eq:define_vol} and using \eqref{eq:operator_simultaneous_ips}, we have
 \begin{equation*}
-	V(x) = \int_\Omega \phi_x(y) \cdot 1 ~ dy = \left(\phi_x, C\right)_{L^2(\Omega)} = \left(\mathcal{A}^T C\right)^*(x).
+	V(x) = \int_\Omega \phi_x(y) C(y) ~ dy = \left(\phi_x, C\right)_{L^2(\Omega)} = \left(\mathcal{A}^T C\right)^*(x).
 \end{equation*}
-Hence, we may compute $V(x)$ for all $x$ simultaneously by applying $\Aop^T$ to $C$. Analogous manipulations show that $\mu(x)$ may be computed for all points $x$ simultaneously by applying $\Aop^T$ to the functions $L^i$, and $\Sigma(x)$ may be computed for all for all points $x$ simultaneously by applying $\Aop^T$ to the functions $Q^{ij}$. To summarize the results of doing this, we have
+Hence, we may compute $V(x)$ for all $x$ simultaneously by applying $\Aop^T$ to $C$. Analogous manipulations show that $\mu(x)$ and $\Sigma(x)$ may be computed for all points $x$ simultaneously by applying $\Aop^T$ to the functions $L^i$ and $Q^{ij}$, respectively. To summarize the results of doing this, we have
 \begin{subequations}
 	\label{eq:vol_mean_var}
 	\begin{align}
@@ -1080,8 +1081,33 @@ where $v := \Phi^T\left(\spatialmean_1 - \spatialmean_2\right)$. We compute the 
 \subsection{Rational positive semi-definite modification}
 \label{sec:make_spd}
 
+%WOODBURY: \cite{Hager89}.
+
 In many problems of practical interest (e.g., Hessian approximation) $\Aop$ is symmetric positive semi-definite. However, $\mathbf{A}_H$ is generally non-symmetric and indefinite because of approximation error. 
 This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms, such as the conjugate gradient method, to perform further useful operations involving $\mathbf{A}_H$.
+
+If $\Aop$ is symmetric positive definite, we symmetrize $\mathbf{A}_H$ as follows
+\begin{equation*}
+\mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
+\end{equation*}
+Then we compute the negative eigenvalues, of $\mathbf{A}_H$ that are less than (i.e., more negative than) a small magnitude negative cutoff value $c$, and also compute the corresponding eigenvectors. That is, the eigenpairs $\{(\lambda_i,u_i)\}_{i=1}^{N_\text{bad}}$ with
+\begin{equation*}
+	\lambda_i < c < 0.
+\end{equation*}
+These outlying eigenpairs may be computed using a Krylov method, or the randomized singular value decomposition.
+We then flip the sign of these ``bad'' negative eigenvalues to be positive as follows:
+\begin{equation*}
+	\mathbf{A}_H^{\text{sym}+} = \mathbf{A}_H^{\text{sym}} + \sum_{i=1}^{N_\text{bad}} 2 |\lambda_i| u_i u_i^T.
+\end{equation*}
+The matrix $\mathbf{A}_H^{\text{sym}+}$ approximates the matrix absolute value of $\mathbf{A}_H^{\text{sym}}$. A H-matrix representation of $\mathbf{A}_H^{\text{sym}+}$ is formed using H-matrix addition, and used in place of $\mathbf{A}_H$ in further linear algebra operations.
+
+The cutoff $c$ is required when $\Aop$ has a large number of zero eigenvalues, or a sequence of eigenvalues that cluster at zero, a situation that occurs commonly in practice. We seek to correct negative eigenvalues caused by errors in our approximation procedure. But even without our approximation, numerical rounding and discretization errors may cause large numbers of zero or near-zero eigenvalues to become slightly negative. Numerically, we cannot hope to correct these small magnitude negative eigenvalues because there are so many of them, and because the spectral gap between the smallest negative eigenvalue and the first non-negative eigenvalue is small. 
+
+For Hessians in ill-posed inverse problems, the Hessian is the sum of the Hessian of a data misfit term, and the Hessian of a regularization term. The Hessian of the regularization term is known and easy to manipulate, and one seeks to approximate the Hessian of the data misfit term with our method. In this case, a reasonable choice for the cutoff parameter is $c = -|\lambda_R^\text{min}|/2$, where $\lambda_R^\text{min}$ is the smallest magnitude eigenvalue of the Hessian of the regularization term. We use this cutoff parameter in our numerical experiments.
+
+
+\section{old rational}
+
 In this section we describe a method for modifying $\mathbf{A}_H$ to make it symmetric positive semi-definite.
 
 Because of the modified interpolation for symmetric matrices described in Section \ref{sec:symmetric_improvements}, $\mathbf{A}_H$ is nearly (but not completely) symmetric. We further symmetrize $\mathbf{A}_H$ as follows:
@@ -1831,6 +1857,9 @@ In detail, let $p_1, p_2, \dots, p_k$ be the $k$ nearest sample points to $x_i$,
 \section*{Acknowledgments}
 We thank J.J. Alger, Longfei Gao, Mathew Hu, and Rami Nammour for helpful discussions. Georg Stadler (domain geometry help)
 
+\FloatBarrier
+
 \bibliographystyle{siamplain}
-\bibliography{references}
+\bibliography{localpsf}
+
 \end{document}
