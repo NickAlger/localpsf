@@ -428,7 +428,9 @@ Broadly, our method will construct an H-matrix approximation of $\mathbf{A}$ by 
 %\boldsymbol{\delta}_y^T \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \boldsymbol{\delta}_x.
 %\end{equation*}
 %Even if the discretization $\Aop \rightarrow \mathbf{A}$ preserves integral kernel non-negativity (which it typically will not), 
-The inverse mass matrices in this formula, $\mathbf{M}^{-1}$, will typically contain negative numbers. If there are too many negative numbers, or if the negative numbers are too large, our algorithm will be less robust. We therefore recommend replacing the mass matrix $\mathbf{M}$ with a positive diagonal \emph{lumped mass} approximation, and using the resulting lumped mass matrix everywhere throughout the approximation method. For typical finite element meshes, lumped mass matrix approximations are spectrally equivalent to the mass matrix \cite{MASSLUMP2}. In our numerical results, we use the lumped mass matrix constructed by replacing off-diagonal entries of the mass matrix by zero. Other more advanced mass lumping techniques may be used \cite{MASSLUMP2}.
+The inverse mass matrices in this formula, $\mathbf{M}^{-1}$, will typically contain negative numbers. If there are too many negative numbers, or if the negative numbers are too large, our algorithm will be less robust. We therefore recommend replacing the mass matrix $\mathbf{M}$ with a positive diagonal \emph{lumped mass} approximation. 
+%For typical finite element meshes, lumped mass matrix approximations are spectrally equivalent to the mass matrix \cite{MASSLUMP2}. 
+In our numerical results, we use the lumped mass matrix constructed by replacing off-diagonal entries of the mass matrix by zero. Other more advanced mass lumping techniques may be used. See \cite{Hughes12} for a discussion of lumped mass matrices.
 
 
 \section{Key innovations}
