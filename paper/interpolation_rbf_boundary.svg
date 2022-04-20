@@ -23,8 +23,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.5"
-     inkscape:cx="710.39327"
-     inkscape:cy="486.64647"
+     inkscape:cx="351.39327"
+     inkscape:cy="478.64647"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -415,7 +415,7 @@
        sodipodi:nodetypes="cccc" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:266.24581909px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#008000;fill-opacity:1;stroke:none;stroke-width:3.80351162px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:266.24581909px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:3.80351162px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;"
        x="-83.015991"
        y="308.19724"
        id="text1284"
@@ -424,22 +424,22 @@
          id="tspan1282"
          x="-83.015991"
          y="308.19724"
-         style="fill:#008000;stroke-width:3.80351162px">✓</tspan></text>
+         style="fill:#000000;stroke-width:3.80351162px;fill-opacity:1;">✓</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:266.24581909px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#d40000;fill-opacity:1;stroke:none;stroke-width:3.80351162px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="528.8302"
-       y="-38.518532"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:266.24581909px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:3.80351162px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="485.50635"
+       y="-1.9566796"
        id="text1284-2"
        transform="scale(1.015607,0.98463283)"><tspan
          sodipodi:role="line"
          id="tspan1282-5"
-         x="528.8302"
-         y="-38.518532"
-         style="fill:#d40000;stroke-width:3.80351162px">✗</tspan></text>
+         x="485.50635"
+         y="-1.9566796"
+         style="fill:#000000;fill-opacity:1;stroke-width:3.80351162px">✗</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:266.24581909px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#008000;fill-opacity:1;stroke:none;stroke-width:3.80351162px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:266.24581909px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:3.80351162px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;"
        x="675.31799"
        y="517.18695"
        id="text1284-9"
@@ -448,7 +448,7 @@
          id="tspan1282-3"
          x="675.31799"
          y="517.18695"
-         style="fill:#008000;stroke-width:3.80351162px">✓</tspan></text>
+         style="fill:#000000;stroke-width:3.80351162px;fill-opacity:1;">✓</tspan></text>
     <g
        id="g626"
        transform="translate(-717.29437,-530.70389)">
