@@ -55,7 +55,8 @@ def make_hmatrix_from_kernel( Phi_pc : ProductConvolutionKernel,
 
     if make_positive_definite:
         A_hmatrix_nonsym = A_hmatrix
-        A_hmatrix = A_hmatrix.spd(overwrite=False, rtol_inv=hmatrix_tol)
+        # A_hmatrix = A_hmatrix.spd(overwrite=False, rtol_inv=hmatrix_tol)
+        A_hmatrix = A_hmatrix.spd(overwrite=False, atol=1e-10)
         extras['A_hmatrix_nonsym'] = A_hmatrix_nonsym
 
     return A_hmatrix, extras
