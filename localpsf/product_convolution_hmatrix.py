@@ -10,8 +10,7 @@ import hlibpro_python_wrapper as hpro
 def make_hmatrix_from_kernel( Phi_pc : ProductConvolutionKernel,
                               hmatrix_tol=1e-5,
                               bct_admissibility_eta=2.0,
-                              cluster_size_cutoff=50,
-                              make_positive_definite=False):
+                              cluster_size_cutoff=50):
     print('Making row and column cluster trees')
     dof_coords_in = Phi_pc.V_in.tabulate_dof_coordinates()
     dof_coords_out = Phi_pc.V_out.tabulate_dof_coordinates()
@@ -53,11 +52,11 @@ def make_hmatrix_from_kernel( Phi_pc : ProductConvolutionKernel,
         extras['M_in_hmatrix'] = M_in_hmatrix
         extras['M_out_hmatrix'] = M_out_hmatrix
 
-    if make_positive_definite:
-        A_hmatrix_nonsym = A_hmatrix
-        # A_hmatrix = A_hmatrix.spd(overwrite=False, rtol_inv=hmatrix_tol)
-        A_hmatrix = A_hmatrix.spd(overwrite=False, atol=1e-10)
-        extras['A_hmatrix_nonsym'] = A_hmatrix_nonsym
+    # if make_positive_definite:
+    #     A_hmatrix_nonsym = A_hmatrix
+    #     # A_hmatrix = A_hmatrix.spd(overwrite=False, rtol_inv=hmatrix_tol)
+    #     A_hmatrix = A_hmatrix.spd(overwrite=False, atol=1e-10)
+    #     extras['A_hmatrix_nonsym'] = A_hmatrix_nonsym
 
     return A_hmatrix, extras
 
