@@ -49,7 +49,20 @@ PCK = ProductConvolutionKernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_pe
 
 ########    CREATE HMATRICES    ########
 
-A_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=True, hmatrix_tol=hmatrix_tol)
+A_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol=hmatrix_tol)
+
+_, eeA_max, _ = spla.svds(A_pch_nonsym.as_linear_operator(), k=3, which='LM')
+eA_max = np.max(eeA_max)
+
+cutoff = -1e-2*eA_max
+
+A_pch = A_pch_nonsym.spd(cutoff=cutoff)
+
+# min_reg_param = 1e-3
+# eeR_min, _ = spla.eigsh(min_reg_param * HIP.R0_scipy, k=3, which='SM')
+# eR_min = np.min(eeR_min)
+#
+# A_pch = A_pch_nonsym.spd(cutoff=0.8*eR_min)
 
 
 ########    SET UP REGULARIZATION OPERATOR AND INVERSE PROBLEM SOLVER    ########
@@ -115,7 +128,9 @@ for num_batches in all_num_batches:
                                    symmetric=True,
                                    gamma=gamma)
 
-    A_pch, extras = make_hmatrix_from_kernel(PCK, make_positive_definite=True, hmatrix_tol=hmatrix_tol)
+    A_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol=hmatrix_tol)
+
+    A_pch = A_pch_nonsym.spd(cutoff=cutoff)
 
     H_hmatrix = A_pch + a_reg_morozov * R0_hmatrix
     iH_hmatrix = H_hmatrix.inv()
@@ -185,3 +200,29 @@ plt.legend(legend)
 if save_figures:
     plt.savefig(save_dir / 'relative_residual_vs_krylov_iter.pdf', bbox_inches='tight', dpi=100)
 
+
+####    Experimenting with negative eigenvalue stuff
+
+
+A_pch_sym = A_pch_nonsym.sym()
+
+R_hmatrix = a_reg_morozov * R0_hmatrix
+
+A_plus_R = A_pch_sym + R_hmatrix
+
+iA_plus_R = A_plus_R.inv()
+
+iR_hmatrix = R_hmatrix.inv()
+
+ee_pre, uu_pre = spla.eigsh(iA_plus_R.as_linear_operator(), k=10, which='LM',
+                            M=iR_hmatrix.as_linear_operator(),
+                            Minv=R_hmatrix.as_linear_operator())
+
+# ee_pre, uu_pre = spla.eigsh(A_plus_R.as_linear_operator(), k=3, which='SA',
+#                             M=R_hmatrix.as_linear_operator(),
+#                             Minv=iR_hmatrix.as_linear_operator())
+
+# A_pch = A_pch_nonsym.spd(cutoff=cutoff)
+#
+# H_hmatrix = A_pch + a_reg_morozov * R0_hmatrix
+# iH_hmatrix = H_hmatrix.inv()
