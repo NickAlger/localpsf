@@ -61,7 +61,6 @@ eR_min = np.min(eeR_min)
 A_pch = A_pch_nonsym.spd(cutoff=0.8*eR_min)
 
 Phi_pch = extras['A_kernel_hmatrix']
-# A_pch_nonsym = extras['A_hmatrix_nonsym']
 
 
 ########    VISUALIZE HMATRICES    ########
@@ -105,31 +104,44 @@ column_error_plot(Phi_col_rel_errs_fro, PCK.V_in, PCK.col_batches.sample_points)
 
 ########    ESTIMATE ERRORS IN INDUCED2 NORM    ########
 
-Phi_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x))
-err_Phi_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x) - Phi_pch*x)
+Phi_linop = spla.LinearOperator(Phi_pch.shape,
+                                matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x),
+                                rmatvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x.reshape(-1)))
+err_Phi_linop = spla.LinearOperator(Phi_pch.shape,
+                                    matvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x) - Phi_pch*x,
+                                    rmatvec=lambda x: HIP.apply_iM_Hd_iM_numpy(x.reshape(-1)) - Phi_pch.rmatvec(x.reshape(-1)))
 
-aa_Phi,_ = spla.eigsh(Phi_linop, k=1, which='LM')
-ee_Phi,_ = spla.eigsh(err_Phi_linop, k=1, which='LM')
+_, aa_Phi,_ = spla.svds(Phi_linop, k=1, which='LM')
+_, ee_Phi,_ = spla.svds(err_Phi_linop, k=1, which='LM')
 
 Phi_relative_error_induced2 = np.max(np.abs(ee_Phi)) / np.max(np.abs(aa_Phi))
 print('Phi_relative_error_induced2=', Phi_relative_error_induced2)
 
 #
 
-A_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_Hd_numpy(x))
-err_A_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_Hd_numpy(x) - A_pch_nonsym*x)
+A_linop = spla.LinearOperator(Phi_pch.shape,
+                              matvec=lambda x: HIP.apply_Hd_numpy(x),
+                              rmatvec=lambda x: HIP.apply_Hd_numpy(x.reshape(-1)))
+err_A_linop = spla.LinearOperator(Phi_pch.shape,
+                                  matvec=lambda x: HIP.apply_Hd_numpy(x) - A_pch_nonsym*x,
+                                  rmatvec=lambda x: HIP.apply_Hd_numpy(x.reshape(-1)) - A_pch_nonsym.rmatvec(x.reshape(-1)))
 
-aa_A,_ = spla.eigsh(A_linop, k=1, which='LM')
-ee_A,_ = spla.eigsh(err_A_linop, k=1, which='LM')
+_, aa_A,_ = spla.svds(A_linop, k=1, which='LM')
+_, ee_A,_ = spla.svds(err_A_linop, k=1, which='LM')
+# aa_A,_ = spla.eigsh(A_linop, k=1, which='LM')
+# ee_A,_ = spla.eigsh(err_A_linop, k=1, which='LM')
 
 A_relative_err_induced2 = np.max(np.abs(ee_A)) / np.max(np.abs(aa_A))
 print('A_relative_err_induced2=', A_relative_err_induced2)
 
 #
 
-err_Asym_linop = spla.LinearOperator(Phi_pch.shape, matvec=lambda x: HIP.apply_Hd_numpy(x) - A_pch*x)
+err_Asym_linop = spla.LinearOperator(Phi_pch.shape,
+                                     matvec=lambda x: HIP.apply_Hd_numpy(x) - A_pch*x,
+                                     rmatvec=lambda x: HIP.apply_Hd_numpy(x.reshape(-1)) - A_pch.rmatvec(x.reshape(-1)))
 
-ee_Asym,_ = spla.eigsh(err_Asym_linop, k=1, which='LM')
+# ee_Asym,_ = spla.eigsh(err_Asym_linop, k=1, which='LM')
+_, ee_Asym,_ = spla.svds(err_Asym_linop, k=1, which='LM')
 
 Asym_relative_err_induced2 = np.max(np.abs(ee_Asym)) / np.max(np.abs(aa_A))
 print('Asym_relative_err_induced2=', Asym_relative_err_induced2)
