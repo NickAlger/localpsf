@@ -51,11 +51,12 @@ PCK = ProductConvolutionKernel(HIP.V, HIP.V, HIP.apply_Hd_petsc, HIP.apply_Hd_pe
 
 A_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol=hmatrix_tol)
 
-_, eeA_max, _ = spla.svds(A_pch_nonsym.as_linear_operator(), k=3, which='LM')
-eA_max = np.max(eeA_max)
+# _, eeA_max, _ = spla.svds(A_pch_nonsym.as_linear_operator(), k=3, which='LM')
+# eA_max = np.max(eeA_max)
 
 # cutoff = -1e-2*eA_max
 
+# A_pch = A_pch_nonsym.spd(rtol=1e-3, atol=1e-5)
 A_pch = A_pch_nonsym.spd()
 
 # min_reg_param = 1e-3

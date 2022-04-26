@@ -1055,6 +1055,9 @@ If $\Aop$ is symmetric positive definite, we symmetrize $\mathbf{A}_H$ as follow
 \begin{equation*}
 \mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
 \end{equation*}
+Then we use the high order rational function spectral projection method from \cite{HackbuschKress07} to replace the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ with zero (or approximately zero) while keeping the positive eigenvalues unchanged (approximately unchanged).
+
+
 Then we compute the negative eigenvalues, of $\mathbf{A}_H$ that are less than (i.e., more negative than) a small magnitude negative cutoff value $c$, and also compute the corresponding eigenvectors. That is, the eigenpairs $\{(\lambda_i,u_i)\}_{i=1}^{N_\text{bad}}$ with
 \begin{equation*}
 	\lambda_i < c < 0.
