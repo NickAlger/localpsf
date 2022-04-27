@@ -999,6 +999,24 @@ where $\spatialmean_1, \spatialmean_2 \in \mathbb{R}^\gdim$, and $\spatialcov_1,
 \end{equation*}
 In \cite{GilitschenskiHanebeck12} it is shown that $E_1 \cap E_2 = \{\}$ if and only if $K(s) < 0$ for some $s\in (0,1)$. We check whether $E_1$ and $E_2$ intersect by minimizing $K(s)$ on $(0,1)$. If $K(s^*) <0$ at the minimizer $s^*$, then $E_1 \cap E_2 = \{\}$. Otherwise $E_1 \cap E_2 \neq \{\}$.
 
+\begin{figure}
+	\begin{subfigure}{0.32\textwidth}
+		\centering
+		\includegraphics[scale=0.40]{ellipsoids_intersect0.pdf}
+	\end{subfigure}
+	\begin{subfigure}{0.32\textwidth}
+		\centering
+		\includegraphics[scale=0.40]{ellipsoids_intersect1.pdf}
+	\end{subfigure}
+	\begin{subfigure}{0.32\textwidth}
+		\centering
+		\includegraphics[scale=0.40]{ellipsoids_intersect2.pdf}
+	\end{subfigure}
+	\caption{The ellipsoids intersect if $K(s) \ge 0$ for all $s \in (0,1)$.
+	}
+	\label{fig:ellipsoid_intersection_test}
+\end{figure}
+
 The function $K(s)$ may be evaluated quickly for many $s$ by pre-computing the solution to the generalized eigenvalue problem
 \begin{equation*}
 	\spatialcov_1 P = \spatialcov_2 P \Lambda,
