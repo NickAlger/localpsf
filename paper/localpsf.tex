@@ -1082,9 +1082,9 @@ then we use the high order rational function spectral projection method from \ci
 \end{equation*}
 and extend $f$ to matrices via functional calculus. The matrix $f(\mathbf{A}_H^{\text{sym}})$ is the ideal positive semidefinite modification of $\mathbf{A}_H^{\text{sym}}$, because $f(\mathbf{A}_H^{\text{sym}})$ is the same as $\mathbf{A}_H^{\text{sym}}$ except all the negative eigenvalues are replaced with zero. Computing $f(\mathbf{A}_H^{\text{sym}})$ directly is difficult, but we may approximate $f$ by the high order rational function
 \begin{equation*}
-	f(\lambda) \approx \widetilde{f}(\lambda) := \frac{\lambda}{1 + \left(\frac{2 \lambda - M}{M}\right)^{2^k} },
+	f(\lambda) \approx \widetilde{f}(\lambda) := \frac{\lambda}{1 + \left(\frac{2 \lambda - (b+a)}{b-a}\right)^{2^k} },
 \end{equation*}
-where $k$ is a positive integer, and $M$ is a positive real number that is larger than the largest eigenvalue of $\mathbf{A}_H^{\text{sym}}$. In practice we use $k=5$, and $M=1.5~ \lambda_\text{max}$, where $\lambda_\text{max}$ is the largest eigenvalue of $\mathbf{A}_H^{\text{sym}}$, which is computed using the Lanczos iteration. If $k$ is sufficiently large, then $\widetilde{f}(\lambda) \approx \lambda$ for $\lambda \in (0,M)$ and $\widetilde{f}(\lambda) \approx 0$ for $\lambda$ outside of $[0,M]$, so $\widetilde{f}(\mathbf{A}_H^{\text{sym}})$ is a good approximation of  $f(\mathbf{A}_H^{\text{sym}})$. This is illustrated in Figure \ref{fig:spd_rat}. 
+where $k$ is a positive integer, $a$ is either zero, or a small positive real number, and $b$ is a positive real number that is larger than the largest eigenvalue of $\mathbf{A}_H^{\text{sym}}$. If $k$ is sufficiently large, then $\widetilde{f}(\lambda) \approx \lambda$ for $\lambda \in (a,b)$ and $\widetilde{f}(\lambda) \approx 0$ for $\lambda$ outside of $[a,b]$, so $\widetilde{f}(\mathbf{A}_H^{\text{sym}})$ is a good approximation of  $f(\mathbf{A}_H^{\text{sym}})$. This is illustrated in Figure \ref{fig:spd_rat}.  In practice we use $k=7$, $a=0$ and $b=1.5~ \lambda_\text{max}$, where $\lambda_\text{max}$ is the largest eigenvalue of $\mathbf{A}_H^{\text{sym}}$, which is computed using the Lanczos iteration. 
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.5]{spd_rational_function.pdf}
@@ -1099,7 +1099,7 @@ Using $\widetilde{f}$ instead of $f$ permits us to efficiently compute $\widetil
 \end{equation}
 where
 \begin{equation*}
-	\mathbf{X} := \left(2 \mathbf{A}_H^{\text{sym}} - M \mathbf{I}\right)/M.
+	\mathbf{X} := \left(2 \mathbf{A}_H^{\text{sym}} - (b+a) \mathbf{I}\right)/(b-a).
 \end{equation*}
 We compute $\mathbf{X}$ using fast H-matrix scalar multiplication and addition. Then we form the $\mathbf{X}^{2^k}$ via repeated squaring,
 \begin{align*}

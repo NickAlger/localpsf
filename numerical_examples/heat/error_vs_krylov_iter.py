@@ -57,7 +57,36 @@ A_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol=hmatrix_tol)
 # cutoff = -1e-2*eA_max
 
 # A_pch = A_pch_nonsym.spd(rtol=1e-3, atol=1e-5)
-A_pch = A_pch_nonsym.spd()
+A_pch0 = A_pch_nonsym.sym()
+A_pch3 = A_pch_nonsym.spd(k=3, a_factor=0.0)
+A_pch5 = A_pch_nonsym.spd(k=5, a_factor=0.0)
+A_pch7 = A_pch_nonsym.spd(k=7, a_factor=0.0)
+
+A_pch = A_pch7
+
+A0_dense = build_dense_matrix_from_matvecs(A_pch0.matvec, A_pch0.shape[1])
+A3_dense = build_dense_matrix_from_matvecs(A_pch3.matvec, A_pch3.shape[1])
+A5_dense = build_dense_matrix_from_matvecs(A_pch5.matvec, A_pch5.shape[1])
+A7_dense = build_dense_matrix_from_matvecs(A_pch7.matvec, A_pch7.shape[1])
+
+
+import scipy.linalg as sla
+ee0, uu0 = sla.eigh(A0_dense)
+ee3, uu3 = sla.eigh(A3_dense)
+ee5, uu5 = sla.eigh(A5_dense)
+ee7, uu7 = sla.eigh(A7_dense)
+
+print('np.min(ee0)=', np.min(ee0))
+print('np.min(ee3)=', np.min(ee3))
+print('np.min(ee5)=', np.min(ee5))
+print('np.min(ee7)=', np.min(ee7))
+
+plt.figure()
+plt.plot(ee0)
+plt.plot(ee3)
+plt.plot(ee5)
+plt.plot(ee7)
+plt.legend(['ee0', 'ee3', 'ee5', 'ee7'])
 
 # min_reg_param = 1e-3
 # eeR_min, _ = spla.eigsh(min_reg_param * HIP.R0_scipy, k=3, which='SM')
