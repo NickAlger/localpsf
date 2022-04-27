@@ -54,11 +54,12 @@ PCK.col_batches.visualize_impulse_response_batch(0)
 
 A_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol=1e-3)
 
-min_reg_param = 1e-3
-eeR_min, _ = spla.eigsh(min_reg_param * HIP.R0_scipy, k=3, which='SM')
-eR_min = np.min(eeR_min)
+# min_reg_param = 1e-3
+# eeR_min, _ = spla.eigsh(min_reg_param * HIP.R0_scipy, k=3, which='SM')
+# eR_min = np.min(eeR_min)
 
-A_pch = A_pch_nonsym.spd(cutoff=0.8*eR_min)
+# A_pch = A_pch_nonsym.spd(cutoff=0.8*eR_min)
+A_pch = A_pch_nonsym.spd()
 
 Phi_pch = extras['A_kernel_hmatrix']
 

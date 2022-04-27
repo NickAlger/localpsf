@@ -1051,27 +1051,64 @@ where $v := \Phi^T\left(\spatialmean_1 - \spatialmean_2\right)$. We compute the 
 In many problems of practical interest (e.g., Hessian approximation) $\Aop$ is symmetric positive semi-definite. However, $\mathbf{A}_H$ is generally non-symmetric and indefinite because of approximation error. 
 This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms, such as the conjugate gradient method, to perform further useful operations involving $\mathbf{A}_H$.
 
-If $\Aop$ is symmetric positive definite, we symmetrize $\mathbf{A}_H$ as follows
+If $\Aop$ is symmetric positive semidefinite, we symmetrize $\mathbf{A}_H$ as follows
 \begin{equation*}
-\mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
+\mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right),
 \end{equation*}
-Then we use the high order rational function spectral projection method from \cite{HackbuschKress07} to replace the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ with zero (or approximately zero) while keeping the positive eigenvalues unchanged (approximately unchanged).
-
-
-Then we compute the negative eigenvalues, of $\mathbf{A}_H$ that are less than (i.e., more negative than) a small magnitude negative cutoff value $c$, and also compute the corresponding eigenvectors. That is, the eigenpairs $\{(\lambda_i,u_i)\}_{i=1}^{N_\text{bad}}$ with
+then we use the high order rational function spectral projection method from \cite{HackbuschKress07} to replace (or approximately replace) the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ with zero. In detail, let $f$ be the following scalar rational function,
 \begin{equation*}
-	\lambda_i < c < 0.
+	f(\lambda) := \begin{cases}
+		\lambda, & \lambda \ge 0, \\
+		0, & \lambda < 0,
+	\end{cases}
 \end{equation*}
-These outlying ``bad'' eigenpairs are computed using the Lanczos method \cite{Komzsik03,Lanczos50}.
-We then flip the sign of these negative eigenvalues to be positive as follows:
+and extend $f$ to matrices via functional calculus. The matrix $f(\mathbf{A}_H^{\text{sym}})$ is the ideal positive semidefinite modification of $\mathbf{A}_H^{\text{sym}}$, because $f(\mathbf{A}_H^{\text{sym}})$ is the same as $\mathbf{A}_H^{\text{sym}}$ except all the negative eigenvalues are replaced with zero. Computing $f(\mathbf{A}_H^{\text{sym}})$ directly is difficult, but we may approximate $f$ by the high order rational function
 \begin{equation*}
-	\mathbf{A}_H^{\text{sym}+} = \mathbf{A}_H^{\text{sym}} + \sum_{i=1}^{N_\text{bad}} 2 |\lambda_i| u_i u_i^T.
+	f(\lambda) \approx \widetilde{f}(\lambda) := \frac{\lambda}{1 + \left(\frac{2 \lambda - M}{M}\right)^{2^k} },
 \end{equation*}
-The matrix $\mathbf{A}_H^{\text{sym}+}$ approximates the matrix absolute value of $\mathbf{A}_H^{\text{sym}}$. A H-matrix representation of $\mathbf{A}_H^{\text{sym}+}$ is formed using H-matrix addition, and used in place of $\mathbf{A}_H$ in further linear algebra operations.
+where $k$ is a positive integer, and $M$ is a positive real number that is larger than the largest eigenvalue of $\mathbf{A}_H^{\text{sym}}$. In practice we use $k=5$, and $M=1.5~ \lambda_\text{max}$, where $\lambda_\text{max}$ is the largest eigenvalue of $\mathbf{A}_H^{\text{sym}}$, which is computed using the Lanczos iteration. If $k$ is sufficiently large, then $\widetilde{f}(\lambda) \approx \lambda$ for $\lambda \in (0,M)$ and $\widetilde{f}(\lambda) \approx 0$ for $\lambda$ outside of $[0,M]$, so $\widetilde{f}(\mathbf{A}_H^{\text{sym}})$ is a good approximation of  $f(\mathbf{A}_H^{\text{sym}})$. This is illustrated in Figure \ref{fig:spd_rat}. 
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.5]{spd_rational_function.pdf}
+	\caption{Rational function $\widetilde{f}(\lambda)$ for $M=1$ and $k=3,5,7$. As $k$ increases, $\widetilde{f}(\lambda)$ approaches the sawtooth function supported on $(0,M)$. }
+	\label{fig:spd_rat}
+\end{figure}
 
-The cutoff $c$ is required when $\Aop$ has a large number of zero eigenvalues, or a sequence of eigenvalues that cluster at zero, a situation that occurs commonly in practice. We seek to correct negative eigenvalues caused by errors in our approximation procedure. But even without our approximation, rounding and discretization errors may cause large numbers of zero or near-zero eigenvalues to become slightly negative. Numerically, we cannot hope to correct these slightly negative eigenvalues because there are so many of them, and because the spectral gap between the smallest negative eigenvalue and the first non-negative eigenvalue is small. 
+Using $\widetilde{f}$ instead of $f$ permits us to efficiently compute $\widetilde{f}(\mathbf{A}_H^{\text{sym}})$ using H-matrix methods. Replacing constants with scaled identity matrices, scalar powers and multiplication with matrix powers and multiplication, and scalar division with matrix inversion, the extension of $\widetilde{f}$ to matrices becomes
+\begin{equation}
+\label{eq:rational343}
+\widetilde{f}(\mathbf{A}_H^{\text{sym}}) = \left(\mathbf{I} + \mathbf{X}^{2^k}\right)^{-1} \mathbf{A}_H^{\text{sym}},
+\end{equation}
+where
+\begin{equation*}
+	\mathbf{X} := \left(2 \mathbf{A}_H^{\text{sym}} - M \mathbf{I}\right)/M.
+\end{equation*}
+We compute $\mathbf{X}$ using fast H-matrix scalar multiplication and addition. Then we form the $\mathbf{X}^{2^k}$ via repeated squaring,
+\begin{align*}
+	\mathbf{X}^2 &= \mathbf{X} \mathbf{X} \\
+	\mathbf{X}^4 &= \mathbf{X}^2 \mathbf{X}^2 \\
+	&\vdots \\
+	\mathbf{X}^{2^k} &= \mathbf{X}^{2^{k-1}} \mathbf{X}^{2^{k-1}},
+\end{align*}
+where each of these matrix squarings is performed using fast H-matrix multiplication. Finally, $\widetilde{f}(\mathbf{A}_H^{\text{sym}})$ is formed from $\mathbf{X}^{2^k}$ and $\mathbf{A}_H^{\text{sym}}$ per \eqref{eq:rational343}, using fast H-matrix operations to perform the required matrix-matrix addition, matrix inversion, and matrix-matrix multiplication. At the end, the matrix is symmetrized once again, to correct for any small non-symmetries that are introduced due to truncation error in the H-matrix arithmetic. Once constructed, we use the symmetric positive semidefinite matrix $\widetilde{f}(\mathbf{A}_H^{\text{sym}})$ in place of $\mathbf{A}_H$ in further linear algebra operations.
 
-For Hessians in ill-posed inverse problems, the Hessian is the sum of the Hessian of a data misfit term, and the Hessian of a regularization term. The Hessian of the regularization term is known and easy to manipulate, and one seeks to approximate the Hessian of the data misfit term with our method. In this case, a reasonable choice for the cutoff parameter is $c = -|\lambda_R^\text{min}|/2$, where $\lambda_R^\text{min}$ is the smallest magnitude eigenvalue of the Hessian of the regularization term. We use this cutoff parameter in our numerical experiments.
+% the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ with zero (or approximate zero) while keeping the positive eigenvalues unchanged (approximately unchanged). Ideally
+%
+%
+%Then we compute the negative eigenvalues, of $\mathbf{A}_H$ that are less than (i.e., more negative than) a small magnitude negative cutoff value $c$, and also compute the corresponding eigenvectors. That is, the eigenpairs $\{(\lambda_i,u_i)\}_{i=1}^{N_\text{bad}}$ with
+%\begin{equation*}
+%	\lambda_i < c < 0.
+%\end{equation*}
+%These outlying ``bad'' eigenpairs are computed using the Lanczos method \cite{Komzsik03,Lanczos50}.
+%We then flip the sign of these negative eigenvalues to be positive as follows:
+%\begin{equation*}
+%	\mathbf{A}_H^{\text{sym}+} = \mathbf{A}_H^{\text{sym}} + \sum_{i=1}^{N_\text{bad}} 2 |\lambda_i| u_i u_i^T.
+%\end{equation*}
+%The matrix $\mathbf{A}_H^{\text{sym}+}$ approximates the matrix absolute value of $\mathbf{A}_H^{\text{sym}}$. A H-matrix representation of $\mathbf{A}_H^{\text{sym}+}$ is formed using H-matrix addition, and used in place of $\mathbf{A}_H$ in further linear algebra operations.
+%
+%The cutoff $c$ is required when $\Aop$ has a large number of zero eigenvalues, or a sequence of eigenvalues that cluster at zero, a situation that occurs commonly in practice. We seek to correct negative eigenvalues caused by errors in our approximation procedure. But even without our approximation, rounding and discretization errors may cause large numbers of zero or near-zero eigenvalues to become slightly negative. Numerically, we cannot hope to correct these slightly negative eigenvalues because there are so many of them, and because the spectral gap between the smallest negative eigenvalue and the first non-negative eigenvalue is small. 
+%
+%For Hessians in ill-posed inverse problems, the Hessian is the sum of the Hessian of a data misfit term, and the Hessian of a regularization term. The Hessian of the regularization term is known and easy to manipulate, and one seeks to approximate the Hessian of the data misfit term with our method. In this case, a reasonable choice for the cutoff parameter is $c = -|\lambda_R^\text{min}|/2$, where $\lambda_R^\text{min}$ is the smallest magnitude eigenvalue of the Hessian of the regularization term. We use this cutoff parameter in our numerical experiments.
 
 
 \section*{Acknowledgments}
