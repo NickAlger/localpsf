@@ -12,6 +12,7 @@ from localpsf.visualization import column_error_plot
 from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
 
 import scipy.sparse.linalg as spla
+import scipy.linalg as sla
 
 
 save_data = True
@@ -56,11 +57,188 @@ A_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol=hmatrix_tol)
 
 # cutoff = -1e-2*eA_max
 
+#########################################
+
+A_hmatrix = A_pch_nonsym
+
+a_factor=2.0
+b_factor=0.0
+k=5
+rtol = hpro.default_rtol
+atol = hpro.default_atol
+# rtol = 1e-5 # 1e-14
+# atol = 1e-8 # 1e-14
+display_progress=True
+
+if display_progress:
+    print('making hmatrix spd')
+    print('symmetrizing')
+A_hmatrix = A_hmatrix.sym()
+
+if display_progress:
+    print('getting largest eigenvalue with Lanczos')
+ee_LM, _ = spla.eigsh(A_hmatrix.as_linear_operator(), k=1, which='LM')
+lambda_max = np.max(ee_LM)
+if display_progress:
+    print('lambda_max=', lambda_max)
+
+if display_progress:
+    print('getting smallest eigenvalue with Lanczos')
+ee_SA, _ = spla.eigsh(A_hmatrix.as_linear_operator(), k=1, which='SA')
+lambda_min = np.min(ee_SA)
+if display_progress:
+    print('lambda_min=', lambda_min)
+
+B = (A_hmatrix * (0.5/np.abs(lambda_min))).add_identity().inv(rtol=rtol, atol=atol)
+# B = (A_hmatrix * (0.5/np.abs(lambda_min)))
+# B.visualize('BBB')
+
+ee_B, _ = spla.eigsh(B.as_linear_operator(), k=1, which='LA')
+ee_B
+
+if display_progress:
+    print('Setting up operator T = (2*A - (b+a) I) / (b-a)')
+a = 1.0
+b = 4.0
+# a = lambda_min * a_factor
+# b = lambda_min * b_factor
+
+if display_progress:
+    scaling_at_one = 1. / (1. + ((2 - (b + a)) / (b - a)) ** (2 ** k))
+    print('scaling_at_one=', scaling_at_one)
+    # scaling_at_zero = 1. / (1. + ((b + a) / (b - a)) ** (2 ** k))
+    # print('scaling_at_zero=', scaling_at_zero)
+
+# T = A_hmatrix.copy()
+T = B.copy()
+T = (T * 2.0).add_identity(s=-(b + a)) * (1.0 / (b - a))
+
+ee_T, _ = spla.eigsh(T.as_linear_operator(), k=1, which='LM')
+T_scaling_factor = np.max(np.abs(ee_T))
+if display_progress:
+    print('T_scaling_factor=', T_scaling_factor)
+
+T_hat = T * (1. / T_scaling_factor)
+
+if display_progress:
+    print('computing T^(2^k)')
+for ii in range(k):
+    if display_progress:
+        print('computing T^(2^' + str(ii + 1) + ') = T^(2^' + str(ii) + ') * T^(2^' + str(ii) + ')')
+    T_hat = hpro.h_mul(T_hat, T_hat,
+              rtol=rtol, atol=atol,
+              display_progress=display_progress)
+    T_scaling_factor = T_scaling_factor*T_scaling_factor
+
+T = T_hat * T_scaling_factor
+
+if display_progress:
+    print('computing spectral projector Pi = I / (I + T^(2^k))')
+Pi = T.add_identity().inv(rtol=rtol, atol=atol, display_progress=display_progress)
+
+if display_progress:
+    print('computing A_minus = Pi * A')
+A_minus = hpro.h_mul(Pi, A_hmatrix,
+                     rtol=rtol, atol=atol,
+                     display_progress=display_progress).sym()
+
+A_plus = A_hmatrix + (A_minus * -1.0)
+# A_plus = A_hmatrix + (A_minus * -2.0)
+
+T_dense = build_dense_matrix_from_matvecs(T.matvec, T.shape[1])
+
+A_plus_dense = build_dense_matrix_from_matvecs(A_plus.matvec, A_plus.shape[1])
+ee_plus, uu_plus = sla.eigh(A_plus_dense)
+print('np.min(ee_plus)=', np.min(ee_plus))
+
+plt.figure()
+plt.plot(ee_plus)
+
+#
+
+A_pch0 = A_pch_nonsym.sym()
+A0_dense = build_dense_matrix_from_matvecs(A_pch0.matvec, A_pch0.shape[1])
+ee0, uu0 = sla.eigh(A0_dense)
+plt.plot(ee0)
+
+#
+
+ee_T, _ = sla.eigh(T_dense)
+
+#
+
+class LinopWithCounter:
+    def __init__(me, linop):
+        me.counter = 0
+        me.linop = linop
+        me.shape = linop.shape
+        me.dtype = linop.dtype
+
+    def matvec(me, x):
+        me.counter+=1
+        print('counter=', me.counter)
+        return me.linop.matvec(x)
+
+#
+
+A2 = hpro.h_mul(A_hmatrix, A_hmatrix,
+                rtol=rtol, atol=atol,
+                display_progress=display_progress)
+
+A4 = hpro.h_mul(A2, A2,
+                rtol=rtol, atol=atol,
+                display_progress=display_progress)
+
+A8 = hpro.h_mul(A4, A4,
+                rtol=rtol, atol=atol,
+                display_progress=display_progress)
+
+ee2, uu2 = spla.eigsh(LinopWithCounter(A2.as_linear_operator()), k=20, which='SA')
+ee4, uu4 = spla.eigsh(LinopWithCounter(A4.as_linear_operator()), k=20, which='SA')
+ee8, uu8 = spla.eigsh(LinopWithCounter(A8.as_linear_operator()), k=20, which='SA')
+
+#
+
+rtol=1e-4
+atol=1e-6
+
+if display_progress:
+    print('getting smallest eigenvalue with Lanczos')
+ee_SA, _ = spla.eigsh(A_hmatrix.as_linear_operator(), k=1, which='SA')
+lambda_min = np.min(ee_SA)
+if display_progress:
+    print('lambda_min=', lambda_min)
+
+B = (A_hmatrix * (0.5/np.abs(lambda_min))).add_identity().inv(rtol=rtol, atol=atol)
+
+ee_B, _ = spla.eigsh(B.as_linear_operator(), k=1, which='LA')
+print('ee_B=', ee_B)
+
+B2 = hpro.h_mul(B, B,
+                rtol=rtol, atol=atol,
+                display_progress=display_progress)
+
+B4 = hpro.h_mul(B2, B2,
+                rtol=rtol, atol=atol,
+                display_progress=display_progress)
+
+B8 = hpro.h_mul(B4, B4,
+                rtol=rtol, atol=atol,
+                display_progress=display_progress)
+
+ee1, uu1 = spla.eigsh(LinopWithCounter(B.as_linear_operator()), k=100, which='LM')
+ee2, uu2 = spla.eigsh(LinopWithCounter(B2.as_linear_operator()), k=100, which='LM')
+ee4, uu4 = spla.eigsh(LinopWithCounter(B4.as_linear_operator()), k=100, which='LM')
+ee8, uu8 = spla.eigsh(LinopWithCounter(B8.as_linear_operator()), k=100, which='LM')
+
+#########################################
+
 # A_pch = A_pch_nonsym.spd(rtol=1e-3, atol=1e-5)
 A_pch0 = A_pch_nonsym.sym()
 A_pch3 = A_pch_nonsym.spd(k=3, a_factor=0.0)
 A_pch5 = A_pch_nonsym.spd(k=5, a_factor=0.0)
 A_pch7 = A_pch_nonsym.spd(k=7, a_factor=0.0)
+A_pch7 = A_pch_nonsym.spd(k=7, a_factor=0.0, rtol=1e-3, atol=1e-3)
 
 A_pch = A_pch7
 
@@ -70,7 +248,6 @@ A5_dense = build_dense_matrix_from_matvecs(A_pch5.matvec, A_pch5.shape[1])
 A7_dense = build_dense_matrix_from_matvecs(A_pch7.matvec, A_pch7.shape[1])
 
 
-import scipy.linalg as sla
 ee0, uu0 = sla.eigh(A0_dense)
 ee3, uu3 = sla.eigh(A3_dense)
 ee5, uu5 = sla.eigh(A5_dense)
