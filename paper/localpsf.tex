@@ -1077,30 +1077,21 @@ If $\Aop$ is also positive semi-definite, we use the high order rational functio
 \begin{equation*}
 	\Pi(\lambda) = \begin{cases}
 		1, & \lambda \in (a,b), \\
-		0, & \text{otherwise},
+		0, & \text{otherwise}.
 	\end{cases}
 \end{equation*}
-and extend $\Pi$ to matrices via functional calculus. The matrix $\Pi(\mathbf{A}_H^{\text{sym}})$ is the spectral projector onto the eigenspace of $\mathbf{A}_H^{\text{sym}}$ corresponding to eigenvalues of $\mathbf{A}_H^{\text{sym}}$ that reside in $(a,b)$. If we choose $a < \lambda_\text{min}$ and $b=0$, where $\lambda_\text{min}$ is the smallest eigenvalue of $\mathbf{A}_H^{\text{sym}}$, then the matrix absolute value of $\mathbf{A}_H^{\text{sym}}$ is given by
+Using functional calculus to extend the domain of the function $\Pi$ from scalars to matrices, we define
+\begin{equation*}
+\mathbf{\Pi} := \Pi(\mathbf{A}_H^{\text{sym}}).
+\end{equation*}
+The matrix $\mathbf{\Pi}$ is the spectral projector onto the eigenspace of $\mathbf{A}_H^{\text{sym}}$ corresponding to eigenvalues of $\mathbf{A}_H^{\text{sym}}$ that reside in $(a,b)$. If we choose $a < \lambda_\text{min}$ and $b=0$, where $\lambda_\text{min}$ is the smallest eigenvalue of $\mathbf{A}_H^{\text{sym}}$, then $\mathbf{\Pi}$ is the spectral projector onto the eigenspace associated with negative eigenvalues, and $\mathbf{\Pi}\mathbf{A}_H^{\text{sym}}$ is the ``negative component'' of $\mathbf{A}_H^{\text{sym}}$ in which all the negative eigenvalues are the same but all the positive eigenvalues are replaced by zero. Subtracting a negative number from itself twice flips its sign, so the matrix absolute value of $\mathbf{A}_H^{\text{sym}}$ is given by
 \begin{equation}
 \label{eq:I_Pi_abs}
-	|\mathbf{A}_H^{\text{sym}}| = \left(\mathbf{I} - 2\Pi(\mathbf{A}_H^{\text{sym}})\right)\mathbf{A}_H^{\text{sym}}.
+	|\mathbf{A}_H^{\text{sym}}| = \left(\mathbf{I} - 2\mathbf{\Pi}\right)\mathbf{A}_H^{\text{sym}},
 \end{equation}
-That is, $|\mathbf{A}_H^{\text{sym}}|$ is the matrix that has the same eigenvectors as $\mathbf{A}_H^{\text{sym}}$, but the eigenvalues of $|\mathbf{A}_H^{\text{sym}}|$ are the absolute values of the eigenvalues of $\mathbf{A}_H^{\text{sym}}$.
+where $\mathbf{I}$ is the identity matrix of the appropriate size.
+By ``matrix absolute value,'' we mean that $|\mathbf{A}_H^{\text{sym}}|$ is the matrix that has the same eigenvectors as $\mathbf{A}_H^{\text{sym}}$, but the eigenvalues of $|\mathbf{A}_H^{\text{sym}}|$ are the absolute values of the eigenvalues of $\mathbf{A}_H^{\text{sym}}$.
 
-Computing $\Pi(\mathbf{A}_H^{\text{sym}})$ directly is difficult, but we may approximate $\Pi$ by the following high order rational function:
-\begin{equation*}
-	\Pi(\lambda) \approx \Pi_k(\lambda) := \frac{1}{1 + T(\lambda)^{2^k} }, \qquad \text{where} \qquad T(\lambda) := \frac{2 \lambda - (b+a)}{b-a}
-\end{equation*}
-and $k$ is a positive integer; the larger $k$ is, the better the approximation $\Pi \approx \Pi_k$. This is illustrated in Figure \ref{fig:spd_rat}. For $k \ge 1$, $\Pi_k(\lambda)> 1/2$ for $\lambda \in (a,b)$, so choosing $a < \lambda_\text{min}$, $b=0$, and using $\Pi_k$ instead of $\Pi$ in \eqref{eq:I_Pi_abs} yields a matrix that is positive semidefinite. Replacing constants with scaled identity matrices, scalar powers and multiplication with matrix powers and multiplication, and scalar division with matrix inversion, the extension of $\Pi_k$ to matrices becomes
-\begin{equation}
-\label{eq:rational343}
-\Pi_k\left(\mathbf{A}_H^{\text{sym}}\right) = \left(\mathbf{I} + \mathbf{T}^{2^k}\right)^{-1},
-\end{equation}
-where
-\begin{equation*}
-\mathbf{T} := \left(2 \mathbf{A}_H^{\text{sym}} - (b+a) \mathbf{I}\right)/(b-a).
-\end{equation*}
- 
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.5]{spd_rational_function.pdf}
@@ -1108,14 +1099,26 @@ where
 	\label{fig:spd_rat}
 \end{figure}
 
-
-Using $\Pi_k$ instead of $\Pi$ permits us to efficiently approximate $|\mathbf{A}_H^{\text{sym}}|$ using H-matrix methods. 
-First, we compute $\lambda_\text{min}$ using the Lanczos method, and set $a=\gamma \lambda_\text{min}$ and $b=0$, where $\gamma\ge 1$ is a parameter that must be chosen. We use $\gamma=1.5$, though the method is relatively insensitive to $\gamma$ and works well for any $\gamma \in [1,2]$. 
-Next, we compute $\mathbf{T}$ using fast H-matrix scalar multiplication and addition. We form the $\mathbf{T}^{2^k}$ via repeated squaring, $\mathbf{T}^2 = \mathbf{T} \mathbf{T}$, $\mathbf{T}^4 = \mathbf{T}^2 \mathbf{T}^2$, $\mathbf{T}^8 = \mathbf{T}^4 \mathbf{T}^4$ and so on, where each of these matrix squarings is performed using fast H-matrix multiplication. We do not need $\Pi_k$ to be an accurate approximation of $\Pi$ since the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ are erroneous, and $\Pi_k(\lambda)$ rapidly decays to zero for positive $\lambda$, even if $k$ is small. Hence, we recommend using $k=1$ or $2$ (we use $k=1$ in our numerical results). Larger $k$ is unnecessary, and may make the method unstable. The approximate spectral projector $\Pi_k(\mathbf{A}_H^{\text{sym}})$ is formed from $\mathbf{T}^{2^k}$ per \eqref{eq:rational343}, using fast H-matrix operations to perform the required matrix-matrix addition and matrix inversion. Finally, a positive semi-definite approximation $\mathbf{A}_H^{\text{sym}+}$ of $\mathbf{A}_H^{\text{sym}}$ is formed as
+Computing $\mathbf{\Pi}=\Pi(\mathbf{A}_H^{\text{sym}})$ directly is difficult, but we may approximate $\Pi$ by the following high order rational function:
 \begin{equation*}
-\mathbf{A}_H^{\text{sym}+} := \left(\mathbf{I} - 2\Pi_k(\mathbf{A}_H^{\text{sym}})\right)\mathbf{A}_H^{\text{sym}},
+	\Pi(\lambda) \approx \Pi_k(\lambda) := \frac{1}{1 + T(\lambda)^{2^k} }, \qquad \text{where} \qquad T(\lambda) := \frac{2 \lambda - (b+a)}{b-a},
 \end{equation*}
-where fast H-matrix operations are used to perform the necessary matrix-matrix subtraction and multiplication. At the end, $\mathbf{A}_H^{\text{sym}+}$ is symmetrized once again, to correct for any small non-symmetries that are introduced due to truncation error in the H-matrix arithmetic. Once constructed, we use the symmetric positive semidefinite matrix $\mathbf{A}_H^{\text{sym}+}$ in place of $\mathbf{A}_H$ in further linear algebra operations.
+and $k$ is a positive integer; the larger $k$ is, the better the approximation $\Pi \approx \Pi_k$. This is illustrated in Figure \ref{fig:spd_rat}. Replacing scalar operations with matrix operations, we have
+\begin{equation}
+\label{eq:rational343}
+\mathbf{\Pi}_k := \Pi_k\left(\mathbf{A}_H^{\text{sym}}\right) = \left(\mathbf{I} + \mathbf{T}^{2^k}\right)^{-1},
+\end{equation}
+where
+\begin{equation*}
+\mathbf{T} := \left(2 \mathbf{A}_H^{\text{sym}} - (b+a) \mathbf{I}\right)/(b-a).
+\end{equation*}
+Using $\mathbf{\Pi}_k$ instead of $\mathbf{\Pi}$ in \eqref{eq:I_Pi_abs} allows us to efficiently approximate $|\mathbf{A}_H^{\text{sym}}|$ using H-matrix methods. 
+First, we compute $\lambda_\text{min}$ using the Lanczos method, and set $a=\gamma \lambda_\text{min}$ and $b=0$, where $\gamma\ge 1$ is a parameter that must be chosen. We use $\gamma=1.5$, though the method is relatively insensitive to $\gamma$ and works well for any $\gamma \in [1,2]$. 
+Next, we compute $\mathbf{T}$ using fast H-matrix scalar multiplication and addition. We form the $\mathbf{T}^{2^k}$ via repeated squaring, $\mathbf{T}^2 = \mathbf{T} \mathbf{T}$, $\mathbf{T}^4 = \mathbf{T}^2 \mathbf{T}^2$, $\mathbf{T}^8 = \mathbf{T}^4 \mathbf{T}^4$ and so on, where each of these matrix squarings is performed using fast H-matrix multiplication. We recommend using $k=1$ or $2$ (we use $k=1$ in our numerical results). Larger $k$ is unnecessary and may make the method unstable. The approximate spectral projector $\mathbf{\Pi}_k$ is formed from $\mathbf{T}^{2^k}$ per \eqref{eq:rational343}, using fast H-matrix operations to perform the required matrix-matrix addition and matrix inversion. Finally, a positive semi-definite approximation $\mathbf{A}_H^{\text{sym}+}$ of $\mathbf{A}_H^{\text{sym}}$ is formed as
+\begin{equation*}
+\mathbf{A}_H^{\text{sym}+} := \left(\mathbf{I} - 2\mathbf{\Pi}_k)\right)\mathbf{A}_H^{\text{sym}},
+\end{equation*}
+where fast H-matrix operations are used to perform the necessary matrix-matrix subtraction and multiplication. Note that for any $k \ge 1$, $\Pi_k(\lambda)> 1/2$ for $\lambda \in (a,b)$, so $\mathbf{A}_H^{\text{sym}+}$ is positive semi definite\footnote{Some indefiniteness may be introduced by truncation error in the H-matrix operations, but the negative eigenvalues caused by this truncation error are typically extremely small.}. At the end, $\mathbf{A}_H^{\text{sym}+}$ is symmetrized once again, to correct for any small non-symmetries that are introduced by truncation error in the H-matrix operations. Once constructed, we use the symmetric positive semidefinite matrix $\mathbf{A}_H^{\text{sym}+}$ in place of $\mathbf{A}_H$ in further linear algebra operations.
 
 % the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ with zero (or approximate zero) while keeping the positive eigenvalues unchanged (approximately unchanged). Ideally
 %
