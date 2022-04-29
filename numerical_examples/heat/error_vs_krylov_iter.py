@@ -75,6 +75,14 @@ A_pch = A_pch_nonsym.spd(k=1)
 
 # cutoff = -1e-2*eA_max
 
+####
+
+# A_hmatrix = A_pch.sym()
+# k=2
+# N = 2**k
+# beta = np.pow(2, -N)
+# alpha = ()
+
 #########################################
 #
 # A_hmatrix = A_pch_nonsym

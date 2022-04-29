@@ -1,27 +1,52 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-tt = np.linspace(-1, 2, 1000)
-ff1 = tt/(1. + (2.*tt - 1.)**(2**1))
-ff2 = tt/(1. + (2.*tt - 1.)**(2**2))
-ff3 = tt/(1. + (2.*tt - 1.)**(2**3))
-ff4 = tt/(1. + (2.*tt - 1.)**(2**4))
-ff5 = tt/(1. + (2.*tt - 1.)**(2**5))
-ff6 = tt/(1. + (2.*tt - 1.)**(2**6))
-ff7 = tt/(1. + (2.*tt - 1.)**(2**7))
+save=True
+all_kk=[1,2,3]
+a = -1.0
+b = 0.0
 
+linestyles = ['solid', 'dashed', 'dotted', 'dashdot', 'loosely dotted', 'loosely dashed']
+
+all_ff = []
+tt = np.linspace(a - (b-a), b + (b-a), 1000)
+for kk in all_kk:
+    ff = 1. / (1. + ((2. * tt - (b + a))/(b - a)) ** (2 ** kk))
+    all_ff.append(ff)
+
+
+legend = []
 plt.figure(figsize=(8,4))
-plt.plot(tt, ff3, '-.k')
-plt.plot(tt, ff5,'--k')
-plt.plot(tt, ff7, 'k')
-plt.legend(['k=3', 'k=5', 'k=7'])
+for ii in range(len(all_kk)):
+    kk = all_kk[ii]
+    ff = all_ff[ii]
+    plt.plot(tt, ff, c='k', linestyle=linestyles[ii])
+    legend.append('k=' + str(kk))
+
+# for kk, ff in zip(all_kk, all_ff):
+#     plt.plot(tt, ff)
+#     legend.append('k='+str(kk))
+plt.legend(legend)
 plt.xlabel(r'$\lambda$')
-plt.ylabel(r'$\widetilde{f}(\lambda)$')
-plt.title(r'Rational function $\widetilde{f}(\lambda)$')
+plt.ylabel(r'$\Pi_k(\lambda)$')
+plt.title(r'Rational function $\Pi_k(\lambda)$')
 
-plt.savefig('spd_rational_function.pdf', bbox_inches='tight', dpi=100)
+if save:
+    plt.savefig('spd_rational_function.pdf', bbox_inches='tight', dpi=100)
+    np.savetxt('spd_rational_function_tt.txt', tt)
+    for kk, ff in zip(all_kk, all_ff):
+        np.savetxt('spd_rational_function_ff'+str(kk)+'.txt', ff)
 
-np.savetxt('spd_rational_function_tt.txt', tt)
-np.savetxt('spd_rational_function_ff3.txt', ff3)
-np.savetxt('spd_rational_function_ff5.txt', ff5)
-np.savetxt('spd_rational_function_ff7.txt', ff7)
+####
+
+# a = 0.5
+# b = 1.0
+# k=1
+# N = 2**k
+#
+# cc = np.linalg.solve(np.array([[1., a],[1., b]]), np.array([1., np.power(2., 1./N)]))
+#
+# f = lambda t: 1./np.power(cc[0] + cc[1]*t, N)
+#
+# plt.plot(tt, f(tt))
+# plt.ylim(-0.1, 1.1)
