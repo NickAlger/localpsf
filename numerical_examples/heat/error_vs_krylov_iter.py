@@ -417,6 +417,13 @@ plt.plot(ee)
 plt.plot(ee_plus)
 plt.plot(ray_plus)
 
+# plt.figure()
+# plt.plot(ray_plus / ee)
+
+# eeX, uuX = sla.eigh(A_dense, A_plus_dense)
+#
+# plt.figure()
+# plt.plot(eeX)
 
 ####
 
