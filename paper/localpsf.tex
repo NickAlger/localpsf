@@ -84,7 +84,7 @@ However, low rank approximation methods suffer from a ``data predicament''---if 
 	\label{fig:hmatrix_intro}
 \end{figure}
 
-Our method forms a hierarchical matrix (H-matrix) \cite{Hackbusch99,} approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high-rank (see Figure \ref{fig:hmatrix_intro} and Appendix \ref{app:h_matrix}). H-matrix methods permit us to perform matrix-vector products cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving the H-matrix that cannot easily be done using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. Typically, the work and memory required to perform these operations for an $N \times N$ H-matrix scales as $O(r^2 N \log(N)^a)$, where $r$ is the largest rank of the off-diagonal blocks, and $a \in \{0,1,2,3\}$. The exact cost depends on the type of H-matrix used and operation performed; for more details see \cite{GrasedyckHackbusch03}. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
+Our method forms a hierarchical matrix (H-matrix) \cite{Hackbusch99,} approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high-rank (see Figure \ref{fig:hmatrix_intro} and Appendix \ref{app:h_matrix}). H-matrix methods permit us to perform matrix-vector products cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving the H-matrix that cannot easily be done using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. Typically, the work and memory required to perform these operations for an $N \times N$ H-matrix scales as $O(N \log(N)^a)$, where $a \in \{0,1,2,3\}$. The exact cost depends on the type of H-matrix used, the operation being performed, and the rank of the off-diagonal blocks; for more details see \cite{GrasedyckHackbusch03}. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
 
 \begin{figure}
 	\begin{subfigure}{0.32\textwidth}
@@ -1099,11 +1099,11 @@ By ``matrix absolute value,'' we mean that $|\mathbf{A}_H^{\text{sym}}|$ is the 
 	\label{fig:spd_rat}
 \end{figure}
 
-Computing $\mathbf{\Pi}=\Pi(\mathbf{A}_H^{\text{sym}})$ directly is difficult, but we may approximate $\Pi$ by the following high order rational function:
+Computing $\mathbf{\Pi}=\Pi(\mathbf{A}_H^{\text{sym}})$ directly is difficult, but we may approximate $\Pi$ by a high order rational function $\Pi_k \approx \Pi(\lambda)$ which is defined as follows:
 \begin{equation*}
-	\Pi(\lambda) \approx \Pi_k(\lambda) := \frac{1}{1 + T(\lambda)^{2^k} }, \qquad \text{where} \qquad T(\lambda) := \frac{2 \lambda - (b+a)}{b-a},
+	 \Pi_k(\lambda) := \frac{1}{1 + T(\lambda)^{2^k} }, \qquad \text{where} \qquad T(\lambda) := \frac{2 \lambda - (b+a)}{b-a}.
 \end{equation*}
-and $k$ is a positive integer; the larger $k$ is, the better the approximation $\Pi \approx \Pi_k$. This is illustrated in Figure \ref{fig:spd_rat}. Replacing scalar operations with matrix operations, we have
+Here $k$ is a positive integer; the larger $k$ is, the better the approximation $\Pi \approx \Pi_k$. This is illustrated in Figure \ref{fig:spd_rat}. Replacing scalar operations with matrix operations, we have an approximation $\mathbf{\Pi}_k \approx \mathbf{\Pi}$ given by
 \begin{equation}
 \label{eq:rational343}
 \mathbf{\Pi}_k := \Pi_k\left(\mathbf{A}_H^{\text{sym}}\right) = \left(\mathbf{I} + \mathbf{T}^{2^k}\right)^{-1},
