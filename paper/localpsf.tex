@@ -591,13 +591,15 @@ The quantity $\tau$ is a parameter that must be chosen appropriately. The larger
 \subsection{Local mean-displacement invariance}
 \label{sec:local_mean_displacement_invariance}
 
-Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and consider the following four approximations, ordered by increasing level of sophistication:
+Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and consider the following approximations:
 \begin{align}
 \phi_x(y) &\approx \phi_{x'}(y) \label{eq:translate1}\\
 \phi_x(y) &\approx \phi_{x'}(y-x+x') \label{eq:translate2}\\
 \phi_x(y) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right) \label{eq:translate3}\\
 \phi_x(y)/V(x) &\approx \phi_{x'}\left(y-\mu(x)+\mu(x')\right) / V(x'). \label{eq:translate4}
 \end{align}
+These are four different ways to approximate an impulse response by a nearby impulse response, with each successive approximation building upon the previous ones. Our method uses \eqref{eq:translate4}, which is the most sophisticated of these approximations.
+
 Approximation \eqref{eq:translate1} says that $\phi_x$ can be approximated by $\phi_{x'}$ when $x$ and $x'$ are close. Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank interpolative factorization/CUR approximation \cite{CUR,NYSTROM}. However, the required rank in the low rank approximation can be large, which makes algorithms based on \eqref{eq:translate1} expensive. 
 
 Operators that satisfy \eqref{eq:translate2} are called ``locally translation-invariant'' because integral kernel entries $\Phi(y,x)$ for such operators are approximately invariant under translation of $x$ and $y$ by the same displacement, i.e., $x \rightarrow x+h$ and $y \rightarrow y+h$. It is straightforward to show that if equality holds in \eqref{eq:translate2}, then $\Aop$ is a convolution operator. Locally translation-invariant operators act like convolutions locally, and can therefore be well-approximated by PC approximations.
