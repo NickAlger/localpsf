@@ -40,7 +40,7 @@ def solveInv(noise_level):
     StokesIP.set_parameter(m0)
     rtol = 1.e-8
     atol = 1.e-12
-    Newton_iterations = 50
+    Newton_iterations = 2 # 50
     GN_iterations = 8
     cg_coarse_tolerance = 0.5
     parameters = ReducedSpaceNewtonCG_ParameterList()
@@ -89,7 +89,7 @@ def solveInv(noise_level):
 
 
 
-noise_level = float(sys.argv[1])
+noise_level = 0.01 # float(sys.argv[1])
 solveInv(noise_level)
 
 

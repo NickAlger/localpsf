@@ -13,11 +13,20 @@ from nalger_helper_functions import *
 from localpsf.product_convolution_kernel import ProductConvolutionKernel
 from localpsf.product_convolution_hmatrix import make_hmatrix_from_kernel, product_convolution_hmatrix
 
+# For Tucker's computer:
+# import sys
+# sys.path.append('/home/tucker/software/ucm-ice/')
+# sys.path.append('/home/tucker/software/hippylib/')
+# End For Tucker
+
+# For Nick's computer:
+import meshio
 import sys
-sys.path.append('/home/tucker/software/ucm-ice/')
-sys.path.append('/home/tucker/software/hippylib/')
-
-
+sys.path.append('../../../hippylib/')
+import hippylib as hp
+sys.path.append('../../../ucm-ice/')
+# from iceModel import *
+# End For Nick
 
 import hippylib as hp
 from iceModel import *
