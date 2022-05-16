@@ -6,12 +6,13 @@ from localpsf.heat_inverse_problem import *
 from localpsf.product_convolution_hmatrix import product_convolution_hmatrix
 from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
 from localpsf.estimate_column_errors_randomized import estimate_column_errors_randomized
+from localpsf import localpsf_root
 
 
 load_results_from_file = False
 save_results = True
 
-save_dir = get_project_root() / 'numerical_examples' / 'heat' / 'morozov_plot'
+save_dir = localpsf_root / 'numerical_examples' / 'heat' / 'morozov_plot'
 save_dir.mkdir(parents=True, exist_ok=True)
 
 data_file = str(save_dir / 'data.npz')

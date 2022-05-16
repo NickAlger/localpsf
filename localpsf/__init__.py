@@ -11,3 +11,8 @@ from . import positive_definite_modifications
 from . import stokes_inverse_problem_cylinder
 from . import op_operations
 # from . import path
+
+from pathlib import Path as __Path
+localpsf_root = __Path(__file__).parent.parent
+# def get_project_root():
+#     return __Path(__file__).parent.parent

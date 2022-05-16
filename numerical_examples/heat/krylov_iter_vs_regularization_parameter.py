@@ -10,6 +10,7 @@ from localpsf.product_convolution_kernel import ProductConvolutionKernel
 from localpsf.product_convolution_hmatrix import make_hmatrix_from_kernel, product_convolution_hmatrix
 from localpsf.visualization import column_error_plot
 from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
+from localpsf import localpsf_root
 
 import scipy.sparse.linalg as spla
 
@@ -17,7 +18,7 @@ import scipy.sparse.linalg as spla
 save_data = True
 save_figures = True
 
-save_dir = get_project_root() / 'numerical_examples' / 'heat' / 'krylov_iter_vs_regularization_parameter'
+save_dir = localpsf_root / 'numerical_examples' / 'heat' / 'krylov_iter_vs_regularization_parameter'
 save_dir.mkdir(parents=True, exist_ok=True)
 
 

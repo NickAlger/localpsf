@@ -9,6 +9,7 @@ import hlibpro_python_wrapper as hpro
 from localpsf.heat_inverse_problem import *
 from localpsf.visualization import visualize_impulse_response_batch
 from localpsf.product_convolution_hmatrix import product_convolution_hmatrix
+from localpsf import localpsf_root
 
 
 ########    OPTIONS    ########
@@ -29,7 +30,7 @@ hmatrix_options = {'hmatrix_rtol' : 1e-4,
                    'hmatrix_num_batches' : 5,
                    'grid_density_multiplier' : 0.5}
 
-save_dir = get_project_root() / 'numerical_examples' / 'heat' / 'basic_plots' / time.ctime()
+save_dir = localpsf_root / 'numerical_examples' / 'heat' / 'basic_plots' / time.ctime()
 save_dir.mkdir(parents=True, exist_ok=True)
 
 options_file = save_dir / 'HIP_options.txt'

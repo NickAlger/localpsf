@@ -3,8 +3,8 @@ import dolfin as dl
 import scipy.sparse as sps
 import scipy.sparse.linalg as spla
 import matplotlib.pyplot as plt
-from pathlib import Path
-import os
+# from pathlib import Path
+# import os
 
 from nalger_helper_functions import *
 
@@ -375,10 +375,6 @@ class HeatInverseProblem:
 
     def interactive_hessian_impulse_response_plot(me):
         interactive_impulse_response_plot(me.apply_iM_Hd_iM_petsc, me.V)
-
-
-def get_project_root():
-    return Path(__file__).parent.parent
 
 
 def wiggly_function(V0):
