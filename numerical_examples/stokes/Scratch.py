@@ -16,6 +16,7 @@ from localpsf.product_convolution_hmatrix import make_hmatrix_from_kernel, produ
 
 
 from stokes_inverse_problem_cylinder import *
+# from .stokes_inverse_problem_cylinder import *
 import dolfin as dl
 
 import scipy.sparse.linalg as spla

@@ -1143,30 +1143,47 @@ where fast H-matrix operations are used to perform the necessary matrix-matrix s
 \section{Recycling Krylov information via low rank updates}
 \label{sec:recycle_krylov}
 
-In applications, often one wants to use the H-matrix approximation $\mathbf{A}_H$ to build preconditioners for solving a sequence of slowly varying linear systems of the form
+REFER TO BIROS PAPER
+
+In applications, often one wants to use the H-matrix approximation $\mathbf{A}_H$ to build preconditioners for solving a sequence of slowly varying linear systems, where the $k$th linear system has the form
 \begin{equation}
 \label{eq:Ax_equals_b}
-\mathbf{B}^{(k)} \mathbf{u}^{(k)} = \mathbf{f}^{(k)},
+\mathbf{B}^{(k)} \mathbf{u}^{(k)} = \mathbf{f}^{(k)}.
 \end{equation}
-where each of these linear systems is solved using an iterative method. By ``slowly varying,'' we mean that $\mathbf{B}^{(k+1)}$ does not differ much from $\mathbf{B}^{(k)}$. If $\mathbf{B}^{(k)}=\mathbf{A}$, then our H-matrix approximation $\mathbf{A}_H^{-1}$ may be used to precondition this linear system. If $\mathbf{B}^{(k)}$ is built from a combination of $\mathbf{A}$ and other operators, then $\mathbf{A}_H$ may be combined with H-matrix approximations of the other operators to construct a preconditioner for $\mathbf{B}^{(k)}$. For example, in a Newton-Krylov method for solving an optimization problem, one uses a Krylov method such as conjugate gradient to solve a sequence of systems of the form \eqref{eq:Ax_equals_b}, where $\mathbf{B}^{(k)}$ is the Hessian of the objective function in the optimization problem, and $\mathbf{f}^{(k)}$ is the negative gradient of the objective function. The Hessian and the gradient are evaluated at the $k$th Newton iterate, so both $\mathbf{B}^{(k)}$ and $\mathbf{f}^{(k)}$ change as the Newton iterations proceed. The Hessian is typically the sum of a data misfit term which is only available matrix-free, and a regularization term which is available directly as a sparse matrix. The data misfit term in the Hessian is approximated with our method to form $\mathbf{A}_H$, the regularization term is approximated using standard H-matrix methods for sparse matrices, and then these two terms are added together and inverted using H-matrix methods to form a preconditioner for the overall Hessian. Let 
+Each of these linear systems is solved using an iterative method. By ``slowly varying,'' we mean that $\mathbf{B}^{(k+1)}$ does not differ much from $\mathbf{B}^{(k)}$. 
+%If $\mathbf{B}^{(k)}=\mathbf{A}$, then our H-matrix approximation $\mathbf{A}_H^{-1}$ may be used to precondition this linear system. 
+%In our target applications, $\mathbf{B}^{(k)}$ is built from a combination of $\mathbf{A}$ and other operators, then $\mathbf{A}_H$ may be combined with H-matrix approximations of the other operators to construct a preconditioner for $\mathbf{B}^{(k)}$. 
+For example, in a Newton-Krylov method for solving an optimization problem, one uses a Krylov method such as conjugate gradient to solve a sequence of systems of the form \eqref{eq:Ax_equals_b}, where $\mathbf{B}^{(k)}$ and $\mathbf{f}^{(k)}$ are the Hessian and the negative gradient of the objective function in the optimization problem, respectively, evaluated at the $k$th Newton iterate. 
+%The Hessian and the gradient are evaluated at the $k$th Newton iterate, hence both $\mathbf{B}^{(k)}$ and $\mathbf{f}^{(k)}$ change as the Newton iterations proceed. 
+As the optimization solver converges, $\mathbf{B}^{(k)}$ converges to the Hessian at the optimal point, and therefore changes little from one iteration to the next. Since $\mathbf{B}^{(k)}$ varies slowly, it is reasonable to assume that Krylov information about $\mathbf{B}^{(k)}$ can be leveraged to update the preconditioner from $\mathbf{B}^{(k)}$ in order to build a preconditioner for $\mathbf{B}^{(k+1)}$.
+%In the context of an inverse problem, the Hessian is typically the sum of two terms: the Hessian of the data misfit term, which is only available matrix-free, and the Hessian of a regularization term, which is available directly as a sparse matrix. The Hessian of the data misfit term is approximated with our method to form $\mathbf{A}_H$, the Hessian of the regularization term is approximated using standard H-matrix methods for sparse matrices, and then these two terms are added together and inverted using H-matrix methods to form a preconditioner for the overall Hessian. 
+Concretely, let 
 \begin{equation*}
 \mathbf{P}^{(k)} \approx \left(\mathbf{B}^{(k)}\right)^{-1}
 \end{equation*}
-denote the H-matrix preconditioner used to accelerate the solution of \eqref{eq:Ax_equals_b} with an iterative method. The iterative method for solving the $k$th linear system will typically involve, as a sub-procedure, applying $\mathbf{B}^{(k)}$ to a collection of vectors $\{\mathbf{x}_i\}_{i=1}^m$, thereby generating vectors $\{\mathbf{y}_i = \mathbf{B}^{(k)} \mathbf{x}_i\}_{i=1}^m$. Instead of rebuilding the H-matrix preconditioner for each successive linear system, we recommend \emph{recycling} the information generated by the iterative method while solving the current linear system, performing a low-rank update to $\mathbf{P}^{(k)}$ to create $\mathbf{P}^{(k+1)}$. In detail, let $\mathbf{X}$ and $\mathbf{Y}$ denote the $N \times m$ matrices with columns given by the vectors $\mathbf{x}_i$ and $\mathbf{y}_i$, respectively, so that the information learned about $\mathbf{B}^{(k)}$ while solving the current linear system may be summarized by the equation:
+denote a H-matrix preconditioner used to accelerate the solution of \eqref{eq:Ax_equals_b} with an iterative method. The iterative method for solving the $k$th linear system will typically involve, as a sub-problem, applying $\mathbf{B}^{(k)}$ to a collection of vectors $\{\mathbf{x}_i\}_{i=1}^m$, thereby generating vectors $\{\mathbf{y}_i = \mathbf{B}^{(k)} \mathbf{x}_i\}_{i=1}^m$. Instead of rebuilding the H-matrix preconditioner for each successive linear system, we \emph{recycle} the information generated by the iterative method while solving the current linear system, performing a low-rank update to $\mathbf{P}^{(k)}$ to create $\mathbf{P}^{(k+1)}$. To do so, we build on the rank-1 update formulas discussed in \cite[Chapter 6]{NocedalWright99}, which we generalize to many vector ``rank-$m$'' updates. In what follows, let $\mathbf{X}$ and $\mathbf{Y}$ denote the $N \times m$ matrices with columns given by the vectors $\mathbf{x}_i$ and $\mathbf{y}_i$, respectively. The matrix-vector products with $\mathbf{B}^{(k)}$ performed while solving the $k$th linear system may be summarized by the equation:
 \begin{equation*}
 \mathbf{B}^{(k)}\mathbf{X} = \mathbf{Y}.
 \end{equation*}
-For convenience, define 
-\begin{equation*}
-\mathbf{R} := \mathbf{X}-\mathbf{P}^{(k)}\mathbf{Y}, \qquad \text{and} \qquad \boldsymbol{\Theta} := \left(\mathbf{X}^T\mathbf{Y}\right)^{-1}.
-\end{equation*}
-One of the following three formulas may be used to form $\mathbf{P}^{(k+1)}$ from $\mathbf{P}^{(k)}$:
+To form $\mathbf{P}^{(k+1)}$ from $\mathbf{P}^{(k)}$, one may use one of the following three update formulas:
 \begin{align}
 	\mathbf{P}^{(k+1)} &= \mathbf{P}^{(k)} + \mathbf{R}\left(\mathbf{Y}^T \mathbf{Y}\right)^{-1} \mathbf{Y}^T \label{eq:res_update} \\
 	\mathbf{P}^{(k+1)} &= \mathbf{P}^{(k)} + \mathbf{R} \left(\mathbf{R}^T \mathbf{Y}\right)^{-1} \mathbf{R}^T \label{eq:srk_update} \\
-	\mathbf{P}^{(k+1)} &= \left(\mathbf{I} - \mathbf{X}\boldsymbol{\Theta}\mathbf{Y}^T\right)\mathbf{P}^{(k)}\left(\mathbf{I} - \mathbf{Y}\boldsymbol{\Theta}\mathbf{X}^T\right) + \mathbf{X}\boldsymbol{\Theta}\mathbf{X}^T \label{eq:dfp_update}
+	\mathbf{P}^{(k+1)} &= \left(\mathbf{I} - \mathbf{X}\boldsymbol{\Theta}\mathbf{Y}^T\right)\mathbf{P}^{(k)}\left(\mathbf{I} - \mathbf{Y}\boldsymbol{\Theta}\mathbf{X}^T\right) + \mathbf{X}\boldsymbol{\Theta}\mathbf{X}^T, \label{eq:dfp_update}
 \end{align}
-In all three cases, direct calculation shows that we have $\mathbf{P}^{(k+1)}\mathbf{Y}=\mathbf{X} = \left(\mathbf{B}^{(k)}\right)^{-1} \mathbf{Y}$. Formulas \eqref{eq:res_update} and \eqref{eq:srk_update} perform rank-$m$ updates, while formula \eqref{eq:dfp_update} performs a rank-$2m$ update. Formula \eqref{eq:res_update} does not preserve symmetry, and should therefore be used when $\mathbf{B}^{(k)}$ is not symmetric. Formula \eqref{eq:srk_update} preserves symmetry but not positive definiteness, and should therefore be used when $\mathbf{B}^{(k)}$ is symmetric and indefinite. Formula \eqref{eq:dfp_update} preserves both symmetry and positive definiteness, and should therefore be used when $\mathbf{B}^{(k)}$ is symmetric positive definite. When $m=1$, formula \eqref{eq:srk_update} is known as the SR1 (``symmetric rank-$1$'') update formula, and formula \eqref{eq:dfp_update} is known as the DFP update formula, which is named after it's inventor Davidson, and popularizers Fletcher and Powell. For more details on these update formulas, we recommend the discussion in Chapter 6 of \cite{NocedalWright99}. In \cite{NocedalWright99}, one-vector versions of formulas \eqref{eq:srk_update} and \eqref{eq:dfp_update} are discussed thoroughly; the versions here are straightforward generalizations to many-vector updates.
+where $\mathbf{R} := \mathbf{X}-\mathbf{P}^{(k)}\mathbf{Y}$ and $\boldsymbol{\Theta} := \left(\mathbf{X}^T\mathbf{Y}\right)^{-1}$.
+We note that for all three cases, the update is exact for $\mathbf{B}^{k}$, in the sense that 
+\begin{equation*}
+\mathbf{P}^{(k+1)}\mathbf{Y}=\mathbf{X} = \left(\mathbf{B}^{(k)}\right)^{-1} \mathbf{Y}.
+\end{equation*}
+Because the matrices $\mathbf{B}^{k}$ vary slowly, we expect that $\mathbf{P}^{(k+1)}$ is a good approximation for $\left(\mathbf{B}^{(k+1)}\right)^{-1}$ on the space spanned by the vectors $\mathbf{y}_i$. One should choose which formula to use based on the properties of the matrix $\mathbf{B}^{(k)}$. Formula \eqref{eq:res_update} does not preserve symmetry, and should therefore be used when $\mathbf{B}^{(k)}$ is not symmetric. Formula \eqref{eq:srk_update} preserves symmetry but not positive definiteness, and should therefore be used when $\mathbf{B}^{(k)}$ is symmetric and indefinite. Formula \eqref{eq:dfp_update}, which is used in this paper, preserves both symmetry and positive definiteness, and should therefore be used when $\mathbf{B}^{(k)}$ is symmetric positive definite. Formulas \eqref{eq:res_update} and \eqref{eq:srk_update} perform rank-$m$ updates, while formula \eqref{eq:dfp_update} performs a rank-$2m$ update. 
+We note that when $m=1$, formulas \eqref{eq:srk_update} are \eqref{eq:dfp_update} are known as SR1 (symmetric rank-$1$) and DFP (Davidson-Fletcher-Powell) updates, respectively \cite[Chapter 6]{NocedalWright99}. 
+
+%formula, which is named after it's inventor Davidson, and popularizers Fletcher and Powell \cite{DFP}. 
+
+%For more details on these update formulas, we recommend . 
+
+%In \cite{NocedalWright99}, one-vector versions of formulas \eqref{eq:srk_update} and \eqref{eq:dfp_update} are discussed thoroughly; the versions here are straightforward generalizations to many-vector updates.
 
 
 %to update $\mathbf{B}^{(k)} \approx \left(\mathbf{A}^{(k)}\right)^{-1}$ denote the H-matrix preconditioner used for the $k$th linear system, and set $\mathbf{B}^{(1)}:= \mathbf{A}_H^{-1}$ denote the H-matrix approximation used to precondition the first linear system. Rather than re-build the H-matrix preconditioner for each subsequent linear system, one may instead form a preconditioner, $\mathbf{B}^{(k+1)}$ update, by \emph{recycling} the information generated by the iterative method used to solve the current system.
