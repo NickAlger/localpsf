@@ -13,6 +13,7 @@ import hlibpro_python_wrapper as hpro
 from nalger_helper_functions import *
 from localpsf.product_convolution_kernel import ProductConvolutionKernel
 from localpsf.product_convolution_hmatrix import make_hmatrix_from_kernel, product_convolution_hmatrix
+from localpsf import localpsf_root
 
 
 from stokes_inverse_problem_cylinder import *
@@ -26,7 +27,7 @@ import sys
 def solveInv(noise_level):
     gamma = 1.e5 #* np.sqrt(noise_level / 5.e-2)
     # --------- set up the problem
-    mfile_name = "meshes/cylinder_coarse"
+    mfile_name = str(localpsf_root) + "/numerical_examples/stokes/meshes/cylinder_coarse"
     mesh = dl.Mesh(mfile_name+".xml")
     boundary_markers = dl.MeshFunction("size_t", mesh, mfile_name+"_facet_region.xml")
     nondefault_StokesIP_options = {'mesh' : mesh,'boundary_markers' : boundary_markers,
