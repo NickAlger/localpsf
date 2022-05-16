@@ -1075,7 +1075,7 @@ If $\Aop$ is symmetric, we symmetrize $\mathbf{A}_H$ as follows
 \begin{equation*}
 \mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
 \end{equation*}
-If $\Aop$ is also positive semi-definite, we adapt the high order rational function spectral projection method from \cite{HackbuschKress07} to flip (or approximately flip) the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ to be positive. In detail, let $\Pi$ be the indicator function for the interval $(a,b)$,
+If $\Aop$ is also positive semi-definite, we adapt the high order rational function spectral projection method from \cite[Section 13.8]{HackbuschKress07} to flip (or approximately flip) the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ to be positive. In detail, let $\Pi$ be the indicator function for the interval $(a,b)$,
 \begin{equation*}
 	\Pi(\lambda) = \begin{cases}
 		1, & \lambda \in (a,b), \\
@@ -1101,7 +1101,7 @@ By ``matrix absolute value,'' we mean that $|\mathbf{A}_H^{\text{sym}}|$ is the 
 	\label{fig:spd_rat}
 \end{figure}
 
-Computing $\mathbf{\Pi}=\Pi(\mathbf{A}_H^{\text{sym}})$ directly is difficult, but we may approximate $\Pi$ by a high order rational function $\Pi_k \approx \Pi(\lambda)$ which is defined as follows:
+Computing $\mathbf{\Pi}=\Pi(\mathbf{A}_H^{\text{sym}})$ directly is difficult, but we may approximate $\Pi$ by a high order rational function $\Pi_k \approx \Pi$ which is defined as follows:
 \begin{equation*}
 	 \Pi_k(\lambda) := \frac{1}{1 + T(\lambda)^{2^k} }, \qquad \text{where} \qquad T(\lambda) := \frac{2 \lambda - (b+a)}{b-a}.
 \end{equation*}
@@ -1112,11 +1112,13 @@ Here $k$ is a positive integer; the larger $k$ is, the better the approximation 
 \end{equation}
 where
 \begin{equation*}
-\mathbf{T} := \left(2 \mathbf{A}_H^{\text{sym}} - (b+a) \mathbf{I}\right)/(b-a).
+\mathbf{T} := T(\mathbf{A}_H^{\text{sym}}) = \left(2 \mathbf{A}_H^{\text{sym}} - (b+a) \mathbf{I}\right)/(b-a).
 \end{equation*}
 Using $\mathbf{\Pi}_k$ instead of $\mathbf{\Pi}$ in \eqref{eq:I_Pi_abs} allows us to efficiently approximate $|\mathbf{A}_H^{\text{sym}}|$ using H-matrix methods. 
-First, we compute $\lambda_\text{min}$ using the Lanczos method, and set $a=\gamma \lambda_\text{min}$ and $b=0$, where $\gamma\ge 1$ is a parameter that must be chosen. We use $\gamma=1.5$, though the method is relatively insensitive to $\gamma$ and works well for any $\gamma \in [1,2]$. 
-Next, we compute $\mathbf{T}$ using fast H-matrix scalar multiplication and addition. We form the $\mathbf{T}^{2^k}$ via repeated squaring, $\mathbf{T}^2 = \mathbf{T} \mathbf{T}$, $\mathbf{T}^4 = \mathbf{T}^2 \mathbf{T}^2$, $\mathbf{T}^8 = \mathbf{T}^4 \mathbf{T}^4$ and so on, where each of these matrix squarings is performed using fast H-matrix multiplication. We recommend using $k=1$ or $2$ (we use $k=1$ in our numerical results). Larger $k$ is unnecessary and may make the method unstable. The approximate spectral projector $\mathbf{\Pi}_k$ is formed from $\mathbf{T}^{2^k}$ per \eqref{eq:rational343}, using fast H-matrix operations to perform the required matrix-matrix addition and matrix inversion. Finally, a positive semi-definite approximation $\mathbf{A}_H^{\text{sym}+}$ of $\mathbf{A}_H^{\text{sym}}$ is formed as
+This approximation procedure is as follows. First, we compute $\lambda_\text{min}$ using the Lanczos method, and set $a=\gamma \lambda_\text{min}$ and $b=0$, where $\gamma\ge 1$ is a parameter that must be chosen. 
+%Because of error in the rational function approximation, if $\gamma=1$, the negative eigenvalues of largest magnitude will be approximately zeroed out instead of flipped. 
+The method is relatively insensitive to $\gamma$ and numerically we find that the method works well for any $\gamma \in [1,2]$. We use $\gamma=1.5$ in our numerical results. 
+Next, we compute $\mathbf{T}$ using fast H-matrix scalar multiplication and addition. We form the $\mathbf{T}^{2^k}$ via repeated squaring, $\mathbf{T}^2 = \mathbf{T} \mathbf{T}$, $\mathbf{T}^4 = \mathbf{T}^2 \mathbf{T}^2$, $\mathbf{T}^8 = \mathbf{T}^4 \mathbf{T}^4$ and so on, where each of these matrix squarings is performed using H-matrix multiplication, which is fast. We recommend using $k=1$ or $2$ (we use $k=1$ in our numerical results). Larger $k$ is unnecessary and may make the method unstable. The approximate spectral projector $\mathbf{\Pi}_k$ is formed from $\mathbf{T}^{2^k}$ per \eqref{eq:rational343}, using fast H-matrix operations to perform the required matrix-matrix addition and matrix inversion. Finally, a positive semi-definite approximation $\mathbf{A}_H^{\text{sym}+}$ of $\mathbf{A}_H^{\text{sym}}$ is formed as
 \begin{equation*}
 \mathbf{A}_H^{\text{sym}+} := \left(\mathbf{I} - 2\mathbf{\Pi}_k\right)\mathbf{A}_H^{\text{sym}},
 \end{equation*}
