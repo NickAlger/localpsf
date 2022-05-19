@@ -26,6 +26,107 @@ from localpsf.product_convolution_kernel import ProductConvolutionKernel
 from localpsf.product_convolution_hmatrix import make_hmatrix_from_kernel
 import scipy.sparse.linalg as spla
 import numpy as np
+
+class NCGConvergenceInfo:
+    def __init__(me, extra_info=None):
+        me._extra_info=extra_info
+        me._cg_iteration = list()
+        me._hessian_matvecs = list()
+        me._total_cost = list()
+        me._misfit_cost = list()
+        me._reg_cost = list()
+        me._mg_mhat = list()
+        me._gradnorm = list()
+        me._step_length_alpha = list()
+        me._tolcg = list()
+
+    @property
+    def num_newton_iterations(me):
+        return len(me.cg_iteration)
+
+    @property
+    def extra_info(me):
+        return me._extra_info
+
+    @property
+    def cg_iteration(me):
+        return np.array(me._cg_iteration)
+
+    @property
+    def hessian_matvecs(me):
+        return np.array(me._hessian_matvecs)
+
+    @property
+    def total_cost(me):
+        return np.array(me._total_cost)
+
+    @property
+    def misfit_cost(me):
+        return np.array(me._misfit_cost)
+
+    @property
+    def reg_cost(me):
+        return np.array(me._reg_cost)
+
+    @property
+    def mg_mhat(me):
+        return np.array(me._mg_mhat)
+
+    @property
+    def gradnorm(me):
+        return np.array(me._gradnorm)
+
+    @property
+    def step_length_alpha(me):
+        return np.array(me._step_length_alpha)
+
+    @property
+    def tolcg(me):
+        return np.array(me._tolcg)
+
+    def add_iteration(me,
+                      cg_iteration,
+                      hessian_matvecs,
+                      total_cost,
+                      misfit_cost,
+                      reg_cost,
+                      mg_mhat,
+                      gradnorm,
+                      step_length_alpha,
+                      tolcg):
+        me._cg_iteration.append(cg_iteration)
+        me._hessian_matvecs.append(hessian_matvecs)
+        me._total_cost.append(total_cost)
+        me._misfit_cost.append(misfit_cost)
+        me._reg_cost.append(reg_cost)
+        me._mg_mhat.append(mg_mhat)
+        me._gradnorm.append(gradnorm)
+        me._step_length_alpha.append(step_length_alpha)
+        me._tolcg.append(tolcg)
+
+    def print(me):
+        print('Newton CG convergence information:')
+        if me._extra_info is not None:
+            print(me._extra_info)
+
+        print("\n{0:3} {1:3} {2:15} {3:15} {4:15} {5:15} {6:14} {7:14} {8:14}".format(
+            "It", "cg_it", "cost", "misfit", "reg", "(g,dm)", "||g||L2", "alpha", "tolcg"))
+
+        for k in range(me.num_newton_iterations):
+            print("{0:3d} {1:3d} {2:15e} {3:15e} {4:15e} {5:15e} {6:14e} {7:14e} {8:14e}".format(
+                me._cg_iteration[k],
+                me._hessian_matvecs[k],
+                me._total_cost[k],
+                me._misfit_cost[k],
+                me._reg_cost[k],
+                me._mg_mhat[k],
+                me._gradnorm[k],
+                me._step_length_alpha[k],
+                me._tolcg[k]))
+
+
+
+
 def LS_ParameterList():
     """
     Generate a ParameterList for line search globalization.
@@ -148,6 +249,7 @@ class ReducedSpaceNewtonCG:
         self.callback = callback
 
         self.IP = self.parameters["IP"]
+        self.REGinitialized = None # for which Newton iteration was the REG approximation first constructed
         self.PCHinitialized = None # for which Newton iteration was the PCH approximation first constructed
         self.P  = self.parameters["projector"]
         self.residualCounts = []
@@ -188,7 +290,9 @@ class ReducedSpaceNewtonCG:
         
         c_armijo = self.parameters["LS"]["c_armijo"]
         max_backtracking_iter = self.parameters["LS"]["max_backtracking_iter"]
-        
+
+        convergence_info = NCGConvergenceInfo()
+
         self.model.solveFwd(x[STATE], x)
         
         self.it = 0
@@ -222,8 +326,23 @@ class ReducedSpaceNewtonCG:
 
             HessApply = ReducedHessian(self.model)
             tolcg = min(cg_coarse_tolerance, math.sqrt(gradnorm/gradnorm_ini))
-            if self.parameters["PCH_precond"]: 
-                if self.total_cg_iter > 0:
+            if self.parameters["PCH_precond"]:
+                # Make regularization H-matrix
+                R_scipy = self.parameters["Rscipy"]
+                if self.REGinitialized is None:
+                    print('Building Regularization H-Matrix')
+                    dof_coords = self.IP.V.tabulate_dof_coordinates()
+                    ct_reg0 = hpro.build_cluster_tree_from_pointcloud(dof_coords)
+                    bct_reg0 = hpro.build_block_cluster_tree(ct_reg0, ct_reg0)
+
+                    R_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(R_scipy, bct_reg0)
+                    self.REGinitialized = self.it
+                    H_pch = R_hmatrix
+                    iH_pch = H_pch.inv()
+
+                print('self.total_cg_iter=', self.total_cg_iter)
+                if self.total_cg_iter > 10: # 0
+                # if False: # !!!!!!!!!!!!!!!!! USE REG PRECONDITIONING ONLY
                     if self.PCHinitialized is None:
                         self.PCHinitialized = self.it
                         # build PCH approximation
@@ -240,10 +359,10 @@ class ReducedSpaceNewtonCG:
                                    num_neighbors_rows=num_neighbors,
                                    num_neighbors_cols=num_neighbors)
                         Hd_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol = hmatrix_tol)
-                        
-                        # ----- compress regularization
-                        R_scipy   = self.parameters["Rscipy"]
+
+                        # Rebuild reg hmatrix with same block cluster tree as PCH data misfit hmatrix
                         R_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(R_scipy, Hd_pch_nonsym.bct)
+
                         # ----- build spd approximation of Hd, with cutoff given by a multiple of the minimum eigenvalue of the regularization operator
                         Hd_pch       = Hd_pch_nonsym.spd()
                         H_pch        = Hd_pch + R_hmatrix
@@ -273,11 +392,11 @@ class ReducedSpaceNewtonCG:
                                 Yproj.append(ytestP[:])
                             Xproj = np.array(Xproj).T
                             Yproj = np.array(Yproj).T 
-                            iH_pch = iH_pch.dfp_update(Yproj, Xproj)
+                            # iH_pch = iH_pch.dfp_update(Yproj, Xproj) # !!!!! Turn off Krylov recycling
                         else:
                             X = np.array(X).T
                             Y = np.array(Y).T 
-                            iH_pch = iH_pch.dfp_update(Y, X)
+                            # iH_pch = iH_pch.dfp_update(Y, X) # !!!!! Turn off Krylov recycling
             
             solver = CGSolverSteihaug(comm = self.model.prior.R.mpi_comm())
             solver.set_operator(HessApply)
@@ -330,14 +449,30 @@ class ReducedSpaceNewtonCG:
                 else:
                     n_backtrack += 1
                     alpha *= 0.5
-                            
-            if(print_level >= 0) and (self.it == 1):
-                print( "\n{0:3} {1:3} {2:15} {3:15} {4:15} {5:15} {6:14} {7:14} {8:14}".format(
-                      "It", "cg_it", "cost", "misfit", "reg", "(g,dm)", "||g||L2", "alpha", "tolcg") )
-                
+
+            convergence_info.add_iteration(self.it, HessApply.ncalls, cost_new, misfit_new, reg_new, mg_mhat, gradnorm, alpha, tolcg)
+
+            # convergence_information['cg_iteration'].append(self.it)
+            # convergence_information['hessian_matvecs'].append(HessApply.ncalls)
+            # convergence_information['cost_total'].append(cost_new)
+            # convergence_information['cost_misfit'].append(misfit_new)
+            # convergence_information['cost_reg'].append(reg_new)
+            # convergence_information['mg_mhat'].append(mg_mhat)
+            # convergence_information['gradnorm'].append(gradnorm)
+            # convergence_information['step_length_alpha'].append(alpha)
+            # convergence_information['tolcg'].append(tolcg)
+
             if print_level >= 0:
-                print( "{0:3d} {1:3d} {2:15e} {3:15e} {4:15e} {5:15e} {6:14e} {7:14e} {8:14e}".format(
-                        self.it, HessApply.ncalls, cost_new, misfit_new, reg_new, mg_mhat, gradnorm, alpha, tolcg) )
+                convergence_info.print()
+                # self.print_convergence_information(convergence_information)
+                            
+            # if(print_level >= 0) and (self.it == 1):
+            #     print( "\n{0:3} {1:3} {2:15} {3:15} {4:15} {5:15} {6:14} {7:14} {8:14}".format(
+            #           "It", "cg_it", "cost", "misfit", "reg", "(g,dm)", "||g||L2", "alpha", "tolcg") )
+            #
+            # if print_level >= 0:
+            #     print( "{0:3d} {1:3d} {2:15e} {3:15e} {4:15e} {5:15e} {6:14e} {7:14e} {8:14e}".format(
+            #             self.it, HessApply.ncalls, cost_new, misfit_new, reg_new, mg_mhat, gradnorm, alpha, tolcg) )
                 
             if self.callback:
                 self.callback(self.it, x)
@@ -356,7 +491,7 @@ class ReducedSpaceNewtonCG:
         self.final_grad_norm = gradnorm
         self.final_cost      = cost_new
         return x
-    
+
     def _solve_tr(self,x):
         rel_tol = self.parameters["rel_tolerance"]
         abs_tol = self.parameters["abs_tolerance"]

@@ -25,9 +25,11 @@ from NewtonCGPCH import *
 from hippylib import nb
 import sys
 def solveInv(noise_level):
-    gamma = 1.e5 #* np.sqrt(noise_level / 5.e-2)
+    # gamma = 1.e5 #* np.sqrt(noise_level / 5.e-2)
+    gamma = 1.e4
     # --------- set up the problem
     mfile_name = str(localpsf_root) + "/numerical_examples/stokes/meshes/cylinder_coarse"
+    # mfile_name = str(localpsf_root) + "/numerical_examples/stokes/meshes/cylinder_medium"
     mesh = dl.Mesh(mfile_name+".xml")
     boundary_markers = dl.MeshFunction("size_t", mesh, mfile_name+"_facet_region.xml")
     nondefault_StokesIP_options = {'mesh' : mesh,'boundary_markers' : boundary_markers,
@@ -42,7 +44,7 @@ def solveInv(noise_level):
     StokesIP.set_parameter(m0)
     rtol = 1.e-8
     atol = 1.e-12
-    Newton_iterations = 2 # 50
+    Newton_iterations = 10 #2 # 50
     GN_iterations = 8
     cg_coarse_tolerance = 0.5
     parameters = ReducedSpaceNewtonCG_ParameterList()
@@ -87,7 +89,6 @@ def solveInv(noise_level):
 
 
 
-        
 
 
 
