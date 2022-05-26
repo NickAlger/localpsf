@@ -824,6 +824,25 @@ We form $\mathbf{\Phi}_H$ using the standard geometrical clustering/adaptive cro
 \subsection{Computational cost}
 \label{sec:overall_cost}
 
+The computational cost of our approximation method may be divided into two categories: (1) the cost of building the H-matrix approximation, and (2) the cost of using the H-matrix approximation to perform further linear algebra operations. The cost to build the H-matrix approximation may further be broken down into (1a) the cost of computing the impulse response moments and batches, which involves applying $\Aop$ to vectors, and (1b) the cost of building the H-matrix after the impulse response moments and batches have been computed, which does not involve applying $\Aop$ to vectors. In practice, (1a) is the dominant cost, because our method is targeted at applications in which applying the operator $\Aop$ to a vector involves performing an expensive computational procedure such as solving a large-scale partial differential equation. Conceptually, our method was designed to construct an approximation that is as accurate as possible, using as few operator applies as possible, subject to the constraint that the further costs associated with building and using the approximation are near-linear (and therefore scalable) in $N$.
+
+\paragraph{(1a): Impulse response moments and batches} Computing $V$, $\mu$, and $\Sigma$ require applying $\Aop$ to $1$, $d$, and $d(d+1)/2$ vectors, respectively. Concretely, in one spatial dimensions ($d=1$), computing $V$, $\mu$, and $\Sigma$ requires $1+1+1=3$ operator applies. In two spatial dimensions, this cost is $1+2+3=6$ operator applies. In three spatial dimensions, this cost is $1+3+6=10$ operator applies. Computing each impulse response batch requires applying $\Aop$ to $1$ vector, so computing the impulse response batches $\{\eta_i\}_{i=1}^{n_b}$ requires $n_b$ operator applies. In total, computing the impulse response moments and batches requires
+\begin{equation*}
+	1 + d + d(d+1)/2 + n_b \qquad \text{operator applies.}
+\end{equation*}
+In a typical application one might have $d=2$ and $n_b=5$, in which case $11$ operator applies would be required. Choosing one sample point batch via the greedy ellipsoid packing algorithm described in Section \ref{sec:sample_point_selection} may require performing $O(Ns)$ ellipsoid intersection tests, where $s$ is the number of sample points in the batch. Choosing all of the sample points therefore requires performing
+\begin{equation*}
+	O(Nm) \qquad \text{ellipsoid intersection tests,}
+\end{equation*}
+where $m$ is the total number of sample points in all batches. The multiplicative dependence of $N$ with $m$ is undesirable, and reducing this cost is a target for future work. The cost of picking sample points could be reduced, for example, by ``thinning'' the sample points. That is, choosing batches from a smaller subset of $N_\text{thin} << N$ points, rather than all $N$ finite element Lagrange nodes. The cost of picking one batch could be reduced from $O(N s)$ to $O(N \log s)$ using more advanced computational geometry techniques, such as organizing the ellipsoids associated with points that have already been picked in a batch into an AABB tree, then using this AABB tree to accelerate the required ellipsoid intersection checks. This would reduce the cost of choosing all sample point batches from $O(Nm)$ to $O(N n_b \log s)$. However, in practice the cost for picking sample points is small compared to other parts of the approximation algorithm, so we do not pursue these improvements in this paper.
+
+\paragraph{(1b): }
+
+In our view, the goal of the approximation method is to reduce the number of operator applies as much as possible
+
+we consider the operator applies to be the dominant cost to a vector is an expensive computational procedure. For example, in our numerical results we demonstrate the method for applications in which applying $\Aop$ to a vector requires solving two partial differential equations, which are defined on a domain with a larger spacetime dimension than that of $\Omega$.
+
+
 WORK IN PROGRESS BELOW HERE!!!
 
 \begin{tabular}{lll}

@@ -28,8 +28,8 @@ def solveInv(noise_level):
     # gamma = 1.e5 #* np.sqrt(noise_level / 5.e-2)
     gamma = 1.e4
     # --------- set up the problem
-    mfile_name = str(localpsf_root) + "/numerical_examples/stokes/meshes/cylinder_coarse"
-    # mfile_name = str(localpsf_root) + "/numerical_examples/stokes/meshes/cylinder_medium"
+    # mfile_name = str(localpsf_root) + "/numerical_examples/stokes/meshes/cylinder_coarse"
+    mfile_name = str(localpsf_root) + "/numerical_examples/stokes/meshes/cylinder_medium"
     mesh = dl.Mesh(mfile_name+".xml")
     boundary_markers = dl.MeshFunction("size_t", mesh, mfile_name+"_facet_region.xml")
     nondefault_StokesIP_options = {'mesh' : mesh,'boundary_markers' : boundary_markers,
@@ -44,8 +44,9 @@ def solveInv(noise_level):
     StokesIP.set_parameter(m0)
     rtol = 1.e-8
     atol = 1.e-12
-    Newton_iterations = 10 #2 # 50
-    GN_iterations = 8
+    Newton_iterations = 12 #2 # 50
+    initial_iterations = 3
+    GN_iterations = 5
     cg_coarse_tolerance = 0.5
     parameters = ReducedSpaceNewtonCG_ParameterList()
     parameters["rel_tolerance"] = rtol
@@ -53,6 +54,7 @@ def solveInv(noise_level):
     parameters["max_iter"]      = Newton_iterations
     parameters["globalization"] = "LS"
     parameters["cg_coarse_tolerance"] = cg_coarse_tolerance
+    parameters["initial_iter"]  = initial_iterations
     parameters["GN_iter"]       = GN_iterations
     parameters["projector"]     = StokesIP.prior.P
     parameters["IP"]            = StokesIP
@@ -65,7 +67,8 @@ def solveInv(noise_level):
     # ----
     parameters["Rscipy"] = R
     parameters["Pscipy"] = csr_fenics2scipy(StokesIP.prior.P)
-    parameters["PCH_precond"] = True
+    # parameters["PCH_precond"] = True
+    parameters["PCH_precond"] = False
     parameters["print_level"] = 2
     solver = ReducedSpaceNewtonCG(StokesIP.model, parameters)
     x   = solver.solve(StokesIP.x)

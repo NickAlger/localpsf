@@ -29,7 +29,7 @@ import numpy as np
 
 class NCGConvergenceInfo:
     def __init__(me, extra_info=None):
-        me._extra_info=extra_info
+        me.extra_info=extra_info
         me._cg_iteration = list()
         me._hessian_matvecs = list()
         me._total_cost = list()
@@ -40,13 +40,11 @@ class NCGConvergenceInfo:
         me._step_length_alpha = list()
         me._tolcg = list()
 
+        me.labels = ['cg_iteration', 'hessian_matvecs', 'total_cost', 'misfit_cost', 'reg_cost', 'mg_mhat', 'gradnorm', 'step_length_alpha', 'tolcg']
+
     @property
     def num_newton_iterations(me):
         return len(me.cg_iteration)
-
-    @property
-    def extra_info(me):
-        return me._extra_info
 
     @property
     def cg_iteration(me):
@@ -84,6 +82,19 @@ class NCGConvergenceInfo:
     def tolcg(me):
         return np.array(me._tolcg)
 
+    @property
+    def data(me):
+        return np.array([me.cg_iteration,
+                         me.hessian_matvecs,
+                         me.total_cost,
+                         me.misfit_cost,
+                         me.reg_cost,
+                         me.mg_mhat,
+                         me.gradnorm,
+                         me.step_length_alpha,
+                         me.tolcg]).T
+
+
     def add_iteration(me,
                       cg_iteration,
                       hessian_matvecs,
@@ -104,16 +115,20 @@ class NCGConvergenceInfo:
         me._step_length_alpha.append(step_length_alpha)
         me._tolcg.append(tolcg)
 
-    def print(me):
-        print('Newton CG convergence information:')
-        if me._extra_info is not None:
-            print(me._extra_info)
+    def print(me, return_string=False):
+        print_string = 'Newton CG convergence information:'
 
-        print("\n{0:3} {1:3} {2:15} {3:15} {4:15} {5:15} {6:14} {7:14} {8:14}".format(
-            "It", "cg_it", "cost", "misfit", "reg", "(g,dm)", "||g||L2", "alpha", "tolcg"))
+        print_string += '\n'
+
+        if me.extra_info is not None:
+            print_string += me._extra_info
+
+        print_string += "\n{0:3} {1:3} {2:15} {3:15} {4:15} {5:15} {6:14} {7:14} {8:14}".format(
+            "It", "cg_it", "cost", "misfit", "reg", "(g,dm)", "||g||L2", "alpha", "tolcg")
 
         for k in range(me.num_newton_iterations):
-            print("{0:3d} {1:3d} {2:15e} {3:15e} {4:15e} {5:15e} {6:14e} {7:14e} {8:14e}".format(
+            print_string += '\n'
+            print_string += "{0:3d} {1:3d} {2:15e} {3:15e} {4:15e} {5:15e} {6:14e} {7:14e} {8:14e}".format(
                 me._cg_iteration[k],
                 me._hessian_matvecs[k],
                 me._total_cost[k],
@@ -122,7 +137,16 @@ class NCGConvergenceInfo:
                 me._mg_mhat[k],
                 me._gradnorm[k],
                 me._step_length_alpha[k],
-                me._tolcg[k]))
+                me._tolcg[k])
+
+        print(print_string)
+        if return_string:
+            return print_string
+
+
+    def savetxt(me, filename_prefix):
+        np.savetxt(filename_prefix + '_data.txt', me.data)
+        np.savetxt(filename_prefix + '_labels.txt', me.labels)
 
 
 
@@ -160,9 +184,10 @@ def ReducedSpaceNewtonCG_ParameterList():
     parameters["max_iter"]              = [20, "maximum number of iterations"]
     parameters["globalization"]         = ["LS", "Globalization technique: line search (LS)  or trust region (TR)"]
     parameters["print_level"]           = [0, "Control verbosity of printing screen"]
-    parameters["GN_iter"]               = [5, "Number of Gauss Newton iterations before switching to Newton"]
+    parameters["initial_iter"]          = [3, "Number of Gauss Newton iterations before preconditioner is build"]
+    parameters["GN_iter"]               = [3, "Number of Gauss Newton iterations after preconditioner is build (before switching to full Newton)"]
     parameters["cg_coarse_tolerance"]   = [.5, "Coarsest tolerance for the CG method (Eisenstat-Walker)"]
-    parameters["cg_max_iter"]           = [100, "Maximum CG iterations"]
+    parameters["cg_max_iter"]           = [400, "Maximum CG iterations"]
     parameters["LS"]                    = [LS_ParameterList(), "Sublist containing LS globalization parameters"]
     parameters["TR"]                    = [TR_ParameterList(), "Sublist containing TR globalization parameters"]
 
@@ -174,6 +199,7 @@ def ReducedSpaceNewtonCG_ParameterList():
     parameters["IP"]                    = [None, "Inverse problem as written for the localpsf framework"]
     parameters["num_neighbors"]         = [10, "num batches used for impulse response interpolation"]
     parameters["num_batches"]           = [5,  "num of PCH batches"]
+    parameters["krylov_recycling"]      = [True, "Update preconditioner with Krylov information after each Newton step"]
     return ParameterList(parameters)
   
     
@@ -249,7 +275,6 @@ class ReducedSpaceNewtonCG:
         self.callback = callback
 
         self.IP = self.parameters["IP"]
-        self.REGinitialized = None # for which Newton iteration was the REG approximation first constructed
         self.PCHinitialized = None # for which Newton iteration was the PCH approximation first constructed
         self.P  = self.parameters["projector"]
         self.residualCounts = []
@@ -284,9 +309,12 @@ class ReducedSpaceNewtonCG:
         abs_tol = self.parameters["abs_tolerance"]
         max_iter = self.parameters["max_iter"]
         print_level = self.parameters["print_level"]
+        initial_iter = self.parameters["initial_iter"]
         GN_iter = self.parameters["GN_iter"]
+        krylov_recycling = self.parameters["krylov_recycling"]
         cg_coarse_tolerance = self.parameters["cg_coarse_tolerance"]
         cg_max_iter         = self.parameters["cg_max_iter"]
+        PCH_precond = self.parameters["PCH_precond"]
         
         c_armijo = self.parameters["LS"]["c_armijo"]
         max_backtracking_iter = self.parameters["LS"]["max_backtracking_iter"]
@@ -307,11 +335,22 @@ class ReducedSpaceNewtonCG:
         x_star[PARAMETER] = self.model.generate_vector(PARAMETER)
         
         cost_old, _, _ = self.model.cost(x)
+
+        print('Building Regularization H-Matrix')
+        R_scipy = self.parameters["Rscipy"]
+        dof_coords = self.IP.V.tabulate_dof_coordinates()
+        ct_reg0 = hpro.build_cluster_tree_from_pointcloud(dof_coords)
+        bct_reg0 = hpro.build_block_cluster_tree(ct_reg0, ct_reg0)
+        R_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(R_scipy, bct_reg0)
+        preconditioner_hmatrix = R_hmatrix.inv()
         
         while (self.it < max_iter) and (self.converged == False):
             self.model.solveAdj(x[ADJOINT], x)
-            
-            self.model.setPointForHessianEvaluations(x, gauss_newton_approx=(self.it < GN_iter) )
+
+            using_gauss_newton = (self.it < (initial_iter + GN_iter))
+            print('self.it=', self.it, 'using_gauss_newton=', using_gauss_newton)
+
+            self.model.setPointForHessianEvaluations(x, gauss_newton_approx=using_gauss_newton )
             gradnorm = self.model.evalGradientParameter(x, mg)
             
             if self.it == 0:
@@ -326,84 +365,71 @@ class ReducedSpaceNewtonCG:
 
             HessApply = ReducedHessian(self.model)
             tolcg = min(cg_coarse_tolerance, math.sqrt(gradnorm/gradnorm_ini))
-            if self.parameters["PCH_precond"]:
-                # Make regularization H-matrix
-                R_scipy = self.parameters["Rscipy"]
-                if self.REGinitialized is None:
-                    print('Building Regularization H-Matrix')
-                    dof_coords = self.IP.V.tabulate_dof_coordinates()
-                    ct_reg0 = hpro.build_cluster_tree_from_pointcloud(dof_coords)
-                    bct_reg0 = hpro.build_block_cluster_tree(ct_reg0, ct_reg0)
 
-                    R_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(R_scipy, bct_reg0)
-                    self.REGinitialized = self.it
-                    H_pch = R_hmatrix
-                    iH_pch = H_pch.inv()
 
-                print('self.total_cg_iter=', self.total_cg_iter)
-                if self.total_cg_iter > 10: # 0
-                # if False: # !!!!!!!!!!!!!!!!! USE REG PRECONDITIONING ONLY
-                    if self.PCHinitialized is None:
-                        self.PCHinitialized = self.it
-                        # build PCH approximation
-                        # ----- NEED a mechanism to set the parameter
-                        # ----- also just pass the entire inverse problem object
-                        self.IP.set_parameter(x)
-                        num_neighbors = self.parameters["num_neighbors"]
-                        num_batches   = self.parameters["num_batches"]
-                        tau = 3.0
-                        hmatrix_tol = 1.e-5
-                        PCK = ProductConvolutionKernel(self.IP.V, self.IP.V, self.IP.apply_Hd_petsc, self.IP.apply_Hd_petsc,
-                                   num_batches, num_batches,
-                                   tau_rows=tau, tau_cols=tau,
-                                   num_neighbors_rows=num_neighbors,
-                                   num_neighbors_cols=num_neighbors)
-                        Hd_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol = hmatrix_tol)
+            if (self.it == initial_iter) and PCH_precond:
+                print('building PCH preconditioner')
+                self.PCHinitialized = self.it
+                # build PCH approximation
+                # ----- NEED a mechanism to set the parameter
+                # ----- also just pass the entire inverse problem object
+                self.IP.set_parameter(x)
+                num_neighbors = self.parameters["num_neighbors"]
+                num_batches = self.parameters["num_batches"]
+                tau = 3.0
+                hmatrix_tol = 1.e-5
+                PCK = ProductConvolutionKernel(self.IP.V, self.IP.V, self.IP.apply_Hd_petsc, self.IP.apply_Hd_petsc,
+                                               num_batches, num_batches,
+                                               tau_rows=tau, tau_cols=tau,
+                                               num_neighbors_rows=num_neighbors,
+                                               num_neighbors_cols=num_neighbors)
+                Hd_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol=hmatrix_tol)
 
-                        # Rebuild reg hmatrix with same block cluster tree as PCH data misfit hmatrix
-                        R_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(R_scipy, Hd_pch_nonsym.bct)
+                # Rebuild reg hmatrix with same block cluster tree as PCH data misfit hmatrix
+                R_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(R_scipy, Hd_pch_nonsym.bct)
 
-                        # ----- build spd approximation of Hd, with cutoff given by a multiple of the minimum eigenvalue of the regularization operator
-                        Hd_pch       = Hd_pch_nonsym.spd()
-                        H_pch        = Hd_pch + R_hmatrix
+                # ----- build spd approximation of Hd, with cutoff given by a multiple of the minimum eigenvalue of the regularization operator
+                Hd_pch = Hd_pch_nonsym.spd()
+                H_pch = Hd_pch + R_hmatrix
 
-                        iH_pch       = H_pch.inv()
-                    else:
-                        # collect Hessian apply data from previous iterates
-                        X = solver.X
-                        Y = solver.Y 
-                        if self.P is not None:
-                            xtest  = dl.Vector()
-                            ytest  = dl.Vector()
-                            xtest.init(self.IP.Vh[PARAMETER].dim())
-                            ytest.init(self.IP.Vh[PARAMETER].dim())
-                            xtestP = dl.Vector()
-                            ytestP = dl.Vector()
-                            xtestP.init(self.IP.N)
-                            ytestP.init(self.IP.N)
-                            Xproj = []
-                            Yproj = []
-                            for i in range(len(X)):
-                                xtest[:] = X[i]
-                                ytest[:] = Y[i]
-                                self.IP.prior.P.mult(xtest, xtestP)
-                                self.IP.prior.P.mult(ytest, ytestP)
-                                Xproj.append(xtestP[:])
-                                Yproj.append(ytestP[:])
-                            Xproj = np.array(Xproj).T
-                            Yproj = np.array(Yproj).T 
-                            # iH_pch = iH_pch.dfp_update(Yproj, Xproj) # !!!!! Turn off Krylov recycling
-                        else:
-                            X = np.array(X).T
-                            Y = np.array(Y).T 
-                            # iH_pch = iH_pch.dfp_update(Y, X) # !!!!! Turn off Krylov recycling
+                preconditioner_hmatrix = H_pch.inv()
+
+
+            if (self.it > initial_iter) and krylov_recycling:
+                X = solver.X
+                Y = solver.Y
+                if self.P is not None:
+                    xtest  = dl.Vector()
+                    ytest  = dl.Vector()
+                    xtest.init(self.IP.Vh[PARAMETER].dim())
+                    ytest.init(self.IP.Vh[PARAMETER].dim())
+                    xtestP = dl.Vector()
+                    ytestP = dl.Vector()
+                    xtestP.init(self.IP.N)
+                    ytestP.init(self.IP.N)
+                    Xproj = []
+                    Yproj = []
+                    for i in range(len(X)):
+                        xtest[:] = X[i]
+                        ytest[:] = Y[i]
+                        self.IP.prior.P.mult(xtest, xtestP)
+                        self.IP.prior.P.mult(ytest, ytestP)
+                        Xproj.append(xtestP[:])
+                        Yproj.append(ytestP[:])
+                    Xproj = np.array(Xproj).T
+                    Yproj = np.array(Yproj).T
+                    preconditioner_hmatrix = preconditioner_hmatrix.dfp_update(Yproj, Xproj)
+                else:
+                    X = np.array(X).T
+                    Y = np.array(Y).T
+                    preconditioner_hmatrix = preconditioner_hmatrix.dfp_update(Y, X)
             
             solver = CGSolverSteihaug(comm = self.model.prior.R.mpi_comm())
             solver.set_operator(HessApply)
             
             if self.parameters["PCH_precond"] and self.total_cg_iter > 0:
-                iH_pch_op = iH_pch.as_linear_operator()
-                H_pch_precond = solver_from_dot(iH_pch_op)
+                preconditioner_linop = preconditioner_hmatrix.as_linear_operator()
+                H_pch_precond = solver_from_dot(preconditioner_linop)
                 if self.P is not None:
                     H_pch_fullspace_precond = projected_solver(self.P, H_pch_precond) 
                     solver.set_preconditioner(H_pch_fullspace_precond)
@@ -452,32 +478,12 @@ class ReducedSpaceNewtonCG:
 
             convergence_info.add_iteration(self.it, HessApply.ncalls, cost_new, misfit_new, reg_new, mg_mhat, gradnorm, alpha, tolcg)
 
-            # convergence_information['cg_iteration'].append(self.it)
-            # convergence_information['hessian_matvecs'].append(HessApply.ncalls)
-            # convergence_information['cost_total'].append(cost_new)
-            # convergence_information['cost_misfit'].append(misfit_new)
-            # convergence_information['cost_reg'].append(reg_new)
-            # convergence_information['mg_mhat'].append(mg_mhat)
-            # convergence_information['gradnorm'].append(gradnorm)
-            # convergence_information['step_length_alpha'].append(alpha)
-            # convergence_information['tolcg'].append(tolcg)
-
             if print_level >= 0:
                 convergence_info.print()
-                # self.print_convergence_information(convergence_information)
-                            
-            # if(print_level >= 0) and (self.it == 1):
-            #     print( "\n{0:3} {1:3} {2:15} {3:15} {4:15} {5:15} {6:14} {7:14} {8:14}".format(
-            #           "It", "cg_it", "cost", "misfit", "reg", "(g,dm)", "||g||L2", "alpha", "tolcg") )
-            #
-            # if print_level >= 0:
-            #     print( "{0:3d} {1:3d} {2:15e} {3:15e} {4:15e} {5:15e} {6:14e} {7:14e} {8:14e}".format(
-            #             self.it, HessApply.ncalls, cost_new, misfit_new, reg_new, mg_mhat, gradnorm, alpha, tolcg) )
-                
+
             if self.callback:
                 self.callback(self.it, x)
-                
-                
+
             if n_backtrack == max_backtracking_iter:
                 self.converged = False
                 self.reason = 2
@@ -487,7 +493,7 @@ class ReducedSpaceNewtonCG:
                 self.converged = True
                 self.reason = 3
                 break
-                            
+
         self.final_grad_norm = gradnorm
         self.final_cost      = cost_new
         return x
