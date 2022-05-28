@@ -57,7 +57,7 @@
 \section{Introduction}
 \label{sec:intro}
 
-We present a fast \emph{matrix free} method for approximating operators, $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$, that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^d$ is a bounded domain, $d$ is the spatial dimension, and $L^2(\Omega)'$ is the space of continuous linear functionals on $L^2(\Omega)$ (i.e., the topological dual space). Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{le1997non,saad1999distributed,TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps) \cite{DTNMAP}, covariance operators in spatial statistics \cite{GeogaEtAl20,ChenStein21,LindgrenRueLindstrom11}, blurring operators in imaging \cite{DenisEtAl11,NagyOleary98}, and Hessians in distributed parameter PDE-constrained optimization and inverse problems \cite{AlgerEtAl19,IsaacEtAl15}. 
+We present a fast \emph{matrix free} method for approximating operators, $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$, that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, $\gdim$ is the spatial dimension, and $L^2(\Omega)'$ is the space of continuous linear functionals on $L^2(\Omega)$ (i.e., the topological dual space). Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{le1997non,saad1999distributed,TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps) \cite{DTNMAP}, covariance operators in spatial statistics \cite{GeogaEtAl20,ChenStein21,LindgrenRueLindstrom11}, blurring operators in imaging \cite{DenisEtAl11,NagyOleary98}, and Hessians in distributed parameter PDE-constrained optimization and inverse problems \cite{AlgerEtAl19,IsaacEtAl15}. 
 
 By ``matrix free,'' we mean that we have a black-box computational procedure through which we may apply $\Aop$ and its transpose\footnote{Recall that the transpose $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(v) = \left(\Aop v\right)(u)$ for all $u,v \in L^2(\Omega)$, where the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(v)$ is the result of applying that linear functional to $v \in L^2(\Omega)$, and similar for the analogous operations with $\Aop^T$. }, $\Aop^T$, to arbitrary functions,
 \begin{equation}
@@ -817,7 +817,7 @@ We form our H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by forming 
 \end{equation*}
 Once $\mathbf{A}_H$ is formed, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, see \cite{Hackbusch15}. 
 
-We form $\mathbf{\Phi}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{Kriemann08}. Although $\mathbf{\Phi}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Phi}_H$ only requires evaluation of $O(\hmatrixrank^2 \fedim \log \fedim)$ entries $\mathbf{\Phi}_{ij} = \widetilde{\Phi}(p_i, p_j)$, and these entries are computed via the procedure described in Section \ref{sec:approximate_kernel_entries}. Here $\hmatrixrank$ is the rank of the highest-rank block in the H-matrix. A dense representation of $\mathbf{\Phi}$ is never formed. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. We form $\bm{M}_H$ using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\mathbf{\Phi}$. 
+We form $\mathbf{\Phi}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{Kriemann08}. Although $\mathbf{\Phi}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Phi}_H$ only requires evaluation of $O(\hrank^2 \fedim \log \fedim)$ entries $\mathbf{\Phi}_{ij} = \widetilde{\Phi}(p_i, p_j)$, and these entries are computed via the procedure described in Section \ref{sec:approximate_kernel_entries}. Here $\hrank$ is the rank of the highest-rank block in the H-matrix. A dense representation of $\mathbf{\Phi}$ is never formed. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. We form $\bm{M}_H$ using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\mathbf{\Phi}$. 
 
 
 
@@ -838,7 +838,7 @@ In practice, 1 is the dominant cost, because 1 is the only task that requires ap
 		\hline
 		$N$ & $10^2$--$10^9$ & Number of finite element degrees of freedom \\
 		$n_b$ & $1$--$25$ & Number of impulse response batches \\
-		$k_h$ & $5$--$50$ & H-matrix rank \\
+		$\hrank$ & $5$--$50$ & H-matrix rank \\
 		$k_n$ & $5$--$15$ & Number of nearest neighbors for RBF interpolation \\
 		$d$ & $1$--$3$ & Spatial dimension \\
 		$r$ & $10^1$--$10^4$ & Classical matrix rank \\
@@ -852,7 +852,7 @@ In practice, 1 is the dominant cost, because 1 is the only task that requires ap
 
 \paragraph{1: Impulse response moments and batches} Computing $V$, $\mu$, and $\Sigma$ requires applying $\Aop$ to $1$, $d$, and $d(d+1)/2$ vectors, respectively. Concretely, in one spatial dimensions ($d=1$), computing $V$, $\mu$, and $\Sigma$ requires $1+1+1=3$ operator applies. In two spatial dimensions, this cost is $1+2+3=6$ operator applies. In three spatial dimensions, this cost is $1+3+6=10$ operator applies. Computing each impulse response batch requires applying $\Aop$ to $1$ vector, so computing the impulse response batches $\{\eta_i\}_{i=1}^{n_b}$ requires $n_b$ operator applies. In total, computing the impulse response moments and batches therefore requires
 \begin{equation*}
-	1 + d + d(d+1)/2 + n_b \qquad \text{operator applies.}
+	1 + \gdim + \gdim(\gdim+1)/2 + n_b \qquad \text{operator applies.}
 \end{equation*}
 In a typical application one might have $d=2$ and $n_b=5$, in which case $11$ operator applies would be required. In contrast, matrix-free low-rank approximation methods require $O(r)$ operator applies, where $r$ is the classical numerical rank of $\Aop$. Since $r$ may be in the thousands, low rank approximation may require thousands of operator applies. 
 
@@ -862,15 +862,15 @@ Computing the impulse response batches also requires choosing sample point batch
 \end{equation*}
 where $m$ is the total number of sample points in all batches. The multiplicative dependence of $N$ with $m$ is undesirable since $m$ may be large, and reducing this cost is a target for future work. Several improvements are possible. The cost of picking sample points could be reduced by ``thinning'' the set of candidate points that the sample points are picked from. That is, choosing sample points from a smaller subset of $N_\text{thin} << N$ points. The cost to perform the ellipsoid intersection tests could be reduced by first checking whether the ellipsoid bounding boxes intersect before performing the ellipsoid intersection test of Appendix \ref{sec:fast_ellipsoid_intersection_test}. The cost of picking one batch could be reduced from $N s$ to $O(N \log s)$ using more advanced computational geometry techniques, such as organizing the ellipsoids associated with points that have already been picked into a dynamic AABB tree, then using this AABB tree to accelerate the required ellipsoid intersection tests. This would reduce the cost of choosing all sample point batches to $O(N n_b \log s)$. However, from a practical perspective, the cost for picking sample points is small compared to other parts of the approximation algorithm, so we do not pursue these improvements in this paper.
 
-\paragraph{2: Building the H-matrix} The classical H-matrix construction technique, which is described in Appendix \ref{app:h_matrix}, requires evaluating $O(k_h^2 N \log N)$ matrix entries of the approximation, where $k_h$ is the H-matrix rank (maximum rank among the blocks of the H-matrix). To evaluate one matrix entry, first one must find the $k_n$ nearest sample points to a given point, where $k_n$ is the number of impulses used in the RBF interpolation. This is done using a precomputed KD tree of sample points, and requires $O(k_n \log m)$ work. Next, one must find the mesh cells that the points $\{z_i\}_{i=1}^{k+n}$ reside. This is done using our mesh AABB tree, and requires $O(k_n \log N)$ work. Next, we must evaluate finite element basis functions on each of those cells, which requires $O(k_n)$ work. Finally, we must solve a $k_n \times k_n$ linear system to perform the radial basis function interpolation, which requires $O(k_n^3)$ work. Overall building the H-matrix therefore requires
+\paragraph{2: Building the H-matrix} The classical H-matrix construction technique, which is described in Appendix \ref{app:h_matrix}, requires evaluating $O(\hrank^2 N \log N)$ matrix entries of the approximation, where $\hrank$ is the H-matrix rank (maximum rank among the blocks of the H-matrix). To evaluate one matrix entry, first one must find the $k_n$ nearest sample points to a given point, where $k_n$ is the number of impulses used in the RBF interpolation. This is done using a precomputed KD tree of sample points, and requires $O(k_n \log m)$ work. Next, one must find the mesh cells that the points $\{z_i\}_{i=1}^{k+n}$ reside. This is done using our mesh AABB tree, and requires $O(k_n \log N)$ work. Next, we must evaluate finite element basis functions on each of those cells, which requires $O(k_n)$ work. Finally, we must solve a $k_n \times k_n$ linear system to perform the radial basis function interpolation, which requires $O(k_n^3)$ work. Overall building the H-matrix therefore requires
 \begin{equation*}
-	O\left(\left(k_h^2 N \log N\right)\left(k_n \log N + k_n^3\right)\right) \qquad \text{work}.
+	O\left(\left(\hrank^2 N \log N\right)\left(k_n \log N + k_n^3\right)\right) \qquad \text{work}.
 \end{equation*}
 This follows from the above discussion, and the fact that $N \ge m$.
 
 \paragraph{(3): H-matrix operations} H-matrix methods for matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion require
 \begin{equation*}
-	O(k_h^2 N \log(N)^a) \qquad \text{work},
+	O(\hrank^2 N \log(N)^a) \qquad \text{work},
 \end{equation*}
 where $a \in \{0,1,2,3\}$. The precise cost depends on the type of H-matrix used and the operation being performed; for more details see \cite{GrasedyckHackbusch03}. The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, described in Appendix \ref{sec:make_spd}, is performed using two matrix-matrix additions, $l+1$ matrix-matrix multiplications, and one matrix inversion, where $2^l$ is the order of the rational function used.
 
@@ -1010,9 +1010,9 @@ Next, we subdivide all blocks that are not admissible and are larger than a pred
 
 Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method \cite{ACA}. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\mathbf{\Phi}$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
 \begin{itemize}
-	\item Let $C \in \mathbb{R}^{m \times \hmatrixrank}$ be a matrix consisting of a subset of $\hmatrixrank$ columns of $X$, such that the span of the columns in $C$ approximates the column space of $X$. 
-	\item Let $R\in\mathbb{R}^{\hmatrixrank \times m}$ be a subset of the rows of $X$, such that the span of the rows in $R$ approximates the row space of $X$.
-	\item Let $U \in \mathbb{R}^{\hmatrixrank \times \hmatrixrank}$ be the block of $X$ consisting of the intersection of the rows from $R$ with the columns from $C$.
+	\item Let $C \in \mathbb{R}^{m \times \hrank}$ be a matrix consisting of a subset of $\hrank$ columns of $X$, such that the span of the columns in $C$ approximates the column space of $X$. 
+	\item Let $R\in\mathbb{R}^{\hrank \times m}$ be a subset of the rows of $X$, such that the span of the rows in $R$ approximates the row space of $X$.
+	\item Let $U \in \mathbb{R}^{\hrank \times \hrank}$ be the block of $X$ consisting of the intersection of the rows from $R$ with the columns from $C$.
 \end{itemize}
 Then it is well-established that
 \begin{equation}
@@ -1021,11 +1021,11 @@ Then it is well-established that
 \end{equation}
 where $U^+$ is the pseudoinverse of $U$ \cite{goreinov1997theory,MahoneyDrineas09}. The quality of approximation \eqref{eq:CUR} depends on how well the columns of $C$ approximate the column space of $X$, and how well the rows of $R$ approximate the row space of $X$. 
 
-In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible \cite{GoreinovEtAl10}. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $a \hmatrixrank$ columns of $X$ and $a\hmatrixrank$ rows of $X$, where $a$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. 
+In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible \cite{GoreinovEtAl10}. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $a \hrank$ columns of $X$ and $a\hrank$ rows of $X$, where $a$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. 
 %For more details on adaptive cross low rank approximation, see \cite{ACA}.
-The key point is that the adaptive cross method allows us to form a rank-$\hmatrixrank$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(m\hmatrixrank)$ entries of that block.
+The key point is that the adaptive cross method allows us to form a rank-$\hrank$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(m\hrank)$ entries of that block.
 
-We use the adaptive cross method to form low rank approximations for each admissible block of $\mathbf{\Phi}$. We directly compute all entries of the small dense blocks of $\mathbf{\Phi}$ that are not admissible. This process requires us to compute $O(\hmatrixrank^2 \fedim \log \fedim)$ entries of $\mathbf{\Phi}$, which is relatively cheap compared to the operator actions of $\Aop$ that are required to form the product-convolution approximation.
+We use the adaptive cross method to form low rank approximations for each admissible block of $\mathbf{\Phi}$. We directly compute all entries of the small dense blocks of $\mathbf{\Phi}$ that are not admissible. This process requires us to compute $O(\hrank^2 \fedim \log \fedim)$ entries of $\mathbf{\Phi}$, which is relatively cheap compared to the operator actions of $\Aop$ that are required to form the product-convolution approximation.
 
 
 \section{Ellipsoid intersection test}
