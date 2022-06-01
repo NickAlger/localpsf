@@ -569,18 +569,13 @@ We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cr
 \section{Computational cost}
 \label{sec:overall_cost}
 
-The computational cost of our method may be divided into the costs to perform the following tasks: 
-\begin{enumerate}
-	\item Computing the impulse response moments and batches.
-	\item Constructing the H-matrix $\mathbf{A}_H$.
-	\item Using $\mathbf{A}_H$ to perform further linear algebra operations. This may optionally include modifying $\mathbf{A}_H$ to make it symmetric positive semi-definite.
-\end{enumerate}
-In practice, 1 is the dominant cost, because 1 is the only task that requires applying $\Aop$ to vectors, and our method is targeted at applications in which applying $\Aop$ to a vector requires an expensive computational procedure such as solving a large-scale partial differential equation. All operations that do not require applications of $\Aop$ to vectors are nearly-linear, and therefore scalable, in $N$.
+The computational cost of our method may be divided into the costs to perform the following tasks: (1) Computing impulse response moments and batches; (2) Building the H-matrix; (3) Performing linear algebra operations with the H-matrix. This may optionally include modifying the H-matrix to make it symmetric positive semi-definite.
+In practice, (1) is the dominant cost, because (1) is the only task that requires applying $\Aop$ to vectors, and our method is targeted at applications in which applying $\Aop$ to a vector requires an expensive computational procedure such as solving a large-scale partial differential equation. All operations that do not require applications of $\Aop$ to vectors are nearly-linear, and therefore scalable, in the size of the problem, $N$.
 We now describe these costs in detail. For convenience, Table \ref{tab:vars} lists variable symbols and their approximate sizes.
 
 \begin{table}
 	\begin{tabular}{lll}
-		Symbol & Approximate size & Variable name \\
+		Symbol & Typical size & Variable name \\
 		\hline
 		$\fedim$ & $10^2$--$10^9$ & Number of finite element degrees of freedom \\
 		$\nbatch$ & $1$--$25$ & Number of impulse response batches \\
@@ -596,28 +591,30 @@ We now describe these costs in detail. For convenience, Table \ref{tab:vars} lis
 	\label{tab:vars}
 \end{table}
 
-\paragraph{1: Impulse response moments and batches} Computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ requires applying $\Aop$ to $1$, $\gdim$, and $\gdim(\gdim+1)/2$ vectors, respectively.
-Computing each impulse response batch requires applying $\Aop$ to $1$ vector, so computing the impulse response batches $\{\eta_i\}_{i=1}^{\nbatch}$ requires $\nbatch$ operator applies. In total, computing the impulse response moments and batches therefore requires
+\paragraph{(1) Computing impulse response moments and batches} Computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ requires applying $\Aop$ to $1$, $\gdim$, and $\gdim(\gdim+1)/2$ vectors, respectively.
+Computing each impulse response batch requires applying $\Aop$ to one vector, so computing the impulse response batches $\{\eta_i\}_{i=1}^{\nbatch}$ requires $\nbatch$ operator applies. In total, computing the impulse response moments and batches therefore requires
 \begin{equation*}
 	1 + \gdim + \gdim(\gdim+1)/2 + \nbatch \qquad \text{operator applies.}
 \end{equation*}
-In a typical application one might have $\gdim=2$ and $\nbatch=5$, in which case $11$ operator applies are required.
+In a typical application one might have $\gdim=2$ and $\nbatch=5$, in which case a modest $11$ operator applies are required.
 
 Computing the impulse response batches also requires choosing sample point batches via the greedy ellipsoid packing algorithm described in Section \ref{sec:sample_point_selection}. Choosing the $i$th batch of sample points may require performing up to $\fedim |\pointbatch_i|$ ellipsoid intersection tests, where $|\pointbatch_i|$ is the number of sample points in the $i$th batch. Choosing all of the sample points therefore requires performing at most
 \begin{equation*}
 	\fedim \nsamplepts \qquad \text{ellipsoid intersection tests,}
 \end{equation*}
-where $\nsamplepts$ is the total number of sample points in all batches. The multiplicative dependence of $\fedim$ with $\nsamplepts$ is undesirable since $\nsamplepts$ may be large, and reducing this cost is a target for future work. Several improvements are possible. The cost of picking sample points could be reduced by ``thinning'' the set of candidate points that the sample points are picked from. That is, choosing sample points from a smaller subset of $\fedim_\text{thin} << \fedim$ points. The cost to perform the ellipsoid intersection tests could be reduced by first checking whether the ellipsoid bounding boxes intersect before performing the ellipsoid intersection test of Appendix \ref{sec:fast_ellipsoid_intersection_test}. The cost of picking the $i$th batch could be reduced to $O(\fedim \log |\pointbatch_i|)$ using more advanced computational geometry techniques, such as organizing the ellipsoids associated with points that have already been picked into a dynamic AABB tree, then using this AABB tree to accelerate the required ellipsoid intersection tests. However, from a practical perspective, the cost for picking sample points is small compared to other parts of the approximation algorithm, so we do not pursue these improvements in this paper.
+where $\nsamplepts$ is the total number of sample points in all batches. The multiplicative dependence of $\fedim$ with $\nsamplepts$ is undesirable since $\nsamplepts$ may be large, and reducing this cost is a target for future work. 
+%Several improvements are possible. The cost of picking sample points could be reduced by ``thinning'' the set of candidate points that the sample points are picked from. That is, choosing sample points from a smaller subset of $\fedim_\text{thin} << \fedim$ points. The cost to perform the ellipsoid intersection tests could be reduced by first checking whether the ellipsoid bounding boxes intersect before performing the ellipsoid intersection test of Appendix \ref{sec:fast_ellipsoid_intersection_test}. The cost of picking the $i$th batch could be reduced to $O(\fedim \log |\pointbatch_i|)$ using more advanced computational geometry techniques, such as organizing the ellipsoids associated with points that have already been picked into a dynamic AABB tree, then using this AABB tree to accelerate the required ellipsoid intersection tests. 
+However, from a practical perspective, the cost for picking sample points is small compared to other parts of the approximation algorithm, so we do not pursue these improvements in this paper.
 
-\paragraph{2: Building the H-matrix} The classical H-matrix construction technique, which is described in Appendix \ref{app:h_matrix}, requires evaluating $O(\hrank^2 \fedim \log \fedim)$ matrix entries of the approximation, where $\hrank$ is the H-matrix rank (maximum rank among the blocks of the H-matrix). To evaluate one matrix entry, first one must find the $\numnbr$ nearest sample points to a given point, where $\numnbr$ is the number of impulses used in the RBF interpolation. This is done using a precomputed KD tree of sample points, and requires $O(\numnbr \log \nsamplepts)$ work. Second, one must find the mesh cells that the points $\{z_i\}_{i=1}^{\numnbr}$ reside. This is done using our mesh AABB tree, and requires $O(\numnbr \log \fedim)$ work. Third, we must evaluate finite element basis functions on each of those cells, which requires $O(\numnbr)$ work. Finally, we must solve a $\numnbr \times \numnbr$ linear system to perform the radial basis function interpolation, which requires $O(\numnbr^3)$ work. Building the H-matrix therefore requires
+\paragraph{(2) Building the H-matrix} The classical H-matrix construction technique, which is described in Appendix \ref{app:h_matrix}, requires evaluating $O(\hrank^2 \fedim \log \fedim)$ matrix entries of the approximation, where $\hrank$ is the H-matrix rank (maximum rank among the blocks of the H-matrix). To evaluate one matrix entry, first one must find the $\numnbr$ nearest sample points to a given point, where $\numnbr$ is the number of impulses used in the RBF interpolation. This is done using a precomputed KD tree of sample points, and requires $O(\numnbr \log \nsamplepts)$ floating point and logical elementary operations. Second, one must find the mesh cells that the points $\{z_i\}_{i=1}^{\numnbr}$ reside. This is done using an AABB tree of mesh cells, and requires $O(\numnbr \log \fedim)$ elementary operations. Third, we must evaluate finite element basis functions on each of those cells, which requires $O(\numnbr)$ elementary operations. Finally, we must solve a $\numnbr \times \numnbr$ linear system to perform the radial basis function interpolation, which requires $O(\numnbr^3)$ elementary operations, which typically is negligible. Therefore, building the H-matrix requires
 \begin{equation*}
-	O\left(\left(\hrank^2 \fedim \log \fedim\right)\left(\numnbr \log \fedim + \numnbr^3\right)\right) \qquad \text{work}.
+	O\left(\left(\hrank^2 \fedim \log \fedim\right)\left(\numnbr \log \fedim + \numnbr^3\right)\right) \qquad \text{elementary operations}.
 \end{equation*}
 This follows from the above discussion, and the fact that $\fedim \ge \nsamplepts$.
 
-\paragraph{(3): H-matrix operations} It is well-known that H-matrix methods for matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion require
+\paragraph{(3) Performing linear algebra operations with the H-matrix} It is well-known that H-matrix methods for matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion require
 \begin{equation*}
-	O(\hrank^2 \fedim \log(\fedim)^a) \qquad \text{work},
+	O(\hrank^2 \fedim \log(\fedim)^a) \qquad \text{elementary operations},
 \end{equation*}
 where $a \in \{0,1,2,3\}$. The precise cost depends on the type of H-matrix used and the operation being performed; for more details see \cite{GrasedyckHackbusch03}. The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, described in Appendix \ref{sec:make_spd}, is performed using two matrix-matrix additions, $\ratord+1$ matrix-matrix multiplications, and one matrix inversion, where $2^\ratord$ is the order of the rational function used.
 
