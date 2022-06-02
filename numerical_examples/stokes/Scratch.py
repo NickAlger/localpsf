@@ -72,6 +72,7 @@ def solveInv(noise_level):
     parameters["print_level"] = 2
     solver = ReducedSpaceNewtonCG(StokesIP.model, parameters)
     x   = solver.solve(StokesIP.x)
+    StokesIP.misfit.cost(x)
     if solver.converged:
         print("\n Converged in ", solver.it, " iterations.")
     else:

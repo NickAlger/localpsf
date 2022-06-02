@@ -279,24 +279,62 @@ class StokesInverseProblemCylinder:
         utest, ptest = dl.TestFunctions(Vh[hp.STATE])
         utrial, ptrial = dl.TrialFunctions(Vh[hp.STATE])
         form = dl.inner(Tang(utrial, normal), Tang(utest, normal))*ds(2)
-        misfit = hp.ContinuousStateObservation(Vh[hp.STATE], ds(2), bc, form=form)
+        me.misfit = hp.ContinuousStateObservation(Vh[hp.STATE], ds(2), bc, form=form)
         # ds(1) basal boundary, ds(2) top boundary
         
         # construct the noisy observations
-        misfit.d = pde.generate_state()
-        misfit.d.zero()
-        misfit.d.axpy(1.0, me.utrue)
+        me.misfit.d = pde.generate_state()
+        me.misfit.d.zero()
+        me.misfit.d.axpy(1.0, me.utrue)
         u_func = hp.vector2Function(me.utrue, Vh[hp.STATE])
+
+        # # eta = gaussian noise
+        # ||eta||_X = c = noise_level * ||d||_X
+
+        me.data_before_noise = np.zeros(me.misfit.d[:].shape)
+        me.data_before_noise[:] = me.misfit.d[:]
+        norm_data = me.data_norm_numpy(me.data_before_noise)
+        noise0 = np.random.randn(len(me.data_before_noise))  # has data-norm not equal 1
+        noise1 = noise0 / me.data_norm_numpy(noise0)         # has data-norm=1
+        me.noise = (noise_level * norm_data) * noise1         # has ||noise||_data-norm = noise_level * ||d||_data-norm
+        me.noise_datanorm = me.data_norm_numpy(me.noise)
+
+        me.data_after_noise =  me.data_before_noise + me.noise
+        me.misfit.d[:] = me.data_after_noise
+
+
+
+
         # is this consistent with the form defined above?
         # are we using the (x,y) components or the tangential components? Consistency!
-        noise_scaling = np.sqrt(dl.assemble(dl.inner(u_func, component_observed)**2.*ds(2)) / \
-                                dl.assemble(dl.Constant(1.0)*ds(2)))
-        if me.noise_level > 0.:
-            hp.parRandom.normal_perturb(me.noise_level*noise_scaling, misfit.d)
-        misfit.noise_variance = (noise_scaling*0.05)**2.
+        # noise_scaling = np.sqrt(dl.assemble(dl.inner(u_func, component_observed)**2.*ds(2)) / \
+        #                         dl.assemble(dl.Constant(1.0)*ds(2)))
+        # misfit.cost()
+        # before_noise_data = misfit.d[:]
+        # if me.noise_level > 0.:
+        #     hp.parRandom.normal_perturb(me.noise_level*noise_scaling, misfit.d)
+        # after_noise_data = misfit.d[:]
+
+        # D = [I 0] <-- basal      (m)
+        #     [0 0] <-- non-basal  (N-m)
+
+        # ||randn||_I = sqrt(N)
+        # ||randn||_D = sqrt(m)
+        # ||randn||_D = sqrt(m)/sqrt(N) ||randn||_I
+        # N = 8*m => sqrt(m)/sqrt(N) = 1/sqrt(8) =approx= 0.35
+        # ||randn||_D = 0.35 * ||randn||_I
+
+        relative_noise_l2norm = np.linalg.norm(me.data_before_noise - me.data_after_noise) / np.linalg.norm(me.data_before_noise)
+        print('me.noise_level=', me.noise_level, ', relative_noise_l2norm=', relative_noise_l2norm)
+
+        relative_noise_datanorm = me.data_norm_numpy(me.data_before_noise - me.data_after_noise) / me.data_norm_numpy(me.data_before_noise)
+        print('me.noise_level=', me.noise_level, ', relative_noise_datanorm=', relative_noise_datanorm)
+
+        # misfit.noise_variance = (noise_scaling*0.05)**2.
+        me.misfit.noise_variance = 1.0
         
         # ==== Define the model ====
-        me.model = hp.Model(pde, me.prior, misfit)
+        me.model = hp.Model(pde, me.prior, me.misfit)
 
         # === MAP Point reconstruction ====
         #m = mtrue.copy()
@@ -305,6 +343,28 @@ class StokesInverseProblemCylinder:
         me.x = None
         me.Hd_proj = None
         me.H_proj  = None
+
+
+    def data_inner_product(me, x, y): # <x, y>_datanorm = x^T W y
+        W = me.misfit.W
+        Wx = dl.Vector(W.mpi_comm())
+        W.init_vector(Wx, 0)
+        W.mult(x, Wx)
+        ytWx = Wx.inner(y)
+        return ytWx
+
+    def data_norm(me, x): # ||x|| = sqrt(<x,x>)
+        return np.sqrt(me.data_inner_product(x, x.copy()))
+
+    def data_inner_product_numpy(me, x_numpy, y_numpy):
+        x = me.misfit.d.copy()
+        x[:] = x_numpy
+        y = me.misfit.d.copy()
+        y[:] = y_numpy
+        return me.data_inner_product(x, y)
+
+    def data_norm_numpy(me, x_numpy):
+        return np.sqrt(me.data_inner_product_numpy(x_numpy, x_numpy))
 
 
     # ---- critical function !
