@@ -336,19 +336,11 @@ class ReducedSpaceNewtonCG:
         
         cost_old, _, _ = self.model.cost(x)
 
-        print('Building Regularization H-Matrix')
-        R_scipy = self.parameters["Rscipy"]
-        dof_coords = self.IP.V.tabulate_dof_coordinates()
-        ct_reg0 = hpro.build_cluster_tree_from_pointcloud(dof_coords)
-        bct_reg0 = hpro.build_block_cluster_tree(ct_reg0, ct_reg0)
-        R_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(R_scipy, bct_reg0)
-        preconditioner_hmatrix = R_hmatrix.inv()
-        
         while (self.it < max_iter) and (self.converged == False):
             self.model.solveAdj(x[ADJOINT], x)
 
             using_gauss_newton = (self.it < (initial_iter + GN_iter))
-            print('self.it=', self.it, 'using_gauss_newton=', using_gauss_newton)
+            print('initial_iter=', initial_iter, ', GN_iter=', GN_iter, ', self.it=', self.it, ', using_gauss_newton=', using_gauss_newton)
 
             self.model.setPointForHessianEvaluations(x, gauss_newton_approx=using_gauss_newton )
             gradnorm = self.model.evalGradientParameter(x, mg)
@@ -386,6 +378,8 @@ class ReducedSpaceNewtonCG:
                 Hd_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol=hmatrix_tol)
 
                 # Rebuild reg hmatrix with same block cluster tree as PCH data misfit hmatrix
+                print('Building Regularization H-Matrix')
+                R_scipy = self.parameters["Rscipy"]
                 R_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(R_scipy, Hd_pch_nonsym.bct)
 
                 # ----- build spd approximation of Hd, with cutoff given by a multiple of the minimum eigenvalue of the regularization operator
@@ -395,7 +389,7 @@ class ReducedSpaceNewtonCG:
                 preconditioner_hmatrix = H_pch.inv()
 
 
-            if (self.it > initial_iter) and krylov_recycling:
+            if (self.it > initial_iter) and PCH_precond and krylov_recycling:
                 X = solver.X
                 Y = solver.Y
                 if self.P is not None:
@@ -426,8 +420,9 @@ class ReducedSpaceNewtonCG:
             
             solver = CGSolverSteihaug(comm = self.model.prior.R.mpi_comm())
             solver.set_operator(HessApply)
-            
-            if self.parameters["PCH_precond"] and self.total_cg_iter > 0:
+
+            # if self.parameters["PCH_precond"] and self.total_cg_iter > 0:
+            if self.parameters["PCH_precond"] and (self.it >= initial_iter):
                 preconditioner_linop = preconditioner_hmatrix.as_linear_operator()
                 H_pch_precond = solver_from_dot(preconditioner_linop)
                 if self.P is not None:

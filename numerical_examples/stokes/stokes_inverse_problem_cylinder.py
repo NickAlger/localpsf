@@ -124,7 +124,8 @@ class StokesInverseProblemCylinder:
                  lam=1.e14,   # no-outflow penalty parameter to enforce u^T n = 0 on basal boundary 
                  gamma=6.e1,  
                  m0 = 7., 
-                 mtrue_string = 'm0 - (m0 / 7.)*std::cos((x[0]*x[0]+x[1]*x[1])*pi/(Radius*Radius))'
+                 mtrue_string = 'm0 - (m0 / 7.)*std::cos((x[0]*x[0]+x[1]*x[1])*pi/(Radius*Radius))',
+                 rel_correlation_Length = 0.05
                  ):
         ########    INITIALIZE OPTIONS    ########
         me.boundary_markers = boundary_markers
@@ -144,8 +145,8 @@ class StokesInverseProblemCylinder:
         A = dl.Constant(1.e-16)
 
         ########    MESH    ########
-        boundary_mesh = dl.BoundaryMesh(mesh, "exterior", True)
-        submesh_bottom = dl.SubMesh(boundary_mesh, BasalBoundarySub())
+        me.boundary_mesh = dl.BoundaryMesh(mesh, "exterior", True)
+        submesh_bottom = dl.SubMesh(me.boundary_mesh, BasalBoundarySub())
         me.r0            = 0.05
         me.sig           = 0.4
         me.valleys       = 4
@@ -165,7 +166,7 @@ class StokesInverseProblemCylinder:
         Radius  = dilitation
 
         coords     = mesh.coordinates()
-        bcoords    = boundary_mesh.coordinates()
+        bcoords    = me.boundary_mesh.coordinates()
         subbcoords = submesh_bottom.coordinates()
         coord_sets = [coords, bcoords, subbcoords]
 
@@ -184,10 +185,9 @@ class StokesInverseProblemCylinder:
         TH = P2 * P1
         Vh2 = dl.FunctionSpace(mesh, TH) # product space for state + adjoint
         Vh1 = dl.FunctionSpace(mesh, 'Lagrange', 1)
-        Vsub = dl.FunctionSpace(submesh_bottom, 'Lagrange', 1)
+        me.Vbase3D = dl.FunctionSpace(submesh_bottom, 'Lagrange', 1)
         Vh = [Vh2, Vh1, Vh2] # state, parameter, adjoint
         me.Vh = Vh
-        me.Vsub = Vsub
 
         #------ generate 2D mesh from 3D boundary subset mesh
         coords = submesh_bottom.coordinates()[:,:2]
@@ -196,18 +196,17 @@ class StokesInverseProblemCylinder:
         mesh2D.write("mesh2D.xml")
         me.mesh = dl.Mesh("mesh2D.xml")
 
-        Vsub2D = dl.FunctionSpace(me.mesh, 'Lagrange', 1)
-        pp = me.Vsub.tabulate_dof_coordinates()
-        qq = Vsub2D.tabulate_dof_coordinates()
+        me.Vbase2D = dl.FunctionSpace(me.mesh, 'Lagrange', 1)
+        pp = me.Vbase3D.tabulate_dof_coordinates()
+        qq = me.Vbase2D.tabulate_dof_coordinates()
         me.permVsub2Vsub2D, me.permVsub2D2Vsub = permut(pp[:,:2], qq)
 
-        me.V  = Vsub2D
+        me.V  = me.Vbase2D
         test  = dl.TestFunction(me.V)
         trial = dl.TrialFunction(me.V)
         
         me.M = dl.assemble(test*trial*dl.dx(me.V.mesh()))
         me.Mdiag = dl.Vector(dl.PETScVector(dl.as_backend_type(me.M).mat().getDiagonal()))
-        me.Vsub = Vsub2D
 
         me.dof_coords = me.V.tabulate_dof_coordinates()
         me.N = me.V.dim()
@@ -231,11 +230,11 @@ class StokesInverseProblemCylinder:
         # Create one-hot vector on pressure dofs
         constraint_vec = dl.interpolate(dl.Constant((0.,0., 0., 1.)), Vh2).vector()
         
-        pde = EnergyFunctionalPDEVariationalProblem(Vh, nonlinearStokesFunctional, constraint_vec, bc, bc0)
-        pde.fwd_solver.parameters["rel_tolerance"] = 1.e-8
-        pde.fwd_solver.parameters["print_level"] = 1
-        pde.fwd_solver.parameters["LS"]["max_backtracking_iter"] = 20
-        pde.fwd_solver.solver = dl.PETScLUSolver("mumps")
+        me.pde = EnergyFunctionalPDEVariationalProblem(Vh, nonlinearStokesFunctional, constraint_vec, bc, bc0)
+        me.pde.fwd_solver.parameters["rel_tolerance"] = 1.e-8
+        me.pde.fwd_solver.parameters["print_level"] = 1
+        me.pde.fwd_solver.parameters["LS"]["max_backtracking_iter"] = 20
+        me.pde.fwd_solver.solver = dl.PETScLUSolver("mumps")
         # ==== SET UP PRIOR DISTRIBUTION ====
         # Recall from Daon Stadler 2017
         # "The covariance function of the free-space
@@ -247,28 +246,25 @@ class StokesInverseProblemCylinder:
         # d - dimension of problem
         # A^(-p) - operator, A laplacian-like
 
-        gamma  = gamma #smaller gamma, smaller regularization
-        rel_correlation_Length = 0.1
-        correlation_Length = Radius*rel_correlation_Length
+        me.prior_mean_val = m0
+        me.prior_mean     = dl.interpolate(dl.Constant(me.prior_mean_val), me.Vbase3D).vector()
+        me.m_func = dl.Expression(mtrue_string,\
+                                  element=Vh[hp.PARAMETER].ufl_element(), m0=me.prior_mean_val,Radius=Radius)
+        mtrue   = dl.interpolate(me.m_func, Vh[hp.PARAMETER]).vector()
 
-        delta = 4.*gamma / (correlation_Length**2)
-        
-        prior_mean_val = m0
-        prior_mean    = dl.interpolate(dl.Constant(prior_mean_val), Vsub).vector()
-        me.priorVsub  = hp.BiLaplacianPrior(Vsub, gamma, delta, mean=prior_mean, robin_bc=True)
-        me.prior      = ManifoldPrior(Vh[hp.PARAMETER], Vsub, boundary_mesh, me.priorVsub)
+        me.rel_correlation_Length = rel_correlation_Length # 0.1
+        me.correlation_Length = Radius * me.rel_correlation_Length
+
         ########    TRUE BASAL FRICTION FIELD (INVERSION PARAMETER)    ########
-        m_func = dl.Expression(mtrue_string,\
-                element=Vh[hp.PARAMETER].ufl_element(), m0=prior_mean_val,Radius=Radius)
-        mtrue   = dl.interpolate(m_func, Vh[hp.PARAMETER]).vector()
+
 
         ########    TRUE SURFACE VELOCITY FIELD AND NOISY OBSERVATIONS    ########
-        me.utrue = pde.generate_state()
+        me.utrue = me.pde.generate_state()
         if not load_fwd:
-            pde.solveFwd(me.utrue, [me.utrue, mtrue, None])
+            me.pde.solveFwd(me.utrue, [me.utrue, mtrue, None])
             np.savetxt("utrue.txt", me.utrue.get_local())
         else:
-            utrue.set_local(np.loadtxt("utrue.txt"))
+            me.utrue.set_local(np.loadtxt("utrue.txt"))
         utrue_fnc = dl.Function(Vh[hp.STATE], me.utrue)
         me.outflow = np.sqrt(dl.assemble(dl.inner(utrue_fnc.sub(0), normal)**2.*ds(1)))
 
@@ -283,7 +279,7 @@ class StokesInverseProblemCylinder:
         # ds(1) basal boundary, ds(2) top boundary
         
         # construct the noisy observations
-        me.misfit.d = pde.generate_state()
+        me.misfit.d = me.pde.generate_state()
         me.misfit.d.zero()
         me.misfit.d.axpy(1.0, me.utrue)
         u_func = hp.vector2Function(me.utrue, Vh[hp.STATE])
@@ -301,9 +297,6 @@ class StokesInverseProblemCylinder:
 
         me.data_after_noise =  me.data_before_noise + me.noise
         me.misfit.d[:] = me.data_after_noise
-
-
-
 
         # is this consistent with the form defined above?
         # are we using the (x,y) components or the tangential components? Consistency!
@@ -332,9 +325,16 @@ class StokesInverseProblemCylinder:
 
         # misfit.noise_variance = (noise_scaling*0.05)**2.
         me.misfit.noise_variance = 1.0
-        
-        # ==== Define the model ====
-        me.model = hp.Model(pde, me.prior, me.misfit)
+
+
+        me.gamma = None #smaller gamma, smaller regularization
+        me.delta = None
+        me.priorVsub = None
+        me.prior = None
+        me.m_func = None
+        me.model = None
+
+        me.set_gamma(gamma)
 
         # === MAP Point reconstruction ====
         #m = mtrue.copy()
@@ -344,6 +344,14 @@ class StokesInverseProblemCylinder:
         me.Hd_proj = None
         me.H_proj  = None
 
+    def set_gamma(me, new_gamma):
+        me.gamma  = new_gamma
+        me.delta = 4.*me.gamma / (me.correlation_Length**2)
+
+        me.priorVsub  = hp.BiLaplacianPrior(me.Vbase3D, me.gamma, me.delta, mean=me.prior_mean, robin_bc=True)
+        me.prior      = ManifoldPrior(me.Vh[hp.PARAMETER], me.Vbase3D, me.boundary_mesh, me.priorVsub)
+
+        me.model = hp.Model(me.pde, me.prior, me.misfit)
 
     def data_inner_product(me, x, y): # <x, y>_datanorm = x^T W y
         W = me.misfit.W
