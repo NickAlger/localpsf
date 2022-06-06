@@ -24,16 +24,16 @@ import sys
 
 from scipy.optimize import root_scalar
 
-noise_level = 0.01 # float(sys.argv[1])
-gamma0 = 1.e5
-gamma1 = 1.e6
+noise_level = 0.005 # 0.01 # float(sys.argv[1])
+gamma0 = 5.e4 # 1.e5
+gamma1 = 2.e5 # 1.e6
 initial_GN_iter = 3
 GN_iter_after_initial = 5
 max_newton_iter = 10
 # mesh_type = 'coarse'
 mesh_type = 'medium'
 morozov_rtol = 5.e-2
-rel_correlation_Length = 0.05
+rel_correlation_Length = 0.1 # 0.05
 
 if mesh_type == 'coarse':
     mfile_name = str(localpsf_root) + "/numerical_examples/stokes/meshes/cylinder_coarse"
@@ -137,6 +137,11 @@ stateReconstruction = dl.Function(StokesIP.Vh[0], StokesIP.x[0])
 dl.File("data/uObs_noise" + str(noise_level) + ".pvd") << stateObserved.sub(0)
 dl.File("data/uReconstruction_noise" + str(noise_level) + ".pvd") << stateReconstruction.sub(0)
 dl.File("data/pReconstruction_noise" + str(noise_level) + ".pvd") << stateReconstruction.sub(1)
+
+# ||eta||_{M_base_tangent} = 0.01 * ||d_true||_{M_base_tangent}
+# d_true = G(m)
+# d = G(m) + eta
+# 0 = ||eta|| - ||d - G(m(alpha))||
 
 
 # PCH 3,4,3
