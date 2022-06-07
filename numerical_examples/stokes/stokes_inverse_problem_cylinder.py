@@ -125,7 +125,9 @@ class StokesInverseProblemCylinder:
                  gamma=6.e1,  
                  m0 = 7., 
                  mtrue_string = 'm0 - (m0 / 7.)*std::cos((x[0]*x[0]+x[1]*x[1])*pi/(Radius*Radius))',
-                 rel_correlation_Length = 0.05
+                 rel_correlation_Length = 0.05,
+                 noise_type = 'relative_local',
+                 robin_bc=True
                  ):
         ########    INITIALIZE OPTIONS    ########
         me.boundary_markers = boundary_markers
@@ -135,6 +137,7 @@ class StokesInverseProblemCylinder:
         me.R_hmatrix      = None
         me.make_plots = make_plots
         me.save_plots = save_plots
+        me.robin_bc = robin_bc
         
         # forcing term
         grav  = 9.81           # acceleration due to gravity
@@ -290,9 +293,15 @@ class StokesInverseProblemCylinder:
         me.data_before_noise = np.zeros(me.misfit.d[:].shape)
         me.data_before_noise[:] = me.misfit.d[:]
         norm_data = me.data_norm_numpy(me.data_before_noise)
-        noise0 = np.random.randn(len(me.data_before_noise))  # has data-norm not equal 1
-        noise1 = noise0 / me.data_norm_numpy(noise0)         # has data-norm=1
-        me.noise = (noise_level * norm_data) * noise1         # has ||noise||_data-norm = noise_level * ||d||_data-norm
+        if noise_type == 'relative_global':
+            noise0 = np.random.randn(len(me.data_before_noise))  # has data-norm not equal 1
+            noise1 = noise0 / me.data_norm_numpy(noise0)         # has data-norm=1
+            me.noise = (noise_level * norm_data) * noise1        # has ||noise||_data-norm = noise_level * ||d||_data-norm
+        elif noise_type == 'relative_local':
+            noise0 = noise_level * np.random.randn(len(me.data_before_noise))
+            me.noise = noise0 * np.abs(me.data_before_noise)
+        else:
+            raise RuntimeError('Invalid noise_type. valid types are relative_local, relative global')
         me.noise_datanorm = me.data_norm_numpy(me.noise)
 
         me.data_after_noise =  me.data_before_noise + me.noise
@@ -348,7 +357,7 @@ class StokesInverseProblemCylinder:
         me.gamma  = new_gamma
         me.delta = 4.*me.gamma / (me.correlation_Length**2)
 
-        me.priorVsub  = hp.BiLaplacianPrior(me.Vbase3D, me.gamma, me.delta, mean=me.prior_mean, robin_bc=True)
+        me.priorVsub  = hp.BiLaplacianPrior(me.Vbase3D, me.gamma, me.delta, mean=me.prior_mean, robin_bc=me.robin_bc)
         me.prior      = ManifoldPrior(me.Vh[hp.PARAMETER], me.Vbase3D, me.boundary_mesh, me.priorVsub)
 
         me.model = hp.Model(me.pde, me.prior, me.misfit)

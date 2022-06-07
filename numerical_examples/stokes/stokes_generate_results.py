@@ -24,7 +24,7 @@ import sys
 
 from scipy.optimize import root_scalar
 
-noise_level = 0.005 # 0.01 # float(sys.argv[1])
+noise_level = 0.0 #0.01 # 0.005 # 0.01 # float(sys.argv[1])
 gamma0 = 5.e4 # 1.e5
 gamma1 = 2.e5 # 1.e6
 initial_GN_iter = 3
@@ -34,6 +34,7 @@ max_newton_iter = 10
 mesh_type = 'medium'
 morozov_rtol = 5.e-2
 rel_correlation_Length = 0.1 # 0.05
+noise_type = 'relative_local'
 
 if mesh_type == 'coarse':
     mfile_name = str(localpsf_root) + "/numerical_examples/stokes/meshes/cylinder_coarse"
@@ -58,7 +59,10 @@ nondefault_StokesIP_options = {'mesh': mesh, 'boundary_markers': boundary_marker
                                'rel_correlation_Length': rel_correlation_Length,
                                'noise_level': noise_level,
                                'm0': 1.5 * 7.,
-                               'mtrue_string': 'm0 - (m0 / 7.)*std::cos(2.*x[0]*pi/Radius)'}
+                               'mtrue_string': 'm0 - (m0 / 7.)*std::cos(2.*x[0]*pi/Radius)',
+                               'noise_type': noise_type,
+                               'robin_bc': True # False
+                               }
 
 parameters = ReducedSpaceNewtonCG_ParameterList()
 parameters["rel_tolerance"] = 1.e-8

@@ -278,6 +278,7 @@ class ReducedSpaceNewtonCG:
         self.PCHinitialized = None # for which Newton iteration was the PCH approximation first constructed
         self.P  = self.parameters["projector"]
         self.residualCounts = []
+
     def solve(self, x):
         """
 
