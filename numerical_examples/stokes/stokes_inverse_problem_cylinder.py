@@ -351,7 +351,7 @@ class StokesInverseProblemCylinder:
 
 
         me.gamma = None #smaller gamma, smaller regularization
-        me.delta = None
+        # me.delta = None
         me.priorVsub = None
         me.prior = None
         me.m_func = None
@@ -369,6 +369,29 @@ class StokesInverseProblemCylinder:
         me.Hd_proj = None
         me.H_proj  = None
 
+        # Regularization
+        ubase2d_trial = dl.TrialFunction(me.Vbase2D)
+        vbase2d_test = dl.TestFunction(me.Vbase2D)
+
+        me.kbase2d_form = dl.inner(dl.grad(ubase2d_trial), dl.grad(vbase2d_test)) * dl.dx
+        me.mbase2d_form = dl.inner(ubase2d_trial, vbase2d_test) * dl.dx
+        me.robinbase2d_form = dl.inner(ubase2d_trial, vbase2d_test) * dl.ds
+
+        me.Mbase2d_petsc = dl.assemble(me.mbase2d_form)
+        me.Mbase2d_scipy = csr_scipy2fenics(me.Mbase2d_petsc)
+
+        me.Rsqrt_petsc = None
+        me.Rsqrt_scipy = None
+
+        me.solve_Mbase2d_numpy = None
+        me.solve_Rsqrt_numpy = None
+
+    def apply_R_numpy(me, ubase2d_numpy):
+        return me.Rsqrt_scipy @ me.solve_Rsqrt_numpy(me.Rsqrt_scipy @ ubase2d_numpy)
+
+    def solve_R_numpy(me, vbase2d_numpy):
+        me.solve_Rsqrt_numpy(me.Mbase2d_scipy @ me.solve_Rsqrt_numpy(vbase2d_numpy))
+
     def get_optimization_variable(me):
         return me.Vh1_to_Vbase2d_numpy(me.x[1][:])
 
@@ -383,6 +406,14 @@ class StokesInverseProblemCylinder:
         me.H.gauss_newton_approx  = True
         me.Hd_proj = proj_op(me.Hd, me.prior.P)
         me.H_proj  = proj_op(me.H , me.prior.P)
+        me.update_regularization()
+
+
+    def update_regularization(me):
+        me.Rsqrt_petsc = dl.assemble(me.base2d_bilaplacian_form)
+        me.Rsqrt_scipy = csr_fenics2scipy(me.Rsqrt_petsc)
+        me.solve_Rsqrt_numpy = spla.factorized(me.Rsqrt_scipy)
+        me.solve_Mbase2d_numpy = spla.factorized(me.Mbase2d_scipy)
 
     def cost(me):
         return me.model.cost(me.x)
@@ -420,10 +451,25 @@ class StokesInverseProblemCylinder:
         me.H.gauss_newton_approx = old_gn_bool
         return vbase2d_numpy
 
+    @property
+    def delta(me):
+        return 4. * me.gamma / (me.correlation_Length ** 2)
+
+    @property
+    def robin_coeff(me):
+        if me.robin_bc:
+            return me.gamma * np.sqrt(me.delta / me.gamma) / 1.42
+        else:
+            return 0.
+
+    @property
+    def base2d_bilaplacian_form(me):
+        return dl.Constant(me.gamma) * me.kbase2d_form + dl.Constant(me.delta) * me.mbase2d_form + dl.Constant(me.robin_coeff) * me.robinbase2d_form
+
 
     def set_gamma(me, new_gamma):
         me.gamma  = new_gamma
-        me.delta = 4.*me.gamma / (me.correlation_Length**2)
+        # me.delta = 4.*me.gamma / (me.correlation_Length**2)
 
         me.priorVsub  = hp.BiLaplacianPrior(me.Vbase3D, me.gamma, me.delta, mean=me.prior_mean, robin_bc=me.robin_bc)
         me.prior      = ManifoldPrior(me.Vh[hp.PARAMETER], me.Vbase3D, me.boundary_mesh, me.priorVsub)
