@@ -362,6 +362,8 @@ class StokesInverseProblemCylinder:
         
         me.mtrue = mtrue.copy()
         me.x = None
+        me.Hd = None
+        me.H = None
         me.Hd_proj = None
         me.H_proj  = None
 
@@ -373,12 +375,12 @@ class StokesInverseProblemCylinder:
         me.model.solveFwd(me.x[0], me.x)
         me.model.solveAdj(me.x[2], me.x)
         me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx = True)
-        Hd   = hp.ReducedHessian(me.model, misfit_only = True)
-        H    = hp.ReducedHessian(me.model, misfit_only = False)
-        Hd.gauss_newton_approx = True
-        H.gauss_newton_approx  = True
-        me.Hd_proj = proj_op(Hd, me.prior.P)
-        me.H_proj  = proj_op(H , me.prior.P)
+        me.Hd   = hp.ReducedHessian(me.model, misfit_only = True)
+        me.H    = hp.ReducedHessian(me.model, misfit_only = False)
+        me.Hd.gauss_newton_approx = True
+        me.H.gauss_newton_approx  = True
+        me.Hd_proj = proj_op(me.Hd, me.prior.P)
+        me.H_proj  = proj_op(me.H , me.prior.P)
 
     def cost(me):
         return me.model.cost(me.x)
@@ -390,8 +392,32 @@ class StokesInverseProblemCylinder:
         g_Vbase2d_numpy = me.Vh1_to_Vbase2d_numpy(g_Vh1_petsc[:])
         return g_Vbase2d_numpy
 
-    def apply_hessian(me):
-        pass
+    def apply_hessian(me, ubase2d_numpy): # v = H * u
+        old_gn_bool = me.H.gauss_newton_approx
+        me.H.gauss_newton_approx = False
+
+        u_petsc = dl.Function(me.Vh1).vector()
+        u_petsc[:] = me.Vbase2d_to_Vh1_numpy(ubase2d_numpy)
+        v_petsc = dl.Function(me.Vh1).vector()
+        me.H.mult(u_petsc, v_petsc)
+        vbase2d_numpy = me.Vh1_to_Vbase2d_numpy(v_petsc)
+
+        me.H.gauss_newton_approx = old_gn_bool
+        return vbase2d_numpy
+
+    def apply_gauss_newton_hessian(me, ubase2d_numpy):  # v = Hgn * u
+        old_gn_bool = me.H.gauss_newton_approx
+        me.H.gauss_newton_approx = True
+
+        u_petsc = dl.Function(me.Vh1).vector()
+        u_petsc[:] = me.Vbase2d_to_Vh1_numpy(ubase2d_numpy)
+        v_petsc = dl.Function(me.Vh1).vector()
+        me.H.mult(u_petsc, v_petsc)
+        vbase2d_numpy = me.Vh1_to_Vbase2d_numpy(v_petsc)
+
+        me.H.gauss_newton_approx = old_gn_bool
+        return vbase2d_numpy
+
 
     def set_gamma(me, new_gamma):
         me.gamma  = new_gamma
@@ -434,12 +460,12 @@ class StokesInverseProblemCylinder:
             me.model.solveFwd(me.x[0], me.x)
             me.model.solveAdj(me.x[2], me.x)
         me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx = True)
-        Hd   = hp.ReducedHessian(me.model, misfit_only = True)
-        H    = hp.ReducedHessian(me.model, misfit_only = False)
-        Hd.gauss_newton_approx = True
-        H.gauss_newton_approx  = True 
-        me.Hd_proj = proj_op(Hd, me.prior.P)
-        me.H_proj  = proj_op(H , me.prior.P)
+        me.Hd   = hp.ReducedHessian(me.model, misfit_only = True)
+        me.H    = hp.ReducedHessian(me.model, misfit_only = False)
+        me.Hd.gauss_newton_approx = True
+        me.H.gauss_newton_approx  = True
+        me.Hd_proj = proj_op(me.Hd, me.prior.P)
+        me.H_proj  = proj_op(me.H , me.prior.P)
     """
     pass a [u, p, m] where m is a full space parameter field and project it down
     to be compatible with this class/Hessian action
