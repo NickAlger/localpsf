@@ -238,7 +238,9 @@ class StokesInverseProblemCylinder:
         # Strongly enforced Dirichlet conditions. The no outflow condition will be enforced weakly, via a penalty parameter.
         bc  = []
         bc0 = []
-        
+
+        # hp.PDEVariationalProblem
+
         # Define the Nonlinear Stokes varfs
         nonlinearStokesFunctional = NonlinearStokesForm(n, A, normal, ds(1), f, lam=lam)
         
