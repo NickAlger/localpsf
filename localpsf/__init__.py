@@ -10,6 +10,7 @@ from . import morozov_discrepancy
 from . import positive_definite_modifications
 from . import stokes_inverse_problem_cylinder
 from . import op_operations
+from . import newtoncg
 # from . import path
 
 from pathlib import Path as __Path

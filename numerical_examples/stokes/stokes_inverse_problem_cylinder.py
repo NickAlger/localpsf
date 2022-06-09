@@ -58,7 +58,7 @@ def permut(p, q):
         warnings.warn("is q a permutation of p?")
     if str(p) == str(q):
         print("p to q mapping is identitiy")
-    return p2q, q2p   
+    return p2q, q2p
 
 
 class BasalBoundary(dl.SubDomain):
@@ -187,9 +187,9 @@ class StokesInverseProblemCylinder:
         P2 = dl.VectorElement("Lagrange", mesh.ufl_cell(), 2)
         TH = P2 * P1
         Vh2 = dl.FunctionSpace(mesh, TH) # product space for state + adjoint
-        Vh1 = dl.FunctionSpace(mesh, 'Lagrange', 1)
+        me.Vh1 = dl.FunctionSpace(mesh, 'Lagrange', 1)
         me.Vbase3D = dl.FunctionSpace(submesh_bottom, 'Lagrange', 1)
-        Vh = [Vh2, Vh1, Vh2] # state, parameter, adjoint
+        Vh = [Vh2, me.Vh1, Vh2] # state, parameter, adjoint
         me.Vh = Vh
 
         #------ generate 2D mesh from 3D boundary subset mesh
@@ -200,9 +200,21 @@ class StokesInverseProblemCylinder:
         me.mesh = dl.Mesh("mesh2D.xml")
 
         me.Vbase2D = dl.FunctionSpace(me.mesh, 'Lagrange', 1)
-        pp = me.Vbase3D.tabulate_dof_coordinates()
-        qq = me.Vbase2D.tabulate_dof_coordinates()
-        me.permVsub2Vsub2D, me.permVsub2D2Vsub = permut(pp[:,:2], qq)
+        pp_Vbase3d = me.Vbase3D.tabulate_dof_coordinates()
+        pp_Vbase2d = me.Vbase2D.tabulate_dof_coordinates()
+        me.perm_Vbase3d_to_Vbase2d, me.perm_Vbase2d_to_Vbase3d = permut(pp_Vbase3d[:,:2], pp_Vbase2d)
+
+        #
+
+        pp_Vh1 = me.Vh1.tabulate_dof_coordinates()
+
+        KDT = KDTree(pp_Vh1)
+        me.basal_inds = KDT.query(pp_Vbase3d)[1]
+        if np.linalg.norm(pp_Vbase3d - pp_Vh1[me.basal_inds, :]) > 1.e-10:
+            warnings.warn('problem with basal_inds')
+
+        #
+
 
         me.V  = me.Vbase2D
         test  = dl.TestFunction(me.V)
@@ -353,6 +365,34 @@ class StokesInverseProblemCylinder:
         me.Hd_proj = None
         me.H_proj  = None
 
+    def get_optimization_variable(me):
+        return me.Vh1_to_Vbase2d_numpy(me.x[1][:])
+
+    def set_optimization_variable(me, new_m2d_numpy):
+        me.x[1][:] = me.Vbase2d_to_Vh1_numpy(new_m2d_numpy)
+        me.model.solveFwd(me.x[0], me.x)
+        me.model.solveAdj(me.x[2], me.x)
+        me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx = True)
+        Hd   = hp.ReducedHessian(me.model, misfit_only = True)
+        H    = hp.ReducedHessian(me.model, misfit_only = False)
+        Hd.gauss_newton_approx = True
+        H.gauss_newton_approx  = True
+        me.Hd_proj = proj_op(Hd, me.prior.P)
+        me.H_proj  = proj_op(H , me.prior.P)
+
+    def cost(me):
+        return me.model.cost(me.x)
+
+    def gradient(me):
+        g_Vh1_petsc = dl.Vector()
+        g_Vh1_petsc.init(me.x[hp.PARAMETER].size())
+        me.model.evalGradientParameter(me.x, g_Vh1_petsc)
+        g_Vbase2d_numpy = me.Vh1_to_Vbase2d_numpy(g_Vh1_petsc[:])
+        return g_Vbase2d_numpy
+
+    def apply_hessian(me):
+        pass
+
     def set_gamma(me, new_gamma):
         me.gamma  = new_gamma
         me.delta = 4.*me.gamma / (me.correlation_Length**2)
@@ -413,10 +453,12 @@ class StokesInverseProblemCylinder:
         me.prior.P.init_vector(Pg, 0)
         me.prior.P.mult(g, Pg)
         return Pg.get_local()
+
     def apply_Hd(me, x):
         y = dl.Vector(x)
         me.Hd_proj.mult(x, y)
         return y
+
     def apply_Hd_numpy(me, x):
         xdl = dl.Vector()
         xdl.init(len(x))
@@ -425,6 +467,7 @@ class StokesInverseProblemCylinder:
         ydl.init(len(x))
         me.Hd_proj.mult(xdl, ydl)
         return ydl.get_local()
+
     def apply_H_numpy(me, x):
         xdl = dl.Vector()
         xdl.init(len(x))
@@ -433,10 +476,12 @@ class StokesInverseProblemCylinder:
         ydl.init(len(x))
         me.H_proj.mult(xdl, ydl)
         return ydl.get_local()
+
     def apply_Rinv_petsc(me, x):
         y = dl.Vector(x)
         me.priorVsub.Rsolver.solve(y, x)
         return y
+
     def apply_Rinv_numpy(me, x):
         xdl = dl.Vector()
         xdl.init(len(x))
@@ -444,16 +489,62 @@ class StokesInverseProblemCylinder:
         ydl = me.apply_Rinv_petsc(xdl)
         return ydl.get_local()
 
+    def Vh1_to_Vbase3d_numpy(me, u_numpy):
+        ubase3d_numpy = np.zeros(me.Vbase3D.dim())
+        ubase3d_numpy[:] = u_numpy[me.basal_inds]
+        return ubase3d_numpy
+
+    def Vbase3d_to_Vh1_numpy(me, ubase3d_numpy):
+        u_numpy = np.zeros(me.Vh1.dim())
+        u_numpy[me.basal_inds] = ubase3d_numpy
+        return u_numpy
+
+    def Vh1_to_Vbase2d_numpy(me, u_numpy):
+        return me.Vbase3d_to_Vbase2d_numpy(me.Vh1_to_Vbase3d_numpy(u_numpy))
+
+    def Vbase2d_to_Vh1_numpy(me, ubase2d_numpy):
+        return me.Vbase3d_to_Vh1_numpy(me.Vbase2d_to_Vbase3d_numpy(ubase2d_numpy))
+
+    def Vh1_to_Vbase2d_petsc(me, u_petsc):
+        ubase2d_petsc = dl.Function(me.Vbase2D).vector()
+        ubase2d_petsc[:] = me.Vh1_to_Vbase2d_numpy(u_petsc[:])
+        return ubase2d_petsc
+
+    def Vbase2d_to_Vh1_petsc(me, ubase2d_petsc):
+        u_petsc = dl.Function(me.Vh1).vector()
+        u_petsc[:] = me.Vbase2d_to_Vh1_numpy(ubase2d_petsc[:])
+        return u_petsc
+
+    def Vbase2d_to_Vbase3d_numpy(me, ubase2d_numpy):
+        ubase3d_numpy = ubase2d_numpy[me.perm_Vbase2d_to_Vbase3d]
+        return ubase3d_numpy
+
+    def Vbase3d_to_Vbase2d_numpy(me, ubase3d_numpy):
+        ubase2d_numpy = ubase3d_numpy[me.perm_Vbase3d_to_Vbase2d]
+        return ubase2d_numpy
+
+    def Vbase2d_to_Vbase3d_petsc(me, ubase2d_petsc):
+        ubase_3d_petsc = dl.Vector(ubase2d_petsc)
+        ubase_3d_petsc[:] = me.Vbase2d_to_Vbase3d_numpy(ubase2d_petsc[:])
+        return ubase_3d_petsc
+
+    def Vbase3d_to_Vbase2d_petsc(me, ubase3d_petsc):
+        ubase_2d_petsc = dl.Vector(ubase3d_petsc)
+        ubase_2d_petsc[:] = me.Vbase3d_to_Vbase2d_numpy(ubase3d_petsc[:])
+        return ubase_2d_petsc
+
     def apply_Hd_petsc(me, x):
        Px = dl.Vector(x)
-       Px.set_local(x.get_local()[me.permVsub2D2Vsub])
+       Px.set_local(x.get_local()[me.perm_Vbase2d_to_Vbase3d])
        y = dl.Vector(x)
        me.Hd_proj.mult(Px, y)
        PTy = dl.Vector(x)
-       PTy.set_local(y.get_local()[me.permVsub2Vsub2D])
+       PTy.set_local(y.get_local()[me.perm_Vbase3d_to_Vbase2d])
        return PTy
+
     def apply_Minv_petsc(me, x):
         return diagSolve(me.Mdiag, x)
+
     def topography(me, r, t):
         zero = np.zeros(r.shape)
         R0   = me.r0*np.ones(r.shape)
