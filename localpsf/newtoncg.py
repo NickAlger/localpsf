@@ -26,6 +26,10 @@
 # from localpsf.product_convolution_hmatrix import make_hmatrix_from_kernel
 # import scipy.sparse.linalg as spla
 import numpy as np
+from scipy.linalg import blas
+
+from typing import TypeVar
+from collections.abc import Callable
 
 
 
@@ -150,7 +154,29 @@ class NCGConvergenceInfo:
         np.savetxt(filename_prefix + '_labels.txt', me.labels)
 
 
-def newtoncg_ls(optimization_object,
+scalar_type = float
+vector_type = np.ndarray
+
+def numpy_axpy(a: scalar_type, x: vector_type, y: vector_type) -> None: # y <- y + a*x
+    y += a*x
+
+def numpy_scal(a: scalar_type, x: vector_type) -> None:
+    x *= a
+
+
+def newtoncg_ls(get_optimization_variable:     Callable[[],                                     vector_type],
+                set_optimization_variable:     Callable[[vector_type],                          None],
+                cost:                          Callable[[],                                     tuple[scalar_type, scalar_type, scalar_type]],
+                gradient:                      Callable[[],                                     vector_type],
+                apply_hessian:                 Callable[[vector_type],                          vector_type],
+                apply_gauss_newton_hessian:    Callable[[vector_type],                          vector_type],
+                build_hessian_preconditioner:  Callable[...,                                    None],
+                update_hessian_preconditioner: Callable[[list[vector_type], list[vector_type]], None],
+                solve_hessian_preconditioner:  Callable[[vector_type],                          vector_type],
+                inner_product:       Callable[[vector_type, vector_type], vector_type]       = np.dot,
+                copy_vector:         Callable[[vector_type],              vector_type]       = np.copy,
+                axpy:                Callable[[scalar_type, vector_type, vector_type], None] = numpy_axpy, # axpy(a, x, y): y <- y + a*x
+                scal:                Callable[[scalar_type, vector_type], None]              = numpy_scal, # scal(a, x): x <- a*x
                 callback=None,
                 rtol=1e-12,
                 atol=1e-14,
@@ -164,7 +190,8 @@ def newtoncg_ls(optimization_object,
                 cg_coarse_tolerance=0.5,
                 c_armijo=1e-4, # Armijo constant for sufficient reduction
                 max_backtracking_iter=10, #Maximum number of backtracking iterations
-                preconditioner_options=None,
+                preconditioner_args=(),
+                preconditioner_kwargs=(),
                 gdm_tol=1e-18, # we converge when (g,dm) <= gdm_tolerance
                 ):
 
@@ -172,34 +199,30 @@ def newtoncg_ls(optimization_object,
         if display:
             print(*args, **kwargs)
 
-    if preconditioner_options is None:
-        preconditioner_options = tuple()
-
     it = 0
     converged = False
     total_cg_iter = 0
     num_hessian_calls = 0
     reason = 'unknown reason'
-    final_grad_norm = -1
 
     residualCounts = []
     convergence_info = NCGConvergenceInfo()
 
     num_hessian_calls += 1
 
-    cost_old, misfit_old, reg_old = optimization_object.cost()
+    cost_old, misfit_old, reg_old = cost()
 
     while (it < maxiter_newton) and (converged == False):
         using_gauss_newton = (it < num_gn_iter)
         if using_gauss_newton:
-            apply_hessian = optimization_object.apply_gauss_newton_hessian
+            apply_hessian = apply_gauss_newton_hessian
         else:
-            apply_hessian = optimization_object.apply_hessian
+            apply_hessian = apply_hessian
         printmaybe('it=', it, ', num_initial_iter=', num_initial_iter, ', num_gn_iter=', num_gn_iter,
                    ', using_gauss_newton=', using_gauss_newton)
 
-        g = optimization_object.gradient()
-        gradnorm = np.linalg.norm(g)
+        g = gradient()
+        gradnorm = np.sqrt(inner_product(g, g))
 
         if it == 0:
             gradnorm_ini = gradnorm
@@ -214,12 +237,19 @@ def newtoncg_ls(optimization_object,
 
         if (it == num_initial_iter):
             printmaybe('building preconditioner')
-            optimization_object.build_preconditioner(*preconditioner_options)
+            build_hessian_preconditioner(*preconditioner_args, **preconditioner_kwargs)
 
         it += 1
 
-        dm, extras = cgsteihaug(apply_hessian, -g,
-                                solve_M=optimization_object.solve_hessian_preconditioner,
+        minus_g = copy_vector(g)
+        scal(-1.0, minus_g)
+
+        dm, extras = cgsteihaug(apply_hessian, minus_g,
+                                solve_M=solve_hessian_preconditioner,
+                                inner_product=inner_product,
+                                copy_vector=copy_vector,
+                                axpy=axpy,
+                                scal=scal,
                                 rtol=tolcg,
                                 display=True,
                                 maxiter=maxiter_cg)
@@ -233,7 +263,7 @@ def newtoncg_ls(optimization_object,
                    and (X is not None) and (Y is not None))
 
         if recycle:
-            optimization_object.update_preconditioner(X, Y)
+            update_hessian_preconditioner(X, Y)
 
         total_cg_iter += num_hessian_calls
         residualCounts.append(num_hessian_calls)
@@ -242,21 +272,26 @@ def newtoncg_ls(optimization_object,
         descent = 0
         n_backtrack = 0
 
-        gdm = np.dot(g, dm)
+        gdm = inner_product(g, dm)
 
-        m = optimization_object.get_optimization_variable()
+        m = get_optimization_variable()
 
+        mstar = copy_vector(m)
         while descent == 0 and n_backtrack < max_backtracking_iter:
-            mstar = m + alpha * dm
-            optimization_object.set_optimization_variable(mstar)
-            cost_new, reg_new, misfit_new = optimization_object.cost(mstar)
+            # mstar = m + alpha*dm
+            scal(0.0, mstar) # now mstar = 0
+            axpy(1.0, m, mstar) # now mstar = m
+            axpy(alpha, dm, mstar) # now mstar = m + alpha*dm
+
+            set_optimization_variable(mstar)
+            cost_new, reg_new, misfit_new = cost()
 
             # Check if armijo conditions are satisfied
             if (cost_new < cost_old + alpha * c_armijo * gdm) or (-gdm <= gdm_tol):
                 cost_old = cost_new
                 descent = 1
                 m = mstar
-                optimization_object.set_optimization_variable(mstar)
+                set_optimization_variable(mstar)
             else:
                 n_backtrack += 1
                 alpha *= 0.5
@@ -287,8 +322,13 @@ def newtoncg_ls(optimization_object,
     return convergence_info
 
 
-def cgsteihaug(apply_A, b,
-               solve_M=None,
+def cgsteihaug(apply_A: Callable[[vector_type], vector_type],
+               b:       vector_type,
+               solve_M:             Callable[[vector_type],                           vector_type] = lambda x: x,
+               inner_product:       Callable[[vector_type, vector_type],              vector_type] = np.dot,
+               axpy:                Callable[[scalar_type, vector_type, vector_type], None]        = numpy_axpy,
+               scal:                Callable[[scalar_type, vector_type],              None]        = numpy_scal,
+               copy_vector:         Callable[[vector_type],                           vector_type] = np.copy,
                x0=None,
                display=True,
                maxiter=1000,
@@ -301,32 +341,28 @@ def cgsteihaug(apply_A, b,
 
     X = []
     Y = []
-    def apply_A_wrapper(x):
+    def apply_A_wrapper(x: vector_type) -> vector_type:
         y = apply_A(x)
         X.append(x)
         Y.append(y)
         return y
 
-    final_norm = 0
     iter = 0
-    converged = False
-    reason = 'unknown reason'
 
-    b = b.reshape(-1)
+    r = copy_vector(b)
     if x0 is None:
-        x = np.zeros(len(b))
-        r = b
+        x = scal(0.0, copy_vector(b)) # x = 0, r = b
     else:
-        x = x0.copy().reshape(-1)
-        r = b - apply_A_wrapper(x)
+        x = copy_vector(x0)
+        axpy(-1.0, apply_A_wrapper(x), r) # r = b - A*x0
 
     z = solve_M(r)
-    print("||r0|| = {0:1.3e}".format(np.sqrt(np.dot(r, r))))
-    print("||B^-1 r0|| = {0:1.3e}".format(np.sqrt(np.dot(z, z))))
+    print("||r0|| = {0:1.3e}".format(np.sqrt(inner_product(r, r))))
+    print("||B^-1 r0|| = {0:1.3e}".format(np.sqrt(inner_product(z, z))))
 
-    d = z.copy()
+    d = copy_vector(z)
 
-    nom0 = np.dot(d, r)
+    nom0 = inner_product(d, r)
     nom = nom0
 
     printmaybe(" Iteration : ", 0, " (B r, r) = ", nom)
@@ -345,15 +381,15 @@ def cgsteihaug(apply_A, b,
         return x, extras
 
     Ad = apply_A_wrapper(d)
-    den = np.dot(Ad, d)
+    den = inner_product(Ad, d)
 
     if den <= 0.0:
         converged = True
         reason = "Reached a negative direction"
-        x = x + d
-        r = r - Ad
-        z = solve_M(r)
-        nom = np.dot(r, z)
+        axpy(1.0, d, x)   # x <- x + d
+        axpy(-1.0, Ad, r) # r <- r - Ad
+        z = solve_M(r)     # z <- inv(M)*r
+        nom = inner_product(r, z)
         final_norm = np.sqrt(nom)
         printmaybe(reason)
         printmaybe("Converged in ", iter, " iterations with final norm ", final_norm)
@@ -364,10 +400,10 @@ def cgsteihaug(apply_A, b,
     iter = 1
     while True:
         alpha = nom / den
-        x = x + alpha * d
-        r = r - alpha * Ad
+        axpy(alpha, d, x) # x = x + alpha * d
+        axpy(-alpha, Ad, r) # r = r - alpha * Ad
         z = solve_M(r)
-        betanom = np.dot(r, z)
+        betanom = inner_product(r, z)
         printmaybe(" Iteration : ", iter, " (B r, r) = ", betanom)
 
         if betanom < r0:
@@ -388,12 +424,14 @@ def cgsteihaug(apply_A, b,
             break
 
         beta = betanom / nom
-        d *= beta
-        d = z + beta * d
+
+        # d = z + beta d
+        scal(beta, d)
+        axpy(1.0, z, d)
 
         Ad = apply_A_wrapper(d)
 
-        den = np.dot(Ad, d)
+        den = inner_product(Ad, d)
 
         if den <= 0.0:
             converged = True

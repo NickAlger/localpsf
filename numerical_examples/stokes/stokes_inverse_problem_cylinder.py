@@ -380,17 +380,44 @@ class StokesInverseProblemCylinder:
         me.Mbase2d_petsc = dl.assemble(me.mbase2d_form)
         me.Mbase2d_scipy = csr_scipy2fenics(me.Mbase2d_petsc)
 
-        me.Rsqrt_petsc = None
-        me.Rsqrt_scipy = None
+        me.HRsqrt_petsc = None
+        me.HRsqrt_scipy = None
 
         me.solve_Mbase2d_numpy = None
         me.solve_Rsqrt_numpy = None
+        me.HR_scipy = None
 
-    def apply_R_numpy(me, ubase2d_numpy):
-        return me.Rsqrt_scipy @ me.solve_Rsqrt_numpy(me.Rsqrt_scipy @ ubase2d_numpy)
+        me.HR_hmatrix = None
+        me.Hd_pch = None
+        me.H_pch = None
+        me.iH_pch = None
 
-    def solve_R_numpy(me, vbase2d_numpy):
-        me.solve_Rsqrt_numpy(me.Mbase2d_scipy @ me.solve_Rsqrt_numpy(vbase2d_numpy))
+
+    def build_preconditioner(me, num_neighbors=10, num_batches=6, tau=3.0, hmatrix_tol=1e-5):
+        print('building PCH preconditioner')
+        PCK = ProductConvolutionKernel(me.Vbase2D, me.Vbase2D, self.IP.apply_Hd_petsc, self.IP.apply_Hd_petsc,
+                                       num_batches, num_batches,
+                                       tau_rows=tau, tau_cols=tau,
+                                       num_neighbors_rows=num_neighbors,
+                                       num_neighbors_cols=num_neighbors)
+        Hd_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol=hmatrix_tol)
+
+        # Rebuild reg hmatrix with same block cluster tree as PCH data misfit hmatrix
+        print('Building Regularization H-Matrix')
+        R_scipy = self.parameters["Rscipy"]
+        R_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(R_scipy, Hd_pch_nonsym.bct)
+
+        # ----- build spd approximation of Hd, with cutoff given by a multiple of the minimum eigenvalue of the regularization operator
+        Hd_pch = Hd_pch_nonsym.spd()
+        H_pch = Hd_pch + R_hmatrix
+
+        preconditioner_hmatrix = H_pch.inv()
+
+    def apply_HR_numpy(me, ubase2d_numpy):
+        return me.HRsqrt_scipy @ me.solve_Mbase2d_numpy(me.HRsqrt_scipy @ ubase2d_numpy)
+
+    def solve_HR_numpy(me, vbase2d_numpy):
+        me.solve_HRsqrt_numpy(me.Mbase2d_scipy @ me.solve_HRsqrt_numpy(vbase2d_numpy))
 
     def get_optimization_variable(me):
         return me.Vh1_to_Vbase2d_numpy(me.x[1][:])
@@ -407,7 +434,6 @@ class StokesInverseProblemCylinder:
         me.Hd_proj = proj_op(me.Hd, me.prior.P)
         me.H_proj  = proj_op(me.H , me.prior.P)
         me.update_regularization()
-
 
     def update_regularization(me):
         me.Rsqrt_petsc = dl.assemble(me.base2d_bilaplacian_form)
