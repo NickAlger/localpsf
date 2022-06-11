@@ -9,6 +9,7 @@ import os
 import meshio
 
 from nalger_helper_functions import *
+import hlibpro_python_wrapper as hpro
 
 from localpsf.product_convolution_kernel import ProductConvolutionKernel
 from localpsf.product_convolution_hmatrix import make_hmatrix_from_kernel, product_convolution_hmatrix
@@ -110,6 +111,200 @@ class proj_op:
         self.Proj.mult(self.yfull, y)
 
 
+class BiLaplacianRegularizationOperator:
+    # ==== SET UP PRIOR DISTRIBUTION ====
+    # Recall from Daon Stadler 2017
+    # "The covariance function of the free-space
+    # operator has a characteristic length of
+    # sqrt(8(p - d / 2)) sqrt( gamma/delta )
+    # meaning that that distance away from a source
+    # x, the covariance decays to 0.1 of its
+    # maximal value
+    # d - dimension of problem
+    # A^(-p) - operator, A laplacian-like
+    def __init__(me, gamma, correlation_length, V, robin_bc=True):
+        me.gamma = gamma
+        me.correlation_length = correlation_length
+        me.V = V
+        me.robin_bc = robin_bc
+
+        me.delta = 4. * me.gamma / (me.correlation_length ** 2)
+        if me.robin_bc:
+            me.robin_coeff = me.gamma * np.sqrt(me.delta / me.gamma) / 1.42
+        else:
+            me.robin_coeff = 0.0
+
+        me.stiffness_form = dl.inner(dl.grad(dl.TrialFunction(V)), dl.grad(dl.TestFunction(V))) * dl.dx
+        me.mass_form = dl.inner(dl.TrialFunction(V), dl.TestFunction(V)) * dl.dx
+        me.robin_form = dl.inner(dl.TrialFunction(V), dl.TestFunction(V)) * dl.ds
+
+        # Mass matrix
+        me.M_petsc = dl.assemble(me.mass_form)
+        me.M_scipy = csr_scipy2fenics(me.M_petsc)
+
+        me.solve_M_numpy = spla.factorized(me.M_scipy)
+
+        # Lumped mass matrix
+        me.ML_petsc = dl.assemble(me.mass_form)
+        me.mass_lumps_petsc = dl.Vector()
+        me.ML_petsc.init_vector(me.mass_lumps_petsc, 1)
+        me.ML_petsc.get_diagonal(me.mass_lumps_petsc)
+        me.ML_petsc.zero()
+        me.ML_petsc.set_diagonal(me.mass_lumps_petsc)
+
+        me.mass_lumps_numpy = me.mass_lumps_petsc[:]
+        me.ML_scipy = sps.dia_matrix(me.mass_lumps_numpy).tocsr()
+        me.iML_scipy = sps.dia_matrix(1.0 / me.mass_lumps_numpy).tocsr()
+        me.iML_petsc = csr_scipy2fenics(me.iML_scipy)
+
+        # Regularization square root
+        me.Rsqrt_form = (dl.Constant(me.gamma) * me.stiffness_form
+                         + dl.Constant(me.delta) * me.mass_form
+                         + dl.Constant(me.robin_coeff) * me.robin_form)
+
+        me.Rsqrt_petsc = dl.assemble(me.Rsqrt_form)
+        me.Rsqrt_scipy = csr_fenics2scipy(me.Rsqrt_petsc)
+
+        me.solve_Rsqrt_numpy = spla.factorized(me.Rsqrt_scipy)
+
+        # Regularization operator with lumped mass approximation for inverse mass matrix
+        me.R_lumped_scipy = me.Rsqrt_scipy @ (me.iML_scipy @ me.Rsqrt_scipy)
+        me.solve_R_lumped_scipy = spla.factorized(me.R_lumped_scipy)
+
+    def solve_ML_numpy(me, u_numpy):
+        return u_numpy / me.mass_lumps_numpy
+
+    def apply_R_numpy(me, u_numpy):
+        return me.Rsqrt_scipy @ me.solve_M_numpy(me.Rsqrt_scipy @ u_numpy)
+
+    def solve_R_numpy(me, v_numpy):
+        me.solve_Rsqrt_numpy(me.M_scipy @ me.solve_Rsqrt_numpy(v_numpy))
+
+    def make_M_hmatrix(me, bct):
+        return hpro.build_hmatrix_from_scipy_sparse_matrix(me.M_scipy, bct)
+
+    def make_Rsqrt_hmatrix(me, bct):
+        return hpro.build_hmatrix_from_scipy_sparse_matrix(me.Rsqrt_scipy, bct)
+
+    def make_R_lumped_hmatrix(me, bct):
+        return hpro.build_hmatrix_from_scipy_sparse_matrix(me.R_lumped_scipy, bct)
+
+    def make_R_hmatrix(me, bct, rtol=1e-7, atol=1e-14):
+        Rsqrt_hmatrix = me.make_Rsqrt_hmatrix(bct)
+        M_hmatrix = me.make_M_hmatrix(bct)
+        iM_hmatrix = M_hmatrix.inv(rtol=rtol, atol=atol)
+        R_hmatrix = hpro.h_mul(Rsqrt_hmatrix, hpro.h_mul(iM_hmatrix, Rsqrt_hmatrix, rtol=rtol, atol=atol), rtol=rtol, atol=atol).sym()
+        return R_hmatrix
+
+    def apply_R_petsc(me, u_petsc):
+        return me.numpy2petsc(me.apply_R_numpy(me.petsc2numpy(u_petsc)))
+
+    def solve_R_petsc(me, u_petsc):
+        return me.numpy2petsc(me.solve_R_numpy(me.petsc2numpy(u_petsc)))
+
+    def solve_Rsqrt_petsc(me, u_petsc):
+        return me.numpy2petsc(me.solve_Rsqrt_numpy(me.petsc2numpy(u_petsc)))
+
+    def solve_ML_petsc(me, u_petsc):
+        return me.numpy2petsc(me.solve_ML_numpy(me.petsc2numpy(u_petsc)))
+
+    def solve_M_petsc(me, u_petsc):
+        return me.numpy2petsc(me.solve_M_numpy(me.petsc2numpy(u_petsc)))
+
+    def petsc2numpy(me, u_petsc):
+        u_numpy = u_petsc[:]
+        return u_numpy
+
+    def numpy2petsc(me, u_numpy):
+        u_petsc = dl.Function(me.V).vector()
+        u_petsc[:] = u_numpy
+        return u_petsc
+
+
+def stokes_mesh_setup(mesh):
+    boundary_mesh = dl.BoundaryMesh(mesh, "exterior", True)
+    basal_mesh3D = dl.SubMesh(boundary_mesh, BasalBoundarySub())
+    r0 = 0.05
+    sig = 0.4
+    valleys = 4
+    valley_depth = 0.35
+    bump_height = 0.2
+    min_thickness = 0.08 / 8.
+    avg_thickness = 0.2 / 8.
+    theta = -np.pi / 2.
+    max_thickness = avg_thickness + (avg_thickness - min_thickness)
+    A_thickness = max_thickness - avg_thickness
+
+    dilitation = 1.e4
+    Length = 1.
+    Width = 1.
+    Length *= 2 * dilitation
+    Width *= 2 * dilitation
+    Radius = dilitation
+
+    coords = mesh.coordinates()
+    bcoords = boundary_mesh.coordinates()
+    subbcoords = basal_mesh3D.coordinates()
+    coord_sets = [coords, bcoords, subbcoords]
+
+    def topography(r, t):
+        zero = np.zeros(r.shape)
+        R0 = r0 * np.ones(r.shape)
+        return bump_height * np.exp(-(r / sig) ** 2) * (
+                    1. + valley_depth * np.sin(valleys * t - theta) * np.fmax(zero, (r - R0) / sig))
+
+    def depth(r, t):
+        zero = np.zeros(r.shape)
+        R0 = r0 * np.ones(r.shape)
+        return min_thickness - A_thickness * np.sin(valleys * t - theta) * np.exp(
+            -(r / sig) ** 2) * np.fmax(zero, (r - R0) / sig)
+
+    for k in range(len(coord_sets)):
+        for i in range(len(coord_sets[k])):
+            x, y, z = coord_sets[k][i]
+            r = np.sqrt(x ** 2 + y ** 2)
+            t = np.arctan2(y, x)
+            coord_sets[k][i, 2] = depth(r, t) * z + topography(r, t)
+            coord_sets[k][i] *= dilitation
+
+    # ------ generate 2D mesh from 3D boundary subset mesh
+    coords = basal_mesh3D.coordinates()[:, :2]
+    cells = [("triangle", basal_mesh3D.cells())]
+    mesh2D = meshio.Mesh(coords, cells)
+    mesh2D.write("mesh2D.xml")
+    basal_mesh2D = dl.Mesh("mesh2D.xml")
+
+    return mesh, basal_mesh3D, basal_mesh2D, Radius
+
+
+def function_space_prolongate_numpy(x_numpy, dim_Yh, inds_Xh_in_Yh):
+    y_numpy = np.zeros(dim_Yh)
+    y_numpy[inds_Xh_in_Yh] = x_numpy
+    return y_numpy
+
+def function_space_restrict_numpy(y_numpy, inds_Xh_in_Yh):
+    return y_numpy[inds_Xh_in_Yh].copy()
+
+def function_space_prolongate_petsc(x_petsc, Yh, inds_Xh_in_Yh):
+    y_petsc = dl.Function(Yh).vector()
+    y_petsc[:] = function_space_prolongate_numpy(x_petsc[:], Yh.dim(), inds_Xh_in_Yh)
+    return y_petsc
+
+def function_space_restrict_petsc(y_petsc, Xh, inds_Xh_in_Yh):
+    x_petsc = dl.Function(Xh).vector()
+    x_petsc[:] = function_space_restrict_numpy(y_petsc[:], inds_Xh_in_Yh)
+    return x_petsc
+
+def make_prolongation_and_restriction_operators(Vsmall, Vbig, inds_Vsmall_in_Vbig):
+    Vbig_to_Vsmall_numpy = lambda vb: function_space_restrict_numpy(vb, inds_Vsmall_in_Vbig)
+    Vsmall_to_Vbig_numpy = lambda vs: function_space_prolongate_numpy(vs, Vbig.dim(), inds_Vsmall_in_Vbig)
+
+    Vbig_to_Vsmall_petsc = lambda vb: function_space_restrict_petsc(vb, Vsmall, inds_Vsmall_in_Vbig)
+    Vsmall_to_Vbig_petsc = lambda vs: function_space_prolongate_petsc(vs, Vbig, inds_Vsmall_in_Vbig)
+
+    return Vbig_to_Vsmall_numpy, Vsmall_to_Vbig_numpy, Vbig_to_Vsmall_petsc, Vsmall_to_Vbig_petsc
+
+
 class StokesInverseProblemCylinder:
     def __init__(me,
                  mesh,
@@ -127,7 +322,7 @@ class StokesInverseProblemCylinder:
                  mtrue_string = 'm0 - (m0 / 7.)*std::cos((x[0]*x[0]+x[1]*x[1])*pi/(Radius*Radius))',
                  rel_correlation_Length = 0.05,
                  noise_type = 'relative_local',
-                 robin_bc=True
+                 reg_robin_bc=True
                  ):
         ########    INITIALIZE OPTIONS    ########
         me.boundary_markers = boundary_markers
@@ -137,81 +332,56 @@ class StokesInverseProblemCylinder:
         me.R_hmatrix      = None
         me.make_plots = make_plots
         me.save_plots = save_plots
-        me.robin_bc = robin_bc
+        me.reg_robin_bc = reg_robin_bc
         
         # forcing term
         grav  = 9.81           # acceleration due to gravity
         rho   = 910.0          # volumetric mass density of ice
 
         # rheology
-        n = 3.0
-        A = dl.Constant(1.e-16)
+        rheology_n = 3.0
+        rheology_A = dl.Constant(1.e-16)
 
         ########    MESH    ########
-        me.boundary_mesh = dl.BoundaryMesh(mesh, "exterior", True)
-        submesh_bottom = dl.SubMesh(me.boundary_mesh, BasalBoundarySub())
-        me.r0            = 0.05
-        me.sig           = 0.4
-        me.valleys       = 4
-        me.valley_depth  = 0.35
-        me.bump_height   = 0.2
-        me.min_thickness = 0.08 / 8.
-        me.avg_thickness = 0.2 / 8.
-        me.theta         = -np.pi/2.
-        me.max_thickness = me.avg_thickness + (me.avg_thickness - me.min_thickness) 
-        me.A_thickness   = me.max_thickness - me.avg_thickness
-        
-        dilitation = 1.e4
-        Length = 1.
-        Width  = 1.
-        Length *= 2*dilitation
-        Width  *= 2*dilitation
-        Radius  = dilitation
-
-        coords     = mesh.coordinates()
-        bcoords    = me.boundary_mesh.coordinates()
-        subbcoords = submesh_bottom.coordinates()
-        coord_sets = [coords, bcoords, subbcoords]
-
-        for k in range(len(coord_sets)):
-            for i in range(len(coord_sets[k])):
-                x,y,z = coord_sets[k][i]
-                r     = np.sqrt(x**2 + y**2)
-                t     = np.arctan2(y, x)
-                coord_sets[k][i,2] = me.depth(r,t)*z + me.topography(r,t)
-                coord_sets[k][i]  *= dilitation
-
+        me.mesh, me.basal_mesh3D, me.basal_mesh2D, me.Radius = stokes_mesh_setup(mesh)
 
         ########    FUNCTION SPACE    ########
         P1 = dl.FiniteElement("Lagrange", mesh.ufl_cell(), 1)
         P2 = dl.VectorElement("Lagrange", mesh.ufl_cell(), 2)
         TH = P2 * P1
-        Vh2 = dl.FunctionSpace(mesh, TH) # product space for state + adjoint
-        me.Vh1 = dl.FunctionSpace(mesh, 'Lagrange', 1)
-        me.Vbase3D = dl.FunctionSpace(submesh_bottom, 'Lagrange', 1)
-        Vh = [Vh2, me.Vh1, Vh2] # state, parameter, adjoint
-        me.Vh = Vh
+        me.Zh = dl.FunctionSpace(mesh, TH)                        # Zh:  state, also adjoint
+        me.Wh = dl.FunctionSpace(mesh, 'Lagrange', 1)             # Wh:  parameter, full 3D domain
+        me.Vh3 = dl.FunctionSpace(me.basal_mesh3D, 'Lagrange', 1) # Vh3: parameter, 2d basal manifold, 3d coords
+        me.Vh2 = dl.FunctionSpace(me.basal_mesh2D, 'Lagrange', 1) # Vh2: parameter, 2d basal flat space, 2d coords
+        me.Xh = [me.Zh, me.Wh, me.Zh]                             # Xh:  (state, parameter full 3D domain, adjoint)
 
-        #------ generate 2D mesh from 3D boundary subset mesh
-        coords = submesh_bottom.coordinates()[:,:2]
-        cells = [("triangle", submesh_bottom.cells())]
-        mesh2D = meshio.Mesh(coords, cells)
-        mesh2D.write("mesh2D.xml")
-        me.mesh = dl.Mesh("mesh2D.xml")
+        ########    TRANSFER OPERATORS BETWEEN PARAMETER FUNCTION SPACES    ########
+        pp_Vh3 = me.Vh3.tabulate_dof_coordinates()
+        pp_Vh2 = me.Vh2.tabulate_dof_coordinates()
+        # me.perm_Vh3_to_Vh2, me.perm_Vh2_to_Vh3 = permut(pp_Vh3[:,:2], pp_Vh2)
 
-        me.Vbase2D = dl.FunctionSpace(me.mesh, 'Lagrange', 1)
-        pp_Vbase3d = me.Vbase3D.tabulate_dof_coordinates()
-        pp_Vbase2d = me.Vbase2D.tabulate_dof_coordinates()
-        me.perm_Vbase3d_to_Vbase2d, me.perm_Vbase2d_to_Vbase3d = permut(pp_Vbase3d[:,:2], pp_Vbase2d)
+        pp_Wh = me.Wh.tabulate_dof_coordinates()
 
-        #
+        KDT_Wh = KDTree(pp_Wh)
+        me.inds_Vh3_in_Wh = KDT_Wh.query(pp_Vh3)[1]
+        if np.linalg.norm(pp_Vh3 - pp_Wh[me.inds_Vh3_in_Wh, :]) / np.linalg.norm(pp_Vh3) > 1.e-12:
+            warnings.warn('problem with basal function space inclusion')
 
-        pp_Vh1 = me.Vh1.tabulate_dof_coordinates()
+        KDT_Vh3 = KDTree(pp_Vh3)
+        me.inds_Vh2_in_Vh3 = KDT_Vh3.query(pp_Vh2)[1]
+        if np.linalg.norm(pp_Vh2 - pp_Vh3[me.inds_Vh2_in_Vh3, :]) / np.linalg.norm(pp_Vh2) > 1.e-12:
+            warnings.warn('inconsistency between manifold basal mesh and flat basal mesh')
 
-        KDT = KDTree(pp_Vh1)
-        me.basal_inds = KDT.query(pp_Vbase3d)[1]
-        if np.linalg.norm(pp_Vbase3d - pp_Vh1[me.basal_inds, :]) > 1.e-10:
-            warnings.warn('problem with basal_inds')
+        me.inds_Vh2_in_Wh = me.inds_Vh3_in_Wh[me.inds_Vh2_in_Vh3]
+
+        me.Wh_to_Vh3_numpy, me.Vh3_to_Wh_numpy, me.Wh_to_Vh3_petsc, me.Vh3_to_Wh_petsc = \
+            make_prolongation_and_restriction_operators(me.Vh3, me.Wh, me.inds_Vh3_in_Wh)
+
+        me.Vh3_to_Vh2_numpy, me.Vh2_to_Vh3_numpy, me.Vh3_to_Vh2_petsc, me.Vh2_to_Vh3_petsc = \
+            make_prolongation_and_restriction_operators(me.Vh2, me.Vh3, me.inds_Vh2_in_Vh3)
+
+        me.Wh_to_Vh2_numpy, me.Vh2_to_Wh_numpy, me.Wh_to_Vh2_petsc, me.Vh2_to_Wh_petsc = \
+            make_prolongation_and_restriction_operators(me.Vh2, me.Wh, me.inds_Vh2_in_Wh)
 
         #
 
@@ -227,6 +397,7 @@ class StokesInverseProblemCylinder:
         me.N = me.V.dim()
         me.d = me.V.mesh().geometric_dimension()
 
+        # hp.PDEVariationalProblem
 
         # ==== SET UP FORWARD MODEL ====
         # Forcing term
@@ -234,7 +405,7 @@ class StokesInverseProblemCylinder:
 
         ds = dl.Measure("ds", domain=mesh, subdomain_data=boundary_markers)
         me.ds = ds
-        normal = dl.FacetNormal(mesh)
+        normal = dl.FacetNormal(me.mesh)
         # Strongly enforced Dirichlet conditions. The no outflow condition will be enforced weakly, via a penalty parameter.
         bc  = []
         bc0 = []
@@ -242,35 +413,27 @@ class StokesInverseProblemCylinder:
         # hp.PDEVariationalProblem
 
         # Define the Nonlinear Stokes varfs
-        nonlinearStokesFunctional = NonlinearStokesForm(n, A, normal, ds(1), f, lam=lam)
+        nonlinearStokesFunctional = NonlinearStokesForm(rheology_n, rheology_A, normal, ds(1), f, lam=lam)
         
         # Create one-hot vector on pressure dofs
-        constraint_vec = dl.interpolate(dl.Constant((0.,0., 0., 1.)), Vh2).vector()
+        constraint_vec = dl.interpolate(dl.Constant((0.,0., 0., 1.)), me.Zh).vector()
         
-        me.pde = EnergyFunctionalPDEVariationalProblem(Vh, nonlinearStokesFunctional, constraint_vec, bc, bc0)
+        me.pde = EnergyFunctionalPDEVariationalProblem(me.Xh, nonlinearStokesFunctional, constraint_vec, bc, bc0)
         me.pde.fwd_solver.parameters["rel_tolerance"] = 1.e-8
         me.pde.fwd_solver.parameters["print_level"] = 1
         me.pde.fwd_solver.parameters["LS"]["max_backtracking_iter"] = 20
         me.pde.fwd_solver.solver = dl.PETScLUSolver("mumps")
-        # ==== SET UP PRIOR DISTRIBUTION ====
-        # Recall from Daon Stadler 2017
-        # "The covariance function of the free-space
-        # operator has a characteristic length of
-        # sqrt(8(p - d / 2)) sqrt( gamma/delta )
-        # meaning that that distance away from a source
-        # x, the covariance decays to 0.1 of its 
-        # maximal value
-        # d - dimension of problem
-        # A^(-p) - operator, A laplacian-like
+
 
         me.prior_mean_val = m0
-        me.prior_mean     = dl.interpolate(dl.Constant(me.prior_mean_val), me.Vbase3D).vector()
-        me.m_func = dl.Expression(mtrue_string,\
-                                  element=Vh[hp.PARAMETER].ufl_element(), m0=me.prior_mean_val,Radius=Radius)
-        mtrue   = dl.interpolate(me.m_func, Vh[hp.PARAMETER]).vector()
+        me.prior_mean     = dl.interpolate(dl.Constant(me.prior_mean_val), me.Vh3).vector()
+        me.m_func = dl.Expression(mtrue_string, element=me.Wh.ufl_element(), m0=me.prior_mean_val,Radius=me.Radius)
+        me.mtrue   = dl.interpolate(me.m_func, me.Wh).vector()
 
         me.rel_correlation_Length = rel_correlation_Length # 0.1
-        me.correlation_Length = Radius * me.rel_correlation_Length
+        me.correlation_Length = me.Radius * me.rel_correlation_Length
+
+        me.REGOP = BiLaplacianRegularizationOperator(me.gamma, me.correlation_Length, me.Vbase2D, robin_bc=me.reg_robin_bc)
 
         ########    TRUE BASAL FRICTION FIELD (INVERSION PARAMETER)    ########
 
@@ -373,12 +536,7 @@ class StokesInverseProblemCylinder:
         ubase2d_trial = dl.TrialFunction(me.Vbase2D)
         vbase2d_test = dl.TestFunction(me.Vbase2D)
 
-        me.kbase2d_form = dl.inner(dl.grad(ubase2d_trial), dl.grad(vbase2d_test)) * dl.dx
-        me.mbase2d_form = dl.inner(ubase2d_trial, vbase2d_test) * dl.dx
-        me.robinbase2d_form = dl.inner(ubase2d_trial, vbase2d_test) * dl.ds
 
-        me.Mbase2d_petsc = dl.assemble(me.mbase2d_form)
-        me.Mbase2d_scipy = csr_scipy2fenics(me.Mbase2d_petsc)
 
         me.HRsqrt_petsc = None
         me.HRsqrt_scipy = None
@@ -413,11 +571,11 @@ class StokesInverseProblemCylinder:
 
         preconditioner_hmatrix = H_pch.inv()
 
-    def apply_HR_numpy(me, ubase2d_numpy):
-        return me.HRsqrt_scipy @ me.solve_Mbase2d_numpy(me.HRsqrt_scipy @ ubase2d_numpy)
-
-    def solve_HR_numpy(me, vbase2d_numpy):
-        me.solve_HRsqrt_numpy(me.Mbase2d_scipy @ me.solve_HRsqrt_numpy(vbase2d_numpy))
+    # def apply_HR_numpy(me, ubase2d_numpy):
+    #     return me.HRsqrt_scipy @ me.solve_Mbase2d_numpy(me.HRsqrt_scipy @ ubase2d_numpy)
+    #
+    # def solve_HR_numpy(me, vbase2d_numpy):
+    #     me.solve_HRsqrt_numpy(me.Mbase2d_scipy @ me.solve_HRsqrt_numpy(vbase2d_numpy))
 
     def get_optimization_variable(me):
         return me.Vh1_to_Vbase2d_numpy(me.x[1][:])
@@ -433,13 +591,13 @@ class StokesInverseProblemCylinder:
         me.H.gauss_newton_approx  = True
         me.Hd_proj = proj_op(me.Hd, me.prior.P)
         me.H_proj  = proj_op(me.H , me.prior.P)
-        me.update_regularization()
+        me.REGOP = BiLaplacianRegularizationOperator(me.gamma, me.correlation_Length, me.Vbase2D, robin_bc=me.reg_robin_bc)
 
-    def update_regularization(me):
-        me.Rsqrt_petsc = dl.assemble(me.base2d_bilaplacian_form)
-        me.Rsqrt_scipy = csr_fenics2scipy(me.Rsqrt_petsc)
-        me.solve_Rsqrt_numpy = spla.factorized(me.Rsqrt_scipy)
-        me.solve_Mbase2d_numpy = spla.factorized(me.Mbase2d_scipy)
+    # def update_regularization(me):
+    #     me.Rsqrt_petsc = dl.assemble(me.base2d_bilaplacian_form)
+    #     me.Rsqrt_scipy = csr_fenics2scipy(me.Rsqrt_petsc)
+    #     me.solve_Rsqrt_numpy = spla.factorized(me.Rsqrt_scipy)
+    #     me.solve_Mbase2d_numpy = spla.factorized(me.Mbase2d_scipy)
 
     def cost(me):
         return me.model.cost(me.x)
@@ -477,20 +635,20 @@ class StokesInverseProblemCylinder:
         me.H.gauss_newton_approx = old_gn_bool
         return vbase2d_numpy
 
-    @property
-    def delta(me):
-        return 4. * me.gamma / (me.correlation_Length ** 2)
+    # @property
+    # def delta(me):
+    #     return 4. * me.gamma / (me.correlation_Length ** 2)
+    #
+    # @property
+    # def robin_coeff(me):
+    #     if me.robin_bc:
+    #         return me.gamma * np.sqrt(me.delta / me.gamma) / 1.42
+    #     else:
+    #         return 0.
 
-    @property
-    def robin_coeff(me):
-        if me.robin_bc:
-            return me.gamma * np.sqrt(me.delta / me.gamma) / 1.42
-        else:
-            return 0.
-
-    @property
-    def base2d_bilaplacian_form(me):
-        return dl.Constant(me.gamma) * me.kbase2d_form + dl.Constant(me.delta) * me.mbase2d_form + dl.Constant(me.robin_coeff) * me.robinbase2d_form
+    # @property
+    # def base2d_bilaplacian_form(me):
+    #     return dl.Constant(me.gamma) * me.kbase2d_form + dl.Constant(me.delta) * me.mbase2d_form + dl.Constant(me.robin_coeff) * me.robinbase2d_form
 
 
     def set_gamma(me, new_gamma):
@@ -589,49 +747,6 @@ class StokesInverseProblemCylinder:
         ydl = me.apply_Rinv_petsc(xdl)
         return ydl.get_local()
 
-    def Vh1_to_Vbase3d_numpy(me, u_numpy):
-        ubase3d_numpy = np.zeros(me.Vbase3D.dim())
-        ubase3d_numpy[:] = u_numpy[me.basal_inds]
-        return ubase3d_numpy
-
-    def Vbase3d_to_Vh1_numpy(me, ubase3d_numpy):
-        u_numpy = np.zeros(me.Vh1.dim())
-        u_numpy[me.basal_inds] = ubase3d_numpy
-        return u_numpy
-
-    def Vh1_to_Vbase2d_numpy(me, u_numpy):
-        return me.Vbase3d_to_Vbase2d_numpy(me.Vh1_to_Vbase3d_numpy(u_numpy))
-
-    def Vbase2d_to_Vh1_numpy(me, ubase2d_numpy):
-        return me.Vbase3d_to_Vh1_numpy(me.Vbase2d_to_Vbase3d_numpy(ubase2d_numpy))
-
-    def Vh1_to_Vbase2d_petsc(me, u_petsc):
-        ubase2d_petsc = dl.Function(me.Vbase2D).vector()
-        ubase2d_petsc[:] = me.Vh1_to_Vbase2d_numpy(u_petsc[:])
-        return ubase2d_petsc
-
-    def Vbase2d_to_Vh1_petsc(me, ubase2d_petsc):
-        u_petsc = dl.Function(me.Vh1).vector()
-        u_petsc[:] = me.Vbase2d_to_Vh1_numpy(ubase2d_petsc[:])
-        return u_petsc
-
-    def Vbase2d_to_Vbase3d_numpy(me, ubase2d_numpy):
-        ubase3d_numpy = ubase2d_numpy[me.perm_Vbase2d_to_Vbase3d]
-        return ubase3d_numpy
-
-    def Vbase3d_to_Vbase2d_numpy(me, ubase3d_numpy):
-        ubase2d_numpy = ubase3d_numpy[me.perm_Vbase3d_to_Vbase2d]
-        return ubase2d_numpy
-
-    def Vbase2d_to_Vbase3d_petsc(me, ubase2d_petsc):
-        ubase_3d_petsc = dl.Vector(ubase2d_petsc)
-        ubase_3d_petsc[:] = me.Vbase2d_to_Vbase3d_numpy(ubase2d_petsc[:])
-        return ubase_3d_petsc
-
-    def Vbase3d_to_Vbase2d_petsc(me, ubase3d_petsc):
-        ubase_2d_petsc = dl.Vector(ubase3d_petsc)
-        ubase_2d_petsc[:] = me.Vbase3d_to_Vbase2d_numpy(ubase3d_petsc[:])
-        return ubase_2d_petsc
 
     def apply_Hd_petsc(me, x):
        Px = dl.Vector(x)
@@ -644,16 +759,6 @@ class StokesInverseProblemCylinder:
 
     def apply_Minv_petsc(me, x):
         return diagSolve(me.Mdiag, x)
-
-    def topography(me, r, t):
-        zero = np.zeros(r.shape)
-        R0   = me.r0*np.ones(r.shape)
-        return me.bump_height*np.exp(-(r/me.sig)**2)*(1.+me.valley_depth*np.sin(me.valleys*t-me.theta)*np.fmax(zero, (r-R0)/me.sig))
-    
-    def depth(me, r, t):
-         zero = np.zeros(r.shape)
-         R0   = me.r0*np.ones(r.shape)
-         return me.min_thickness - me.A_thickness*np.sin(me.valleys*t-me.theta)*np.exp(-(r/me.sig)**2)*np.fmax(zero, (r-R0)/me.sig)
 
 
     @property
