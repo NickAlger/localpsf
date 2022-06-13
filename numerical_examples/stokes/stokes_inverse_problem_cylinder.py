@@ -426,7 +426,8 @@ class StokesInverseProblemCylinder:
 
 
         me.prior_mean_val = m0
-        me.prior_mean     = dl.interpolate(dl.Constant(me.prior_mean_val), me.Vh3).vector()
+        me.prior_mean_Vh3_petsc     = dl.interpolate(dl.Constant(me.prior_mean_val), me.Vh3).vector()
+        me.prior_mean_Vh2_petsc = me.Vh3_to_Vh2_petsc(me.prior_mean_Vh3_petsc)
         me.m_func = dl.Expression(mtrue_string, element=me.Wh.ufl_element(), m0=me.prior_mean_val,Radius=me.Radius)
         me.mtrue   = dl.interpolate(me.m_func, me.Wh).vector()
 
@@ -519,6 +520,7 @@ class StokesInverseProblemCylinder:
         me.prior = None
         me.m_func = None
         me.model = None
+        me.REGOP = None
 
         me.set_gamma(gamma)
 
@@ -578,10 +580,10 @@ class StokesInverseProblemCylinder:
     #     me.solve_HRsqrt_numpy(me.Mbase2d_scipy @ me.solve_HRsqrt_numpy(vbase2d_numpy))
 
     def get_optimization_variable(me):
-        return me.Vh1_to_Vbase2d_numpy(me.x[1][:])
+        return me.Wh_to_Vh2_numpy(me.x[1][:])
 
     def set_optimization_variable(me, new_m2d_numpy):
-        me.x[1][:] = me.Vbase2d_to_Vh1_numpy(new_m2d_numpy)
+        me.x[1][:] = me.Vh2_to_Wh_numpy(new_m2d_numpy)
         me.model.solveFwd(me.x[0], me.x)
         me.model.solveAdj(me.x[2], me.x)
         me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx = True)
@@ -591,7 +593,6 @@ class StokesInverseProblemCylinder:
         me.H.gauss_newton_approx  = True
         me.Hd_proj = proj_op(me.Hd, me.prior.P)
         me.H_proj  = proj_op(me.H , me.prior.P)
-        me.REGOP = BiLaplacianRegularizationOperator(me.gamma, me.correlation_Length, me.Vbase2D, robin_bc=me.reg_robin_bc)
 
     # def update_regularization(me):
     #     me.Rsqrt_petsc = dl.assemble(me.base2d_bilaplacian_form)
@@ -599,41 +600,74 @@ class StokesInverseProblemCylinder:
     #     me.solve_Rsqrt_numpy = spla.factorized(me.Rsqrt_scipy)
     #     me.solve_Mbase2d_numpy = spla.factorized(me.Mbase2d_scipy)
 
+    def misfit_cost(me):
+        return me.model.misfit.cost(me.x)
+        # return me.model.cost(me.x)
+
+    def regularization_cost(me):
+        m_numpy = me.get_optimization_variable()
+        m0_numpy = me.prior_mean_Vh2_petsc[:]
+        dm_numpy = m_numpy - m0_numpy
+        return 0.5 * np.dot(dm_numpy, me.REGOP.apply_R_numpy(dm_numpy))
+
+
     def cost(me):
-        return me.model.cost(me.x)
+        misfit_cost = me.misfit_cost()
+        reg_cost = me.regularization_cost()
+        total_cost = misfit_cost + reg_cost
+        return [total_cost, reg_cost, misfit_cost]
+
+    def misfit_gradient(me):
+        g_misfit_Wh_petsc = dl.Function(me.Wh).vector()
+        me.model.evalGradientParameter(me.x, g_misfit_Wh_petsc, misfit_only=True)
+        g_misfit_Vh2_numpy = me.Wh_to_Vh2_petsc(g_misfit_Wh_petsc)[:]
+        return g_misfit_Vh2_numpy
+
+    def regularization_gradient(me):
+        m_numpy = me.get_optimization_variable()
+        m0_numpy = me.prior_mean_Vh2_petsc[:]
+        dm_numpy = m_numpy - m0_numpy
+        return me.REGOP.apply_R_numpy(dm_numpy)
 
     def gradient(me):
-        g_Vh1_petsc = dl.Vector()
-        g_Vh1_petsc.init(me.x[hp.PARAMETER].size())
-        me.model.evalGradientParameter(me.x, g_Vh1_petsc)
-        g_Vbase2d_numpy = me.Vh1_to_Vbase2d_numpy(g_Vh1_petsc[:])
-        return g_Vbase2d_numpy
+        return me.misfit_gradient() + me.regularization_gradient()
 
-    def apply_hessian(me, ubase2d_numpy): # v = H * u
+    def apply_misfit_hessian_helper(me, u_Vh2_numpy):
+        u_Wh_petsc = dl.Function(me.Wh).vector()
+        u_Wh_petsc[:] = me.Vh2_to_Wh_numpy(u_Vh2_numpy)
+
+        v_Wh_petsc = dl.Function(me.Wh).vector()
+        me.Hd.mult(u_Wh_petsc, v_Wh_petsc)
+        v_Vh2_numpy = me.Wh_to_Vh2_petsc(u_Wh_petsc)[:]
+
+        return v_Vh2_numpy
+
+    def apply_misfit_hessian(me, u_Vh2_numpy): # v = H * u
         old_gn_bool = me.H.gauss_newton_approx
         me.H.gauss_newton_approx = False
 
-        u_petsc = dl.Function(me.Vh1).vector()
-        u_petsc[:] = me.Vbase2d_to_Vh1_numpy(ubase2d_numpy)
-        v_petsc = dl.Function(me.Vh1).vector()
-        me.H.mult(u_petsc, v_petsc)
-        vbase2d_numpy = me.Vh1_to_Vbase2d_numpy(v_petsc)
+        v_Vh2_numpy = me.apply_misfit_hessian_helper(u_Vh2_numpy)
 
         me.H.gauss_newton_approx = old_gn_bool
-        return vbase2d_numpy
+        return v_Vh2_numpy
 
-    def apply_gauss_newton_hessian(me, ubase2d_numpy):  # v = Hgn * u
+    def apply_misfit_gauss_newton_hessian(me, u_Vh2_numpy): # v = H * u
         old_gn_bool = me.H.gauss_newton_approx
         me.H.gauss_newton_approx = True
 
-        u_petsc = dl.Function(me.Vh1).vector()
-        u_petsc[:] = me.Vbase2d_to_Vh1_numpy(ubase2d_numpy)
-        v_petsc = dl.Function(me.Vh1).vector()
-        me.H.mult(u_petsc, v_petsc)
-        vbase2d_numpy = me.Vh1_to_Vbase2d_numpy(v_petsc)
+        v_Vh2_numpy = me.apply_misfit_hessian_helper(u_Vh2_numpy)
 
         me.H.gauss_newton_approx = old_gn_bool
-        return vbase2d_numpy
+        return v_Vh2_numpy
+
+    def apply_regularization_hessian(me, u_Vh2_numpy):
+        return me.REGOP.apply_R_numpy(u_Vh2_numpy)
+
+    def apply_hessian(me, u_Vh2_numpy):
+        return me.apply_misfit_hessian(me, u_Vh2_numpy) + me.apply_regularization_hessian(me, u_Vh2_numpy)
+
+    def apply_gauss_newton_hessian(me, u_Vh2_numpy):
+        return me.apply_misfit_gauss_newton_hessian(me, u_Vh2_numpy) + me.apply_regularization_hessian(me, u_Vh2_numpy)
 
     # @property
     # def delta(me):
@@ -655,10 +689,12 @@ class StokesInverseProblemCylinder:
         me.gamma  = new_gamma
         # me.delta = 4.*me.gamma / (me.correlation_Length**2)
 
-        me.priorVsub  = hp.BiLaplacianPrior(me.Vbase3D, me.gamma, me.delta, mean=me.prior_mean, robin_bc=me.robin_bc)
+        me.priorVsub  = hp.BiLaplacianPrior(me.Vbase3D, me.gamma, me.delta, mean=me.prior_mean_Vh3_petsc, robin_bc=me.robin_bc)
         me.prior      = ManifoldPrior(me.Vh[hp.PARAMETER], me.Vbase3D, me.boundary_mesh, me.priorVsub)
 
         me.model = hp.Model(me.pde, me.prior, me.misfit)
+
+        me.REGOP = BiLaplacianRegularizationOperator(me.gamma, me.correlation_Length, me.Vh2, robin_bc=me.reg_robin_bc)
 
     def data_inner_product(me, x, y): # <x, y>_datanorm = x^T W y
         W = me.misfit.W
