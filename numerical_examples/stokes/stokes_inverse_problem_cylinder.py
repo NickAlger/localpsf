@@ -386,7 +386,7 @@ class StokesInverseProblemCylinder:
         #
 
 
-        me.V  = me.Vbase2D
+        me.V  = me.Vh2
         test  = dl.TestFunction(me.V)
         trial = dl.TrialFunction(me.V)
         
@@ -434,7 +434,7 @@ class StokesInverseProblemCylinder:
         me.rel_correlation_Length = rel_correlation_Length # 0.1
         me.correlation_Length = me.Radius * me.rel_correlation_Length
 
-        me.REGOP = BiLaplacianRegularizationOperator(me.gamma, me.correlation_Length, me.Vbase2D, robin_bc=me.reg_robin_bc)
+        me.REGOP = BiLaplacianRegularizationOperator(me.gamma, me.correlation_Length, me.Vh2, robin_bc=me.reg_robin_bc)
 
         ########    TRUE BASAL FRICTION FIELD (INVERSION PARAMETER)    ########
 
@@ -553,25 +553,25 @@ class StokesInverseProblemCylinder:
         me.iH_pch = None
 
 
-    def build_preconditioner(me, num_neighbors=10, num_batches=6, tau=3.0, hmatrix_tol=1e-5):
-        print('building PCH preconditioner')
-        PCK = ProductConvolutionKernel(me.Vbase2D, me.Vbase2D, self.IP.apply_Hd_petsc, self.IP.apply_Hd_petsc,
-                                       num_batches, num_batches,
-                                       tau_rows=tau, tau_cols=tau,
-                                       num_neighbors_rows=num_neighbors,
-                                       num_neighbors_cols=num_neighbors)
-        Hd_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol=hmatrix_tol)
-
-        # Rebuild reg hmatrix with same block cluster tree as PCH data misfit hmatrix
-        print('Building Regularization H-Matrix')
-        R_scipy = self.parameters["Rscipy"]
-        R_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(R_scipy, Hd_pch_nonsym.bct)
-
-        # ----- build spd approximation of Hd, with cutoff given by a multiple of the minimum eigenvalue of the regularization operator
-        Hd_pch = Hd_pch_nonsym.spd()
-        H_pch = Hd_pch + R_hmatrix
-
-        preconditioner_hmatrix = H_pch.inv()
+    # def build_preconditioner(me, num_neighbors=10, num_batches=6, tau=3.0, hmatrix_tol=1e-5):
+    #     print('building PCH preconditioner')
+    #     PCK = ProductConvolutionKernel(me.Vbase2D, me.Vbase2D, self.IP.apply_Hd_petsc, self.IP.apply_Hd_petsc,
+    #                                    num_batches, num_batches,
+    #                                    tau_rows=tau, tau_cols=tau,
+    #                                    num_neighbors_rows=num_neighbors,
+    #                                    num_neighbors_cols=num_neighbors)
+    #     Hd_pch_nonsym, extras = make_hmatrix_from_kernel(PCK, hmatrix_tol=hmatrix_tol)
+    #
+    #     # Rebuild reg hmatrix with same block cluster tree as PCH data misfit hmatrix
+    #     print('Building Regularization H-Matrix')
+    #     R_scipy = self.parameters["Rscipy"]
+    #     R_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(R_scipy, Hd_pch_nonsym.bct)
+    #
+    #     # ----- build spd approximation of Hd, with cutoff given by a multiple of the minimum eigenvalue of the regularization operator
+    #     Hd_pch = Hd_pch_nonsym.spd()
+    #     H_pch = Hd_pch + R_hmatrix
+    #
+    #     preconditioner_hmatrix = H_pch.inv()
 
     # def apply_HR_numpy(me, ubase2d_numpy):
     #     return me.HRsqrt_scipy @ me.solve_Mbase2d_numpy(me.HRsqrt_scipy @ ubase2d_numpy)
@@ -664,10 +664,10 @@ class StokesInverseProblemCylinder:
         return me.REGOP.apply_R_numpy(u_Vh2_numpy)
 
     def apply_hessian(me, u_Vh2_numpy):
-        return me.apply_misfit_hessian(me, u_Vh2_numpy) + me.apply_regularization_hessian(me, u_Vh2_numpy)
+        return me.apply_misfit_hessian(u_Vh2_numpy) + me.apply_regularization_hessian(u_Vh2_numpy)
 
     def apply_gauss_newton_hessian(me, u_Vh2_numpy):
-        return me.apply_misfit_gauss_newton_hessian(me, u_Vh2_numpy) + me.apply_regularization_hessian(me, u_Vh2_numpy)
+        return me.apply_misfit_gauss_newton_hessian(u_Vh2_numpy) + me.apply_regularization_hessian(u_Vh2_numpy)
 
     # @property
     # def delta(me):
@@ -689,8 +689,8 @@ class StokesInverseProblemCylinder:
         me.gamma  = new_gamma
         # me.delta = 4.*me.gamma / (me.correlation_Length**2)
 
-        me.priorVsub  = hp.BiLaplacianPrior(me.Vbase3D, me.gamma, me.delta, mean=me.prior_mean_Vh3_petsc, robin_bc=me.robin_bc)
-        me.prior      = ManifoldPrior(me.Vh[hp.PARAMETER], me.Vbase3D, me.boundary_mesh, me.priorVsub)
+        me.priorVsub  = hp.BiLaplacianPrior(me.Vh3, me.gamma, me.delta, mean=me.prior_mean_Vh3_petsc, robin_bc=me.robin_bc)
+        me.prior      = ManifoldPrior(me.Wh, me.Vh3, me.boundary_mesh, me.priorVsub)
 
         me.model = hp.Model(me.pde, me.prior, me.misfit)
 
