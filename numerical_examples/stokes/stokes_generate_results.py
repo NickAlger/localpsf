@@ -56,12 +56,12 @@ boundary_markers = dl.MeshFunction("size_t", mesh, mfile_name+"_facet_region.xml
 nondefault_StokesIP_options = {'mesh': mesh, 'boundary_markers': boundary_markers,
                                'load_fwd': False,
                                'lam': lam, #1.e10,
-                               'rel_correlation_Length': rel_correlation_Length,
+                               'rel_correlation_length': rel_correlation_Length,
                                'noise_level': noise_level,
-                               'm0': 1.5 * 7.,
+                               'm0_constant_value': 1.5 * 7.,
                                'mtrue_string': 'm0 - (m0 / 7.)*std::cos(2.*x[0]*pi/Radius)',
                                'noise_type': noise_type,
-                               'robin_bc': True # False
+                               'reg_robin_bc': True # False
                                }
 
 parameters = ReducedSpaceNewtonCG_ParameterList()
@@ -78,15 +78,67 @@ nondefault_StokesIP_options['gamma'] = gamma0
 
 StokesIP = StokesInverseProblemCylinder(**nondefault_StokesIP_options)
 
-m0_original = dl.interpolate(dl.Constant(1.5 * 7.), StokesIP.Vh[1]).vector()
-m0_numpy = m0_original[:]
-m0 = dl.Function(StokesIP.Vh[1]).vector()
+# FINITE DIFFERENCE CHECK
+
+# m0 = StokesIP.m0_Vh2_numpy
+# dm0 = np.random.rand(StokesIP.Vh2.dim())
+# dm0 = dm0 * np.linalg.norm(m0) / np.linalg.norm(dm0)
+# m1 = m0 + dm0
+
+m1 = StokesIP.m0_Vh2_numpy
+
+StokesIP.set_optimization_variable(m1)
+J1_total, J1_reg, J1_misfit = StokesIP.cost()
+g1_total = StokesIP.gradient()
+g1_reg = StokesIP.regularization_gradient()
+g1_misfit = StokesIP.misfit_gradient()
+
+dm = dl.interpolate(dl.Constant(1.0), StokesIP.Vh2).vector()[:]
+# dm = np.random.rand(StokesIP.Vh2.dim())
+
+dg_total = StokesIP.apply_hessian(dm)
+dg_reg = StokesIP.apply_regularization_hessian(dm)
+dg_misfit = StokesIP.apply_misfit_hessian(dm)
+
+
+s = 1e-5
+m2 = m1 + s * dm
+
+StokesIP.set_optimization_variable(m2)
+J2_total, J2_reg, J2_misfit = StokesIP.cost()
+g2_total = StokesIP.gradient()
+g2_reg = StokesIP.regularization_gradient()
+g2_misfit = StokesIP.misfit_gradient()
+
+dJ_total = np.dot(g1_total, dm)
+dJ_reg = np.dot(g1_reg, dm)
+dJ_misfit = np.dot(g1_misfit, dm)
+dJ_total_diff = (J2_total - J1_total) / s
+dJ_reg_diff = (J2_reg - J1_reg) / s
+dJ_misfit_diff = (J2_misfit - J1_misfit) / s
+err_grad_total = np.abs(dJ_total - dJ_total_diff) / np.abs(dJ_total_diff)
+err_grad_reg = np.abs(dJ_reg - dJ_reg_diff) / np.abs(dJ_reg_diff)
+err_grad_misfit = np.abs(dJ_misfit - dJ_misfit_diff) / np.abs(dJ_misfit_diff)
+print('s=', s, ', err_grad_total=', err_grad_total, ', err_grad_reg=', err_grad_reg, ', err_grad_misfit=', err_grad_misfit)
+
+dg_total_diff = (g2_total - g1_total) / s
+dg_reg_diff = (g2_reg - g1_reg) / s
+dg_misfit_diff = (g2_misfit - g1_misfit) / s
+err_hess_total = np.linalg.norm(dg_total - dg_total_diff) / np.linalg.norm(dg_total_diff)
+err_hess_reg = np.linalg.norm(dg_reg - dg_reg_diff) / np.linalg.norm(dg_reg_diff)
+err_hess_misfit = np.linalg.norm(dg_misfit - dg_misfit_diff) / np.linalg.norm(dg_misfit_diff)
+print('s=', s, ', err_hess_total=', err_hess_total, ', err_hess_reg=', err_hess_reg, ', err_hess_misfit=', err_hess_misfit)
+
+# m0_original = dl.interpolate(dl.Constant(1.5 * 7.), StokesIP.Vh[1]).vector()
+# m0_numpy = m0_original[:]
+# m0 = dl.Function(StokesIP.Wh).vector()
 
 def solve_inverse_problem(gamma, use_PCH_precond=True):
     StokesIP.set_gamma(gamma)
 
-    m0[:] = m0_numpy
-    StokesIP.set_parameter(m0)
+    # m0[:] = m0_numpy
+    # StokesIP.set_parameter(m0)
+    StokesIP.reset_m()
 
     K = csr_fenics2scipy(StokesIP.priorVsub.A)
     M = csr_fenics2scipy(StokesIP.priorVsub.M)

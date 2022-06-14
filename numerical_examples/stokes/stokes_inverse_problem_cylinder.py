@@ -140,7 +140,7 @@ class BiLaplacianRegularizationOperator:
 
         # Mass matrix
         me.M_petsc = dl.assemble(me.mass_form)
-        me.M_scipy = csr_scipy2fenics(me.M_petsc)
+        me.M_scipy = csr_fenics2scipy(me.M_petsc)
 
         me.solve_M_numpy = spla.factorized(me.M_scipy)
 
@@ -154,7 +154,7 @@ class BiLaplacianRegularizationOperator:
 
         me.mass_lumps_numpy = me.mass_lumps_petsc[:]
         me.ML_scipy = sps.dia_matrix(me.mass_lumps_numpy).tocsr()
-        me.iML_scipy = sps.dia_matrix(1.0 / me.mass_lumps_numpy).tocsr()
+        me.iML_scipy = sps.diags([1.0 / me.mass_lumps_numpy], [0]).tocsr()
         me.iML_petsc = csr_scipy2fenics(me.iML_scipy)
 
         # Regularization square root
@@ -318,7 +318,7 @@ class StokesInverseProblemCylinder:
                  # might need to use larger value of lambda for finer mesh.
                  lam=1.e14,   # no-outflow penalty parameter to enforce u^T n = 0 on basal boundary 
                  gamma=6.e1,  
-                 m0 = 7., 
+                 m0_constant_value = 7.,
                  mtrue_string = 'm0 - (m0 / 7.)*std::cos((x[0]*x[0]+x[1]*x[1])*pi/(Radius*Radius))',
                  rel_correlation_length = 0.1,
                  noise_type = 'relative_local',
@@ -333,6 +333,7 @@ class StokesInverseProblemCylinder:
         me.make_plots = make_plots
         me.save_plots = save_plots
         me.reg_robin_bc = reg_robin_bc
+        me.m0_constant_value = m0_constant_value
 
         ########    MESH    ########
         me.mesh, me.boundary_mesh, me.basal_mesh3D, me.basal_mesh2D, me.Radius = stokes_mesh_setup(mesh)
@@ -359,9 +360,11 @@ class StokesInverseProblemCylinder:
         if np.linalg.norm(pp_Vh3 - pp_Wh[me.inds_Vh3_in_Wh, :]) / np.linalg.norm(pp_Vh3) > 1.e-12:
             warnings.warn('problem with basal function space inclusion')
 
-        KDT_Vh3 = KDTree(pp_Vh3)
-        me.inds_Vh2_in_Vh3 = KDT_Vh3.query(pp_Vh2)[1]
-        if np.linalg.norm(pp_Vh2 - pp_Vh3[me.inds_Vh2_in_Vh3, :]) / np.linalg.norm(pp_Vh2) > 1.e-12:
+        pp_Vh3_2D = pp_Vh3[:,:2]
+
+        KDT_Vh3_2D = KDTree(pp_Vh3_2D)
+        me.inds_Vh2_in_Vh3 = KDT_Vh3_2D.query(pp_Vh2)[1]
+        if np.linalg.norm(pp_Vh2 - pp_Vh3[me.inds_Vh2_in_Vh3, :2]) / np.linalg.norm(pp_Vh2) > 1.e-12:
             warnings.warn('inconsistency between manifold basal mesh and flat basal mesh')
 
         me.inds_Vh2_in_Wh = me.inds_Vh3_in_Wh[me.inds_Vh2_in_Vh3]
@@ -403,7 +406,7 @@ class StokesInverseProblemCylinder:
         me.pde.fwd_solver.parameters["LS"]["max_backtracking_iter"] = 20
         me.pde.fwd_solver.solver = dl.PETScLUSolver("mumps")
 
-        me.prior_mean_val = m0
+        me.prior_mean_val = me.m0_constant_value
         me.prior_mean_Vh3_petsc     = dl.interpolate(dl.Constant(me.prior_mean_val), me.Vh3).vector()
         me.prior_mean_Vh2_petsc = me.Vh3_to_Vh2_petsc(me.prior_mean_Vh3_petsc)
         me.m_func = dl.Expression(mtrue_string, element=me.Wh.ufl_element(), m0=me.prior_mean_val,Radius=me.Radius)
@@ -412,7 +415,7 @@ class StokesInverseProblemCylinder:
         me.rel_correlation_length = rel_correlation_length # 0.1
         me.correlation_Length = me.Radius * me.rel_correlation_length
 
-        me.REGOP = BiLaplacianRegularizationOperator(me.gamma, me.correlation_Length, me.Vh2, robin_bc=me.reg_robin_bc)
+        me.REGOP = BiLaplacianRegularizationOperator(gamma, me.correlation_Length, me.Vh2, robin_bc=me.reg_robin_bc)
 
         ########    TRUE BASAL FRICTION FIELD (INVERSION PARAMETER)    ########
 
@@ -470,9 +473,6 @@ class StokesInverseProblemCylinder:
         # misfit.noise_variance = (noise_scaling*0.05)**2.
         me.misfit.noise_variance = 1.0
 
-
-        me.gamma = None #smaller gamma, smaller regularization
-        # me.delta = None
         me.priorVsub = None
         me.prior = None
         me.m_func = None
@@ -481,18 +481,31 @@ class StokesInverseProblemCylinder:
 
         me.set_gamma(gamma)
 
+        me.x = [dl.Function(me.Zh).vector(), dl.Function(me.Wh).vector(), dl.Function(me.Zh).vector()]
+        me.Hd = None
+        me.H = None
+
+        me.m0_Vh2_numpy = dl.interpolate(dl.Constant(me.m0_constant_value), me.Vh2).vector()[:]
+        me.set_optimization_variable(me.m0_Vh2_numpy)
+
+
+
         # === MAP Point reconstruction ====
         #m = mtrue.copy()
         
         me.mtrue = me.mtrue.copy()
-        me.x = None
-        me.Hd = None
-        me.H = None
 
         me.HR_hmatrix = None
         me.Hd_pch = None
         me.H_pch = None
         me.iH_pch = None
+
+    @property
+    def gamma(me):
+        return me.REGOP.gamma
+
+    def reset_m(me):
+        me.set_optimization_variable(me.m0_Vh2_numpy)
 
 
     # def build_preconditioner(me, num_neighbors=10, num_batches=6, tau=3.0, hmatrix_tol=1e-5):
@@ -519,8 +532,8 @@ class StokesInverseProblemCylinder:
     def get_optimization_variable(me):
         return me.Wh_to_Vh2_numpy(me.x[1][:])
 
-    def set_optimization_variable(me, new_m2d_numpy):
-        me.x[1][:] = me.Vh2_to_Wh_numpy(new_m2d_numpy)
+    def set_optimization_variable(me, new_m_Vh2_numpy):
+        me.x[1][:] = me.Vh2_to_Wh_numpy(new_m_Vh2_numpy)
         me.model.solveFwd(me.x[0], me.x)
         me.model.solveAdj(me.x[2], me.x)
         me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx=True)
@@ -598,15 +611,14 @@ class StokesInverseProblemCylinder:
 
 
     def set_gamma(me, new_gamma):
-        me.gamma  = new_gamma
+        # me.gamma  = new_gamma
         # me.delta = 4.*me.gamma / (me.correlation_Length**2)
+        me.REGOP = BiLaplacianRegularizationOperator(new_gamma, me.correlation_Length, me.Vh2, robin_bc=me.reg_robin_bc)
 
-        me.priorVsub  = hp.BiLaplacianPrior(me.Vh3, me.gamma, me.REGOP.delta, mean=me.prior_mean_Vh3_petsc, robin_bc=me.REGOP.robin_bc)
+        me.priorVsub  = hp.BiLaplacianPrior(me.Vh3, new_gamma, me.REGOP.delta, mean=me.prior_mean_Vh3_petsc, robin_bc=me.REGOP.robin_bc)
         me.prior      = ManifoldPrior(me.Wh, me.Vh3, me.boundary_mesh, me.priorVsub)
 
         me.model = hp.Model(me.pde, me.prior, me.misfit)
-
-        me.REGOP = BiLaplacianRegularizationOperator(me.gamma, me.correlation_Length, me.Vh2, robin_bc=me.reg_robin_bc)
 
     def data_inner_product(me, x, y): # <x, y>_datanorm = x^T W y
         W = me.misfit.W
@@ -630,22 +642,22 @@ class StokesInverseProblemCylinder:
         return np.sqrt(me.data_inner_product_numpy(x_numpy, x_numpy))
 
 
-    # ---- critical function !
-    # ---- needs to be called
-    def set_parameter(me, x):
-        if isinstance(x, list):
-            me.x = x
-        else:
-            me.x = [me.model.problem.generate_state(), x, me.model.problem.generate_state()]
-            me.model.solveFwd(me.x[0], me.x)
-            me.model.solveAdj(me.x[2], me.x)
-        me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx = True)
-        me.Hd   = hp.ReducedHessian(me.model, misfit_only = True)
-        me.H    = hp.ReducedHessian(me.model, misfit_only = False)
-        me.Hd.gauss_newton_approx = True
-        me.H.gauss_newton_approx  = True
-        me.Hd_proj = proj_op(me.Hd, me.prior.P)
-        me.H_proj  = proj_op(me.H , me.prior.P)
+    # # ---- critical function !
+    # # ---- needs to be called
+    # def set_parameter(me, x):
+    #     if isinstance(x, list):
+    #         me.x = x
+    #     else:
+    #         me.x = [me.model.problem.generate_state(), x, me.model.problem.generate_state()]
+    #         me.model.solveFwd(me.x[0], me.x)
+    #         me.model.solveAdj(me.x[2], me.x)
+    #     me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx = True)
+    #     me.Hd   = hp.ReducedHessian(me.model, misfit_only = True)
+    #     me.H    = hp.ReducedHessian(me.model, misfit_only = False)
+    #     me.Hd.gauss_newton_approx = True
+    #     me.H.gauss_newton_approx  = True
+    #     me.Hd_proj = proj_op(me.Hd, me.prior.P)
+    #     me.H_proj  = proj_op(me.H , me.prior.P)
 
 
     @property
