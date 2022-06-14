@@ -274,7 +274,7 @@ def stokes_mesh_setup(mesh):
     mesh2D.write("mesh2D.xml")
     basal_mesh2D = dl.Mesh("mesh2D.xml")
 
-    return mesh, basal_mesh3D, basal_mesh2D, Radius
+    return mesh, boundary_mesh, basal_mesh3D, basal_mesh2D, Radius
 
 
 def function_space_prolongate_numpy(x_numpy, dim_Yh, inds_Xh_in_Yh):
@@ -320,7 +320,7 @@ class StokesInverseProblemCylinder:
                  gamma=6.e1,  
                  m0 = 7., 
                  mtrue_string = 'm0 - (m0 / 7.)*std::cos((x[0]*x[0]+x[1]*x[1])*pi/(Radius*Radius))',
-                 rel_correlation_Length = 0.05,
+                 rel_correlation_length = 0.1,
                  noise_type = 'relative_local',
                  reg_robin_bc=True
                  ):
@@ -333,17 +333,9 @@ class StokesInverseProblemCylinder:
         me.make_plots = make_plots
         me.save_plots = save_plots
         me.reg_robin_bc = reg_robin_bc
-        
-        # forcing term
-        grav  = 9.81           # acceleration due to gravity
-        rho   = 910.0          # volumetric mass density of ice
-
-        # rheology
-        rheology_n = 3.0
-        rheology_A = dl.Constant(1.e-16)
 
         ########    MESH    ########
-        me.mesh, me.basal_mesh3D, me.basal_mesh2D, me.Radius = stokes_mesh_setup(mesh)
+        me.mesh, me.boundary_mesh, me.basal_mesh3D, me.basal_mesh2D, me.Radius = stokes_mesh_setup(mesh)
 
         ########    FUNCTION SPACE    ########
         P1 = dl.FiniteElement("Lagrange", mesh.ufl_cell(), 1)
@@ -383,24 +375,10 @@ class StokesInverseProblemCylinder:
         me.Wh_to_Vh2_numpy, me.Vh2_to_Wh_numpy, me.Wh_to_Vh2_petsc, me.Vh2_to_Wh_petsc = \
             make_prolongation_and_restriction_operators(me.Vh2, me.Wh, me.inds_Vh2_in_Wh)
 
-        #
-
-
-        me.V  = me.Vh2
-        test  = dl.TestFunction(me.V)
-        trial = dl.TrialFunction(me.V)
-        
-        me.M = dl.assemble(test*trial*dl.dx(me.V.mesh()))
-        me.Mdiag = dl.Vector(dl.PETScVector(dl.as_backend_type(me.M).mat().getDiagonal()))
-
-        me.dof_coords = me.V.tabulate_dof_coordinates()
-        me.N = me.V.dim()
-        me.d = me.V.mesh().geometric_dimension()
-
-        # hp.PDEVariationalProblem
-
         # ==== SET UP FORWARD MODEL ====
         # Forcing term
+        grav  = 9.81           # acceleration due to gravity
+        rho   = 910.0          # volumetric mass density of ice
         f=dl.Constant( (0., 0., -rho*grav) )
 
         ds = dl.Measure("ds", domain=mesh, subdomain_data=boundary_markers)
@@ -410,9 +388,10 @@ class StokesInverseProblemCylinder:
         bc  = []
         bc0 = []
 
-        # hp.PDEVariationalProblem
-
         # Define the Nonlinear Stokes varfs
+        # rheology
+        rheology_n = 3.0
+        rheology_A = dl.Constant(1.e-16)
         nonlinearStokesFunctional = NonlinearStokesForm(rheology_n, rheology_A, normal, ds(1), f, lam=lam)
         
         # Create one-hot vector on pressure dofs
@@ -424,15 +403,14 @@ class StokesInverseProblemCylinder:
         me.pde.fwd_solver.parameters["LS"]["max_backtracking_iter"] = 20
         me.pde.fwd_solver.solver = dl.PETScLUSolver("mumps")
 
-
         me.prior_mean_val = m0
         me.prior_mean_Vh3_petsc     = dl.interpolate(dl.Constant(me.prior_mean_val), me.Vh3).vector()
         me.prior_mean_Vh2_petsc = me.Vh3_to_Vh2_petsc(me.prior_mean_Vh3_petsc)
         me.m_func = dl.Expression(mtrue_string, element=me.Wh.ufl_element(), m0=me.prior_mean_val,Radius=me.Radius)
         me.mtrue   = dl.interpolate(me.m_func, me.Wh).vector()
 
-        me.rel_correlation_Length = rel_correlation_Length # 0.1
-        me.correlation_Length = me.Radius * me.rel_correlation_Length
+        me.rel_correlation_length = rel_correlation_length # 0.1
+        me.correlation_Length = me.Radius * me.rel_correlation_length
 
         me.REGOP = BiLaplacianRegularizationOperator(me.gamma, me.correlation_Length, me.Vh2, robin_bc=me.reg_robin_bc)
 
@@ -441,29 +419,26 @@ class StokesInverseProblemCylinder:
 
         ########    TRUE SURFACE VELOCITY FIELD AND NOISY OBSERVATIONS    ########
         me.utrue = me.pde.generate_state()
-        if not load_fwd:
-            me.pde.solveFwd(me.utrue, [me.utrue, mtrue, None])
-            np.savetxt("utrue.txt", me.utrue.get_local())
-        else:
-            me.utrue.set_local(np.loadtxt("utrue.txt"))
-        utrue_fnc = dl.Function(Vh[hp.STATE], me.utrue)
+        me.pde.solveFwd(me.utrue, [me.utrue, me.mtrue, None])
+
+        utrue_fnc = dl.Function(me.Zh, me.utrue)
         me.outflow = np.sqrt(dl.assemble(dl.inner(utrue_fnc.sub(0), normal)**2.*ds(1)))
 
 
         # construct the form which describes the continuous observations
         # of the tangential component of the velocity field at the upper surface boundary
-        component_observed = dl.interpolate(dl.Constant((1., 1., 0., 0.)), Vh[hp.STATE])
-        utest, ptest = dl.TestFunctions(Vh[hp.STATE])
-        utrial, ptrial = dl.TrialFunctions(Vh[hp.STATE])
+        component_observed = dl.interpolate(dl.Constant((1., 1., 0., 0.)), me.Zh)
+        utest, ptest = dl.TestFunctions(me.Zh)
+        utrial, ptrial = dl.TrialFunctions(me.Zh)
         form = dl.inner(Tang(utrial, normal), Tang(utest, normal))*ds(2)
-        me.misfit = hp.ContinuousStateObservation(Vh[hp.STATE], ds(2), bc, form=form)
+        me.misfit = hp.ContinuousStateObservation(me.Zh, ds(2), bc, form=form)
         # ds(1) basal boundary, ds(2) top boundary
         
         # construct the noisy observations
         me.misfit.d = me.pde.generate_state()
         me.misfit.d.zero()
         me.misfit.d.axpy(1.0, me.utrue)
-        u_func = hp.vector2Function(me.utrue, Vh[hp.STATE])
+        u_func = hp.vector2Function(me.utrue, me.Zh)
 
         # # eta = gaussian noise
         # ||eta||_X = c = noise_level * ||d||_X
@@ -485,24 +460,6 @@ class StokesInverseProblemCylinder:
         me.data_after_noise =  me.data_before_noise + me.noise
         me.misfit.d[:] = me.data_after_noise
 
-        # is this consistent with the form defined above?
-        # are we using the (x,y) components or the tangential components? Consistency!
-        # noise_scaling = np.sqrt(dl.assemble(dl.inner(u_func, component_observed)**2.*ds(2)) / \
-        #                         dl.assemble(dl.Constant(1.0)*ds(2)))
-        # misfit.cost()
-        # before_noise_data = misfit.d[:]
-        # if me.noise_level > 0.:
-        #     hp.parRandom.normal_perturb(me.noise_level*noise_scaling, misfit.d)
-        # after_noise_data = misfit.d[:]
-
-        # D = [I 0] <-- basal      (m)
-        #     [0 0] <-- non-basal  (N-m)
-
-        # ||randn||_I = sqrt(N)
-        # ||randn||_D = sqrt(m)
-        # ||randn||_D = sqrt(m)/sqrt(N) ||randn||_I
-        # N = 8*m => sqrt(m)/sqrt(N) = 1/sqrt(8) =approx= 0.35
-        # ||randn||_D = 0.35 * ||randn||_I
 
         relative_noise_l2norm = np.linalg.norm(me.data_before_noise - me.data_after_noise) / np.linalg.norm(me.data_before_noise)
         print('me.noise_level=', me.noise_level, ', relative_noise_l2norm=', relative_noise_l2norm)
@@ -527,25 +484,10 @@ class StokesInverseProblemCylinder:
         # === MAP Point reconstruction ====
         #m = mtrue.copy()
         
-        me.mtrue = mtrue.copy()
+        me.mtrue = me.mtrue.copy()
         me.x = None
         me.Hd = None
         me.H = None
-        me.Hd_proj = None
-        me.H_proj  = None
-
-        # Regularization
-        ubase2d_trial = dl.TrialFunction(me.Vbase2D)
-        vbase2d_test = dl.TestFunction(me.Vbase2D)
-
-
-
-        me.HRsqrt_petsc = None
-        me.HRsqrt_scipy = None
-
-        me.solve_Mbase2d_numpy = None
-        me.solve_Rsqrt_numpy = None
-        me.HR_scipy = None
 
         me.HR_hmatrix = None
         me.Hd_pch = None
@@ -573,11 +515,6 @@ class StokesInverseProblemCylinder:
     #
     #     preconditioner_hmatrix = H_pch.inv()
 
-    # def apply_HR_numpy(me, ubase2d_numpy):
-    #     return me.HRsqrt_scipy @ me.solve_Mbase2d_numpy(me.HRsqrt_scipy @ ubase2d_numpy)
-    #
-    # def solve_HR_numpy(me, vbase2d_numpy):
-    #     me.solve_HRsqrt_numpy(me.Mbase2d_scipy @ me.solve_HRsqrt_numpy(vbase2d_numpy))
 
     def get_optimization_variable(me):
         return me.Wh_to_Vh2_numpy(me.x[1][:])
@@ -586,19 +523,9 @@ class StokesInverseProblemCylinder:
         me.x[1][:] = me.Vh2_to_Wh_numpy(new_m2d_numpy)
         me.model.solveFwd(me.x[0], me.x)
         me.model.solveAdj(me.x[2], me.x)
-        me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx = True)
+        me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx=True)
         me.Hd   = hp.ReducedHessian(me.model, misfit_only = True)
         me.H    = hp.ReducedHessian(me.model, misfit_only = False)
-        me.Hd.gauss_newton_approx = True
-        me.H.gauss_newton_approx  = True
-        me.Hd_proj = proj_op(me.Hd, me.prior.P)
-        me.H_proj  = proj_op(me.H , me.prior.P)
-
-    # def update_regularization(me):
-    #     me.Rsqrt_petsc = dl.assemble(me.base2d_bilaplacian_form)
-    #     me.Rsqrt_scipy = csr_fenics2scipy(me.Rsqrt_petsc)
-    #     me.solve_Rsqrt_numpy = spla.factorized(me.Rsqrt_scipy)
-    #     me.solve_Mbase2d_numpy = spla.factorized(me.Mbase2d_scipy)
 
     def misfit_cost(me):
         return me.model.misfit.cost(me.x)
@@ -669,27 +596,12 @@ class StokesInverseProblemCylinder:
     def apply_gauss_newton_hessian(me, u_Vh2_numpy):
         return me.apply_misfit_gauss_newton_hessian(u_Vh2_numpy) + me.apply_regularization_hessian(u_Vh2_numpy)
 
-    # @property
-    # def delta(me):
-    #     return 4. * me.gamma / (me.correlation_Length ** 2)
-    #
-    # @property
-    # def robin_coeff(me):
-    #     if me.robin_bc:
-    #         return me.gamma * np.sqrt(me.delta / me.gamma) / 1.42
-    #     else:
-    #         return 0.
-
-    # @property
-    # def base2d_bilaplacian_form(me):
-    #     return dl.Constant(me.gamma) * me.kbase2d_form + dl.Constant(me.delta) * me.mbase2d_form + dl.Constant(me.robin_coeff) * me.robinbase2d_form
-
 
     def set_gamma(me, new_gamma):
         me.gamma  = new_gamma
         # me.delta = 4.*me.gamma / (me.correlation_Length**2)
 
-        me.priorVsub  = hp.BiLaplacianPrior(me.Vh3, me.gamma, me.delta, mean=me.prior_mean_Vh3_petsc, robin_bc=me.robin_bc)
+        me.priorVsub  = hp.BiLaplacianPrior(me.Vh3, me.gamma, me.REGOP.delta, mean=me.prior_mean_Vh3_petsc, robin_bc=me.REGOP.robin_bc)
         me.prior      = ManifoldPrior(me.Wh, me.Vh3, me.boundary_mesh, me.priorVsub)
 
         me.model = hp.Model(me.pde, me.prior, me.misfit)
@@ -734,67 +646,6 @@ class StokesInverseProblemCylinder:
         me.H.gauss_newton_approx  = True
         me.Hd_proj = proj_op(me.Hd, me.prior.P)
         me.H_proj  = proj_op(me.H , me.prior.P)
-    """
-    pass a [u, p, m] where m is a full space parameter field and project it down
-    to be compatible with this class/Hessian action
-    """
-    def g_numpy(me, x):
-        g = dl.Vector()
-        g.init(x[hp.PARAMETER].size())
-        me.model.evalGradientParameter(x, g)
-        # projected Vector
-        Pg = dl.Vector()
-        me.prior.P.init_vector(Pg, 0)
-        me.prior.P.mult(g, Pg)
-        return Pg.get_local()
-
-    def apply_Hd(me, x):
-        y = dl.Vector(x)
-        me.Hd_proj.mult(x, y)
-        return y
-
-    def apply_Hd_numpy(me, x):
-        xdl = dl.Vector()
-        xdl.init(len(x))
-        xdl.set_local(x)
-        ydl = dl.Vector()
-        ydl.init(len(x))
-        me.Hd_proj.mult(xdl, ydl)
-        return ydl.get_local()
-
-    def apply_H_numpy(me, x):
-        xdl = dl.Vector()
-        xdl.init(len(x))
-        xdl.set_local(x)
-        ydl = dl.Vector()
-        ydl.init(len(x))
-        me.H_proj.mult(xdl, ydl)
-        return ydl.get_local()
-
-    def apply_Rinv_petsc(me, x):
-        y = dl.Vector(x)
-        me.priorVsub.Rsolver.solve(y, x)
-        return y
-
-    def apply_Rinv_numpy(me, x):
-        xdl = dl.Vector()
-        xdl.init(len(x))
-        xdl.set_local(x)
-        ydl = me.apply_Rinv_petsc(xdl)
-        return ydl.get_local()
-
-
-    def apply_Hd_petsc(me, x):
-       Px = dl.Vector(x)
-       Px.set_local(x.get_local()[me.perm_Vbase2d_to_Vbase3d])
-       y = dl.Vector(x)
-       me.Hd_proj.mult(Px, y)
-       PTy = dl.Vector(x)
-       PTy.set_local(y.get_local()[me.perm_Vbase3d_to_Vbase2d])
-       return PTy
-
-    def apply_Minv_petsc(me, x):
-        return diagSolve(me.Mdiag, x)
 
 
     @property
