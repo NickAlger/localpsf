@@ -11,7 +11,7 @@ from nalger_helper_functions import *
 from localpsf.product_convolution_kernel import ProductConvolutionKernel
 from localpsf.product_convolution_hmatrix import make_hmatrix_from_kernel, product_convolution_hmatrix
 from localpsf import localpsf_root
-
+from localpsf.newtoncg import newtoncg_ls
 
 from stokes_inverse_problem_cylinder import *
 # from .stokes_inverse_problem_cylinder import *
@@ -85,7 +85,24 @@ StokesIP = StokesInverseProblemCylinder(**nondefault_StokesIP_options)
 # dm0 = dm0 * np.linalg.norm(m0) / np.linalg.norm(dm0)
 # m1 = m0 + dm0
 
-m1 = StokesIP.m0_Vh2_numpy
+# m1_expr = dl.Expression('cos(2*pi*(x[0]+1.5*x[1])/r', r=StokesIP.Radius, degree=3)
+# m1_func = dl.interpolate(m1_expr, StokesIP.Vh2)
+# m1 = m1_func.vector()[:]
+
+# m1 = StokesIP.m0_Vh2_numpy
+
+def random_smooth_vec():
+    v = StokesIP.REGOP.solve_R_numpy(np.random.randn(StokesIP.Vh2.dim()))
+    v = v - (np.max(v) + np.min(v)) / 2.
+    v = v / (np.max(v) - np.min(v))
+    v = StokesIP.m0_constant_value + v * (StokesIP.m0_constant_value / 2.)
+    return v
+
+m1 = random_smooth_vec()
+m1_func = dl.Function(StokesIP.Vh2)
+m1_func.vector()[:] = m1
+cm = dl.plot(m1_func)
+plt.colorbar(cm)
 
 StokesIP.set_optimization_variable(m1)
 J1_total, J1_reg, J1_misfit = StokesIP.cost()
@@ -93,7 +110,8 @@ g1_total = StokesIP.gradient()
 g1_reg = StokesIP.regularization_gradient()
 g1_misfit = StokesIP.misfit_gradient()
 
-dm = dl.interpolate(dl.Constant(1.0), StokesIP.Vh2).vector()[:]
+dm = random_smooth_vec()
+# dm = dl.interpolate(dl.Constant(1.0), StokesIP.Vh2).vector()[:]
 # dm = np.random.rand(StokesIP.Vh2.dim())
 
 dg_total = StokesIP.apply_hessian(dm)
@@ -101,7 +119,7 @@ dg_reg = StokesIP.apply_regularization_hessian(dm)
 dg_misfit = StokesIP.apply_misfit_hessian(dm)
 
 
-s = 1e-5
+s = 1e-7
 m2 = m1 + s * dm
 
 StokesIP.set_optimization_variable(m2)
@@ -132,6 +150,20 @@ print('s=', s, ', err_hess_total=', err_hess_total, ', err_hess_reg=', err_hess_
 # m0_original = dl.interpolate(dl.Constant(1.5 * 7.), StokesIP.Vh[1]).vector()
 # m0_numpy = m0_original[:]
 # m0 = dl.Function(StokesIP.Wh).vector()
+
+# Solve inverse problem
+
+StokesIP.reset_m()
+
+newtoncg_ls(StokesIP.get_optimization_variable,
+            StokesIP.set_optimization_variable,
+            StokesIP.cost,
+            StokesIP.gradient,
+            StokesIP.apply_hessian,
+            StokesIP.apply_gauss_newton_hessian,
+            StokesIP.build_hessian_preconditioner,
+            StokesIP.update_hessian_preconditioner,
+            StokesIP.solve_hessian_preconditioner)
 
 def solve_inverse_problem(gamma, use_PCH_precond=True):
     StokesIP.set_gamma(gamma)

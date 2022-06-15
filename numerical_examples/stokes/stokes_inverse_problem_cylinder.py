@@ -178,7 +178,7 @@ class BiLaplacianRegularizationOperator:
         return me.Rsqrt_scipy @ me.solve_M_numpy(me.Rsqrt_scipy @ u_numpy)
 
     def solve_R_numpy(me, v_numpy):
-        me.solve_Rsqrt_numpy(me.M_scipy @ me.solve_Rsqrt_numpy(v_numpy))
+        return me.solve_Rsqrt_numpy(me.M_scipy @ me.solve_Rsqrt_numpy(v_numpy))
 
     def make_M_hmatrix(me, bct):
         return hpro.build_hmatrix_from_scipy_sparse_matrix(me.M_scipy, bct)
@@ -532,11 +532,14 @@ class StokesInverseProblemCylinder:
     def get_optimization_variable(me):
         return me.Wh_to_Vh2_numpy(me.x[1][:])
 
-    def set_optimization_variable(me, new_m_Vh2_numpy):
+    def set_optimization_variable(me, new_m_Vh2_numpy, reset_state=True):
+        if reset_state:
+            me.x = [dl.Function(me.Zh).vector(), dl.Function(me.Wh).vector(), dl.Function(me.Zh).vector()]
         me.x[1][:] = me.Vh2_to_Wh_numpy(new_m_Vh2_numpy)
         me.model.solveFwd(me.x[0], me.x)
         me.model.solveAdj(me.x[2], me.x)
-        me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx=True)
+        # me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx=True)
+        me.model.setPointForHessianEvaluations(me.x, gauss_newton_approx=False)
         me.Hd   = hp.ReducedHessian(me.model, misfit_only = True)
         me.H    = hp.ReducedHessian(me.model, misfit_only = False)
 
@@ -578,26 +581,26 @@ class StokesInverseProblemCylinder:
 
         v_Wh_petsc = dl.Function(me.Wh).vector()
         me.Hd.mult(u_Wh_petsc, v_Wh_petsc)
-        v_Vh2_numpy = me.Wh_to_Vh2_petsc(u_Wh_petsc)[:]
+        v_Vh2_numpy = me.Wh_to_Vh2_petsc(v_Wh_petsc)[:]
 
         return v_Vh2_numpy
 
     def apply_misfit_hessian(me, u_Vh2_numpy): # v = H * u
-        old_gn_bool = me.H.gauss_newton_approx
-        me.H.gauss_newton_approx = False
+        old_gn_bool = me.Hd.gauss_newton_approx
+        me.Hd.gauss_newton_approx = False
 
         v_Vh2_numpy = me.apply_misfit_hessian_helper(u_Vh2_numpy)
 
-        me.H.gauss_newton_approx = old_gn_bool
+        me.Hd.gauss_newton_approx = old_gn_bool
         return v_Vh2_numpy
 
     def apply_misfit_gauss_newton_hessian(me, u_Vh2_numpy): # v = H * u
-        old_gn_bool = me.H.gauss_newton_approx
-        me.H.gauss_newton_approx = True
+        old_gn_bool = me.Hd.gauss_newton_approx
+        me.Hd.gauss_newton_approx = True
 
         v_Vh2_numpy = me.apply_misfit_hessian_helper(u_Vh2_numpy)
 
-        me.H.gauss_newton_approx = old_gn_bool
+        me.Hd.gauss_newton_approx = old_gn_bool
         return v_Vh2_numpy
 
     def apply_regularization_hessian(me, u_Vh2_numpy):
