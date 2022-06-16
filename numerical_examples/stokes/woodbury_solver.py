@@ -6,7 +6,9 @@ from time import time
 
 
 class WoodburySolver:
-    def __init__(me, A0, max_r=50, rtol=1e-9, gmres_tol=1e-12, gmres_restart=20, gmres_maxiter=2,
+    def __init__(me, A0, max_r=50, rtol=1e-9,
+                 solve_tol=1e-12, gmres_restart=20, gmres_maxiter=2,
+                 spd=False, cg_maxiter=50,
                  run_checks=True, display=True):
         if not sps.issparse(A0):
             raise RuntimeError('WoodburySolver: Initial matrix A0 must be scipy sparse matrix.')
@@ -15,9 +17,11 @@ class WoodburySolver:
         me.shape = me.A.shape
         me.max_r = max_r
         me.rtol = rtol
-        me.gmres_tol=gmres_tol
+        me.solve_tol = solve_tol
         me.gmres_restart = gmres_restart
         me.gmres_maxiter = gmres_maxiter
+        me.spd = spd
+        me.cg_maxiter = cg_maxiter
         me.run_checks = run_checks
         me.display = display
 
@@ -64,6 +68,67 @@ class WoodburySolver:
         return me.solve_A0(Y) + np.dot(me.B, np.dot(me.C, Y))
 
     def update_low_rank_factors(me):
+        if me.spd:
+            me.update_low_rank_factors_spd()
+        else:
+            me.update_low_rank_factors_nonsym()
+
+    def get_nonredundant_X_Y(me):
+        X0 = np.array(me.new_xx).T
+        Y0 = np.array(me.new_yy).T
+
+        U_X, ss_X, VT_X = np.linalg.svd(X0,0)
+        inds_X = (ss_X > me.rtol * np.max(ss_X))
+        X = U_X[:, inds_X]
+        Coeff = np.dot(VT_X[inds_X, :].T, np.diag(1./ss_X[inds_X]))
+        Y = np.dot(Y0, Coeff)
+        return X0, Y0, X, Y
+
+    def update_low_rank_factors_spd(me):
+        # P(k+1) = (I-X H^-1 Y^T)P(k)(I-Y H^-1 X^T) + X H^-1 X^T
+        #        = (I-Z Y^T)P(k)(I-Y Z^T) + Z X^T
+        #        = P(k) - Z M^T - M Z^T + Z Y^T M Z^T + Z X^T
+        #        = P(k) + Z(X - M)^T + (Z Y^T M - M) Z^T
+        # where
+        #   H = X^T Y
+        #   Z = X H^-1
+        #   M = P(k) Y
+        t = time()
+
+        X0, Y0, X, Y = me.get_nonredundant_X_Y()
+
+        err_XY = np.linalg.norm(Y - me.A @ X) / np.linalg.norm(Y)
+        print('err_XY=', err_XY)
+
+        if X.size > 0:
+            H = np.dot(X.T, Y)
+            err_H_nonsym = np.linalg.norm(H - H.T) / np.linalg.norm(H)
+            print('err_H_nonsym=', err_H_nonsym)
+            Z = np.linalg.solve(H, X.T).T
+            M = me.apply_P(Y)
+
+            new_B = np.hstack([me.B, Z, Z @ (Y.T @ M) - M])
+            new_C = np.vstack([me.C, (X-M).T, Z.T])
+
+            me.B, me.C = recompress_low_rank_matrix(new_B, new_C,
+                                                    rtol=me.rtol, check_truncation_error=me.run_checks)
+
+            if me.run_checks:
+                X_new = me.apply_P(Y)
+                err_low_rank_update = np.linalg.norm(X_new - X) / np.linalg.norm(X)
+                print('WoodburySolver: err_low_rank_update=', err_low_rank_update)
+                # X0_new = me.apply_P(Y0)
+                # err_low_rank_update = np.linalg.norm(X0_new - X0) / np.linalg.norm(X0)
+                # print('WoodburySolver: err_low_rank_update=', err_low_rank_update)
+
+        me.new_xx.clear()
+        me.new_yy.clear()
+        me.new_rr.clear()
+
+        dt_update_spd = time() - t
+        me.printmaybe('WoodburySolver: dt_update_spd=', dt_update_spd)
+
+    def update_low_rank_factors_nonsym(me):
         # P(k+1) = P(k) + R (R^T Y)^-1 R^T =
         #        = A0^-1 + B C + new_B new_C = A0^-1 + [B, new_B] [C; new_C]
         #   where
@@ -72,33 +137,26 @@ class WoodburySolver:
         #       new_C = (R^T Y)^-1 R^T
         t = time()
 
-        X = np.array(me.new_xx).T
-        Y = np.array(me.new_yy).T
+        X0, Y0, X, Y = me.get_nonredundant_X_Y()
 
-        U_X, ss_X, VT_X = np.linalg.svd(X,0)
-        inds_X = (ss_X > me.rtol * np.max(ss_X))
-        X2 = U_X[:, inds_X]
-        Coeff = np.dot(VT_X[inds_X, :].T, np.diag(1./ss_X[inds_X]))
-        Y2 = np.dot(Y, Coeff)
-
-        if X2.size > 0:
-            new_B = X2 - me.apply_P(Y2)
-            new_C = np.linalg.solve(np.dot(X2.T, Y2), X2.T)
+        if X.size > 0:
+            new_B = X - me.apply_P(Y)
+            new_C = np.linalg.solve(np.dot(X.T, Y), X.T)
 
             me.B, me.C = recompress_low_rank_matrix(np.hstack([me.B, new_B]), np.vstack([me.C, new_C]),
                                                     rtol=me.rtol, check_truncation_error=me.run_checks)
 
             if me.run_checks:
-                X2_new = me.apply_P(Y2)
-                err_low_rank_update = np.linalg.norm(X2_new - X2) / np.linalg.norm(X2)
+                X0_new = me.apply_P(Y0)
+                err_low_rank_update = np.linalg.norm(X0_new - X0) / np.linalg.norm(X0)
                 print('WoodburySolver: err_low_rank_update=', err_low_rank_update)
 
         me.new_xx.clear()
         me.new_yy.clear()
         me.new_rr.clear()
 
-        dt_update = time() - t
-        print('WoodburySolver: dt_update=', dt_update)
+        dt_update_nonsym = time() - t
+        me.printmaybe('WoodburySolver: dt_update_nonsym=', dt_update_nonsym)
 
     def apply_A(me, X):
         Y = me.A @ X
@@ -119,15 +177,25 @@ class WoodburySolver:
         me.apply_A_linop = spla.LinearOperator(me.shape, matvec=me.apply_A)
         me.apply_P_linop = spla.LinearOperator(me.shape, matvec=me.apply_P)
 
-        t = time()
-        x, info = spla.gmres(me.apply_A_linop, y, M=me.apply_P_linop, tol=me.gmres_tol, restart=me.gmres_restart, maxiter=me.gmres_maxiter, **kwargs)
-        dt_gmres = time() - t
-        me.printmaybe('WoodburySolver: dt_gmres=', dt_gmres)
+        if me.spd:
+            t = time()
+            x, info = spla.cg(me.apply_A_linop, y, M=me.apply_P_linop, tol=me.solve_tol, maxiter=me.cg_maxiter, **kwargs)
+            dt_cg = time() - t
+            me.printmaybe('WoodburySolver: dt_cg=', dt_cg)
+        else:
+            t = time()
+            x, info = spla.gmres(me.apply_A_linop, y, M=me.apply_P_linop, tol=me.solve_tol, restart=me.gmres_restart, maxiter=me.gmres_maxiter, **kwargs)
+            dt_gmres = time() - t
+            me.printmaybe('WoodburySolver: dt_gmres=', dt_gmres)
 
         if info != 0:
-            me.printmaybe('WoodburySolver: GMRES did not converge to tolerance', me.gmres_tol,
-                          'in', me.gmres_maxiter, 'outer iterations, with',
-                          me.gmres_restart, 'inner iterations each')
+            if me.spd:
+                me.printmaybe('WoodburySolver: CG did not converge to tolerance', me.solve_tol,
+                              'in', me.cg_maxiter, 'iterations')
+            else:
+                me.printmaybe('WoodburySolver: GMRES did not converge to tolerance', me.solve_tol,
+                              'in', me.gmres_maxiter, 'outer iterations, with',
+                              me.gmres_restart, 'inner iterations each')
             me.refactor_A()
             x = me.solve_A0(y)
         else:
@@ -164,14 +232,14 @@ def recompress_low_rank_matrix(B, C, rtol=1e-9, check_truncation_error=True):
 
     return B_new, C_new
 
-_run_tests = False
+_run_tests = True
 if _run_tests:
     N = 1000
 
     A_dense = np.random.randn(N, N)
     A = sps.csr_matrix(A_dense)
 
-    WS = WoodburySolver(A, rtol=1e-10, gmres_tol=1e-12, display=True, run_checks=True)
+    WS = WoodburySolver(A, rtol=1e-10, solve_tol=1e-12, display=True, run_checks=True)
     b = np.random.randn(N)
     x = WS.solve_A(b)
     res = np.linalg.norm(b - A @ x) / np.linalg.norm(b)
@@ -190,7 +258,9 @@ if _run_tests:
     import matplotlib.pyplot as plt
     from nalger_helper_functions import csr_fenics2scipy
 
-    n = 15
+    print('\n\n\n\n')
+
+    n = 10
     mesh = dl.UnitCubeMesh(n,n,n)
     # n = 50
     # mesh = dl.UnitSquareMesh(n,n)
@@ -203,7 +273,7 @@ if _run_tests:
     A0 = csr_fenics2scipy(dl.assemble(a_form))
     solve_A0 = spla.factorized(A0)
 
-    WS = WoodburySolver(A0, display=True, run_checks=True)
+    WS = WoodburySolver(A0, display=True, run_checks=True, spd=True, solve_tol=1e-13)
 
     b = np.random.randn(V.dim())
     x = WS.solve_A(b)
@@ -214,11 +284,11 @@ if _run_tests:
         dgamma_vec = solve_A0(np.random.randn(A0.shape[1]))
         dgamma_vec = dgamma_vec - np.min(dgamma_vec)
         dgamma_vec = dgamma_vec / (np.max(dgamma_vec) - np.min(dgamma_vec))
-        dgamma_vec = 0.1*(2.0*dgamma_vec - 1.0)
+        dgamma_vec = 0.5*(2.0*dgamma_vec - 1.0)
         dgamma = dl.Function(V)
         dgamma.vector()[:] = dgamma_vec
 
-        gamma.vector()[:] = 0.0*gamma.vector()[:] + dgamma_vec
+        gamma.vector()[:] = gamma.vector()[:] + dgamma_vec
         A = csr_fenics2scipy(dl.assemble(a_form))
         WS.update_A(A)
 
