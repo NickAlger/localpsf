@@ -146,21 +146,21 @@ def recompress_low_rank_matrix(B, C, rtol=1e-9, check_truncation_error=True):
 
     return B_new, C_new
 
-N = 5000
-
-A_dense = np.random.randn(N, N)
-A = sps.csr_matrix(A_dense)
-
-WS = WoodburySolver(A, rtol=1e-10, gmres_tol=1e-12)
-b = np.random.randn(N)
-x = WS.solve_A(b)
-res = np.linalg.norm(b - A @ x) / np.linalg.norm(b)
-print('res=', res)
-
-for k in range(10):
-    A = sps.csr_matrix(A + 0.1 * np.random.randn(*A.shape) / np.linalg.norm(A_dense))
-    WS.update_A(A)
-    # b = np.random.randn(N)
-    x = WS.solve_A(b)
-    res = np.linalg.norm(b - A @ x) / np.linalg.norm(b)
-    print('res'+str(k)+'=', res)
+# N = 5000
+#
+# A_dense = np.random.randn(N, N)
+# A = sps.csr_matrix(A_dense)
+#
+# WS = WoodburySolver(A, rtol=1e-10, gmres_tol=1e-12)
+# b = np.random.randn(N)
+# x = WS.solve_A(b)
+# res = np.linalg.norm(b - A @ x) / np.linalg.norm(b)
+# print('res=', res)
+#
+# for k in range(10):
+#     A = sps.csr_matrix(A + 0.1 * np.random.randn(*A.shape) / np.linalg.norm(A_dense))
+#     WS.update_A(A)
+#     # b = np.random.randn(N)
+#     x = WS.solve_A(b)
+#     res = np.linalg.norm(b - A @ x) / np.linalg.norm(b)
+#     print('res'+str(k)+'=', res)
