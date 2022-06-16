@@ -6,7 +6,7 @@ from time import time
 
 
 class WoodburySolver:
-    def __init__(me, A0, max_r=50, rtol=1e-9, run_checks=True):
+    def __init__(me, A0, max_r=50, rtol=1e-9, gmres_tol=1e-12, gmres_restart=20, gmres_maxiter=2, run_checks=True):
         if not sps.issparse(A0):
             raise RuntimeError('Initial matrix A0 must be scipy sparse matrix in WoodburySolver.')
 
@@ -14,6 +14,9 @@ class WoodburySolver:
         me.shape = me.A.shape
         me.max_r = max_r
         me.rtol = rtol
+        me.gmres_tol=gmres_tol
+        me.gmres_restart = gmres_restart
+        me.gmres_maxiter = gmres_maxiter
         me.check_updates = run_checks
 
         print('Factorizing initial sparse matrix')
@@ -97,20 +100,25 @@ class WoodburySolver:
         me.apply_A_linop = spla.LinearOperator(me.shape, matvec=me.apply_A)
         me.apply_P_linop = spla.LinearOperator(me.shape, matvec=me.apply_P)
         t = time()
-        x, info = spla.gmres(me.apply_A_linop, y, M=me.apply_P_linop, tol=1e-12, restart=100, maxiter=50, **kwargs)
+        x, info = spla.gmres(me.apply_A_linop, y, M=me.apply_P_linop, tol=me.gmres_tol, restart=me.gmres_restart, maxiter=me.gmres_maxiter, **kwargs)
         dt_gmres = time() - t
         print('dt_gmres=', dt_gmres)
-        if me.r + len(me.new_xx) > me.max_r:
-            print('new rank of ' + str(me.r + len(me.new_xx)) + ' is greater than max_r=' + str(me.max_r))
-            t = time()
+        if info != 0:
+            print('GMRES did not converge to tolerance', me.gmres_tol, 'in', me.gmres_maxiter, 'outer iterations, with', me.gmres_restart, 'inner iterations each')
             me.refactor_A()
-            dt_refactor = time() - t
-            print('dt_refactor=', dt_refactor)
-        elif len(me.new_xx) > 0:
-            t = time()
-            me.update_low_rank_factors()
-            dt_update = time() - t
-            print('dt_update=', dt_update)
+            x = me.solve_A0(y)
+        else:
+            if me.r + len(me.new_xx) > me.max_r:
+                print('new rank of ' + str(me.r + len(me.new_xx)) + ' is greater than max_r=' + str(me.max_r))
+                t = time()
+                me.refactor_A()
+                dt_refactor = time() - t
+                print('dt_refactor=', dt_refactor)
+            elif len(me.new_xx) > 0:
+                t = time()
+                me.update_low_rank_factors()
+                dt_update = time() - t
+                print('dt_update=', dt_update)
         return x
 
 
@@ -143,7 +151,7 @@ N = 5000
 A_dense = np.random.randn(N, N)
 A = sps.csr_matrix(A_dense)
 
-WS = WoodburySolver(A, rtol=1e-10)
+WS = WoodburySolver(A, rtol=1e-10, gmres_tol=1e-12)
 b = np.random.randn(N)
 x = WS.solve_A(b)
 res = np.linalg.norm(b - A @ x) / np.linalg.norm(b)
