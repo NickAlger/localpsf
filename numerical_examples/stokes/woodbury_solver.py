@@ -273,14 +273,15 @@ if _run_tests:
     A0 = csr_fenics2scipy(dl.assemble(a_form))
     solve_A0 = spla.factorized(A0)
 
-    WS = WoodburySolver(A0, display=True, run_checks=True, spd=True, solve_tol=1e-13)
+    # WS = WoodburySolver(A0, display=True, run_checks=True, spd=True, solve_tol=1e-12)
+    WS = WoodburySolver(A0, display=True, run_checks=True, spd=False, solve_tol=1e-12)
 
     b = np.random.randn(V.dim())
     x = WS.solve_A(b)
     res = np.linalg.norm(b - WS.A @ x) / np.linalg.norm(b)
     print('res=', res)
 
-    for k in range(5):
+    for k in range(10):
         dgamma_vec = solve_A0(np.random.randn(A0.shape[1]))
         dgamma_vec = dgamma_vec - np.min(dgamma_vec)
         dgamma_vec = dgamma_vec / (np.max(dgamma_vec) - np.min(dgamma_vec))
