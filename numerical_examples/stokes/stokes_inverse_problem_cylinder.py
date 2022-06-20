@@ -395,10 +395,23 @@ class StokesInverseProblemCylinder:
         # rheology
         rheology_n = 3.0
         rheology_A = dl.Constant(1.e-16)
+
+        # me.stokes_energy_form = \
+        #
+        # me.stokes_velocity, _ = dl.split(u)
+        # normEu12 = 0.5 * dl.inner(self._epsilon(velocity), self._epsilon(velocity)) + self.eps
+        #
+        # return self.A ** (-1. / self.n) * ((2. * self.n) / (1. + self.n)) * (
+        #             normEu12 ** ((1. + self.n) / (2. * self.n))) * dl.dx \
+        #        - dl.inner(self.f, velocity) * dl.dx \
+        #        + dl.Constant(.5) * dl.inner(dl.exp(m) * self._tang(velocity), self._tang(velocity)) * self.ds_base \
+        #        + self.lam * dl.inner(velocity, self.normal) ** 2 * self.ds_base
+
         nonlinearStokesFunctional = NonlinearStokesForm(rheology_n, rheology_A, normal, ds(1), f, lam=lam)
         
         # Create one-hot vector on pressure dofs
         constraint_vec = dl.interpolate(dl.Constant((0.,0., 0., 1.)), me.Zh).vector()
+
         
         me.pde = EnergyFunctionalPDEVariationalProblem(me.Xh, nonlinearStokesFunctional, constraint_vec, bc, bc0)
         me.pde.fwd_solver.parameters["rel_tolerance"] = 1.e-8

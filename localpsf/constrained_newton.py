@@ -11,24 +11,9 @@
 # terms of the GNU General Public License (as published by the Free
 # Software Foundation) version 2.0 dated June 1991.
 
-
-import dolfin as dl
 import numpy as np
-import math
-import hippylib as hp
-
-from typing import TypeVar
 from collections.abc import Callable
 
-#### vvvv NICK 1/27/21 vvvv
-# import pyamg
-import scipy.sparse as sps
-import scipy.sparse.linalg as spla
-# from fenics_to_scipy_sparse_csr_conversion import convert_fenics_csr_matrix_to_scipy_csr_matrix
-from scipy.sparse.linalg import gmres
-
-
-#### ^^^^ NICK ^^^^
 
 scalar_type = float
 vector_type = np.ndarray
@@ -46,10 +31,10 @@ def constrained_newton(set_optimization_variable: Callable[[vector_type], None],
                        gradient:                  Callable[[],            vector_type],
                        solve_hessian:             Callable[[vector_type], vector_type],
                        constraint_vec: vector_type,
-                       inner_product: Callable[[vector_type, vector_type], vector_type] = np.dot,
-                       copy_vector:   Callable[[vector_type], vector_type] = np.copy,
-                       axpy:          Callable[[scalar_type, vector_type, vector_type], None] = numpy_axpy, # axpy(a, x, y): y <- y + a*x
-                       scal:          Callable[[scalar_type, vector_type], None] = numpy_scal,  # scal(a, x): x <- a*x
+                       inner_product: Callable[[vector_type, vector_type], vector_type]        = np.dot,
+                       copy_vector:   Callable[[vector_type],              vector_type]        = np.copy,
+                       axpy:          Callable[[scalar_type, vector_type,  vector_type], None] = numpy_axpy, # axpy(a, x, y): y <- y + a*x
+                       scal:          Callable[[scalar_type, vector_type], None]               = numpy_scal,  # scal(a, x): x <- a*x
                        constraint_tol=1e-6,
                        max_iter=20, # maximum number of iterations for nonlinear forward solve
                        rtol=1e-6, # we converge when sqrt(g,g)/sqrt(g_0,g_0) <= rel_tolerance
@@ -59,19 +44,11 @@ def constrained_newton(set_optimization_variable: Callable[[vector_type], None],
                        max_backtrack=10,
                        display=True):
     it = 0
-    converged = False
-    reason = "Maximum number of Iteration reached"
-    solver = None
 
     norm = lambda x: np.sqrt(inner_product(x, x))
 
-    # if self.solver is None:
-    #     self.solver = dl.PETScLUSolver(u.function_space().mesh().mpi_comm())
-
     if display:
         print("Solving Nonlinear Problem")
-
-    bk_converged = True
 
     Fn = energy()
     gn = gradient()
