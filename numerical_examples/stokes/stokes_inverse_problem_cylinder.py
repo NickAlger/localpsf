@@ -334,6 +334,7 @@ class StokesInverseProblemCylinder:
         me.save_plots = save_plots
         me.reg_robin_bc = reg_robin_bc
         me.m0_constant_value = m0_constant_value
+        me.lam = lam
 
         ########    MESH    ########
         me.mesh, me.boundary_mesh, me.basal_mesh3D, me.basal_mesh2D, me.Radius = stokes_mesh_setup(mesh)
@@ -347,6 +348,12 @@ class StokesInverseProblemCylinder:
         me.Vh3 = dl.FunctionSpace(me.basal_mesh3D, 'Lagrange', 1) # Vh3: parameter, 2d basal manifold, 3d coords
         me.Vh2 = dl.FunctionSpace(me.basal_mesh2D, 'Lagrange', 1) # Vh2: parameter, 2d basal flat space, 2d coords
         me.Xh = [me.Zh, me.Wh, me.Zh]                             # Xh:  (state, parameter full 3D domain, adjoint)
+
+        me.m_Wh = dl.Function(me.Wh)
+        me.m_Vh3 = dl.Function(me.Vh3)
+        me.m_Vh2 = dl.Function(me.Vh2)
+        me.u = dl.Function(me.Zh)
+        me.p = dl.Function(me.Zh)
 
         ########    TRANSFER OPERATORS BETWEEN PARAMETER FUNCTION SPACES    ########
         pp_Vh3 = me.Vh3.tabulate_dof_coordinates()
@@ -382,32 +389,50 @@ class StokesInverseProblemCylinder:
         # Forcing term
         grav  = 9.81           # acceleration due to gravity
         rho   = 910.0          # volumetric mass density of ice
-        f=dl.Constant( (0., 0., -rho*grav) )
+        me.stokes_forcing = dl.Constant( (0., 0., -rho*grav) )
 
         ds = dl.Measure("ds", domain=mesh, subdomain_data=boundary_markers)
         me.ds = ds
-        normal = dl.FacetNormal(me.mesh)
+        me.ds_base = me.ds(1)
+        me.normal = dl.FacetNormal(me.mesh)
         # Strongly enforced Dirichlet conditions. The no outflow condition will be enforced weakly, via a penalty parameter.
         bc  = []
         bc0 = []
 
         # Define the Nonlinear Stokes varfs
         # rheology
-        rheology_n = 3.0
-        rheology_A = dl.Constant(1.e-16)
+        me.stokes_n = 1.0 #3.0
+        me.stokes_A = dl.Constant(2.140373e-7) # dl.Constant(1.e-16)
+        me.smooth_strain = dl.Constant(1e-6)
 
-        # me.stokes_energy_form = \
-        #
-        # me.stokes_velocity, _ = dl.split(u)
-        # normEu12 = 0.5 * dl.inner(self._epsilon(velocity), self._epsilon(velocity)) + self.eps
-        #
-        # return self.A ** (-1. / self.n) * ((2. * self.n) / (1. + self.n)) * (
-        #             normEu12 ** ((1. + self.n) / (2. * self.n))) * dl.dx \
-        #        - dl.inner(self.f, velocity) * dl.dx \
-        #        + dl.Constant(.5) * dl.inner(dl.exp(m) * self._tang(velocity), self._tang(velocity)) * self.ds_base \
-        #        + self.lam * dl.inner(velocity, self.normal) ** 2 * self.ds_base
+        me.velocity, me.pressure = dl.split(me.u)
+        me.strain = dl.sym(dl.grad(me.velocity))
+        me.normEu12 = 0.5 * dl.inner(me.strain, me.strain) + me.smooth_strain
 
-        nonlinearStokesFunctional = NonlinearStokesForm(rheology_n, rheology_A, normal, ds(1), f, lam=lam)
+        me.tangent_velocity = (me.velocity - dl.outer(me.normal, me.normal)*me.velocity)
+        me.stokes_exponent = ((1. + me.stokes_n) / (2. * me.stokes_n))
+
+        if me.stokes_exponent == 1.0:
+            me.stokes_energy_t1 = me.stokes_A ** (-1. / me.stokes_n) * ((2. * me.stokes_n) / (1. + me.stokes_n)) * me.normEu12 * dl.dx
+            me.linear_forward_problem = True
+        else:
+            me.stokes_energy_t1 = (me.stokes_A ** (-1. / me.stokes_n) * ((2. * me.stokes_n) / (1. + me.stokes_n)) *
+                                   (me.normEu12 ** ((1. + me.stokes_n) / (2. * me.stokes_n))) * dl.dx)
+            me.linear_forward_problem = False
+
+        me.stokes_energy_t2 = -dl.inner(me.stokes_forcing, me.velocity) * dl.dx
+        me.stokes_energy_t3 = dl.Constant(.5) * dl.inner(dl.exp(me.m_Wh) * me.tangent_velocity, me.tangent_velocity) * me.ds_base
+        me.stokes_energy_t4 = me.lam * dl.inner(me.velocity, me.normal) ** 2 * me.ds_base
+
+        me.stokes_energy_form = me.stokes_energy_t1 + me.stokes_energy_t2 + me.stokes_energy_t3 + me.stokes_energy_t4
+        me.stokes_constraint_form = dl.inner(-dl.div(me.velocity), me.pressure) * dl.dx
+
+        me.stokes_lagrangian_form = me.stokes_energy_form + me.stokes_constraint_form
+
+        me.stokes_gradient = dl.derivative(me.stokes_energy_form, me.u, dl.TestFunction(me.Zh))
+        me.stokes_hessian = dl.derivative(me.stokes_energy_form, me.u, dl.TrialFunction(me.Zh))
+
+        # nonlinearStokesFunctional = NonlinearStokesForm(rheology_n, rheology_A, normal, ds(1), f, lam=lam)
         
         # Create one-hot vector on pressure dofs
         constraint_vec = dl.interpolate(dl.Constant((0.,0., 0., 1.)), me.Zh).vector()
@@ -691,3 +716,47 @@ def get_project_root():
     return Path(__file__).parent.parent
 
 
+class NonlinearStokesForm:
+    def __init__(self, n, A, normal, ds_base, f, lam=0.):
+        # Rheology
+        self.n = n  # 1
+        self.A = A  # A = 2.140373e-7
+
+        # Basal Boundary
+        self.normal = normal
+        self.ds_base = ds_base
+
+        # Forcing term
+        self.f = f
+
+        # Smooth strain
+        self.eps = dl.Constant(1e-6)  #
+
+        # penalty parameter for Dirichlet condition
+        self.lam = dl.Constant(0.5 * lam)  #
+
+    def _epsilon(self, velocity):
+        return dl.sym(dl.grad(velocity))
+
+    def _tang(self, velocity):
+        return (velocity - dl.outer(self.normal, self.normal) * velocity)
+
+    def energy_fun(self, u, m):
+        velocity, _ = dl.split(u)
+        normEu12 = 0.5 * dl.inner(self._epsilon(velocity), self._epsilon(velocity)) + self.eps
+
+        return self.A ** (-1. / self.n) * ((2. * self.n) / (1. + self.n)) * (
+                    normEu12 ** ((1. + self.n) / (2. * self.n))) * dl.dx \
+               - dl.inner(self.f, velocity) * dl.dx \
+               + dl.Constant(.5) * dl.inner(dl.exp(m) * self._tang(velocity), self._tang(velocity)) * self.ds_base \
+               + self.lam * dl.inner(velocity, self.normal) ** 2 * self.ds_base
+
+    def constraint(self, u):
+        vel, pressure = dl.split(u)
+        return dl.inner(-dl.div(vel), pressure) * dl.dx
+
+    # why is the constraint added to the variational form
+    # this should not be of no consequence if the constraint
+    # is satisfied exactly, but is it needed at all?
+    def varf_handler(self, u, m, p):
+        return dl.derivative(self.energy_fun(u, m) + self.constraint(u), u, p)  # + self.constraint(u)
