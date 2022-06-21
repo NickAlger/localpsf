@@ -1,5 +1,6 @@
 import numpy as np
 import dolfin as dl
+from ufl import lhs, rhs, replace
 import scipy.sparse as sps
 import scipy.sparse.linalg as spla
 import matplotlib.pyplot as plt
@@ -394,6 +395,7 @@ class StokesInverseProblemCylinder:
         ds = dl.Measure("ds", domain=mesh, subdomain_data=boundary_markers)
         me.ds = ds
         me.ds_base = me.ds(1)
+        me.ds_top = me.ds(2)
         me.normal = dl.FacetNormal(me.mesh)
         # Strongly enforced Dirichlet conditions. The no outflow condition will be enforced weakly, via a penalty parameter.
         bc  = []
@@ -427,25 +429,35 @@ class StokesInverseProblemCylinder:
         me.stokes_energy_form = me.stokes_energy_t1 + me.stokes_energy_t2 + me.stokes_energy_t3 + me.stokes_energy_t4
         me.stokes_constraint_form = dl.inner(-dl.div(me.velocity), me.pressure) * dl.dx
 
-        me.stokes_lagrangian_form = me.stokes_energy_form + me.stokes_constraint_form
+        me.stokes_energy_gradient = replace(dl.derivative(me.stokes_energy_form, me.u, dl.TestFunction(me.Zh)),
+                                            {me.u:dl.TrialFunction(me.Zh)})
+        me.stokes_energy_gradient_lhs = lhs(me.stokes_energy_gradient)
+        me.stokes_energy_gradient_rhs = rhs(me.stokes_energy_gradient)
 
-        me.stokes_gradient = dl.derivative(me.stokes_energy_form, me.u, dl.TestFunction(me.Zh))
-        me.stokes_hessian = dl.derivative(me.stokes_energy_form, me.u, dl.TrialFunction(me.Zh))
+        me.stokes_constraint_gradient = replace(dl.derivative(me.stokes_constraint_form, me.u, dl.TestFunction(me.Zh)),
+                                                {me.u:dl.TrialFunction(me.Zh)})
+        me.stokes_constraint_gradient_lhs = lhs(me.stokes_constraint_gradient)
+        me.stokes_constraint_gradient_rhs = rhs(me.stokes_constraint_gradient)
+
+        me.stokes_coefficient_matrix_scipy = None            # Created in me.solve_forward()
+        me.stokes_coefficient_matrix_factorized_solve = None # Created in me.solve_forward()
 
         # nonlinearStokesFunctional = NonlinearStokesForm(rheology_n, rheology_A, normal, ds(1), f, lam=lam)
         
         # Create one-hot vector on pressure dofs
-        constraint_vec = dl.interpolate(dl.Constant((0.,0., 0., 1.)), me.Zh).vector()
+        # constraint_vec = dl.interpolate(dl.Constant((0.,0., 0., 1.)), me.Zh).vector()
+        #
+        #
+        # me.pde = EnergyFunctionalPDEVariationalProblem(me.Xh, nonlinearStokesFunctional, constraint_vec, bc, bc0)
+        # me.pde.fwd_solver.parameters["rel_tolerance"] = 1.e-8
+        # me.pde.fwd_solver.parameters["print_level"] = 1
+        # me.pde.fwd_solver.parameters["LS"]["max_backtracking_iter"] = 20
+        # me.pde.fwd_solver.solver = dl.PETScLUSolver("mumps")
 
-        
-        me.pde = EnergyFunctionalPDEVariationalProblem(me.Xh, nonlinearStokesFunctional, constraint_vec, bc, bc0)
-        me.pde.fwd_solver.parameters["rel_tolerance"] = 1.e-8
-        me.pde.fwd_solver.parameters["print_level"] = 1
-        me.pde.fwd_solver.parameters["LS"]["max_backtracking_iter"] = 20
-        me.pde.fwd_solver.solver = dl.PETScLUSolver("mumps")
+        ########    TRUE BASAL FRICTION FIELD (INVERSION PARAMETER)    ########
 
         me.prior_mean_val = me.m0_constant_value
-        me.prior_mean_Vh3_petsc     = dl.interpolate(dl.Constant(me.prior_mean_val), me.Vh3).vector()
+        me.prior_mean_Vh3_petsc = dl.interpolate(dl.Constant(me.prior_mean_val), me.Vh3).vector()
         me.prior_mean_Vh2_petsc = me.Vh3_to_Vh2_petsc(me.prior_mean_Vh3_petsc)
         me.m_func = dl.Expression(mtrue_string, element=me.Wh.ufl_element(), m0=me.prior_mean_val,Radius=me.Radius)
         me.mtrue   = dl.interpolate(me.m_func, me.Wh).vector()
@@ -455,15 +467,18 @@ class StokesInverseProblemCylinder:
 
         me.REGOP = BiLaplacianRegularizationOperator(gamma, me.correlation_Length, me.Vh2, robin_bc=me.reg_robin_bc)
 
-        ########    TRUE BASAL FRICTION FIELD (INVERSION PARAMETER)    ########
-
 
         ########    TRUE SURFACE VELOCITY FIELD AND NOISY OBSERVATIONS    ########
-        me.utrue = me.pde.generate_state()
-        me.pde.solveFwd(me.utrue, [me.utrue, me.mtrue, None])
+        me.set_m_without_solving(me.Wh_to_Vh2_numpy(me.mtrue[:]))
+        me.solve_forward()
+        me.utrue_fnc = dl.Function(me.Zh)
+        me.utrue_fnc.vector()[:] = me.u.vector()[:].copy()
 
-        utrue_fnc = dl.Function(me.Zh, me.utrue)
-        me.outflow = np.sqrt(dl.assemble(dl.inner(utrue_fnc.sub(0), normal)**2.*ds(1)))
+        # me.utrue = me.pde.generate_state()
+        # me.pde.solveFwd(me.utrue, [me.utrue, me.mtrue, None])
+
+        # utrue_fnc = dl.Function(me.Zh, me.utrue)
+        me.outflow = np.sqrt(dl.assemble(dl.inner(me.utrue_fnc.sub(0), me.normal)**2.*ds(1)))
 
 
         # construct the form which describes the continuous observations
@@ -570,7 +585,40 @@ class StokesInverseProblemCylinder:
     def get_optimization_variable(me):
         return me.Wh_to_Vh2_numpy(me.x[1][:])
 
+    def solve_forward(me):
+        print('Assembling Stokes forward linear system')
+        stokes_LHS11_petsc = dl.assemble(me.stokes_energy_gradient_lhs)
+        stokes_LHS11_scipy = csr_fenics2scipy(stokes_LHS11_petsc)
+        stokes_RHS1_petsc = dl.assemble(me.stokes_energy_gradient_rhs)
+        stokes_RHS1_numpy = stokes_RHS1_petsc[:]
+
+        stokes_LHS21_petsc = dl.assemble(me.stokes_constraint_gradient_lhs)
+        stokes_LHS21_scipy = csr_fenics2scipy(stokes_LHS21_petsc)
+        stokes_RHS2_petsc = dl.assemble(me.stokes_constraint_gradient_rhs)
+        stokes_RHS2_numpy = stokes_RHS2_petsc[:]
+
+        me.stokes_coefficient_matrix_scipy = sps.bmat([[stokes_LHS11_scipy, stokes_LHS21_scipy.T],
+                                                       [stokes_LHS11_scipy, None]]).tocsr()
+
+        me.stokes_RHS_numpy = np.concatenate([stokes_RHS1_numpy, stokes_RHS2_numpy])
+
+        print('Factorizing Stokes coefficient matrix')
+        me.stokes_coefficient_matrix_factorized_solve = spla.factorized(me.stokes_coefficient_matrix_scipy)
+
+        print('Solving forward problem')
+        me.u.vector()[:] = me.stokes_coefficient_matrix_factorized_solve(me.stokes_RHS_numpy)
+
+    def set_m_without_solving(me, new_m_Vh2_numpy):
+        me.m_Vh2.vector()[:] = new_m_Vh2_numpy
+        me.m_Vh3.vector()[:] = me.Vh2_to_Vh3_numpy(new_m_Vh2_numpy)
+        me.m_Wh.vector()[:] = me.Vh2_to_Wh_numpy(new_m_Vh2_numpy)
+
     def set_optimization_variable(me, new_m_Vh2_numpy, reset_state=True):
+        me.set_m_without_solving(new_m_Vh2_numpy)
+        me.solve_forward()
+
+
+
         if reset_state:
             me.x = [dl.Function(me.Zh).vector(), dl.Function(me.Wh).vector(), dl.Function(me.Zh).vector()]
         me.x[1][:] = me.Vh2_to_Wh_numpy(new_m_Vh2_numpy)
