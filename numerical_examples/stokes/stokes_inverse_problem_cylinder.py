@@ -398,8 +398,8 @@ class StokesInverseProblemCylinder:
         me.ds_top = me.ds(2)
         me.normal = dl.FacetNormal(me.mesh)
         # Strongly enforced Dirichlet conditions. The no outflow condition will be enforced weakly, via a penalty parameter.
-        bc  = []
-        bc0 = []
+        me.bcs  = []
+        me.bcs0 = []
 
         # Define the Nonlinear Stokes varfs
         # rheology
@@ -414,8 +414,9 @@ class StokesInverseProblemCylinder:
         me.tangent_velocity = (me.velocity - dl.outer(me.normal, me.normal)*me.velocity)
         me.stokes_exponent = ((1. + me.stokes_n) / (2. * me.stokes_n))
 
-        if me.stokes_exponent == 1.0:
-            me.stokes_energy_t1 = me.stokes_A ** (-1. / me.stokes_n) * ((2. * me.stokes_n) / (1. + me.stokes_n)) * me.normEu12 * dl.dx
+        if me.stokes_n == 1.0:
+            me.stokes_energy_t1 = me.stokes_A ** (-1.) * me.normEu12 * dl.dx
+            # me.stokes_energy_t1 = me.stokes_A ** (-1. / me.stokes_n) * ((2. * me.stokes_n) / (1. + me.stokes_n)) * me.normEu12 * dl.dx
             me.linear_forward_problem = True
         else:
             me.stokes_energy_t1 = (me.stokes_A ** (-1. / me.stokes_n) * ((2. * me.stokes_n) / (1. + me.stokes_n)) *
@@ -428,6 +429,8 @@ class StokesInverseProblemCylinder:
 
         me.stokes_energy_form = me.stokes_energy_t1 + me.stokes_energy_t2 + me.stokes_energy_t3 + me.stokes_energy_t4
         me.stokes_constraint_form = dl.inner(-dl.div(me.velocity), me.pressure) * dl.dx
+
+        # me.stokes_lagrangian_form
 
         me.stokes_energy_gradient = replace(dl.derivative(me.stokes_energy_form, me.u, dl.TestFunction(me.Zh)),
                                             {me.u:dl.TrialFunction(me.Zh)})
@@ -474,10 +477,6 @@ class StokesInverseProblemCylinder:
         me.utrue_fnc = dl.Function(me.Zh)
         me.utrue_fnc.vector()[:] = me.u.vector()[:].copy()
 
-        # me.utrue = me.pde.generate_state()
-        # me.pde.solveFwd(me.utrue, [me.utrue, me.mtrue, None])
-
-        # utrue_fnc = dl.Function(me.Zh, me.utrue)
         me.outflow = np.sqrt(dl.assemble(dl.inner(me.utrue_fnc.sub(0), me.normal)**2.*ds(1)))
 
 
@@ -486,8 +485,8 @@ class StokesInverseProblemCylinder:
         component_observed = dl.interpolate(dl.Constant((1., 1., 0., 0.)), me.Zh)
         utest, ptest = dl.TestFunctions(me.Zh)
         utrial, ptrial = dl.TrialFunctions(me.Zh)
-        form = dl.inner(Tang(utrial, normal), Tang(utest, normal))*ds(2)
-        me.misfit = hp.ContinuousStateObservation(me.Zh, ds(2), bc, form=form)
+        form = dl.inner(Tang(utrial, me.normal), Tang(utest, me.normal))*me.ds_top
+        me.misfit = hp.ContinuousStateObservation(me.Zh, me.ds_top, bc, form=form)
         # ds(1) basal boundary, ds(2) top boundary
         
         # construct the noisy observations
