@@ -213,9 +213,11 @@ def newtoncg_ls(get_optimization_variable:     Callable[[],                     
     while (it < maxiter_newton) and (converged == False):
         using_gauss_newton = (it < num_gn_iter)
         if using_gauss_newton:
-            apply_hessian = apply_gauss_newton_hessian
+            print('using Gauss-Newton Hessian')
+            apply_H = apply_gauss_newton_hessian
         else:
-            apply_hessian = apply_hessian
+            print('using Gauss-Newton Hessian')
+            apply_H = apply_hessian
         printmaybe('it=', it, ', num_initial_iter=', num_initial_iter, ', num_gn_iter=', num_gn_iter,
                    ', using_gauss_newton=', using_gauss_newton)
 
@@ -242,7 +244,7 @@ def newtoncg_ls(get_optimization_variable:     Callable[[],                     
         minus_g = copy_vector(g)
         scal(-1.0, minus_g)
 
-        dm, extras = cgsteihaug(apply_hessian, minus_g,
+        dm, extras = cgsteihaug(apply_H, minus_g,
                                 solve_M=solve_hessian_preconditioner,
                                 inner_product=inner_product,
                                 copy_vector=copy_vector,
@@ -331,17 +333,18 @@ def cgsteihaug(apply_A: Callable[[vector_type], vector_type],
                display=True,
                maxiter=1000,
                rtol=1e-9,
-               atol=1e-12):
+               atol=1e-12,
+               preconditioned_norm_stopping_criterion=False):
 
     def printmaybe(*args, **kwargs):
         if display:
             print(*args, **kwargs)
 
-    X = []
+    X = [] # list [x1, x2, ...]
     Y = []
     def apply_A_wrapper(x: vector_type) -> vector_type:
         y = apply_A(x)
-        X.append(x)
+        X.append(x) #OK
         Y.append(y)
         return y
 
@@ -356,40 +359,49 @@ def cgsteihaug(apply_A: Callable[[vector_type], vector_type],
         axpy(-1.0, apply_A_wrapper(x), r) # r = b - A*x0
 
     z = solve_M(r)
-    print("||r0|| = {0:1.3e}".format(np.sqrt(inner_product(r, r))))
-    print("||B^-1 r0|| = {0:1.3e}".format(np.sqrt(inner_product(z, z))))
-
     d = copy_vector(z)
 
-    nom0 = inner_product(d, r)
-    nom = nom0
+    rT_r = inner_product(r, r)
+    rT_MM_r = inner_product(z, z)
+    rT_M_r = inner_product(d, r)
+    print('Residual: r=b-Ax')
+    print('Preconditioner: M =approx= A^-1')
+    print("||r0|| = {0:1.3e}".format(np.sqrt(rT_r)))
+    print("||M r0|| = {0:1.3e}".format(np.sqrt(rT_MM_r)))
+    print("(M r0, r0) = {0:1.3e}".format(np.sqrt(rT_M_r)))
 
-    printmaybe(" Iteration : ", 0, " (B r, r) = ", nom)
+    if preconditioned_norm_stopping_criterion:
+        rnorm_squared = rT_M_r
+        printmaybe(" Iteration : ", 0, " (M r, r) = ", rT_M_r)
+    else:
+        rnorm_squared = rT_r
+        printmaybe(" Iteration : ", 0, " (r, r) = ", rT_r)
 
-    rtol2 = nom * rtol * rtol
-    atol2 = atol * atol
-    r0 = max(rtol2, atol2)
+    cgtol_squared = max(rnorm_squared * rtol * rtol, atol * atol)
 
-    if nom <= r0:
+    if rnorm_squared <= cgtol_squared:
         converged = True
         reason = "Relative/Absolute residual less than tol"
-        final_norm = np.sqrt(nom)
+        final_norm = np.sqrt(rnorm_squared)
         printmaybe(reason)
         printmaybe("Converged in ", iter, " iterations with final norm ", final_norm)
         extras = {'X': X, 'Y': Y, 'converged': converged, 'reason': reason, 'final_norm': final_norm}
         return x, extras
 
-    Ad = apply_A_wrapper(d)
-    den = inner_product(Ad, d)
+    A_d = apply_A_wrapper(d)
+    dT_A_d = inner_product(A_d, d)
 
-    if den <= 0.0:
+    if dT_A_d <= 0.0:
         converged = True
         reason = "Reached a negative direction"
         axpy(1.0, d, x)   # x <- x + d
-        axpy(-1.0, Ad, r) # r <- r - Ad
-        z = solve_M(r)     # z <- inv(M)*r
-        nom = inner_product(r, z)
-        final_norm = np.sqrt(nom)
+        axpy(-1.0, A_d, r) # r <- r - Ad
+        if preconditioned_norm_stopping_criterion:
+            z = solve_M(r)  # z <- inv(M)*r
+            rnorm_squared = inner_product(r, z)
+        else:
+            rnorm_squared = inner_product(r, r)
+        final_norm = np.sqrt(rnorm_squared)
         printmaybe(reason)
         printmaybe("Converged in ", iter, " iterations with final norm ", final_norm)
         extras = {'X': X, 'Y': Y, 'converged': converged, 'reason': reason, 'final_norm': final_norm}
@@ -398,17 +410,24 @@ def cgsteihaug(apply_A: Callable[[vector_type], vector_type],
     # start iteration
     iter = 1
     while True:
-        alpha = nom / den
+        alpha = rT_M_r / dT_A_d
         axpy(alpha, d, x) # x = x + alpha * d
-        axpy(-alpha, Ad, r) # r = r - alpha * Ad
+        axpy(-alpha, A_d, r) # r = r - alpha * Ad
+        rT_r = inner_product(r, r)
         z = solve_M(r)
-        betanom = inner_product(r, z)
-        printmaybe(" Iteration : ", iter, " (B r, r) = ", betanom)
+        previous_rT_M_r = rT_M_r
+        rT_M_r = inner_product(r, z)
+        if preconditioned_norm_stopping_criterion:
+            rnorm_squared = rT_M_r
+            printmaybe(" Iteration : ", iter, " (M r, r) = ", rT_M_r)
+        else:
+            rnorm_squared = rT_r
+            printmaybe(" Iteration : ", iter, " (r, r) = ", rT_r)
 
-        if betanom < r0:
+        if rnorm_squared < cgtol_squared:
             converged = True
             reason = "Relative/Absolute residual less than tol"
-            final_norm = np.sqrt(betanom)
+            final_norm = np.sqrt(rnorm_squared)
             printmaybe(reason)
             printmaybe("Converged in ", iter, " iterations with final norm ", final_norm)
             break
@@ -417,30 +436,39 @@ def cgsteihaug(apply_A: Callable[[vector_type], vector_type],
         if iter > maxiter:
             converged = False
             reason = "Maximum Number of Iterations Reached"
-            final_norm = np.sqrt(betanom)
+            final_norm = np.sqrt(rnorm_squared)
             printmaybe(reason)
             printmaybe("Not Converged. Final residual norm ", final_norm)
             break
 
-        beta = betanom / nom
+        beta = rT_M_r / previous_rT_M_r
 
         # d = z + beta d
         scal(beta, d)
         axpy(1.0, z, d)
 
-        Ad = apply_A_wrapper(d)
+        A_d = apply_A_wrapper(d)
 
-        den = inner_product(Ad, d)
+        dT_A_d = inner_product(A_d, d)
 
-        if den <= 0.0:
+        if dT_A_d <= 0.0:
             converged = True
             reason = "Reached a negative direction"
-            final_norm = np.sqrt(nom)
+            if preconditioned_norm_stopping_criterion:
+                final_norm = np.sqrt(rT_M_r)
+            else:
+                final_norm = np.sqrt(rT_r)
             printmaybe(reason)
             printmaybe("Converged in ", iter, " iterations with final norm ", final_norm)
             break
 
-        nom = betanom
+
+    X_arr = np.array(X).T
+    Y_arr = np.array(Y).T
+
+    YTX = np.dot(Y_arr.T, X_arr)
+    ee, _ = np.linalg.eigh(YTX)
+    print('CG Steihaug: YTX eigs=', ee)
 
     extras = {'X': X, 'Y': Y, 'converged': converged, 'reason': reason, 'final_norm': final_norm}
     return x, extras
