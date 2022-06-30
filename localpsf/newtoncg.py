@@ -183,10 +183,8 @@ def newtoncg_ls(get_optimization_variable:     Callable[[],                     
                 maxiter_newton=25,
                 maxiter_cg=400,
                 display=True,
-                num_initial_iter=3, # Number of initial iterations
+                preconditioner_build_iters=(3,), # iterations at which one builds the preconditioner
                 num_gn_iter=7, # Number of Gauss-Newton iterations (including, possibly, initial iterations)
-                krylov_recycling=True, # Recycle Krylov information after initial iterations
-                krylov_recycling_initial_iter=False, # Recycle Krylov information in initial iterations
                 cg_coarse_tolerance=0.5,
                 c_armijo=1e-4, # Armijo constant for sufficient reduction
                 max_backtracking_iter=10, #Maximum number of backtracking iterations
@@ -216,9 +214,9 @@ def newtoncg_ls(get_optimization_variable:     Callable[[],                     
             print('using Gauss-Newton Hessian')
             apply_H = apply_gauss_newton_hessian
         else:
-            print('using Gauss-Newton Hessian')
+            print('using Hessian')
             apply_H = apply_hessian
-        printmaybe('it=', it, ', num_initial_iter=', num_initial_iter, ', num_gn_iter=', num_gn_iter,
+        printmaybe('it=', it, ', preconditioner_build_iters=', preconditioner_build_iters, ', num_gn_iter=', num_gn_iter,
                    ', using_gauss_newton=', using_gauss_newton)
 
         g = gradient()
@@ -235,7 +233,7 @@ def newtoncg_ls(get_optimization_variable:     Callable[[],                     
 
         tolcg = min(cg_coarse_tolerance, np.sqrt(gradnorm / gradnorm_ini))
 
-        if (it == num_initial_iter):
+        if (it in preconditioner_build_iters):
             printmaybe('building preconditioner')
             build_hessian_preconditioner()
 
@@ -258,12 +256,7 @@ def newtoncg_ls(get_optimization_variable:     Callable[[],                     
         Y = extras['Y']
         num_hessian_calls = len(X)
 
-        recycle = (((it > num_initial_iter and krylov_recycling)
-                    or (it <= num_initial_iter and krylov_recycling_initial_iter))
-                   and (X is not None) and (Y is not None))
-
-        if recycle:
-            update_hessian_preconditioner(X, Y)
+        update_hessian_preconditioner(X, Y)
 
         total_cg_iter += num_hessian_calls
         residualCounts.append(num_hessian_calls)
@@ -344,8 +337,8 @@ def cgsteihaug(apply_A: Callable[[vector_type], vector_type],
     Y = []
     def apply_A_wrapper(x: vector_type) -> vector_type:
         y = apply_A(x)
-        X.append(x) #OK
-        Y.append(y)
+        X.append(copy_vector(x)) #OK
+        Y.append(copy_vector(y))
         return y
 
     iter = 0
@@ -466,7 +459,11 @@ def cgsteihaug(apply_A: Callable[[vector_type], vector_type],
     X_arr = np.array(X).T
     Y_arr = np.array(Y).T
 
+    # print('CGS: X_arr=', X_arr)
+    # print('CGS: Y_arr=', Y_arr)
+
     YTX = np.dot(Y_arr.T, X_arr)
+    print('CGS: YTX=', YTX)
     ee, _ = np.linalg.eigh(YTX)
     print('CG Steihaug: YTX eigs=', ee)
 
