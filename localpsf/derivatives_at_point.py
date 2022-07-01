@@ -1,3 +1,4 @@
+import numpy as np
 import dolfin as dl
 import ufl
 from collections.abc import Callable

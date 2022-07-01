@@ -12,6 +12,7 @@ from . import stokes_inverse_problem_cylinder
 from . import op_operations
 from . import newtoncg
 from . import derivatives_at_point
+from . import bilaplacian_regularization
 # from . import path
 
 from pathlib import Path as __Path
