@@ -193,7 +193,7 @@ class StokesDerivativesAtPoint:
         me.update_incremental_adjoint()
         return me.output_vector_transformation(dl.assemble(me.misfit_hessian_action_form))
 
-    def apply_misfit_gauss_newton_hessian(me, z_vec):
+    def apply_gauss_newton_hessian(me, z_vec):
         me.update_z(z_vec)
         me.update_forward()
         me.update_adjoint()
