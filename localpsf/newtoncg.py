@@ -178,7 +178,7 @@ def newtoncg_ls(get_optimization_variable:     Callable[[],                     
                 axpy:                Callable[[scalar_type, vector_type, vector_type], None] = numpy_axpy, # axpy(a, x, y): y <- y + a*x
                 scal:                Callable[[scalar_type, vector_type], None]              = numpy_scal, # scal(a, x): x <- a*x
                 callback=None,
-                rtol=1e-12,
+                rtol=1e-8,
                 atol=1e-14,
                 maxiter_newton=25,
                 maxiter_cg=400,
