@@ -456,16 +456,16 @@ def cgsteihaug(apply_A: Callable[[vector_type], vector_type],
             break
 
 
-    X_arr = np.array(X).T
-    Y_arr = np.array(Y).T
+    # X_arr = np.array(X).T
+    # Y_arr = np.array(Y).T
 
     # print('CGS: X_arr=', X_arr)
     # print('CGS: Y_arr=', Y_arr)
 
-    YTX = np.dot(Y_arr.T, X_arr)
-    print('CGS: YTX=', YTX)
-    ee, _ = np.linalg.eigh(YTX)
-    print('CG Steihaug: YTX eigs=', ee)
+    # YTX = np.dot(Y_arr.T, X_arr)
+    # print('CGS: YTX=', YTX)
+    # ee, _ = np.linalg.eigh(YTX)
+    # print('CG Steihaug: YTX eigs=', ee)
 
     extras = {'X': X, 'Y': Y, 'converged': converged, 'reason': reason, 'final_norm': final_norm}
     return x, extras
