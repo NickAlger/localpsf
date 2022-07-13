@@ -623,38 +623,50 @@ where $a \in \{0,1,2,3\}$ \cite{GrasedyckHackbusch03}. The precise cost depends 
 \section{Numerical results}
 \label{sec:numerical_results}
 
-%\textbf{Heat equation}
-%\begin{itemize}
-%	\item Hessian per-column error plots for 1, 5, and 15 batches
-%	\item $H-P$ error vs number of batches for interior and whole domain
-%	\item $P^{-1}H-I$: error vs rank for $P=R$ and $P=P_\text{pch}$ diffusion time, for 1, 5, and 15 batches
-%	\item Krylov iterations to tols 1e-1 and 1e-6 vs diffusion parameter
-%	\item GLR vs PCH vs diffusion time
-%	\item Krylov method convergence plot: $R$ vs $P_\text{pch}$ vs no preconditioner
-%	\item Krylov iterations to tols 1e-6 vs mesh size $h$, PCH vs R vs no preconditioner (hold)
-%	\item true parameter (H)
-%	\item deterministic reconstruction (H)
-%	\item noisy measurements (1\%, 5\%, 10\% noise). $u|_\text{top}$ (H)
-%	\item recovered state at top (H)
-%	\item mesh scalability of PCH (CC) (H)
-%	\item put plot data into data directory
-%	\item save function .pvd files in paraview  directory
-%\end{itemize}
-%
-%\begin{itemize}
-%	\item GLR vs PCH number of obs (Computational cost in PDE solves) (S)
-%	\item GLR vs PCH aspect ratio (CC) (S)
-%	\item turn on preconditioner after number of krylov iterations exceeds 15 in an iteration. Rebuild "as needed". (S)
-%\end{itemize}
-%
-%\begin{itemize}
-%	\item Stokes Krylov convergence (10 solves for nonlinear forward + 6 hessian matvecs for ellipsoid estimation + 10 matvecs for impulse responses + 30 matvecs for PCH6 CG solve + 100 matvecs for Reg CG solve)
-%	\item Stokes error vs num batches (small number of batches; 1, 3, 6, 9 batches?) (50 matvecs for randomized error estimation +)
-%	\item Velocity field
-%	\item Basal friction field
-%	\item Picture of impulse responses
-%	\item Mesh negative numbers picture
-%\end{itemize}
+\textbf{Heat equation}
+\begin{itemize}
+	\item Hessian per-column error plots for 1, 5, and 15 batches
+	\item $H-P$ error vs number of batches for interior and whole domain
+	\item $P^{-1}H-I$: error vs rank for $P=R$ and $P=P_\text{pch}$ diffusion time, for 1, 5, and 15 batches
+	\item Krylov iterations to tols 1e-1 and 1e-6 vs diffusion parameter
+	\item GLR vs PCH vs diffusion time
+	\item Krylov method convergence plot: $R$ vs $P_\text{pch}$ vs no preconditioner
+	\item Krylov iterations to tols 1e-6 vs mesh size $h$, PCH vs R vs no preconditioner (hold)
+	\item true parameter (H)
+	\item deterministic reconstruction (H)
+	\item noisy measurements (1\%, 5\%, 10\% noise). $u|_\text{top}$ (H)
+	\item recovered state at top (H)
+	\item mesh scalability of PCH (CC) (H)
+	\item put plot data into data directory
+	\item save function .pvd files in paraview  directory
+\end{itemize}
+
+\begin{itemize}
+	\item GLR vs PCH number of obs (Computational cost in PDE solves) (S)
+	\item GLR vs PCH aspect ratio (CC) (S)
+	\item turn on preconditioner after number of krylov iterations exceeds 15 in an iteration. Rebuild "as needed". (S)
+\end{itemize}
+
+\begin{itemize}
+	\item Stokes Krylov convergence (10 solves for nonlinear forward + 6 hessian matvecs for ellipsoid estimation + 10 matvecs for impulse responses + 30 matvecs for PCH6 CG solve + 100 matvecs for Reg CG solve)
+	\item Stokes error vs num batches (small number of batches; 1, 3, 6, 9 batches?) (50 matvecs for randomized error estimation +)
+	\item Velocity field
+	\item Basal friction field
+	\item Picture of impulse responses
+	\item Mesh negative numbers picture
+\end{itemize}
+
+\begin{itemize}
+	\item mtrue
+	\item utrue (no arrows)
+	\item utrue (yes arrows)
+	\item reconstruction iterations 1,3,4,8: PCH vs REG
+	\item urecovered (arrows, 3D)
+	\item morozov plot
+	\item Newton convergence (iter, numcg, numPDEsolves (num preconditioner build), gradnorm)
+	\item impulse response batches
+	\item 
+\end{itemize}
 
 Some numerical results here.
 
