@@ -40,8 +40,11 @@
 
 % REQUIRED
 \begin{abstract}
-	We present a fast matrix-free method for computing hierarchical matrix (H-matrix) approximations of operators that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in Schur complement methods for solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained inverse problems. H-matrix approximations are highly desirable because there are fast H-matrix methods to add, multiply, invert, and factorize H-matrices, compute matrix-vector products, solve linear systems, and perform other useful matrix computations. Classical H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. Our method computes impulse responses of the operator at a collection of scattered points, then interpolates these known impulse responses to evaluate entries of the integral kernel at other points where the impulse response is not known, which allows us to construct the H-matrix. Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. By solving an ellipsoid packing problem, we choose as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. 
-	We apply the method to approximate Hessians in large-scale PDE-constrained inverse problems with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. We are able to form high quality approximations of high rank operators using only a small number of operator applies.
+	We present a fast matrix-free method for approximating operators that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in Schur complement methods for solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in distributed parameter PDE-constrained inverse problems. Our method computes impulse responses of the operator at a collection of scattered points, then interpolates these known impulse responses to evaluate entries of the integral kernel at other points where the impulse response is not known. 
+%	Classical H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. 
+	Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. By solving an ellipsoid packing problem, we choose as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. 
+	The ability to rapidly evaluate kernel entries allows us to construct a hierarchical matrix (H-matrix) approximation of the operator. Fast H-matrix methods are used to perform further matrix computations including matrix-matrix addition and multiplication, matrix inversion and factorization, and matrix-vector products in nearly-linear complexity.
+	We apply the method to approximate the Hessian in a large-scale PDE-constrained inverse problem with highly informative data. Numerical results demonstrate that our method substantially outperforms existing methods. We are able to approximate high rank operators using only a small number of operator applies.
 \end{abstract}
 
 % REQUIRED
@@ -69,46 +72,60 @@ but we do not have any further access to $\Aop$. In particular, we cannot easily
 Our motivation is Hessian approximation in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field from noisy observations of a state variable that depends on the parameter implicitly through the solution of a PDE.
 In the deterministic approach to the inverse problem, one solves a regularized minimization problem to find the parameter that best fits the data. The objective function in the minimization problem is defined implicitly, so information about the Hessian of the objective function is only accessible via application of the Hessian to vectors \cite{HESSIANACTION}. 
 The most popular matrix-free Hessian approximation methods are based on low rank approximation \cite{BuiEtAl13,CuiEtAl14,FlathEtAl11,PetraEtAl14,SpantiniEtAl15} because there are efficient methods for constructing low rank approximations of a matrix using only matrix-vector products \cite{Cheng05,HalkoMartinssonTropp11}. 
-However, low rank approximation methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator applies are required to form an accurate ``low rank'' approximation \cite{Alger19,AlgerEtAl17}. High-rank matrix free approximation methods are needed.
-
-\begin{figure}
-	\begin{center}
-		\includegraphics[scale=0.4]{bct1.eps}
-	\end{center}
-	\caption{Hierarchical matrix block structure for the Stokes Hessian. The red blocks (tiny) are dense. All other blocks are low rank.
-	}
-	\label{fig:hmatrix_intro}
-\end{figure}
-
-Our method forms a hierarchical matrix (H-matrix) \cite{Hackbusch99,} approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high-rank (see Figure \ref{fig:hmatrix_intro} and Appendix \ref{app:h_matrix}). H-matrix methods permit us to perform matrix-vector products cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving the H-matrix that cannot easily be done using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. These H-matrix methods are fast and scale well to large problems. Typically, the work and memory required to perform these operations for an $\fedim \times \fedim$ H-matrix scales as $O(\fedim \log(\fedim)^a)$, where $a \in \{0,1,2,3\}$. The exact cost depends on the type of H-matrix used, the operation being performed, and the rank of the off-diagonal blocks; for more details see \cite{GrasedyckHackbusch03}. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
+However, low rank approximation methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator applies are required to form an accurate ``low rank'' approximation \cite{Alger19,AlgerEtAl17}. High-rank approximation methods are needed.
 
 \begin{figure}
 	\begin{subfigure}{0.32\textwidth}
 		\centering
-		\includegraphics[scale=0.33]{batch1.png}
+		\includegraphics[scale=0.33]{impulse_batch1.png}
 	\end{subfigure}
 	\begin{subfigure}{0.32\textwidth}
 		\centering
-		\includegraphics[scale=0.33]{batch12.png}
+		\includegraphics[scale=0.33]{impulse_batch2.png}
 	\end{subfigure}
 	\begin{subfigure}{0.32\textwidth}
 		\centering
-		\includegraphics[scale=0.33]{batch19.png}
+		\includegraphics[scale=0.33]{impulse_batch3.png}
 	\end{subfigure}
-	\caption{Batches of normalized impulse responses for the Stokes inverse problem Hessian. Left: 2nd batch. Mid: 13th batch. Right: 19th batch. Brightness scale differs between the subfigures. Black stars indicate the sample point locations at which the point source is applied. Dashed gray ellipses indicate the estimated support ellipsoids. The large circle is the boundary of the domain. 
+	\caption{Batches of normalized impulse responses for the Stokes inverse problem Hessian. 
+%	Brightness scale differs between the subfigures. 
+	Black stars indicate point source locations. Dashed gray ellipses indicate the estimated support ellipsoids. The large circle is the boundary of the domain. 
 	}
 	\label{fig:batches_intro}
 \end{figure}
 
-Classical H-matrix construction methods (described in Appendix \ref{sec:H_matrix_construction}) require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available matrix free. Recently there have been improvements in matrix-free H-matrix construction methods based on the so-called ``peeling process'' \cite{LinYing11,Martinsson11,Martinsson16,MartinssonTropp20}, which we do not use here. 
-These alternative methods have, been applied to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{AmbartsumyanEtAl20,HartlandEtAl22}. 
-While methods based on the peeling process are asymptotically scalable in theory, in practice the required number of matrix vector products is large. Matrix-free H-matrix construction methods are currently a topic of considerable research, so future algorithmic improvements may make matrix-free H-matrix methods based on the peeling process more efficient in the future. 
+The central challenge we face is that existing scalable high-rank approximation methods typically require the ability to rapidly evaluate arbitrary entries of $\Aop$'s integral kernel, and we cannot do this because $\Aop$ is only accessible matrix-free. We address this challenge using \emph{impulse response interpolation}. The impulse response, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(v) = \left(\rho^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate translated versions of these impulse responses to approximate arbitrary entries of the operator's integral kernel. 
+%This allows fast evaluation of approximate matrix entries, which are needed by high-rank approximation methods, in particular, classical H-matrix construction methods. 
 
-We construct the H-matrix using \emph{impulse response interpolation}. The impulse response, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(v) = \left(\rho^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with collections of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate shifted versions of these impulse responses to approximate arbitrary entries of the operator's integral kernel. This allows fast evaluation of approximate matrix entries, which are needed by the classical H-matrix construction methods. 
-
-Picking the batches of points $x_i$ requires us to estimate the supports of the $\phi_x$, \emph{before} we compute them. The idea of estimating the supports of the functions $\phi_x$ a-priori was inspired by techniques from resolution analysis in seismic imaging, in which the width of $\phi_x$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $x$, where $\zeta$ is a random noise funtion  \cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. Rather than probing $\Aop^T$ with random noise functions, we use polynomial functions (see Section \ref{sec:intromoments}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing at the cost of the additional constraint that $\Aop$ has a positive integral kernel.
+Picking the batches of points requires us to estimate the supports of the $\phi_x$, \emph{before} we compute them. The idea of estimating the supports of the functions $\phi_x$ a-priori was inspired by techniques from resolution analysis in seismic imaging, in which the width of $\phi_x$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $x$, where $\zeta$ is a random noise funtion  \cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. Rather than probing $\Aop^T$ with random noise functions, we use polynomial functions (see Section \ref{sec:intromoments}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing at the cost of the additional constraint that $\Aop$ has a positive integral kernel.
 
 Our impulse response interpolation procedure may be categorized as a ``point spread function'' (PSF) method that is loosely based on so-called ``product-convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others),  \cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,NagyOleary98,FishEtAl96,EscandeWeiss12,EscandeWeiss15,EscandeWeiss22,ZhuLiFomelEtAl16}, in which the convolution kernels are constructed from sampling impulse responses of the operator to scattered point sources. For background on PC and PSF methods, we recommend the following papers which provide well-written reviews of the topic: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. While PC approximations are based on an assumption of local translation invariance, the method we propose is based on an assumption that we call ``local mean displacement invariance'' (see Figure \ref{fig:mean_displacement_invariance}). This is more general than local translation invariance, and includes both low rank approximation and local translation invariance as special cases (see Section \ref{sec:local_mean_displacement_invariance}). Furthermore, PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulse responses. We avoid this issue by temporarily excluding impulse responses from the approximation procedure whenever an attempt is made to evaluate the impulse response at a location where it is undefined. 
+
+%\begin{figure}
+%	\begin{center}
+%		\includegraphics[scale=0.4]{bct1.eps}
+%	\end{center}
+%	\caption{Hierarchical matrix block structure for the Stokes Hessian. The red blocks (tiny) are dense. All other blocks are low rank.
+%	}
+%	\label{fig:hmatrix_intro}
+%\end{figure}
+
+The ability to rapidly evaluate approximations of arbitrary entries of $\Aop$'s integral kernel allows us to form a hierarchical matrix (H-matrix) \cite{Hackbusch99,} approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high-rank. 
+%(see Figure \ref{fig:hmatrix_intro} and Appendix \ref{app:h_matrix}).
+H-matrix methods permit us to perform matrix-vector products cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving the H-matrix that cannot easily be done using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. 
+%These H-matrix methods are fast and scale well to large problems. 
+The work and memory required to perform these operations for an $\fedim \times \fedim$ H-matrix is scales as $O(\fedim \log(\fedim)^a)$, where $a \in \{0,1,2,3\}$. That is, the cost is \emph{nearly-linear} in $N$. The exact cost depends on the type of H-matrix used, the operation being performed, and the rank of the off-diagonal blocks; for more details see \cite{GrasedyckHackbusch03}. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
+
+%Classical H-matrix construction methods 
+%(described in Appendix \ref{sec:H_matrix_construction}) 
+%require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available matrix free.
+Recently there have been improvements in matrix-free H-matrix construction methods based on the so-called ``peeling process'' \cite{LinYing11,Martinsson11,Martinsson16,MartinssonTropp20}, which we do not use here. 
+These alternative methods have been applied to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{AmbartsumyanEtAl20,HartlandEtAl22}. 
+Methods based on the peeling process are asymptotically scalable (typically the number of matrix vector products required scales as $O(\log N)$), but in practice the required number of matrix vector products is large. Improving the peeling process to reduce its cost is currently an area of active research \cite{PEELINGRESEARCH}.
+%This is an area of active research, so more efficient and practical matrix-free H-matrix construction methods based on the peeling process may be discovered in the future.
+%Matrix-free H-matrix construction methods are currently a topic of considerable research, so more efficient matrix-free H-matrix methods based on the peeling process may be discovered in the future. 
+
+
 
 \begin{figure}
 	\begin{center}
@@ -303,40 +320,41 @@ Hence, we may compute $\spatialvol(x)$ for all $x$ simultaneously by applying $\
 	\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
 	\end{align}
 \end{subequations}
-for $i,j=1,\dots, \gdim$. Here $f/g$ denotes pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denotes pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$. The resulting method for computing discretized versions of $\spatialvol$, $\spatialmean$, and $\spatialcov$ is shown in Algorithm \ref{alg:varhpi_mean_cov}.
+for $i,j=1,\dots, \gdim$. Here $f/g$ denotes pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denotes pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
+%The resulting method for computing discretized versions of $\spatialvol$, $\spatialmean$, and $\spatialcov$ is shown in Algorithm \ref{alg:varhpi_mean_cov}.
 
-\begin{algorithm2e}
-	\SetAlgoNoLine
-	\SetKwInOut{Input}{Input}
-	\SetKwInOut{Output}{Output}
-	{	
-		\Input{Operator $\bm{A}^T$}
-		\Output{$\bm{\spatialvol}\in \mathbb{R}^\fedim$, $\bm{\spatialmean}\in \mathbb{R}^{\gdim \times \fedim}$, and $\bm{\spatialcov} \in \mathbb{R}^{\gdim \times \gdim \times \fedim}$}
-		
-		Form vector $\bm{C} \in \mathbb{R}^\fedim_{\massmatrix}$ by either projecting or interpolating constant function $C(x)=1$ onto $V_h$
-		
-		$\bm{\spatialvol} \gets \massmatrix^{-1}\bm{A}^T \bm{C}$
-		
-		\For{$i=1,2,\dots,\gdim$}{
-			Form vector $\bm{L}^i \in \mathbb{R}^\fedim_{\massmatrix}$ by either projecting or interpolating linear function $L^i(x) = x^i$ onto $V_h$
-			
-			$\bm{\spatialmean}^i \gets \left(\massmatrix^{-1}\bm{A}^T \bm{L}^i\right) / \bm{\spatialvol}$
-		}
-		\For{$i=1,2,\dots,\gdim$}{
-			\For{$j=1,\dots,i$}{
-				Form quadratic function $\bm{Q}^{ij} = x^i x^j$
-				
-				$\bm{\spatialcov}^{ij} \gets \left(\massmatrix^{-1}\bm{A}^T \bm{Q}^{ij}\right) / \bm{\spatialvol} - \bm{\spatialmean}^i\cdot \bm{\spatialmean}^j$
-				
-				$\bm{\spatialcov}^{ji} \gets \bm{\spatialcov}^{ij}$
-				
-			}
-		}
-		
-	}
-	\caption{Compute discretized scaling factor $\mathbf{\spatialvol}$, mean $\boldsymbol{\spatialmean}$, and covariance $\boldsymbol{\spatialcov}$}
-	\label{alg:varhpi_mean_cov}
-\end{algorithm2e}
+%\begin{algorithm2e}
+%	\SetAlgoNoLine
+%	\SetKwInOut{Input}{Input}
+%	\SetKwInOut{Output}{Output}
+%	{	
+%		\Input{Operator $\bm{A}^T$}
+%		\Output{$\bm{\spatialvol}\in \mathbb{R}^\fedim$, $\bm{\spatialmean}\in \mathbb{R}^{\gdim \times \fedim}$, and $\bm{\spatialcov} \in \mathbb{R}^{\gdim \times \gdim \times \fedim}$}
+%		
+%		Form vector $\bm{C} \in \mathbb{R}^\fedim_{\massmatrix}$ by either projecting or interpolating constant function $C(x)=1$ onto $V_h$
+%		
+%		$\bm{\spatialvol} \gets \massmatrix^{-1}\bm{A}^T \bm{C}$
+%		
+%		\For{$i=1,2,\dots,\gdim$}{
+%			Form vector $\bm{L}^i \in \mathbb{R}^\fedim_{\massmatrix}$ by either projecting or interpolating linear function $L^i(x) = x^i$ onto $V_h$
+%			
+%			$\bm{\spatialmean}^i \gets \left(\massmatrix^{-1}\bm{A}^T \bm{L}^i\right) / \bm{\spatialvol}$
+%		}
+%		\For{$i=1,2,\dots,\gdim$}{
+%			\For{$j=1,\dots,i$}{
+%				Form quadratic function $\bm{Q}^{ij} = x^i x^j$
+%				
+%				$\bm{\spatialcov}^{ij} \gets \left(\massmatrix^{-1}\bm{A}^T \bm{Q}^{ij}\right) / \bm{\spatialvol} - \bm{\spatialmean}^i\cdot \bm{\spatialmean}^j$
+%				
+%				$\bm{\spatialcov}^{ji} \gets \bm{\spatialcov}^{ij}$
+%				
+%			}
+%		}
+%		
+%	}
+%	\caption{Compute discretized scaling factor $\mathbf{\spatialvol}$, mean $\boldsymbol{\spatialmean}$, and covariance $\boldsymbol{\spatialcov}$}
+%	\label{alg:varhpi_mean_cov}
+%\end{algorithm2e}
 
 Next, we make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
 \begin{equation}
@@ -380,7 +398,9 @@ Once the impulse response batches $\eta_b$ are computed, we approximate the inte
 
 The ability to rapidly evaluate approximate kernel entries $\Aker(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Aker}_H \approx \mathbf{\Aker}$, using the conventional adaptive cross H-matrix construction method (Section \ref{sec:h_matrix_construction_short}). In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Aker}_H$ into an H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$. 
 
-When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be non-symmetric and indefinite due to errors in the approximation. In this case, one may (optionally) modify the H-matrix representation of $\mathbf{A}_H$ to make it symmetric and nearly positive semi-definite. The matrix is symmetrized by computing $\left(\mathbf{A}_H+\mathbf{A}_H^T\right)/2$ using H-matrix addition. Negative eigenvalues that are large or medium in magnitude are computed, then flipped in sign to become positive. Small negative eigenvalues may remain because they are difficult to compute numerically. This is described in Appendix \ref{sec:make_spd}.
+When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be non-symmetric and indefinite due to errors in the approximation. In this case, one may (optionally) modify the H-matrix representation of $\mathbf{A}_H$ to make it symmetric positive semi-definite using the rational method described in Appendix \ref{sec:make_spd}.
+
+%. The matrix is symmetrized by computing $\left(\mathbf{A}_H+\mathbf{A}_H^T\right)/2$ using H-matrix addition. Negative eigenvalues modified to be positive using a rational method that is described in Appendix \ref{sec:make_spd}.
 
 Schematically the overall H-matrix approximation proceeds as follows:
 \begin{equation*}
@@ -397,7 +417,9 @@ The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \re
 		\Input{Linear operator $\Aop$, parameter $\nbatch$}
 		\Output{H-matrix $\mathbf{A}_H$ (optionally, $\mathbf{A}_H^{\text{sym}+}$)}
 		
-		Compute $\bm{\spatialvol}$, $\bm{\spatialmean}$, and $\bm{\spatialcov}$ using Algorithm \ref{alg:varhpi_mean_cov}.
+		Compute $V, \mu$, and $\Sigma$ (Section \ref{sec:intromoments})
+		
+%		Compute $\bm{\spatialvol}$, $\bm{\spatialmean}$, and $\bm{\spatialcov}$ using Algorithm \ref{alg:varhpi_mean_cov}.
 		
 		\For{$k=1,2,\dots,\nbatch$}{
 			Choose a batch of sample points, $\pointbatch_k$, using Algorithm \ref{alg:point_choice}
@@ -560,9 +582,13 @@ We form our H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by forming 
 \begin{equation*}
 \mathbf{A}_H = \massmatrix_H \mathbf{\Aker}_H \massmatrix_H.
 \end{equation*}
-Once $\mathbf{A}_H$ is formed, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, see \cite{Hackbusch15}. 
+%Once $\mathbf{A}_H$ is formed, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. 
+We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, see \cite{Hackbusch15}. 
 
-We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{Kriemann08}. Although $\mathbf{\Aker}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Aker}_H$ only requires evaluation of $O(\hrank^2 \fedim \log \fedim)$ entries $\mathbf{\Aker}_{ij} = \widetilde{\Aker}(p_i, p_j)$, and these entries are computed via the procedure described in Section \ref{sec:approximate_kernel_entries}. Here $\hrank$ is the rank of the highest-rank block in the H-matrix. A dense representation of $\mathbf{\Aker}$ is never formed. We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. We form $\massmatrix_H$ using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\mathbf{\Aker}$. 
+We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{Kriemann08}. Although $\mathbf{\Aker}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Aker}_H$ only requires evaluation of $O(\hrank^2 \fedim \log \fedim)$ entries $\mathbf{\Aker}_{ij} = \widetilde{\Aker}(p_i, p_j)$, and these entries are computed via the radial basis function interpolation method described in Section \ref{sec:approximate_kernel_entries}. Here $\hrank$ is the rank of the highest-rank block in the H-matrix. 
+A dense representation of $\mathbf{\Aker}$ is never formed. 
+%We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. 
+We form $\massmatrix_H$ using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\mathbf{\Aker}$. 
 
 
 
@@ -606,7 +632,9 @@ where $\nsamplepts$ is the total number of sample points in all batches. The mul
 %Several improvements are possible. The cost of picking sample points could be reduced by ``thinning'' the set of candidate points that the sample points are picked from. That is, choosing sample points from a smaller subset of $\fedim_\text{thin} << \fedim$ points. The cost to perform the ellipsoid intersection tests could be reduced by first checking whether the ellipsoid bounding boxes intersect before performing the ellipsoid intersection test of Appendix \ref{sec:fast_ellipsoid_intersection_test}. The cost of picking the $i$th batch could be reduced to $O(\fedim \log |\pointbatch_i|)$ using more advanced computational geometry techniques, such as organizing the ellipsoids associated with points that have already been picked into a dynamic AABB tree, then using this AABB tree to accelerate the required ellipsoid intersection tests. 
 However, from a practical perspective, the cost for picking sample points is small compared to other parts of the approximation algorithm, so we do not pursue these improvements in this paper.
 
-\paragraph{(2) Building the H-matrix} The classical H-matrix construction technique, which is described in Appendix \ref{app:h_matrix}, requires evaluating $O(\hrank^2 \fedim \log \fedim)$ matrix entries of the approximation, where $\hrank$ is the H-matrix rank, i.e,  the maximum rank among the blocks of the H-matrix. To evaluate one matrix entry, first one must find the $\numnbr$ nearest sample points to a given point, where $\numnbr$ is the number of impulses used in the RBF interpolation. This is done using a precomputed KD tree of sample points, and requires $O(\numnbr \log \nsamplepts)$ floating point and logical elementary operations. Second, one must find the mesh cells that the points $\{z_i\}_{i=1}^{\numnbr}$ reside. This is done using an AABB tree of mesh cells, and requires $O(\numnbr \log \fedim)$ elementary operations. Third, we must evaluate finite element basis functions on each of those cells, which requires $O(\numnbr)$ elementary operations. Finally, we must solve a $\numnbr \times \numnbr$ linear system to perform the radial basis function interpolation, which requires $O(\numnbr^3)$ elementary operations, which typically is negligible. Therefore, building the H-matrix requires
+\paragraph{(2) Building the H-matrix} The classical H-matrix construction technique
+%, which is described in Appendix \ref{app:h_matrix}, 
+requires evaluating $O(\hrank^2 \fedim \log \fedim)$ matrix entries of the approximation, where $\hrank$ is the H-matrix rank, i.e,  the maximum rank among the blocks of the H-matrix. To evaluate one matrix entry, first one must find the $\numnbr$ nearest sample points to a given point, where $\numnbr$ is the number of impulses used in the RBF interpolation. This is done using a precomputed KD tree of sample points, and requires $O(\numnbr \log \nsamplepts)$ floating point and logical elementary operations. Second, one must find the mesh cells that the points $\{z_i\}_{i=1}^{\numnbr}$ reside. This is done using an AABB tree of mesh cells, and requires $O(\numnbr \log \fedim)$ elementary operations. Third, we must evaluate finite element basis functions on each of those cells, which requires $O(\numnbr)$ elementary operations. Finally, we must solve a $\numnbr \times \numnbr$ linear system to perform the radial basis function interpolation, which requires $O(\numnbr^3)$ elementary operations, which typically is negligible. Therefore, building the H-matrix requires
 \begin{equation*}
 	O\left(\left(\hrank^2 \fedim \log \fedim\right)\left(\numnbr \log \fedim + \numnbr^3\right)\right) \qquad \text{elementary operations}.
 \end{equation*}
@@ -617,56 +645,58 @@ However, from a practical perspective, the cost for picking sample points is sma
 \label{eq:H_matrix_cost_operations}
 	O(\hrank^2 \fedim \log(\fedim)^a) \qquad \text{elementary operations},
 \end{equation}
-where $a \in \{0,1,2,3\}$ \cite{GrasedyckHackbusch03}. The precise cost depends on the type of H-matrix used and the operation being performed. In this paper, we use one matrix-matrix addition to add the H-matrix approximation of the data misfit term in the Hessian to the regularization term in the Hessian. Then, we use one matrix inversion to form the inverse of the Hessian, which is used as a preconditioner for the Newton linear system. We perform low-rank updates to the H-matrix as the Newton iterations proceed, as per the discussion in Appendix \ref{sec:recycle_krylov}. The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, described in Appendix \ref{sec:make_spd}, is performed using two matrix-matrix additions, $\ratord+1$ matrix-matrix multiplications, and one matrix inversion, where $2^\ratord$ is the order of the rational function used.
+where $a \in \{0,1,2,3\}$ \cite{GrasedyckHackbusch03}. The precise cost depends on the type of H-matrix used and the operation being performed. In this paper, we use one matrix-matrix addition to add the H-matrix approximation of the data misfit term in the Hessian to the regularization term in the Hessian. Then, we use one matrix inversion to form the inverse of the Hessian, which is used as a preconditioner for the Newton linear system. 
+%We perform low-rank updates to the H-matrix as the Newton iterations proceed, as per the discussion in Appendix \ref{sec:recycle_krylov}.
+The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, described in Appendix \ref{sec:make_spd}, is performed using two matrix-matrix additions, $\ratord+1$ matrix-matrix multiplications, and one matrix inversion, where $2^\ratord$ is the order of the rational function used.
 
 
 \section{Numerical results}
 \label{sec:numerical_results}
 
-\textbf{Heat equation}
-\begin{itemize}
-	\item Hessian per-column error plots for 1, 5, and 15 batches
-	\item $H-P$ error vs number of batches for interior and whole domain
-	\item $P^{-1}H-I$: error vs rank for $P=R$ and $P=P_\text{pch}$ diffusion time, for 1, 5, and 15 batches
-	\item Krylov iterations to tols 1e-1 and 1e-6 vs diffusion parameter
-	\item GLR vs PCH vs diffusion time
-	\item Krylov method convergence plot: $R$ vs $P_\text{pch}$ vs no preconditioner
-	\item Krylov iterations to tols 1e-6 vs mesh size $h$, PCH vs R vs no preconditioner (hold)
-	\item true parameter (H)
-	\item deterministic reconstruction (H)
-	\item noisy measurements (1\%, 5\%, 10\% noise). $u|_\text{top}$ (H)
-	\item recovered state at top (H)
-	\item mesh scalability of PCH (CC) (H)
-	\item put plot data into data directory
-	\item save function .pvd files in paraview  directory
-\end{itemize}
-
-\begin{itemize}
-	\item GLR vs PCH number of obs (Computational cost in PDE solves) (S)
-	\item GLR vs PCH aspect ratio (CC) (S)
-	\item turn on preconditioner after number of krylov iterations exceeds 15 in an iteration. Rebuild "as needed". (S)
-\end{itemize}
-
-\begin{itemize}
-	\item Stokes Krylov convergence (10 solves for nonlinear forward + 6 hessian matvecs for ellipsoid estimation + 10 matvecs for impulse responses + 30 matvecs for PCH6 CG solve + 100 matvecs for Reg CG solve)
-	\item Stokes error vs num batches (small number of batches; 1, 3, 6, 9 batches?) (50 matvecs for randomized error estimation +)
-	\item Velocity field
-	\item Basal friction field
-	\item Picture of impulse responses
-	\item Mesh negative numbers picture
-\end{itemize}
-
-\begin{itemize}
-	\item mtrue
-	\item utrue (no arrows)
-	\item utrue (yes arrows)
-	\item reconstruction iterations 1,3,4,8: PCH vs REG
-	\item urecovered (arrows, 3D)
-	\item morozov plot
-	\item Newton convergence (iter, numcg, numPDEsolves (num preconditioner build), gradnorm)
-	\item impulse response batches
-	\item 
-\end{itemize}
+%\textbf{Heat equation}
+%\begin{itemize}
+%	\item Hessian per-column error plots for 1, 5, and 15 batches
+%	\item $H-P$ error vs number of batches for interior and whole domain
+%	\item $P^{-1}H-I$: error vs rank for $P=R$ and $P=P_\text{pch}$ diffusion time, for 1, 5, and 15 batches
+%	\item Krylov iterations to tols 1e-1 and 1e-6 vs diffusion parameter
+%	\item GLR vs PCH vs diffusion time
+%	\item Krylov method convergence plot: $R$ vs $P_\text{pch}$ vs no preconditioner
+%	\item Krylov iterations to tols 1e-6 vs mesh size $h$, PCH vs R vs no preconditioner (hold)
+%	\item true parameter (H)
+%	\item deterministic reconstruction (H)
+%	\item noisy measurements (1\%, 5\%, 10\% noise). $u|_\text{top}$ (H)
+%	\item recovered state at top (H)
+%	\item mesh scalability of PCH (CC) (H)
+%	\item put plot data into data directory
+%	\item save function .pvd files in paraview  directory
+%\end{itemize}
+%
+%\begin{itemize}
+%	\item GLR vs PCH number of obs (Computational cost in PDE solves) (S)
+%	\item GLR vs PCH aspect ratio (CC) (S)
+%	\item turn on preconditioner after number of krylov iterations exceeds 15 in an iteration. Rebuild "as needed". (S)
+%\end{itemize}
+%
+%\begin{itemize}
+%	\item Stokes Krylov convergence (10 solves for nonlinear forward + 6 hessian matvecs for ellipsoid estimation + 10 matvecs for impulse responses + 30 matvecs for PCH6 CG solve + 100 matvecs for Reg CG solve)
+%	\item Stokes error vs num batches (small number of batches; 1, 3, 6, 9 batches?) (50 matvecs for randomized error estimation +)
+%	\item Velocity field
+%	\item Basal friction field
+%	\item Picture of impulse responses
+%	\item Mesh negative numbers picture
+%\end{itemize}
+%
+%\begin{itemize}
+%	\item mtrue
+%	\item utrue (no arrows)
+%	\item utrue (yes arrows)
+%	\item reconstruction iterations 1,3,4,8: PCH vs REG
+%	\item urecovered (arrows, 3D)
+%	\item morozov plot
+%	\item Newton convergence (iter, numcg, numPDEsolves (num preconditioner build), gradnorm)
+%	\item impulse response batches
+%	\item 
+%\end{itemize}
 
 Some numerical results here.
 
@@ -681,76 +711,76 @@ Although the method we present in this paper is not applicable to all Hessians, 
 \appendix
 
 
-\section{Hierarchical matrix details}
-\label{app:h_matrix}
-
-Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank. Such matrices are known as hierarchical matrices (H-matrices). Many classes of H-matrices exist (H1, H2, HSS, HBS, and more), and all of these types of H-matrices could be used in conjunction with our product-convolution approximation. Here we use classical H1 matrices. For this section, when we say H-matrix, we are referring to H1 matrices. 
-
-While a dense $\fedim \times \fedim$ matrix traditionally requires $O(\fedim^2)$ memory to store, H-matrices may be stored using $O(\fedim \log \fedim)$ memory, by storing only the low rank factors for the low rank blocks. Recursive algorithms can take advantage of the H-matrix low rank block structure to perform matrix arithmetic fast. Conventional dense matrix algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix-matrix addition require either $O(\fedim^2)$ or $O(\fedim^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(\fedim \log(\fedim)^a)$ time and memory for H-matrices. Here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
-
-
-\subsection{H-matrix construction}
-\label{sec:H_matrix_construction}
-
-The process of constructing an H-matrix representation of $\mathbf{\Aker}$ proceeds as follows. First, we construct hierarchical partitionings of the degrees of freedom for the columns and rows of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(\fedim \log \fedim)$ specially-chosen entries of $\mathbf{\Aker}$, and we evaluate these entries using \eqref{eq:Akerpcmat_entries}. 
-
-
-\subsubsection{Cluster trees}
-\label{sec:cluster_trees}
-
-We use recursive hyperplane splitting to hierarchically cluster the degrees of freedom associated with the columns and rows of the matrix into a \emph{column cluster tree} and a \emph{row cluster tree}, respectively. Here we describe construction of the column cluster tree; the row cluster tree is constructed similarly. 
-
-Since we use finite elements to discretize the problem, the $i^\text{th}$ column of $\mathbf{\Aker}$ corresponds to the Lagrange node in $\mathbb{R}^\gdim$ associated with the $i\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^\gdim$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which is called the column cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
-
-A depth-first search ordering of the column cluster tree leaves is then generated. When the columns of the matrix are permuted into this depth-first ordering, the columns associated with each cluster in the cluster tree are contiguous.
-
-In the same way, the degrees of freedom associated with the rows of the matrix are hierarchically clustered into another cluster tree, and a depth-first search ordering for the rows is generated. In our examples, the degrees of freedom for the columns coincide with the degrees of freedom for the rows, so the cluster trees for the rows and columns are the same, but this is not required in general.
-
-
-\subsubsection{Block cluster tree} 
-\label{sec:block_cluster_tree}
-
-We partition the matrix into a recursive hierarchy of mostly low rank blocks called the \emph{block cluster tree}. The idea is that a block of the matrix is likely to be low rank if the point cloud associated with the rows of the block is far away from the point cloud associated with the columns of the block. This is reasonable to expect here because of the locality property of $\Aop$. Indeed, locality implies that many blocks of the matrix corresponding to far away point cloud clusters will be rank zero.
-
-After reordering the rows and columns of $\mathbf{\Aker}$ via the depth-first ordering described above, we partition the reordered version of $\mathbf{\Aker}$ into a tree of $2 \times 2$ block matrices recursively. We use a geometric admissibility condition (discussed below) to decide which blocks to subdivide, and use the cluster trees for the rows and columns to determine how to subdivide those blocks. For the first stage of subdivision, let $r_1$ and $r_2$ be the children row clusters for the root of the row cluster tree, let $\colcluster_1$ and $\colcluster_2$ be the children column clusters for the root of the column cluster tree. The matrix $\mathbf{\Aker}$ is partitioned into blocks as follows:
-\begin{equation*}
-	\begin{bmatrix}
-		\mathbf{\Aker}_{11} & \mathbf{\Aker}_{12} \\
-		\mathbf{\Aker}_{21} & \mathbf{\Aker}_{22}
-	\end{bmatrix},
-\end{equation*}
-where $\mathbf{\Aker}_{11}$ denotes the block of $\mathbf{\Aker}$ with rows $r_1$ and columns $\colcluster_1$, $\mathbf{\Aker}_{12}$ denotes the block of $\mathbf{\Aker}$ with rows $r_1$ and columns $\colcluster_2$, and so on for $\mathbf{\Aker}_{21}$ and $\mathbf{\Aker}_{22}$.
-
-We now loop through the four blocks, $\mathbf{\Aker}_{11}$, $\mathbf{\Aker}_{12}$, $\mathbf{\Aker}_{21}$, and $\mathbf{\Aker}_{22}$, and decide which blocks should be subdivided further. For the purpose of explanation, consider $\mathbf{\Aker}_{12}$. If
-\begin{equation}
-	\label{eq:weak_admissibility_cond}
-	\dist\left(r_1, \colcluster_2\right) \ge \weakadmconst \min\left(\diam\left(r_1\right), \diam\left(\colcluster_2\right)\right),
-\end{equation}
-then we mark $\mathbf{\Aker}_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, \colcluster_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $\colcluster_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(\colcluster_2\right)$ is the analogous diameter associated with the column cluster $\colcluster_2$. Here the quantity $\weakadmconst$ is a scalar constant; we use $\weakadmconst=2.0$. Basically, if the point clouds associated with $r_1$ and $\colcluster_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\mathbf{\Aker}_{11}$ and $\mathbf{\Aker}_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
-
-Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\mathbf{\Aker}$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree, which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
-
-
-\subsubsection{Adaptive cross low rank approximation of blocks}
-\label{sec:adaptive_cross}
-
-Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method \cite{ACA}. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\mathbf{\Aker}$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
-\begin{itemize}
-	\item Let $C \in \mathbb{R}^{m \times \hrank}$ be a matrix consisting of a subset of $\hrank$ columns of $X$, such that the span of the columns in $C$ approximates the column space of $X$. 
-	\item Let $R\in\mathbb{R}^{\hrank \times m}$ be a subset of the rows of $X$, such that the span of the rows in $R$ approximates the row space of $X$.
-	\item Let $U \in \mathbb{R}^{\hrank \times \hrank}$ be the block of $X$ consisting of the intersection of the rows from $R$ with the columns from $C$.
-\end{itemize}
-Then it is well-established that
-\begin{equation}
-	\label{eq:CUR}
-	X \approx C U^+ R,
-\end{equation}
-where $U^+$ is the pseudoinverse of $U$ \cite{goreinov1997theory,MahoneyDrineas09}. The quality of approximation \eqref{eq:CUR} depends on how well the columns of $C$ approximate the column space of $X$, and how well the rows of $R$ approximate the row space of $X$. 
-
-In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible \cite{GoreinovEtAl10}. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $a \hrank$ columns of $X$ and $a\hrank$ rows of $X$, where $a$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. 
-The key point is that the adaptive cross method allows us to form a rank-$\hrank$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(m\hrank)$ entries of that block.
-
-We use the adaptive cross method to form low rank approximations for each admissible block of $\mathbf{\Aker}$. We directly compute all entries of the small dense blocks of $\mathbf{\Aker}$ that are not admissible. This process requires us to compute $O(\hrank^2 \fedim \log \fedim)$ entries of $\mathbf{\Aker}$, which is relatively cheap compared to the operator actions of $\Aop$ that are required to form the product-convolution approximation.
+%\section{Hierarchical matrix details}
+%\label{app:h_matrix}
+%
+%Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank. Such matrices are known as hierarchical matrices (H-matrices). Many classes of H-matrices exist (H1, H2, HSS, HBS, and more), and all of these types of H-matrices could be used in conjunction with our product-convolution approximation. Here we use classical H1 matrices. For this section, when we say H-matrix, we are referring to H1 matrices. 
+%
+%While a dense $\fedim \times \fedim$ matrix traditionally requires $O(\fedim^2)$ memory to store, H-matrices may be stored using $O(\fedim \log \fedim)$ memory, by storing only the low rank factors for the low rank blocks. Recursive algorithms can take advantage of the H-matrix low rank block structure to perform matrix arithmetic fast. Conventional dense matrix algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix-matrix addition require either $O(\fedim^2)$ or $O(\fedim^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(\fedim \log(\fedim)^a)$ time and memory for H-matrices. Here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix. For more details on H-matrices, we recommend \cite{HMATRIXGOOD}. 
+%
+%
+%\subsection{H-matrix construction}
+%\label{sec:H_matrix_construction}
+%
+%The process of constructing an H-matrix representation of $\mathbf{\Aker}$ proceeds as follows. First, we construct hierarchical partitionings of the degrees of freedom for the columns and rows of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(\fedim \log \fedim)$ specially-chosen entries of $\mathbf{\Aker}$, and we evaluate these entries using \eqref{eq:Akerpcmat_entries}. 
+%
+%
+%\subsubsection{Cluster trees}
+%\label{sec:cluster_trees}
+%
+%We use recursive hyperplane splitting to hierarchically cluster the degrees of freedom associated with the columns and rows of the matrix into a \emph{column cluster tree} and a \emph{row cluster tree}, respectively. Here we describe construction of the column cluster tree; the row cluster tree is constructed similarly. 
+%
+%Since we use finite elements to discretize the problem, the $i^\text{th}$ column of $\mathbf{\Aker}$ corresponds to the Lagrange node in $\mathbb{R}^\gdim$ associated with the $i\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^\gdim$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which is called the column cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
+%
+%A depth-first search ordering of the column cluster tree leaves is then generated. When the columns of the matrix are permuted into this depth-first ordering, the columns associated with each cluster in the cluster tree are contiguous.
+%
+%In the same way, the degrees of freedom associated with the rows of the matrix are hierarchically clustered into another cluster tree, and a depth-first search ordering for the rows is generated. In our examples, the degrees of freedom for the columns coincide with the degrees of freedom for the rows, so the cluster trees for the rows and columns are the same, but this is not required in general.
+%
+%
+%\subsubsection{Block cluster tree} 
+%\label{sec:block_cluster_tree}
+%
+%We partition the matrix into a recursive hierarchy of mostly low rank blocks called the \emph{block cluster tree}. The idea is that a block of the matrix is likely to be low rank if the point cloud associated with the rows of the block is far away from the point cloud associated with the columns of the block. This is reasonable to expect here because of the locality property of $\Aop$. Indeed, locality implies that many blocks of the matrix corresponding to far away point cloud clusters will be rank zero.
+%
+%After reordering the rows and columns of $\mathbf{\Aker}$ via the depth-first ordering described above, we partition the reordered version of $\mathbf{\Aker}$ into a tree of $2 \times 2$ block matrices recursively. We use a geometric admissibility condition (discussed below) to decide which blocks to subdivide, and use the cluster trees for the rows and columns to determine how to subdivide those blocks. For the first stage of subdivision, let $r_1$ and $r_2$ be the children row clusters for the root of the row cluster tree, let $\colcluster_1$ and $\colcluster_2$ be the children column clusters for the root of the column cluster tree. The matrix $\mathbf{\Aker}$ is partitioned into blocks as follows:
+%\begin{equation*}
+%	\begin{bmatrix}
+%		\mathbf{\Aker}_{11} & \mathbf{\Aker}_{12} \\
+%		\mathbf{\Aker}_{21} & \mathbf{\Aker}_{22}
+%	\end{bmatrix},
+%\end{equation*}
+%where $\mathbf{\Aker}_{11}$ denotes the block of $\mathbf{\Aker}$ with rows $r_1$ and columns $\colcluster_1$, $\mathbf{\Aker}_{12}$ denotes the block of $\mathbf{\Aker}$ with rows $r_1$ and columns $\colcluster_2$, and so on for $\mathbf{\Aker}_{21}$ and $\mathbf{\Aker}_{22}$.
+%
+%We now loop through the four blocks, $\mathbf{\Aker}_{11}$, $\mathbf{\Aker}_{12}$, $\mathbf{\Aker}_{21}$, and $\mathbf{\Aker}_{22}$, and decide which blocks should be subdivided further. For the purpose of explanation, consider $\mathbf{\Aker}_{12}$. If
+%\begin{equation}
+%	\label{eq:weak_admissibility_cond}
+%	\dist\left(r_1, \colcluster_2\right) \ge \weakadmconst \min\left(\diam\left(r_1\right), \diam\left(\colcluster_2\right)\right),
+%\end{equation}
+%then we mark $\mathbf{\Aker}_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, \colcluster_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $\colcluster_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(\colcluster_2\right)$ is the analogous diameter associated with the column cluster $\colcluster_2$. Here the quantity $\weakadmconst$ is a scalar constant; we use $\weakadmconst=2.0$. Basically, if the point clouds associated with $r_1$ and $\colcluster_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\mathbf{\Aker}_{11}$ and $\mathbf{\Aker}_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
+%
+%Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\mathbf{\Aker}$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree, which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
+%
+%
+%\subsubsection{Adaptive cross low rank approximation of blocks}
+%\label{sec:adaptive_cross}
+%
+%Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method \cite{ACA}. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\mathbf{\Aker}$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
+%\begin{itemize}
+%	\item Let $C \in \mathbb{R}^{m \times \hrank}$ be a matrix consisting of a subset of $\hrank$ columns of $X$, such that the span of the columns in $C$ approximates the column space of $X$. 
+%	\item Let $R\in\mathbb{R}^{\hrank \times m}$ be a subset of the rows of $X$, such that the span of the rows in $R$ approximates the row space of $X$.
+%	\item Let $U \in \mathbb{R}^{\hrank \times \hrank}$ be the block of $X$ consisting of the intersection of the rows from $R$ with the columns from $C$.
+%\end{itemize}
+%Then it is well-established that
+%\begin{equation}
+%	\label{eq:CUR}
+%	X \approx C U^+ R,
+%\end{equation}
+%where $U^+$ is the pseudoinverse of $U$ \cite{goreinov1997theory,MahoneyDrineas09}. The quality of approximation \eqref{eq:CUR} depends on how well the columns of $C$ approximate the column space of $X$, and how well the rows of $R$ approximate the row space of $X$. 
+%
+%In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible \cite{GoreinovEtAl10}. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $a \hrank$ columns of $X$ and $a\hrank$ rows of $X$, where $a$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. 
+%The key point is that the adaptive cross method allows us to form a rank-$\hrank$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(m\hrank)$ entries of that block.
+%
+%We use the adaptive cross method to form low rank approximations for each admissible block of $\mathbf{\Aker}$. We directly compute all entries of the small dense blocks of $\mathbf{\Aker}$ that are not admissible. This process requires us to compute $O(\hrank^2 \fedim \log \fedim)$ entries of $\mathbf{\Aker}$, which is relatively cheap compared to the operator actions of $\Aop$ that are required to form the product-convolution approximation.
 
 
 \section{Ellipsoid intersection test}
@@ -886,38 +916,38 @@ Next, we compute $\mathbf{T}$ using fast H-matrix scalar multiplication and addi
 \end{equation*}
 where fast H-matrix operations are used to perform the necessary matrix-matrix subtraction and multiplication. Note that for any $\ratord \ge 1$, $\Pi_\ratord(\lambda)> 1/2$ for $\lambda \in (a,b)$, so $\mathbf{A}_H^{\text{sym}+}$ is positive semi definite\footnote{Some indefiniteness may be introduced by truncation error in the H-matrix operations, but the negative eigenvalues caused by this truncation error are typically extremely small.}. At the end, $\mathbf{A}_H^{\text{sym}+}$ is symmetrized once again, to correct for any small non-symmetries that are introduced by truncation error in the H-matrix operations. Once constructed, we use the symmetric positive semidefinite matrix $\mathbf{A}_H^{\text{sym}+}$ in place of $\mathbf{A}_H$ in further linear algebra operations.
 
-\section{Recycling Krylov information via low rank updates}
-\label{sec:recycle_krylov}
-
-In applications, often one wants to use the H-matrix approximation $\mathbf{A}_H$ to build preconditioners for solving a sequence of slowly varying linear systems, where the $k$th linear system has the form
-\begin{equation}
-\label{eq:Ax_equals_b}
-\mathbf{B}^{(k)} \mathbf{u}^{(k)} = \mathbf{f}^{(k)}.
-\end{equation}
-Each of these linear systems is solved using an iterative method. By ``slowly varying,'' we mean that $\mathbf{B}^{(k+1)}$ does not differ much from $\mathbf{B}^{(k)}$. 
-For example, in a Newton-Krylov method for solving an optimization problem, one uses a Krylov method such as conjugate gradient to solve a sequence of systems of the form \eqref{eq:Ax_equals_b}, where $\mathbf{B}^{(k)}$ and $\mathbf{f}^{(k)}$ are the Hessian and the negative gradient of the objective function in the optimization problem, respectively, evaluated at the $k$th Newton iterate. 
-As the optimization solver converges, $\mathbf{B}^{(k)}$ converges to the Hessian at the optimal point, and therefore changes little from one iteration to the next. Since $\mathbf{B}^{(k)}$ varies slowly, it is reasonable to assume that Krylov information about $\mathbf{B}^{(k)}$ can be leveraged to update the preconditioner from $\mathbf{B}^{(k)}$ in order to build a preconditioner for $\mathbf{B}^{(k+1)}$.
-Concretely, let 
-\begin{equation*}
-\mathbf{P}^{(k)} \approx \left(\mathbf{B}^{(k)}\right)^{-1}
-\end{equation*}
-denote a H-matrix preconditioner used to accelerate the solution of \eqref{eq:Ax_equals_b} with an iterative method. The iterative method for solving the $k$th linear system will typically involve, as a sub-problem, applying $\mathbf{B}^{(k)}$ to a collection of vectors $\{\mathbf{x}_i\}_{i=1}^m$, thereby generating vectors $\{\mathbf{y}_i = \mathbf{B}^{(k)} \mathbf{x}_i\}_{i=1}^m$. Instead of rebuilding the H-matrix preconditioner for each successive linear system, we \emph{recycle} the information generated by the iterative method while solving the current linear system, performing a low-rank update to $\mathbf{P}^{(k)}$ to create $\mathbf{P}^{(k+1)}$. To do so, we build on the rank-1 update formulas discussed in \cite[Chapter 6]{NocedalWright99}, which we generalize to many vector ``rank-$m$'' updates. In what follows, let $\mathbf{X}$ and $\mathbf{Y}$ denote the $\fedim \times m$ matrices with columns given by the vectors $\mathbf{x}_i$ and $\mathbf{y}_i$, respectively. The matrix-vector products with $\mathbf{B}^{(k)}$ performed while solving the $k$th linear system may be summarized by the equation:
-\begin{equation*}
-\mathbf{B}^{(k)}\mathbf{X} = \mathbf{Y}.
-\end{equation*}
-To form $\mathbf{P}^{(k+1)}$ from $\mathbf{P}^{(k)}$, one may use one of the following three update formulas:
-\begin{align}
-	\mathbf{P}^{(k+1)} &= \mathbf{P}^{(k)} + \mathbf{R}\left(\mathbf{Y}^T \mathbf{Y}\right)^{-1} \mathbf{Y}^T \label{eq:res_update} \\
-	\mathbf{P}^{(k+1)} &= \mathbf{P}^{(k)} + \mathbf{R} \left(\mathbf{R}^T \mathbf{Y}\right)^{-1} \mathbf{R}^T \label{eq:srk_update} \\
-	\mathbf{P}^{(k+1)} &= \left(\mathbf{I} - \mathbf{X}\boldsymbol{\Theta}\mathbf{Y}^T\right)\mathbf{P}^{(k)}\left(\mathbf{I} - \mathbf{Y}\boldsymbol{\Theta}\mathbf{X}^T\right) + \mathbf{X}\boldsymbol{\Theta}\mathbf{X}^T, \label{eq:dfp_update}
-\end{align}
-where $\mathbf{R} := \mathbf{X}-\mathbf{P}^{(k)}\mathbf{Y}$ and $\boldsymbol{\Theta} := \left(\mathbf{X}^T\mathbf{Y}\right)^{-1}$.
-We note that for all three cases, the update is exact for $\mathbf{B}^{k}$, in the sense that 
-\begin{equation*}
-\mathbf{P}^{(k+1)}\mathbf{Y}=\mathbf{X} = \left(\mathbf{B}^{(k)}\right)^{-1} \mathbf{Y}.
-\end{equation*}
-Because the matrices $\mathbf{B}^{k}$ vary slowly, we expect that $\mathbf{P}^{(k+1)}$ is a good approximation for $\left(\mathbf{B}^{(k+1)}\right)^{-1}$ on the space spanned by the vectors $\mathbf{y}_i$. One should choose which formula to use based on the properties of the matrix $\mathbf{B}^{(k)}$. Formula \eqref{eq:res_update} does not preserve symmetry, and should therefore be used when $\mathbf{B}^{(k)}$ is not symmetric. Formula \eqref{eq:srk_update} preserves symmetry but not positive definiteness, and should therefore be used when $\mathbf{B}^{(k)}$ is symmetric and indefinite. Formula \eqref{eq:dfp_update}, which is used in this paper, preserves both symmetry and positive definiteness, and should therefore be used when $\mathbf{B}^{(k)}$ is symmetric positive definite. Formulas \eqref{eq:res_update} and \eqref{eq:srk_update} perform rank-$m$ updates, while formula \eqref{eq:dfp_update} performs a rank-$2m$ update. 
-We note that when $m=1$, formulas \eqref{eq:srk_update} are \eqref{eq:dfp_update} are known as SR1 (symmetric rank-$1$) and DFP (Davidson-Fletcher-Powell) updates, respectively \cite[Chapter 6]{NocedalWright99}. 
+%\section{Recycling Krylov information via low rank updates}
+%\label{sec:recycle_krylov}
+%
+%In applications, often one wants to use the H-matrix approximation $\mathbf{A}_H$ to build preconditioners for solving a sequence of slowly varying linear systems, where the $k$th linear system has the form
+%\begin{equation}
+%\label{eq:Ax_equals_b}
+%\mathbf{B}^{(k)} \mathbf{u}^{(k)} = \mathbf{f}^{(k)}.
+%\end{equation}
+%Each of these linear systems is solved using an iterative method. By ``slowly varying,'' we mean that $\mathbf{B}^{(k+1)}$ does not differ much from $\mathbf{B}^{(k)}$. 
+%For example, in a Newton-Krylov method for solving an optimization problem, one uses a Krylov method such as conjugate gradient to solve a sequence of systems of the form \eqref{eq:Ax_equals_b}, where $\mathbf{B}^{(k)}$ and $\mathbf{f}^{(k)}$ are the Hessian and the negative gradient of the objective function in the optimization problem, respectively, evaluated at the $k$th Newton iterate. 
+%As the optimization solver converges, $\mathbf{B}^{(k)}$ converges to the Hessian at the optimal point, and therefore changes little from one iteration to the next. Since $\mathbf{B}^{(k)}$ varies slowly, it is reasonable to assume that Krylov information about $\mathbf{B}^{(k)}$ can be leveraged to update the preconditioner from $\mathbf{B}^{(k)}$ in order to build a preconditioner for $\mathbf{B}^{(k+1)}$.
+%Concretely, let 
+%\begin{equation*}
+%\mathbf{P}^{(k)} \approx \left(\mathbf{B}^{(k)}\right)^{-1}
+%\end{equation*}
+%denote a H-matrix preconditioner used to accelerate the solution of \eqref{eq:Ax_equals_b} with an iterative method. The iterative method for solving the $k$th linear system will typically involve, as a sub-problem, applying $\mathbf{B}^{(k)}$ to a collection of vectors $\{\mathbf{x}_i\}_{i=1}^m$, thereby generating vectors $\{\mathbf{y}_i = \mathbf{B}^{(k)} \mathbf{x}_i\}_{i=1}^m$. Instead of rebuilding the H-matrix preconditioner for each successive linear system, we \emph{recycle} the information generated by the iterative method while solving the current linear system, performing a low-rank update to $\mathbf{P}^{(k)}$ to create $\mathbf{P}^{(k+1)}$. To do so, we build on the rank-1 update formulas discussed in \cite[Chapter 6]{NocedalWright99}, which we generalize to many vector ``rank-$m$'' updates. In what follows, let $\mathbf{X}$ and $\mathbf{Y}$ denote the $\fedim \times m$ matrices with columns given by the vectors $\mathbf{x}_i$ and $\mathbf{y}_i$, respectively. The matrix-vector products with $\mathbf{B}^{(k)}$ performed while solving the $k$th linear system may be summarized by the equation:
+%\begin{equation*}
+%\mathbf{B}^{(k)}\mathbf{X} = \mathbf{Y}.
+%\end{equation*}
+%To form $\mathbf{P}^{(k+1)}$ from $\mathbf{P}^{(k)}$, one may use one of the following three update formulas:
+%\begin{align}
+%	\mathbf{P}^{(k+1)} &= \mathbf{P}^{(k)} + \mathbf{R}\left(\mathbf{Y}^T \mathbf{Y}\right)^{-1} \mathbf{Y}^T \label{eq:res_update} \\
+%	\mathbf{P}^{(k+1)} &= \mathbf{P}^{(k)} + \mathbf{R} \left(\mathbf{R}^T \mathbf{Y}\right)^{-1} \mathbf{R}^T \label{eq:srk_update} \\
+%	\mathbf{P}^{(k+1)} &= \left(\mathbf{I} - \mathbf{X}\boldsymbol{\Theta}\mathbf{Y}^T\right)\mathbf{P}^{(k)}\left(\mathbf{I} - \mathbf{Y}\boldsymbol{\Theta}\mathbf{X}^T\right) + \mathbf{X}\boldsymbol{\Theta}\mathbf{X}^T, \label{eq:dfp_update}
+%\end{align}
+%where $\mathbf{R} := \mathbf{X}-\mathbf{P}^{(k)}\mathbf{Y}$ and $\boldsymbol{\Theta} := \left(\mathbf{X}^T\mathbf{Y}\right)^{-1}$.
+%We note that for all three cases, the update is exact for $\mathbf{B}^{k}$, in the sense that 
+%\begin{equation*}
+%\mathbf{P}^{(k+1)}\mathbf{Y}=\mathbf{X} = \left(\mathbf{B}^{(k)}\right)^{-1} \mathbf{Y}.
+%\end{equation*}
+%Because the matrices $\mathbf{B}^{k}$ vary slowly, we expect that $\mathbf{P}^{(k+1)}$ is a good approximation for $\left(\mathbf{B}^{(k+1)}\right)^{-1}$ on the space spanned by the vectors $\mathbf{y}_i$. One should choose which formula to use based on the properties of the matrix $\mathbf{B}^{(k)}$. Formula \eqref{eq:res_update} does not preserve symmetry, and should therefore be used when $\mathbf{B}^{(k)}$ is not symmetric. Formula \eqref{eq:srk_update} preserves symmetry but not positive definiteness, and should therefore be used when $\mathbf{B}^{(k)}$ is symmetric and indefinite. Formula \eqref{eq:dfp_update}, which is used in this paper, preserves both symmetry and positive definiteness, and should therefore be used when $\mathbf{B}^{(k)}$ is symmetric positive definite. Formulas \eqref{eq:res_update} and \eqref{eq:srk_update} perform rank-$m$ updates, while formula \eqref{eq:dfp_update} performs a rank-$2m$ update. 
+%We note that when $m=1$, formulas \eqref{eq:srk_update} are \eqref{eq:dfp_update} are known as SR1 (symmetric rank-$1$) and DFP (Davidson-Fletcher-Powell) updates, respectively \cite[Chapter 6]{NocedalWright99}. 
 
 \section*{Acknowledgments}
 We thank J.J. Alger, Longfei Gao, Mathew Hu, and Rami Nammour for helpful discussions. We thank Trevor Heise for editing suggestions. We thank Georg Stadler for domain geometry help.
