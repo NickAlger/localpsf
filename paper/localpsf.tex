@@ -297,7 +297,7 @@ The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatia
 By computing one matrix-vector product of $\mathbf{B}^T$ with $\mathbf{f}$, we compute the inner product of each column of $\mathbf{B}$ with $\mathbf{f}$ simultaneously. The operator case is analogous, with the impulse response $\phi_x$ taking the place of a matrix column. We have
 \begin{equation}
 \label{eq:operator_simultaneous_ips}
-\left(\Aop^T f\right)^*(x) = \int_\Omega K(y,x) f(y) dy = \left(\phi_x, f\right)_{L^2(\Omega)}.
+\left(\Aop^T f\right)^*(x) = \int_\Omega \Aker(y,x) f(y) dy = \left(\phi_x, f\right)_{L^2(\Omega)}.
 \end{equation}
 By computing one operator application of $\Aop^T$ to $f$, we compute the inner product of each impulse response $\phi_x$ with $f$, for all points $x$ simultaneously. 
 
@@ -856,6 +856,8 @@ where $v := P^T\left(\spatialmean_1 - \spatialmean_2\right)$. We compute the gen
 	\caption{Determining whether two ellipsoids intersect}
 	\label{alg:ellipsoid_intersection_test}
 \end{algorithm2e}
+
+We may further reduce the cost of performing many ellipsoid intersection tests by first checking whether the coordinate axis aligned bounding boxes for the ellipsoids intersect. Checking whether two axis-aligned bounding boxes intersect is extremely cheap. If the bounding boxes do not intersect, then the ellipsoids do not intersect, so no further action is necessary. If the bounding boxes do intersect, the ellipsoids may or may not intersect, so one must perform the more expensive ellipsoid intersection test described above
 
 
 \section{Rational positive semi-definite modification}
