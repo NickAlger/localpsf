@@ -1,0 +1,24 @@
+\begin{figure}[H]
+\begin{center} 
+\begin{tikzpicture}[baseline, trim axis right]
+\begin{axis}[width=0.99\textwidth, height=0.75\textwidth,
+            ymode=log,
+            ymin=5e-9,
+            ymax=1,
+            xmax=900,
+            xtick={0, 100, 200, 300, 400, 500, 600, 700, 800, 900},
+            xlabel={Cumulative Stokes solves},
+            ylabel={$||g_{k}||_{2}/||g_{0}||_{2}$, relative norm of the gradient},
+            title={Convergence of the preconditioned inexact Newton-CG},
+			legend pos=north east,
+]
+\addlegendentry{None}
+\addplot[dash dot, line width=0.5mm] table {gradVsCumulativeStokes_none.dat};
+\addlegendentry{Reg}
+\addplot[dotted, line width=0.5mm] table {gradVsCumulativeStokes_reg.dat};
+\addlegendentry{PSF (5)}
+\addplot[red, line width=0.5mm] table {gradVsCumulativeStokes_psf.dat};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\end{figure}
