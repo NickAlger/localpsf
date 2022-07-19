@@ -857,7 +857,25 @@ where $v := P^T\left(\spatialmean_1 - \spatialmean_2\right)$. We compute the gen
 	\label{alg:ellipsoid_intersection_test}
 \end{algorithm2e}
 
-We may further reduce the cost of performing many ellipsoid intersection tests by first checking whether the coordinate axis aligned bounding boxes for the ellipsoids intersect. Checking whether two axis-aligned bounding boxes intersect is extremely cheap. If the bounding boxes do not intersect, then the ellipsoids do not intersect, so no further action is necessary. If the bounding boxes do intersect, the ellipsoids may or may not intersect, so one must perform the more expensive ellipsoid intersection test described above
+\subsection{Ellipsoid bounding box test}
+
+We may reduce the average cost of performing ellipsoid intersection tests by first checking whether the coordinate axis aligned bounding boxes for the ellipsoids intersect. If the bounding boxes do not intersect, then the ellipsoids do not intersect, so no further action is necessary. If the bounding boxes intersect, the ellipsoids might intersect, or they might not intersect, so one must perform the complete ellipsoid intersection test described in Section \ref{sec:fast_ellipsoid_intersection_test}.
+
+The ellipsoid 
+$
+E = \{x : (x - \spatialmean)^T \spatialcov^{-1} (x - \spatialmean) \le \tau^2\}
+$
+is bounded by the box
+\begin{equation*}
+	\prod_{i=1}^\gdim \left[ \spatialmean_i -\sqrt{\Sigma_{ii}}/\tau, \spatialmean_i +\sqrt{\Sigma_{ii}}/\tau \right],
+\end{equation*}
+where $\Sigma_{ii}$ is the $i$th diagonal entry of $\Sigma$\footnote{See \url{https://math.stackexchange.com/q/3928964}}. The boxes
+\begin{equation*}
+	\prod_{i=1}^\gdim \left[a_i^-, a_i^+\right], \quad \text{and} \quad \prod_{i=1}^\gdim \left[b_i^-, b_i^+\right]
+\end{equation*}
+intersect if and only if $a_i^- \le b_i^+$ and $b_i^- \le a_i^+$ for $i=1,\dots,d$\footnote{See \url{https://stackoverflow.com/a/65107290/484944}}.
+
+
 
 
 \section{Rational positive semi-definite modification}
