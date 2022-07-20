@@ -1,0 +1,25 @@
+\begin{figure}[H]
+\begin{center} 
+\begin{tikzpicture}[baseline, trim axis right]
+\begin{axis}[width=0.99\textwidth, height=0.75\textwidth,
+            xmode=log,
+            ymode=log,
+            xlabel={$\gamma$, regularization parameter},
+            ylabel={\# of CG iterations},
+            %legend pos=north east,
+			title={CG iterations to achieve $||H x-b||/||b||<10^{-6}$}
+]
+\addlegendentry{REG}
+\addplot[dotted, line width=0.5mm] table[x=gamma, y=reg] {CGitsvsGamma.dat};
+\addlegendentry{None}
+\addplot[dash dot, line width=0.5mm] table[x=gamma, y=none] {CGitsvsGamma.dat};
+\addlegendentry{PSF (1)}
+\addplot[blue, line width=0.5mm] table[x=gamma, y=psf1] {CGitsvsGamma.dat};
+\addlegendentry{PSF (5)}
+\addplot[red, line width=0.5mm] table[x=gamma, y=psf5] {CGitsvsGamma.dat};
+\addlegendentry{PSF (25)}
+\addplot[purple, line width=0.5mm] table[x=gamma, y=psf25] {CGitsvsGamma.dat};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\end{figure}
