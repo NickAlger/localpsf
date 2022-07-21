@@ -700,22 +700,19 @@ The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, d
 
 Some numerical results here.
 
+
 \begin{figure}[H]
-	\begin{center}
-		\begin{tabular}[c]{c c c}
-			%\includegraphics[scale=.15]{recoveredPressure.png} &
-			%\includegraphics[scale=.15]{truePressure.png} &
-			%\includegraphics[scale=.18]{pressureColorBar.png} \\
-			\includegraphics[scale=.15]{recoveredVelocity_glyphs.png} &
-			\includegraphics[scale=.15]{trueVelocity_glyphs.png} &
-			\includegraphics[scale=.18]{velocityColorBar.png} \\
-			\includegraphics[scale=.15]{recoveredVelocity_noglyphs.png} &
-			\includegraphics[scale=.15]{trueVelocity_noglyphs.png} &
-			\includegraphics[scale=.18]{velocityColorBar.png}
-		\end{tabular}
-		\caption{Reconstructed (left column) and true (right column) pressure (top row) and velocity fields (middle and bottom rows).}
-	\end{center}
-\end{figure}
+	\begin{subfigure}{0.275\textwidth}
+    \includegraphics[scale=0.10]{meshHeight_view0_edges_withColorBar.png}	
+    \end{subfigure}
+    \begin{subfigure}{0.275\textwidth}
+    \includegraphics[scale=0.10]{trueVelocity_glyphs_withColorBar.png}
+    \end{subfigure}
+    \begin{subfigure}{0.275\textwidth}
+    \includegraphics[scale=0.135]{mtrue_withColorBar.png}
+    \end{subfigure}
+\end{figure} 
+
 
 
 \begin{table}[H]
@@ -777,7 +774,24 @@ Some numerical results here.
 \end{table}
 
 
-
+\begin{figure}[H]
+	\begin{subfigure}{0.225\textwidth}
+		\includegraphics[scale=0.08]{m1_psf.png}	
+	\end{subfigure}
+	\begin{subfigure}{0.225\textwidth}
+		\includegraphics[scale=0.08]{m3_psf.png}
+	\end{subfigure}
+	\begin{subfigure}{0.225\textwidth}
+		\includegraphics[scale=0.08]{m4_psf.png}
+	\end{subfigure}
+	\begin{subfigure}{0.225\textwidth}
+	\includegraphics[scale=0.08]{m6_psf.png}
+\end{subfigure}
+\begin{subfigure}{0.05\textwidth}
+	\includegraphics[scale=0.1]{mColorBar.png}
+\end{subfigure}
+\caption{The parameter after $1$ (left), $3$ (second from left), $4$ (third from left) Newton iterates and the final Newton iterate (right).} 
+\end{figure} 
 
 
              
