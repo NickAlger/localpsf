@@ -129,7 +129,7 @@ Methods based on the peeling process are asymptotically scalable (typically the 
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=1.0]{mean_displacement_invariance.pdf}
+		\includegraphics[scale=0.75]{mean_displacement_invariance.pdf}
 	\end{center}
 	\caption{An operator is locally mean-displacement invariant if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \spatialmean(x) + \spatialmean(x')\right)$ when $x$ is close to $x'$. Here $\spatialmean(x)$ is the mean (center of mass) of $\phi_x$, and similar for $\spatialmean(x')$.}
 	\label{fig:mean_displacement_invariance}
@@ -702,14 +702,14 @@ Some numerical results here.
 
 
 \begin{figure}[H]
-	\begin{subfigure}{0.275\textwidth}
-    \includegraphics[scale=0.10]{meshHeight_view0_edges_withColorBar.png}	
+	\begin{subfigure}{0.32\textwidth}
+    \includegraphics[scale=0.12]{meshHeight_view0_edges_withColorBar.png}	
     \end{subfigure}
-    \begin{subfigure}{0.275\textwidth}
-    \includegraphics[scale=0.10]{trueVelocity_glyphs_withColorBar.png}
+    \begin{subfigure}{0.32\textwidth}
+    \includegraphics[scale=0.12]{trueVelocity_glyphs_withColorBar.png}
     \end{subfigure}
-    \begin{subfigure}{0.275\textwidth}
-    \includegraphics[scale=0.135]{mtrue_withColorBar.png}
+    \begin{subfigure}{0.32\textwidth}
+    \includegraphics[scale=0.162]{mtrue_withColorBar.png}
     \end{subfigure}
 \end{figure} 
 
@@ -1007,20 +1007,20 @@ where $\spatialmean_1, \spatialmean_2 \in \mathbb{R}^\gdim$, and $\spatialcov_1,
 \begin{equation*}
 	K(s) := 1 - \frac{1}{\tau^2} (\spatialmean_1 - \spatialmean_2)^T \left(\frac{1}{1-s}\spatialcov_1 + \frac{1}{s}\spatialcov_2\right)^{-1}(\spatialmean_1 - \spatialmean_2)	
 \end{equation*}
-In \cite{GilitschenskiHanebeck12} it is shown that $E_1 \cap E_2 = \{\}$ if and only if $K(s) < 0$ for some $s\in (0,1)$. We check whether $E_1$ and $E_2$ intersect by minimizing $K(s)$ on $(0,1)$. If $K(s^*) <0$ at the minimizer $s^*$, then $E_1 \cap E_2 = \{\}$. Otherwise $E_1 \cap E_2 \neq \{\}$.
+In \cite{GilitschenskiHanebeck12} it is shown that $E_1 \cap E_2 = \{\}$ if and only if $K(s) < 0$ for some $s\in (0,1)$ (see Figure \ref{fig:ellipsoid_intersection_test}). 
 
 \begin{figure}
-	\begin{subfigure}{0.32\textwidth}
+	\begin{subfigure}{0.37\textwidth}
 		\centering
-		\includegraphics[scale=0.40]{ellipsoids_intersect0.pdf}
+		\includegraphics[scale=1.0]{ellipsoids_intersect0.pdf}
 	\end{subfigure}
-	\begin{subfigure}{0.32\textwidth}
+	\begin{subfigure}{0.30\textwidth}
 		\centering
-		\includegraphics[scale=0.40]{ellipsoids_intersect1.pdf}
+		\includegraphics[scale=1.0]{ellipsoids_intersect1.pdf}
 	\end{subfigure}
-	\begin{subfigure}{0.32\textwidth}
+	\begin{subfigure}{0.30\textwidth}
 		\centering
-		\includegraphics[scale=0.40]{ellipsoids_intersect2.pdf}
+		\includegraphics[scale=1.0]{ellipsoids_intersect2.pdf}
 	\end{subfigure}
 	\caption{The ellipsoids intersect if $K(s) \ge 0$ for all $s \in (0,1)$.
 	}
@@ -1036,39 +1036,42 @@ where $P \in \mathbb{R}^{\gdim \times \gdim}$ is the matrix of generalized eigen
 	\label{eq:Ks_generalized}
 	K(s) = 1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2,
 \end{equation}
-where $v := P^T\left(\spatialmean_1 - \spatialmean_2\right)$. We compute the generalized eigenvalue decomposition of $\spatialcov_1$ and $\spatialcov_2$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's algorithm \cite{Brent71} (any fast 1 dimensional convex optimization routine may be used). The resulting algorithm for checking whether $E_1$ and $E_2$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
+where $v := P^T\left(\spatialmean_1 - \spatialmean_2\right)$. 
 
-\begin{algorithm2e}
-	\SetAlgoNoLine
-	\SetKwInOut{Input}{Input}
-	\SetKwInOut{Output}{Output}
-	\SetKwProg{Fn}{Function}{}{}
-	\Input{Ellipsoid $E_1$ with mean $\spatialmean_1$ and covariance $\spatialcov_1/\tau^2$\\
-		Ellipsoid $E_2$ with mean $\spatialmean_2$ and covariance $\spatialcov_2/\tau^2$ 
-	}
-	
-	\Output{Boolean $\text{ellipsoids\_intersect}$ which is true if $E_1 \cap E_2 \neq \{\}$ and false otherwise}
-	
-	
-	Solve generalized eigenvalue problem $\spatialcov_1 P = \spatialcov_2 P \Lambda$
-		
-	$v \gets P^T\left(\spatialmean_1 - \spatialmean_2\right)$
-		
-	$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
-		
-	\If{$K^* < 0$}{
-			
-		$\text{ellipsoids\_intersect} \gets \text{False}$
-			
-	}
-	\Else{
-			
-		$\text{ellipsoids\_intersect} \gets \text{True}$
-			
-	}
-	\caption{Determining whether two ellipsoids intersect}
-	\label{alg:ellipsoid_intersection_test}
-\end{algorithm2e}
+To check whether $E_1$ and $E_2$ intersect, we compute the generalized eigenvalue decomposition of $\spatialcov_1$ and $\spatialcov_2$, form $v$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's minimization algorithm \cite{Brent71} (any fast 1 dimensional convex optimization routine may be used). If $K(s^*) <0$ at the minimizer $s^*$, then $E_1 \cap E_2 = \{\}$. Otherwise $E_1 \cap E_2 \neq \{\}$.
+%The resulting algorithm for checking whether $E_1$ and $E_2$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
+
+%\begin{algorithm2e}
+%	\SetAlgoNoLine
+%	\SetKwInOut{Input}{Input}
+%	\SetKwInOut{Output}{Output}
+%	\SetKwProg{Fn}{Function}{}{}
+%	\Input{Ellipsoid $E_1$ with mean $\spatialmean_1$ and covariance $\spatialcov_1/\tau^2$\\
+%		Ellipsoid $E_2$ with mean $\spatialmean_2$ and covariance $\spatialcov_2/\tau^2$ 
+%	}
+%	
+%	\Output{Boolean $\text{ellipsoids\_intersect}$ which is true if $E_1 \cap E_2 \neq \{\}$ and false otherwise}
+%	
+%	
+%	Solve generalized eigenvalue problem $\spatialcov_1 P = \spatialcov_2 P \Lambda$
+%		
+%	$v \gets P^T\left(\spatialmean_1 - \spatialmean_2\right)$
+%		
+%	$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
+%		
+%	\If{$K^* < 0$}{
+%			
+%		$\text{ellipsoids\_intersect} \gets \text{False}$
+%			
+%	}
+%	\Else{
+%			
+%		$\text{ellipsoids\_intersect} \gets \text{True}$
+%			
+%	}
+%	\caption{Determining whether two ellipsoids intersect}
+%	\label{alg:ellipsoid_intersection_test}
+%\end{algorithm2e}
 
 \subsection{Ellipsoid bounding box test}
 
@@ -1120,18 +1123,20 @@ The matrix $\mathbf{\Pi}$ is the spectral projector onto the eigenspace of $\mat
 where $\mathbf{I}$ is the identity matrix of the appropriate size.
 By ``matrix absolute value,'' we mean that $|\mathbf{A}_H^{\text{sym}}|$ is the matrix that has the same eigenvectors as $\mathbf{A}_H^{\text{sym}}$, but the eigenvalues of $|\mathbf{A}_H^{\text{sym}}|$ are the absolute values of the eigenvalues of $\mathbf{A}_H^{\text{sym}}$.
 
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.5]{spd_rational_function.pdf}
-	\caption{Rational function $\Pi_\ratord(\lambda)$ for $a=-1$, $b=0$, and $\ratord \in \{1,2,3\}$. As $\ratord$ increases, $\Pi_\ratord$ approaches the indicator function for the set $(a,b)$. }
-	\label{fig:spd_rat}
-\end{figure}
+%\begin{figure}
+%	\centering
+%	\includegraphics[scale=0.5]{spd_rational_function.pdf}
+%	\caption{Rational function $\Pi_\ratord(\lambda)$ for $a=-1$, $b=0$, and $\ratord \in \{1,2,3\}$. As $\ratord$ increases, $\Pi_\ratord$ approaches the indicator function for the set $(a,b)$. }
+%	\label{fig:spd_rat}
+%\end{figure}
 
 Computing $\mathbf{\Pi}=\Pi(\mathbf{A}_H^{\text{sym}})$ directly is difficult, but we may approximate $\Pi$ by a high order rational function $\Pi_\ratord \approx \Pi$ which is defined as follows:
 \begin{equation*}
 	 \Pi_\ratord(\lambda) := \frac{1}{1 + T(\lambda)^{2^\ratord} }, \qquad \text{where} \qquad T(\lambda) := \frac{2 \lambda - (b+a)}{b-a}.
 \end{equation*}
-Here $\ratord$ is a positive integer; the larger $\ratord$ is, the better the approximation $\Pi \approx \Pi_\ratord$. This is illustrated in Figure \ref{fig:spd_rat}. Replacing scalar operations with matrix operations, we have an approximation $\mathbf{\Pi}_\ratord \approx \mathbf{\Pi}$ given by
+Here $\ratord$ is a positive integer; the larger $\ratord$ is, the better the approximation $\Pi \approx \Pi_\ratord$. 
+%This is illustrated in Figure \ref{fig:spd_rat}. 
+Replacing scalar operations with matrix operations, we have an approximation $\mathbf{\Pi}_\ratord \approx \mathbf{\Pi}$ given by
 \begin{equation}
 \label{eq:rational343}
 \mathbf{\Pi}_\ratord := \Pi_\ratord\left(\mathbf{A}_H^{\text{sym}}\right) = \left(\mathbf{I} + \mathbf{T}^{2^\ratord}\right)^{-1},
