@@ -721,7 +721,7 @@ Some numerical results here.
 \begin{table}[H]
 	\begin{center}
 		\begingroup
-		\setlength{\tabcolsep}{8pt}
+		\setlength{\tabcolsep}{4pt}
 		\renewcommand{\arraystretch}{1.25}
 		\begin{tabular}{c| c c c | c c c | c c c}
 			&  \multicolumn{3}{|c|}{PSF} & \multicolumn{3}{|c|}{REG} & \multicolumn{3}{|c}{NONE} \\
@@ -804,16 +804,16 @@ Some numerical results here.
 	%legend pos=north east,
 	legend style={font=\small}
 	]
+	\addlegendentry{PSF (1)}
+    \addplot[blue, line width=0.5mm] table {cg_relres_p1.dat};
+    \addlegendentry{PSF (5)}
+    \addplot[red, line width=0.5mm] table {cg_relres_p5.dat};
+    \addlegendentry{PSF (25)}
+    \addplot[purple, line width=0.5mm] table {cg_relres_p25.dat};
+	\addlegendentry{Reg}
+    \addplot[dotted, line width=0.5mm] table {cg_relres_reg.dat};
 	\addlegendentry{None}
 	\addplot[dash dot, line width=0.5mm] table {cg_relres_none.dat};
-	\addlegendentry{Reg}
-	\addplot[dotted, line width=0.5mm] table {cg_relres_reg.dat};
-	\addlegendentry{PSF (1)}
-	\addplot[blue, line width=0.5mm] table {cg_relres_p1.dat};
-	\addlegendentry{PSF (5)}
-	\addplot[red, line width=0.5mm] table {cg_relres_p5.dat};
-	\addlegendentry{PSF (25)}
-	\addplot[purple, line width=0.5mm] table {cg_relres_p25.dat};
 	\end{axis}
 	\end{tikzpicture}
 \end{subfigure}
@@ -838,11 +838,11 @@ Some numerical results here.
 		%\addlegendentry{REG}
 		\addplot[dotted, line width=0.5mm] table[x=gamma, y=reg] {CGitsvsGamma.dat};
 		%\addlegendentry{PSF (1)}
-		\addplot[blue, line width=0.5mm] table[x=gamma, y=psf1] {CGitsvsGamma.dat};
-		%\addlegendentry{PSF (5)}
-		\addplot[red, line width=0.5mm] table[x=gamma, y=psf5] {CGitsvsGamma.dat};
-		%\addlegendentry{PSF (25)}
-		\addplot[purple, line width=0.5mm] table[x=gamma, y=psf25] {CGitsvsGamma.dat};
+        \addplot[blue, line width=0.5mm] table[x=gamma, y=psf1] {CGitsvsGamma.dat};
+        %\addlegendentry{PSF (5)}
+        \addplot[red, line width=0.5mm] table[x=gamma, y=psf5] {CGitsvsGamma.dat};
+        %\addlegendentry{PSF (25)}
+        \addplot[purple, line width=0.5mm] table[x=gamma, y=psf25] {CGitsvsGamma.dat};
 		\end{axis}
 		\end{tikzpicture}
 	\end{subfigure}
@@ -868,14 +868,14 @@ Some numerical results here.
 		legend style={at={(0.95,1)},anchor=north east},
 		title={Generalized eigenvalues, $Hu_{k}=\lambda_{k}Pu_{k}$}
 		]
+		\addlegendentry{PSF (1)}
+        \addplot[blue, line width=0.5mm] table[x=k, y=psf1] {generalizedEigenvalues.dat};
+        \addlegendentry{PSF (5)}
+        \addplot[red, line width=0.5mm] table[x=k, y=psf5] {generalizedEigenvalues.dat};
+        \addlegendentry{PSF (25)}
+        \addplot[purple, line width=0.5mm] table[x=k, y=psf25] {generalizedEigenvalues.dat};
 		\addlegendentry{REG}
 		\addplot[dotted, line width=0.5mm] table[x=k, y=reg] {generalizedEigenvalues.dat};
-		\addlegendentry{PSF (1)}
-		\addplot[blue, line width=0.5mm] table[x=k, y=psf1] {generalizedEigenvalues.dat};
-		\addlegendentry{PSF (5)}
-		\addplot[red, line width=0.5mm] table[x=k, y=psf5] {generalizedEigenvalues.dat};
-		\addlegendentry{PSF (25)}
-		\addplot[purple, line width=0.5mm] table[x=k, y=psf25] {generalizedEigenvalues.dat};
 		\end{axis}
 		\end{tikzpicture}
 	\end{center}
@@ -888,11 +888,11 @@ Some numerical results here.
 		\begin{tabular}{c| c c}
 			& $\kappa(P^{-1}H)$ &	$\kappa(P^{-1}H_{\text{gn}})$ \\
 			\hline 
-			REG        & \verb~7.0e+3~ & \verb~7.0e+3~ \\
-			NONE       & \verb~8.7e+2~ & \verb~9.2e+2~ \\
 			PSF $(1)$  & \verb~1.8e+1~ & \verb~1.8e+1~ \\
-			PSF $(5)$  & \verb~1.4e+1~ & \verb~1.4e+1~ \\
-			PSF $(25)$ & \verb~1.0e+1~ & \verb~1.1e+1~
+            PSF $(5)$  & \verb~1.4e+1~ & \verb~1.4e+1~ \\
+            PSF $(25)$ & \verb~1.0e+1~ & \verb~1.1e+1~ \\
+			REG        & \verb~7.0e+3~ & \verb~7.0e+3~ \\
+			NONE       & \verb~8.7e+2~ & \verb~9.2e+2~ 
 		\end{tabular}
 		\endgroup
 	\end{center}
