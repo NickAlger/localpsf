@@ -700,16 +700,24 @@ The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, d
 
 Some numerical results here.
 
+\begin{figure}[H]
+	\begin{subfigure}{0.6\textwidth}
+		\includegraphics[scale=0.25]{meshHeight_view2_edges.png}
+	\end{subfigure}
+	\begin{subfigure}{0.38\textwidth}
+		\includegraphics[scale=0.15]{meshHeight_view0_edges_withColorBar.png}
+	\end{subfigure}
+\end{figure} 
 
 \begin{figure}[H]
-	\begin{subfigure}{0.32\textwidth}
-    \includegraphics[scale=0.12]{meshHeight_view0_edges_withColorBar.png}	
-    \end{subfigure}
-    \begin{subfigure}{0.32\textwidth}
-    \includegraphics[scale=0.12]{trueVelocity_glyphs_withColorBar.png}
-    \end{subfigure}
-    \begin{subfigure}{0.32\textwidth}
-    \includegraphics[scale=0.162]{mtrue_withColorBar.png}
+%	\begin{subfigure}{0.32\textwidth}
+%    \includegraphics[scale=0.12]{meshHeight_view0_edges_withColorBar.png}	
+%    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+		\includegraphics[scale=0.243]{mtrue_withColorBar.png}
+	\end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+    	\includegraphics[scale=0.18]{trueVelocity_glyphs_withColorBar.png}
     \end{subfigure}
 \end{figure} 
 
@@ -718,7 +726,7 @@ Some numerical results here.
 \begin{table}[H]
 	\begin{center}
 		\begingroup
-		\setlength{\tabcolsep}{4pt}
+		\setlength{\tabcolsep}{3pt}
 		\renewcommand{\arraystretch}{1.25}
 		\begin{tabular}{c| c c c | c c c | c c c}
 			&  \multicolumn{3}{|c|}{PSF} & \multicolumn{3}{|c|}{REG} & \multicolumn{3}{|c}{NONE} \\
@@ -728,41 +736,41 @@ Some numerical results here.
 			\#CG & \#Stokes & $||g||$ & 
 			\#CG & \#Stokes & $||g||$ \\
 			\verb~0~ &
-			\verb~1~ & \verb~4~ & \verb~1.95e+7~ &
-			\verb~1~ & \verb~4~ & \verb~1.95e+7~ &
-			\verb~1~ & \verb~4~ & \verb~1.95e+7~ \\
+			\verb~1~ & \verb~4~ & \verb~2.0e+7~ &
+			\verb~1~ & \verb~4~ & \verb~2.0e+7~ &
+			\verb~1~ & \verb~4~ & \verb~2.0e+7~ \\
 			\verb~1~ &
-			\verb~2~ & \verb~6~ & \verb~5.76e+6~ &
-			\verb~2~ & \verb~6~ & \verb~7.90e+6~ &
-			\verb~2~ & \verb~6~ & \verb~5.76e+6~ \\
+			\verb~2~ & \verb~6~ & \verb~5.8e+6~ &
+			\verb~2~ & \verb~6~ & \verb~7.9e+6~ &
+			\verb~2~ & \verb~6~ & \verb~5.8e+6~ \\
 			\verb~2~ &
-			\verb~4~ & \verb~10~ & \verb~2.36e+6~ &
-			\verb~5~ & \verb~12~ & \verb~3.87e+6~ &
-			\verb~4~ & \verb~10~ & \verb~2.36e+6~ \\
+			\verb~4~ & \verb~10~ & \verb~2.4e+6~ &
+			\verb~5~ & \verb~12~ & \verb~3.9e+6~ &
+			\verb~4~ & \verb~10~ & \verb~2.4e+6~ \\
 			\verb~3~ &
-			\verb~2~ & \verb~6+22~ & \verb~5.79e+5~ &
-			\verb~13~ & \verb~28~ & \verb~1.62e+6~ &
-			\verb~13~ & \verb~28~ & \verb~5.79e+5~ \\
+			\verb~2~ & \verb~6+22~ & \verb~5.8e+5~ &
+			\verb~13~ & \verb~28~ & \verb~1.6e+6~ &
+			\verb~13~ & \verb~28~ & \verb~5.8e+5~ \\
 			\verb~4~ &
-			\verb~5~ & \verb~12~ & \verb~5.61e+4~ &
-			\verb~42~ & \verb~86~ & \verb~4.78e+5~ &
-			\verb~33~ & \verb~68~ & \verb~9.05e+4~ \\
+			\verb~5~ & \verb~12~ & \verb~5.6e+4~ &
+			\verb~42~ & \verb~86~ & \verb~4.8e+5~ &
+			\verb~33~ & \verb~68~ & \verb~9.1e+4~ \\
 			\verb~5~ &
-			\verb~10~ & \verb~22~ & \verb~3.45e+3~ &
-			\verb~84~ & \verb~170~ & \verb~7.72e+4~ &
-			\verb~57~ & \verb~116~ & \verb~6.21e+3~ \\
+			\verb~10~ & \verb~22~ & \verb~3.5e+3~ &
+			\verb~84~ & \verb~170~ & \verb~7.7e+4~ &
+			\verb~57~ & \verb~116~ & \verb~6.2e+3~ \\
 			\verb~6~ &
-			\verb~14~ & \verb~30~ & \verb~2.66e+1~ &
-			\verb~125~ & \verb~252~ & \verb~5.04e+3~ &
-			\verb~76~ & \verb~154~ & \verb~1.05e+2~ \\
+			\verb~14~ & \verb~30~ & \verb~2.7e+1~ &
+			\verb~125~ & \verb~252~ & \verb~5.0e+3~ &
+			\verb~76~ & \verb~154~ & \verb~1.1e+2~ \\
 			\verb~7~ &
-			\verb~0~ & \verb~2~ & \verb~4.09e-2~ &
-			\verb~194~ & \verb~390~ & \verb~7.91e+1~ &
-			\verb~117~ & \verb~236~ & \verb~2.29e-1~ \\
+			\verb~0~ & \verb~2~ & \verb~4.1e-2~ &
+			\verb~194~ & \verb~390~ & \verb~7.9e+1~ &
+			\verb~117~ & \verb~236~ & \verb~2.3e-1~ \\
 			\verb~8~ & 
 			\verb~---~ & \verb~---~ & \verb~---~ &
-			\verb~0~ & \verb~2~ & \verb~1.60e-1~ &
-			\verb~0~ & \verb~2~ & \verb~4.08e-2~ \\
+			\verb~0~ & \verb~2~ & \verb~1.6e-1~ &
+			\verb~0~ & \verb~2~ & \verb~4.1e-2~ \\
 			\hline
 			Total & 
 			\verb~38~ & \verb~114~ & \verb~---~ &
@@ -775,21 +783,21 @@ Some numerical results here.
 
 
 \begin{figure}[H]
-	\begin{subfigure}{0.225\textwidth}
-		\includegraphics[scale=0.08]{m1_psf.png}	
+	\begin{subfigure}{0.24\textwidth}
+		\includegraphics[scale=0.1]{m1_psf.png}	
 	\end{subfigure}
-	\begin{subfigure}{0.225\textwidth}
-		\includegraphics[scale=0.08]{m3_psf.png}
+	\begin{subfigure}{0.24\textwidth}
+		\includegraphics[scale=0.1]{m3_psf.png}
 	\end{subfigure}
-	\begin{subfigure}{0.225\textwidth}
-		\includegraphics[scale=0.08]{m4_psf.png}
+	\begin{subfigure}{0.24\textwidth}
+		\includegraphics[scale=0.1]{m4_psf.png}
 	\end{subfigure}
-	\begin{subfigure}{0.225\textwidth}
-	\includegraphics[scale=0.08]{m6_psf.png}
+	\begin{subfigure}{0.24\textwidth}
+	\includegraphics[scale=0.1]{m6_psf.png}
 \end{subfigure}
-\begin{subfigure}{0.05\textwidth}
-	\includegraphics[scale=0.1]{mColorBar.png}
-\end{subfigure}
+%\begin{subfigure}{0.05\textwidth}
+%	\includegraphics[scale=0.1]{mColorBar.png}
+%\end{subfigure}
 \caption{The parameter after $1$ (left), $3$ (second from left), $4$ (third from left) Newton iterates and the final Newton iterate (right).} 
 \end{figure} 
 
