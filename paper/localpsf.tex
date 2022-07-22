@@ -698,8 +698,38 @@ The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, d
 %	\item 
 %\end{itemize}
 
-Some numerical results here.
+We next test the local psf framework on an inverse problem governed by a PDE which models steady-state ice sheet flow.
+The domain that is covered by ice is denoted by
+$\Omega\subset\mathbb{R}^{d}$, $d=3$,
+$\Gamma_{b}$, $\Gamma_{l}$, and $\Gamma_{t}$ denote
+the basal, lateral and top parts of the domain boundary
+$\partial\Omega$.
+The governing equations are the linear incompressible Stokes
+equations,
 
+\begin{subequations}\label{Stokeseqn}
+	\begin{align}
+	-\nabla\cdot\bm{\sigma}_{\bm{u}}
+	&=\rho\bm{g}\,\,\,\text{ in }\Omega, \label{Stokeseqn:1}\\
+	\nabla\cdot\bm{u}
+	&=0\,\,\,\,\,\,\text{ in }\Omega, \label{Stokeseqn:2}\\
+	\bm{\sigma}_{\bm{u}}\bm{n}
+	&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{t}, \label{Stokeseqn:3}\\
+	\bm{u}\cdot\bm{n} =0 \text{ and } \bm{T}\left(\bm{\sigma}_{\bm{u}}\bm{n}+\exp\left(m\right)\bm{u}\right)
+	&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{b},\label{Stokeseqn:4} \\
+	\left(\bm{\sigma}_{\bm{u}}\bm{n}+\mu\bm{u}\right)&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{l},\label{Stokeseqn:5}	
+	\end{align}
+\end{subequations}
+whose solution determines the ice flow velocity $\bm{u}$ and pressure $p$. Here, $m$ is the logarithmic
+basal sliding parameter field, $\rho\bm{g}$ the body force density due to gravity, $\bm{n}$ is the outward normal and $\bm{T}$ is a tangential projection operator. 
+We employ Glen's flow law
+(CITE GLEN) %\cite{glen1955},
+which is a constitutive law for ice that relates the stress
+tensor $\bm{\sigma}_{\bm{u}}$ and the strain rate tensor
+$\bm{\dot{\varepsilon}}_{\bm{u}}= \frac{1}{2}\left(
+\bm{\nabla}\bm{u}+\bm{\nabla}\bm{u}^{\top} \right)$, $\bm{\sigma}_{\bm{u}}= 2\eta
+\bm{\dot{\varepsilon}}_{\bm{u}} -\bm{I}p$, where $\eta=\frac{1}{2}A^{-1}$ is the effective viscosity, $\bm{I}$ is the unit matrix,
+and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which provides for a linear Stokes model.
 
 \begin{figure}[H]
 	\begin{subfigure}{0.32\textwidth}
@@ -902,11 +932,11 @@ Some numerical results here.
 		\begin{tabular}{c| c c}
 			& $\kappa(P^{-1}H)$ &	$\kappa(P^{-1}H_{\text{gn}})$ \\
 			\hline 
-			PSF $(1)$  & \verb~1.8e+1~ & \verb~1.8e+1~ \\
-            PSF $(5)$  & \verb~1.4e+1~ & \verb~1.4e+1~ \\
-            PSF $(25)$ & \verb~1.0e+1~ & \verb~1.1e+1~ \\
-			REG        & \verb~7.0e+3~ & \verb~7.0e+3~ \\
-			NONE       & \verb~8.7e+2~ & \verb~9.2e+2~ 
+			PSF $(1)$  & \verb~1.75e+1~ & \verb~1.76e+1~ \\
+            PSF $(5)$  & \verb~1.39e+1~ & \verb~1.39e+1~ \\
+            PSF $(25)$ & \verb~1.03e+1~ & \verb~1.06e+1~ \\
+			REG        & \verb~7.02e+3~ & \verb~7.02e+3~ \\
+			NONE       & \verb~8.71e+2~ & \verb~9.22e+2~ 
 		\end{tabular}
 		\endgroup
 	\end{center}
