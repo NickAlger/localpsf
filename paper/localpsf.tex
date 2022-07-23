@@ -715,12 +715,12 @@ equations,
 	&=0\,\,\,\,\,\,\text{ in }\Omega, \label{Stokeseqn:2}\\
 	\bm{\sigma}_{\bm{u}}\bm{n}
 	&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{t}, \label{Stokeseqn:3}\\
-	\bm{u}\cdot\bm{n} =0 \text{ and } \bm{T}\left(\bm{\sigma}_{\bm{u}}\bm{n}+\exp\left(m\right)\bm{u}\right)
+	\bm{u}\cdot\bm{n} =0 \text{ and } \bm{T}\left(\bm{\sigma}_{\bm{u}}\bm{n}+\exp\left(\beta\right)\bm{u}\right)
 	&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{b},\label{Stokeseqn:4} \\
-	\left(\bm{\sigma}_{\bm{u}}\bm{n}+\mu\bm{u}\right)&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{l},\label{Stokeseqn:5}	
+	\left(\bm{\sigma}_{\bm{u}}\bm{n}+\omega\bm{u}\right)&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{l},\label{Stokeseqn:5}	
 	\end{align}
 \end{subequations}
-whose solution determines the ice flow velocity $\bm{u}$ and pressure $p$. Here, $m$ is the logarithmic
+whose solution determines the ice flow velocity $\bm{u}$ and pressure $p$. Here, $\beta$ is the logarithmic
 basal sliding parameter field, $\rho\bm{g}$ the body force density due to gravity, $\bm{n}$ is the outward normal and $\bm{T}$ is a tangential projection operator. 
 We employ Glen's flow law
 (CITE GLEN) %\cite{glen1955},
@@ -729,9 +729,26 @@ tensor $\bm{\sigma}_{\bm{u}}$ and the strain rate tensor
 $\bm{\dot{\varepsilon}}_{\bm{u}}= \frac{1}{2}\left(
 \bm{\nabla}\bm{u}+\bm{\nabla}\bm{u}^{\top} \right)$, $\bm{\sigma}_{\bm{u}}= 2\eta
 \bm{\dot{\varepsilon}}_{\bm{u}} -\bm{I}p$, where $\eta=\frac{1}{2}A^{-1}$ is the effective viscosity, $\bm{I}$ is the unit matrix,
-and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which provides for a linear Stokes model.
+and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which provides for a linear Stokes model. The domain geometry $\Omega$ is shown in Figure \ref{fig:iceMountainMesh}. 
 
+The inverse problem that we seek to solve is
 
+\begin{align*}
+\min_{\beta}J(\beta)&:=\frac{1}{2}\int_{\Gamma_{t}}||\bm{T}(\bm{u}-\bm{u}_{d})||_{2}^{2}\,dS+\frac{1}{2}\int_{\Omega}\beta\mathcal{L}^{2}\beta\,dx,\\
+\text{where }\bm{u}& \text{ solves \ref{Stokeseqn}}.
+\end{align*}
+Here $\mathcal{L}$ is a regularizing invertible elliptic differential operator, where $s=\mathcal{L}^{-1}u$ if and only if
+
+\begin{align*}
+-\gamma\Delta u +\delta\,u&=s\,\,\,\,\text{ in }\Gamma_{b},\\
+\gamma \bm{\nabla}u\cdot\bm{n}+\mu\,u&=0\,\,\,\text{ on }\partial\Gamma_{b}.
+\end{align*}
+The observation data $\bm{u}_{d}(\bm{x})$ is generated synthetically, as follows, we propose a true log basal friction field $\beta_{\text{true}}(\bm{x})$, solve equation \ref{Stokeseqn} to obtain $\bm{u}_{\text{true}}(\bm{x})$, we then add random relative noise to obtain the noisy data $\bm{u}_{d}$
+
+\begin{align*}
+\left(\bm{u}_{d}(\bm{x})\right)_{i}&=\left(\bm{u}_{\text{true}}(\bm{x})\right)_{i}+\varepsilon\, \xi_{i}(\bm{x})|\left(\bm{u}_{\text{true}}(\bm{x})\right)_{i}|\,\,\,i=1,\dots,d,
+\end{align*}
+where $\xi_{i}(\bm{x})$ are standard normal random numbers and $\varepsilon>0$ sets the noise level. The inverse problem is solved with an inexact-Newton CG scheme, wherein each Hessian $\mathcal{A}$ action, requires the linearized PDE solutions, and so we apply the psf framework to generate Hessian preconditioners and compare the performance with other techniques, such as preconditioning by the regularization operator.
 
 \begin{figure}[H]
 	\begin{subfigure}{0.6\textwidth}
@@ -740,7 +757,13 @@ and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which prov
 	\begin{subfigure}{0.38\textwidth}
 		\includegraphics[scale=0.15]{meshHeight_view0_edges_withColorBar.png}
 	\end{subfigure}
+\caption{TO DO: description of ice mountain}
+\label{fig:iceMountainMesh}
 \end{figure} 
+
+
+
+
 
 \begin{figure}[H]
     \begin{subfigure}{0.49\textwidth}
