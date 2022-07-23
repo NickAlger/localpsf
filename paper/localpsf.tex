@@ -705,8 +705,8 @@ We approximate the Gauss-Newton Hessian in an inverse problem governed by a PDE 
 		\includegraphics[scale=0.25]{meshHeight_view2_edges.png}
 		\caption{Bird's eye view}
 	\end{subfigure}
-	\begin{subfigure}{0.38\textwidth}
-		\includegraphics[scale=0.15]{meshHeight_view0_edges_withColorBar.png}
+	\begin{subfigure}{0.48\textwidth}
+		\includegraphics[scale=0.15]{meshHeight_view0_edges_withAxes.png}
 		\caption{Top-down view}
 	\end{subfigure}
 	\caption{The ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography).}
@@ -765,7 +765,7 @@ where $\xi_{i}(\bm{x})$ are standard normal random numbers and $\varepsilon>0$ s
 \begin{figure}[H]
 	\begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.243]{mtrue_withColorBar.png}
-		\caption{True $m$.}
+		\caption{True $\basalfriction$.}
 	\end{subfigure}
 	\begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.18]{trueVelocity_glyphs_withColorBar.png}
@@ -798,7 +798,7 @@ where $\xi_{i}(\bm{x})$ are standard normal random numbers and $\varepsilon>0$ s
 	%\begin{subfigure}{0.05\textwidth}
 	%	\includegraphics[scale=0.1]{mColorBar.png}
 	%\end{subfigure}
-	\caption{The parameter after $1$ (left), $3$ (second from left), $4$ (third from left) Newton iterates and the final Newton iterate (right). The preconditioner is constructed between Newton iterations 3 and 4.} 
+	\caption{The log basal friction parameter $\basalfriction$ after $1$ (left), $3$ (second from left), $4$ (third from left) Newton iterates and the final Newton iterate (right). The preconditioner is constructed between Newton iterations 3 and 4.} 
 \end{figure} 
 
 \begin{table}[H]
