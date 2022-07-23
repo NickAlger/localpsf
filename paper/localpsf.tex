@@ -698,42 +698,30 @@ The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, d
 %	\item 
 %\end{itemize}
 
-We approximate the Gauss-Newton Hessian in an inverse problem governed by a PDE which models steady-state ice sheet flow. Briefly, a sheet of ice is sliding down a mountain (see Figure \ref{fig:ice_mountain_mesh}). Given observations of the tangential component of the ice velocity on the top surface of the ice, we invert for the unknown spatially varying basal friction parameter which governs how easily the ice slides along the ground underneath it.
-
-\begin{figure}[H]
-	\begin{subfigure}{0.6\textwidth}
-		\includegraphics[scale=0.25]{meshHeight_view2_edges.png}
-		\caption{Bird's eye view}
-	\end{subfigure}
-	\begin{subfigure}{0.38\textwidth}
-		\includegraphics[scale=0.15]{meshHeight_view0_edges_withColorBar.png}
-		\caption{Top-down view}
-	\end{subfigure}
-	\caption{The ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography).}
-	\label{fig:ice_mountain_mesh}
-\end{figure} 
-
-
-The domain that is filled with ice is denoted by
-$\icedomain \subset\mathbb{R}^{3}$. The basal, lateral and top parts of $\partial \icedomain$ are denoted by $\Gamma_{b}$, $\Gamma_{l}$, and $\Gamma_{t}$, respectively.
+We next test the local psf framework on an inverse problem governed by a PDE which models steady-state ice sheet flow.
+The domain that is covered by ice is denoted by
+$\Omega\subset\mathbb{R}^{d}$, $d=3$,
+$\Gamma_{b}$, $\Gamma_{l}$, and $\Gamma_{t}$ denote
+the basal, lateral and top parts of the domain boundary
+$\partial\Omega$.
 The governing equations are the linear incompressible Stokes
 equations,
 
 \begin{subequations}\label{Stokeseqn}
 	\begin{align}
 	-\nabla\cdot\bm{\sigma}_{\bm{u}}
-	&=\rho\bm{g}\,\,\,\text{ in }\icedomain, \label{Stokeseqn:1}\\
+	&=\rho\bm{g}\,\,\,\text{ in }\Omega, \label{Stokeseqn:1}\\
 	\nabla\cdot\bm{u}
-	&=0\,\,\,\,\,\,\text{ in }\icedomain, \label{Stokeseqn:2}\\
+	&=0\,\,\,\,\,\,\text{ in }\Omega, \label{Stokeseqn:2}\\
 	\bm{\sigma}_{\bm{u}}\bm{n}
 	&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{t}, \label{Stokeseqn:3}\\
-	\bm{u}\cdot\bm{n} =0 \quad\text{and}\quad \bm{T}\left(\bm{\sigma}_{\bm{u}}\bm{n}+\exp\left(m\right)\bm{u}\right)
+	\bm{u}\cdot\bm{n} =0 \text{ and } \bm{T}\left(\bm{\sigma}_{\bm{u}}\bm{n}+\exp\left(\beta\right)\bm{u}\right)
 	&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{b},\label{Stokeseqn:4} \\
-	\left(\bm{\sigma}_{\bm{u}}\bm{n}+\mu\bm{u}\right)&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{l}.\label{Stokeseqn:5}	
+	\left(\bm{\sigma}_{\bm{u}}\bm{n}+\omega\bm{u}\right)&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{l},\label{Stokeseqn:5}	
 	\end{align}
 \end{subequations}
-The solution to these equations is the tuple $(\bm{u}, \bm{p})$, where $\bm{u}$ is the ice flow velocity, and $\bm{p}$ is the pressure. Here, $m$ is the unknown logarithmic
-basal sliding parameter field which is defined on the $2D$ surface $\Gamma_b$. The quantity $\rho\bm{g}$ is the body force density due to gravity, $\bm{n}$ is the outward normal and $\bm{T}$ is the tangential projection operator that restricts a vector field to its tangential component along the boundary. 
+whose solution determines the ice flow velocity $\bm{u}$ and pressure $p$. Here, $\beta$ is the logarithmic
+basal sliding parameter field, $\rho\bm{g}$ the body force density due to gravity, $\bm{n}$ is the outward normal and $\bm{T}$ is a tangential projection operator. 
 We employ Glen's flow law
 (CITE GLEN) %\cite{glen1955},
 which is a constitutive law for ice that relates the stress
@@ -741,47 +729,52 @@ tensor $\bm{\sigma}_{\bm{u}}$ and the strain rate tensor
 $\bm{\dot{\varepsilon}}_{\bm{u}}= \frac{1}{2}\left(
 \bm{\nabla}\bm{u}+\bm{\nabla}\bm{u}^{\top} \right)$, $\bm{\sigma}_{\bm{u}}= 2\eta
 \bm{\dot{\varepsilon}}_{\bm{u}} -\bm{I}p$, where $\eta=\frac{1}{2}A^{-1}$ is the effective viscosity, $\bm{I}$ is the unit matrix,
-and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which provides for a linear Stokes model. Note that while the PDE is linear, the parameter-to-solution map, $m \mapsto (\bm{u}, p)$, is nonlinear.
+and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which provides for a linear Stokes model. The domain geometry $\Omega$ is shown in Figure \ref{fig:iceMountainMesh}. 
+
+The inverse problem that we seek to solve is
+
+\begin{align*}
+\min_{\beta}J(\beta)&:=\frac{1}{2}\int_{\Gamma_{t}}||\bm{T}(\bm{u}-\bm{u}_{d})||_{2}^{2}\,dS+\frac{1}{2}\int_{\Omega}\beta\mathcal{L}^{2}\beta\,dx,\\
+\text{where }\bm{u}& \text{ solves \ref{Stokeseqn}}.
+\end{align*}
+Here $\mathcal{L}$ is a regularizing invertible elliptic differential operator, where $s=\mathcal{L}^{-1}u$ if and only if
+
+\begin{align*}
+-\gamma\Delta u +\delta\,u&=s\,\,\,\,\text{ in }\Gamma_{b},\\
+\gamma \bm{\nabla}u\cdot\bm{n}+\mu\,u&=0\,\,\,\text{ on }\partial\Gamma_{b}.
+\end{align*}
+The observation data $\bm{u}_{d}(\bm{x})$ is generated synthetically, as follows, we propose a true log basal friction field $\beta_{\text{true}}(\bm{x})$, solve equation \ref{Stokeseqn} to obtain $\bm{u}_{\text{true}}(\bm{x})$, we then add random relative noise to obtain the noisy data $\bm{u}_{d}$
+
+\begin{align*}
+\left(\bm{u}_{d}(\bm{x})\right)_{i}&=\left(\bm{u}_{\text{true}}(\bm{x})\right)_{i}+\varepsilon\, \xi_{i}(\bm{x})|\left(\bm{u}_{\text{true}}(\bm{x})\right)_{i}|\,\,\,i=1,\dots,d,
+\end{align*}
+where $\xi_{i}(\bm{x})$ are standard normal random numbers and $\varepsilon>0$ sets the noise level. The inverse problem is solved with an inexact-Newton CG scheme, wherein each Hessian $\mathcal{A}$ action, requires the linearized PDE solutions, and so we apply the psf framework to generate Hessian preconditioners and compare the performance with other techniques, such as preconditioning by the regularization operator.
+
+\begin{figure}[H]
+	\begin{subfigure}{0.6\textwidth}
+		\includegraphics[scale=0.25]{meshHeight_view2_edges.png}
+	\end{subfigure}
+	\begin{subfigure}{0.38\textwidth}
+		\includegraphics[scale=0.15]{meshHeight_view0_edges_withColorBar.png}
+	\end{subfigure}
+\caption{TO DO: description of ice mountain}
+\label{fig:iceMountainMesh}
+\end{figure} 
+
+
+
 
 
 \begin{figure}[H]
     \begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.243]{mtrue_withColorBar.png}
-		\caption{True $m$.}
 	\end{subfigure}
     \begin{subfigure}{0.49\textwidth}
     	\includegraphics[scale=0.18]{trueVelocity_glyphs_withColorBar.png}
-    	\caption{True $\bm{u}$.}
     \end{subfigure}
-	\caption{True logarithmic basal sliding parameter $m$ (left) and true velocity $\bm{u}$ (right). In the right plot, arrows indicate the direction of $\bm{u}$ and color indicates the magnitude of $\bm{u}$.}
 \end{figure} 
 
-\begin{figure}[H]
-	\begin{subfigure}{0.24\textwidth}
-		\includegraphics[scale=0.1]{m1_psf.png}
-		%		\caption{}
-		%		\label{fig:newtoniter1}
-	\end{subfigure}
-	\begin{subfigure}{0.24\textwidth}
-		\includegraphics[scale=0.1]{m3_psf.png}
-		%		\caption{}
-		%		\label{fig:newtoniter2}
-	\end{subfigure}
-	\begin{subfigure}{0.24\textwidth}
-		\includegraphics[scale=0.1]{m4_psf.png}
-		%		\caption{}
-		%		\label{fig:newtoniter3}
-	\end{subfigure}
-	\begin{subfigure}{0.24\textwidth}
-		\includegraphics[scale=0.1]{m6_psf.png}
-		%		\caption{}
-		%		\label{fig:newtoniter4}
-	\end{subfigure}
-	%\begin{subfigure}{0.05\textwidth}
-	%	\includegraphics[scale=0.1]{mColorBar.png}
-	%\end{subfigure}
-	\caption{The parameter after $1$ (left), $3$ (second from left), $4$ (third from left) Newton iterates and the final Newton iterate (right). The preconditioner is constructed between Newton iterations 3 and 4.} 
-\end{figure} 
+
 
 \begin{table}[H]
 	\begin{center}
@@ -789,7 +782,7 @@ and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which prov
 		\setlength{\tabcolsep}{3pt}
 		\renewcommand{\arraystretch}{1.25}
 		\begin{tabular}{c| c c c | c c c | c c c}
-			&  \multicolumn{3}{|c|}{PSF (5)} & \multicolumn{3}{|c|}{REG} & \multicolumn{3}{|c}{NONE} \\
+			&  \multicolumn{3}{|c|}{PSF} & \multicolumn{3}{|c|}{REG} & \multicolumn{3}{|c}{NONE} \\
 			\hline
 			Iter & 
 			\#CG & \#Stokes & $||g||$ & 
@@ -839,8 +832,32 @@ and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which prov
 		\end{tabular}
 		\endgroup
 	\end{center}
-	\caption{Convergence history for solving the Stokes inverse problem using the preconditioned inexact Newton-Krylov method. The Newton iteration terminates when the norm of the gradient has decreased from its initial value by a factor of $10^{-8}$. The Gauss-Newton Hessian is used in iterations $0$--$5$, and the Hessian is used in all subsequent iterations. Preconditioners shown are our method with five impulse response batches (PSF (5)), regularization preconditioning (REG), and no preconditioning (NONE). Our preconditioner (PSF (5)) is built at iteration $3$ using the Gauss-Newton Hessian, and re-used for all subsequent iterations. The iterates are $m_0$ (initial guess), $m_1$ (parameter after one Newton step), $m_2$ (parameter after two Newton steps), and so on. The columns titled \#CG show the number of conjugate gradient iterations used to solve the Newton system at $m_k$, for the purpose of computing a search direction towards $m_{k+1}$. The columns titled $||g||$ show the $l^2$ norm of the gradient at $m_k$. The columns titled \#Stokes show the number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $m_{k-1}$ to $m_k$ (including one Stokes solve at $m_k$), plus one adjoint Stokes solve to compute the gradient at $m_k$, plus one incremental forward and one incremental adjoint Stokes solve per CG iteration for solving the Newton system at iteration $k$. In the PSF (5) portion of row 3, we write $6+22$ to indicate that 6 Stokes solves were used during the standard course of the iteration, and 22 additional Stokes solves were used to build our preconditioner. }
 \end{table}
+
+
+\begin{figure}[H]
+	\begin{subfigure}{0.24\textwidth}
+		\includegraphics[scale=0.1]{m1_psf.png}	
+	\end{subfigure}
+	\begin{subfigure}{0.24\textwidth}
+		\includegraphics[scale=0.1]{m3_psf.png}
+	\end{subfigure}
+	\begin{subfigure}{0.24\textwidth}
+		\includegraphics[scale=0.1]{m4_psf.png}
+	\end{subfigure}
+	\begin{subfigure}{0.24\textwidth}
+	\includegraphics[scale=0.1]{m6_psf.png}
+\end{subfigure}
+%\begin{subfigure}{0.05\textwidth}
+%	\includegraphics[scale=0.1]{mColorBar.png}
+%\end{subfigure}
+\caption{The parameter after $1$ (left), $3$ (second from left), $4$ (third from left) Newton iterates and the final Newton iterate (right).} 
+\end{figure} 
+
+
+             
+
+
 
 
 \begin{figure}[H]
@@ -874,8 +891,6 @@ and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which prov
 	\addplot[dash dot, line width=0.5mm] table {cg_relres_none.dat};
 	\end{axis}
 	\end{tikzpicture}
-	\caption{}
-	\label{fig:cg_convergence}
 \end{subfigure}
 	\begin{subfigure}{0.49\textwidth}
 		\centering
@@ -905,10 +920,7 @@ and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which prov
         \addplot[purple, line width=0.5mm] table[x=gamma, y=psf25] {CGitsvsGamma.dat};
 		\end{axis}
 		\end{tikzpicture}
-		\caption{}
-		\label{fig:gamma_sweep}
 	\end{subfigure}
-	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving a linear system of the form $Hx=b$ using the preconditioned conjugate gradient method, where $b$ has random independent and identically distributed (i.i.d) entries drawn from the standard normal distribution. The y-axis is the relative $l^2$ norm of the residual, i.e., $||b-Hx_k||/||b||$, where $x_k$ is the $k$th iterate. Here the regularization parameter $\gamma$ is determined by the Morozov discrepancy principle. Right (\ref{fig:gamma_sweep}) shows the number of preconditioned conjugate gradient iterations required to reduce the relative $l^2$ norm of the residual below a tolerance of $10^{-6}$, for a range of different regularization parameters $\gamma$. Results in these figures are shown for our preconditioner with 1, 5, and 25 batches of impulse responses (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using the Gauss-Newton Hessian. For a fair comparison, the Hessian and Gauss-Newton Hessian are always evaluated at the same parameter $m$, which is the optimal point for the inverse problem with $\gamma$ given by the Morozov discrepancy principle.}
 \end{figure} 
 
 \begin{figure}[H]
@@ -942,8 +954,6 @@ and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which prov
 		\end{axis}
 		\end{tikzpicture}
 	\end{center}
-	\caption{}
-	\label{fig:generalized_eigenvalues}
 \end{subfigure}
 \begin{subfigure}{0.39\textwidth}
 		\begin{center}
@@ -961,10 +971,7 @@ and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which prov
 		\end{tabular}
 		\endgroup
 	\end{center}
-	\caption{}
-	\label{fig:condition_number}
 \end{subfigure}
-	\caption{Left (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $H u_k = \lambda_k P_k$. Here $H$ is the Hessian and $P$ is the PSF approximation constructed using the Gauss-Newton Hessian, $H_\text{gn}$, for 1, 5, and 25 batches, or the regularization operator. Right (\ref{fig:condition_number}): condition number, $\kappa$, for the preconditioned Hessian and Gauss-Newton Hessian for different preconditioners. All operators are evaluated at the parameter $m$ that solves the inverse problem for $\gamma$ given by the Morozov discrepancy principle.}
 \end{figure}
 
 
