@@ -87,7 +87,7 @@ However, low rank approximation methods suffer from a ``data predicament''---if 
 		\centering
 		\includegraphics[scale=0.33]{impulse_batch3.png}
 	\end{subfigure}
-	\caption{Batches of normalized impulse responses for the Stokes inverse problem Hessian. 
+	\caption{Batches of normalized impulse responses for the Stokes inverse problem data misfit Gauss-Newton Hessian, described in Section \ref{sec:numerical_results}. 
 %	Brightness scale differs between the subfigures. 
 	Black stars indicate point source locations. Dashed gray ellipses indicate the estimated support ellipsoids. The large circle is the boundary of the domain. 
 	}
@@ -698,15 +698,15 @@ The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, d
 %	\item 
 %\end{itemize}
 
-We approximate the Gauss-Newton Hessian in an inverse problem governed by a PDE which models steady-state ice sheet flow. Briefly, a sheet of ice is sliding down a mountain (see Figure \ref{fig:ice_mountain_mesh}). Given observations of the tangential component of the ice velocity on the top surface of the ice, we invert for the logarithm of the unknown spatially varying basal friction parameter which governs how easily the ice slides along the ground underneath it.
+We use our method to approximate the data misfit Gauss-Newton Hessian in an inverse problem governed by a PDE which models steady-state ice sheet flow. Briefly, a sheet of ice is sliding down a mountain (see Figure \ref{fig:ice_mountain_mesh}). Given observations of the tangential component of the ice velocity on the top surface of the ice, we invert for the logarithm of the unknown spatially varying basal friction parameter which governs how easily the ice slides along the ground underneath it.
 
 \begin{figure}[H]
-	\begin{subfigure}{0.6\textwidth}
-		\includegraphics[scale=0.25]{meshHeight_view2_edges.png}
+	\begin{subfigure}{0.5\textwidth}
+		\includegraphics[scale=0.23]{meshHeight_view2_edges.png}
 		\caption{Bird's eye view}
 	\end{subfigure}
 	\begin{subfigure}{0.48\textwidth}
-		\includegraphics[scale=0.15]{meshHeight_view0_edges_withAxes.png}
+		\includegraphics[scale=0.22]{meshHeight_view0_edges_withAxes.png}
 		\caption{Top-down view}
 	\end{subfigure}
 	\caption{The ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography).}
@@ -732,7 +732,7 @@ equations,
 	\left(\bm{\sigma}_{\bm{u}}\bm{n}+\mu\bm{u}\right)&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{l}.\label{Stokeseqn:5}	
 	\end{align}
 \end{subequations}
-The solution to these equations is the tuple $(\bm{u}, p)$, where $\bm{u}$ is the ice flow velocity, and $p$ is the pressure. Here, $\basalfriction$ is the unknown logarithmic
+The solution to these equations is the tuple $(\bm{u}, p)$, where $\bm{u}$ is the ice flow velocity field, and $p$ is the pressure field. Here, $\basalfriction$ is the unknown logarithmic
 basal sliding parameter field which is defined on the $2D$ surface $\Gamma_b$. The quantity $\rho\bm{g}$ is the body force density due to gravity, $\bm{n}$ is the outward normal and $\bm{T}$ is the tangential projection operator that restricts a vector field to its tangential component along the boundary. 
 We employ Glen's flow law \cite{Glen1955},
 which is a constitutive law for ice that relates the stress
@@ -742,36 +742,71 @@ $\bm{\dot{\varepsilon}}_{\bm{u}}= \frac{1}{2}\left(
 \bm{\dot{\varepsilon}}_{\bm{u}} -\bm{I}p$, where $\eta=\frac{1}{2}A^{-1}$ is the effective viscosity, $\bm{I}$ is the unit matrix,
 and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which provides for a linear Stokes model. Note that while the PDE is linear, the parameter-to-solution map, $\basalfriction \mapsto (\bm{u}, p)$, is nonlinear.
 
-The inverse problem that we seek to solve is
-
-\begin{align*}
-\min_{\basalfriction}J(\basalfriction)&:=\frac{1}{2}\int_{\Gamma_{t}}||\bm{T}(\bm{u}-\bm{u}_{d})||_{2}^{2}\,dS+\frac{1}{2}\int_{\Omega}\basalfriction\mathcal{L}^{2}\basalfriction\,dx,\\
-\text{where }\bm{u}& \text{ solves \ref{Stokeseqn}}.
-\end{align*}
-Here $\mathcal{L}$ is a regularizing invertible elliptic differential operator, where $s=\mathcal{L}^{-1}u$ if and only if
-
-\begin{align*}
--\gamma\Delta u +\delta\,u&=s\,\,\,\,\text{ in }\Gamma_{b},\\
-\gamma \bm{\nabla}u\cdot\bm{n}+\mu\,u&=0\,\,\,\text{ on }\partial\Gamma_{b}.
-\end{align*}
-The observation data $\bm{u}_{d}(\bm{x})$ is generated synthetically, as follows: we propose a true log basal friction field $\basalfriction_{\text{true}}(\bm{x})$, solve equation \ref{Stokeseqn} to obtain $\bm{u}_{\text{true}}(\bm{x})$, we then add random relative noise to obtain the noisy data $\bm{u}_{d}$
-
-\begin{align*}
-\left(\bm{u}_{d}(\bm{x})\right)_{i}&=\left(\bm{u}_{\text{true}}(\bm{x})\right)_{i}+\varepsilon\, \xi_{i}(\bm{x})|\left(\bm{u}_{\text{true}}(\bm{x})\right)_{i}|\,\,\,i=1,\dots,d,
-\end{align*}
-where $\xi_{i}(\bm{x})$ are standard normal random numbers and $\varepsilon>0$ sets the noise level. The inverse problem is solved with an inexact-Newton CG scheme, wherein each Hessian $\mathcal{A}$ action, requires the linearized PDE solutions, and so we apply the psf framework to generate Hessian preconditioners and compare the performance with other techniques, such as preconditioning by the regularization operator.
+The pressure, $p$, is discretized with first order continuous Galerkin finite elements defined on a mesh of tetrahedra discretizing $U$. The velocity, $\bm{u}$, is discretized with second order continuous Galerkin finite elements on the same mesh, as required for discrete stability. The parameter $\basalfriction$ is discretized with first order scalar continuous Galerkin finite elements on the mesh of triangles that results from restricting the tetrahedral mesh to the basal boundary, $\Gamma_b$. 
 
 \begin{figure}[H]
 	\begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.243]{mtrue_withColorBar.png}
-		\caption{True $\basalfriction$.}
+		\caption{$\basalfriction_\text{true}$.}
 	\end{subfigure}
 	\begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.243]{trueVelocity2_glyphs.png}
-		\caption{True $\bm{u}$.}
+		\caption{$\bm{u}_\text{true}$.}
 	\end{subfigure}
-	\caption{True logarithmic basal sliding parameter $\basalfriction$ (left) and true velocity $\bm{u}$ (right). In the right plot, arrows indicate the direction of $\bm{u}$ and color indicates the magnitude of $\bm{u}$.}
+	\caption{True logarithmic basal sliding parameter, $\basalfriction_\text{true}$, (left) and true velocity $\bm{u}_\text{true}$ (right). In the right plot, arrows indicate the direction of $\bm{u}_\text{true}$ and color indicates the magnitude.}
+	\label{fig:true_beta_u}
 \end{figure} 
+
+The true parameter field, $\basalfriction_\text{true}$, and corresponding velocity field, $\bm{u}_\text{true}$, are shown in Figure \ref{fig:true_beta_u}. We generate synthetic observations by restricting the tangential component of $\bm{u}_\text{true}$ to the top surface to get
+\begin{equation*}
+\bm{y}_\text{true} = \bm{T} \bm{u}_\text{true} |_{\Gamma_t}.
+\end{equation*}
+We add $1\%$ multiplicative gaussian noise, $\boldsymbol{\xi}$, to all components of the finite element vector representing $\bm{y}_\text{true}$ to get noisy synthetic observations, $\bm{y}_\text{obs}$, which are used for the inversion. That is, 
+\begin{equation*}
+\left[\bm{y}_\text{obs}\right]_j := \left[\bm{y}_\text{true}\right]_j + \epsilon \left[\boldsymbol{\xi}\right]_j \left|\left[\bm{y}_\text{true}\right]_j\right|
+\end{equation*}
+where $\epsilon=0.01$, and the components of the noise function, $\boldsymbol{\xi}_j \sim N(0,1)$, are independent and identically distributed (i.i.d) random numbers drawn from the standard normal distribution. Here $\left[\bm{f}\right]_j$ denotes the $j$th entries of the finite element vector for the discretized versions of the function $\bm{f}:\Gamma_t \rightarrow \mathbb{R}^2$, and $j$ ranges over all entries of the vector. Here we do not use bold to distinguish finite element vectors from their associated functions (as we did previously) because the functions $\bm{y}_\text{true}$, $\bm{y}_\text{obs}$, and $\bm{\xi}$ are already written in bold to denote the fact that they are vector valued.
+
+The inverse problem that we seek to solve takes the form
+\begin{equation}
+	\min_{\basalfriction} \quad J(\basalfriction) = J_d(\basalfriction) + J_r(\basalfriction).
+\end{equation}
+The first term,
+\begin{equation*}
+	J_d(\basalfriction) := \frac{1}{2}\int_{\Gamma_{t}}||\bm{d} - \bm{T}\bm{u}||_{2}^{2}\,dS,
+\end{equation*}
+is the data misfit, which measures the mismatch between the observed data and the predicted data based on a candidate parameter $\basalfriction$. Here $\bm{u} = \bm{u}(\basalfriction)$ denotes the velocity field solving $\ref{Stokeseqn}$ for the given parameter $\basalfriction$. The second term,
+\begin{equation*}
+	J_r(\basalfriction) := \frac{1}{2}\int_{\Omega}\basalfriction\mathcal{K}^{2}\basalfriction\,dx
+\end{equation*}
+is a Bilaplacian regularization term. Specifically, $\mathcal{K}$ is the inverse of the solution operator for the following elliptic PDE:
+\begin{align*}
+-\gamma\Delta u +\delta\,u&=s\,\,\,\,\text{ in }\Gamma_{b},\\
+\gamma \bm{\nabla}u\cdot\bm{n}+\mu\,u&=0\,\,\,\text{ on }\partial\Gamma_{b}.
+\end{align*}
+The constant $\delta$ is chosen so that the correlation length of functions drawn from $N(0,\mathcal{L}^{-2})$ is $1/10$th of the radius of the domain. In all results shown except one, $\gamma$ is chosen so that the solution satisfies the Morozov discrepancy principle, that is,
+\begin{equation*}
+	\frac{1}{2}\int_{\Gamma_{t}}||\bm{d} - \bm{T}\bm{u}||_{2}^{2}\,dS = \frac{1}{2}\int_{\Gamma_{t}}||\boldsymbol{\xi}||_{2}^{2}\,dS.
+\end{equation*}
+The exception is Figure \ref{fig:gamma_sweep}, where we vary $\gamma$ to study the effect of changing $\gamma$ on the quality of our preconditioner.
+
+The inverse problem is solved with an inexact-Newton conjugate gradient (CG) scheme. The initial guess for the parameter, $\basalfriction_0$, is the constant function with value $\basalfriction_0(x)=10.5$, which is halfway between the maximum and minimum values for $\basalfriction_\text{true}$. The parameter value is updated iteratively according to the formula
+\begin{equation*}
+	\basalfriction_{k+1} = \basalfriction_k + \alpha_k p_k,
+\end{equation*}
+where the search direction $p_k$ is an approximate solution to the Newton linear system
+\begin{equation}
+	\label{eq:newton_system}
+	H p_k = - g_k,
+\end{equation}
+and $\alpha_k \in \mathbb{R}$ is a step length parameter chosen to satisfy the Armijo conditions \cite{ARMIJO}. Here $g_k$ is the gradient of $J$ with respect to $\basalfriction$ at $\basalfriction_k$, and $H$ is either the Hessian or Gauss-Newton Hessian of $J$ with respect to $\basalfriction$ at $\basalfriction_k$. The Gauss-Newton Hessian is used for the first five iterations, and the Hessian is used for all subsequent iterations. The method terminates when the norm of the gradient drops by a factor of $10^8$. The Newton system, \eqref{eq:newton_system}, is solved inexactly to the tolerance $\min \left(0.5, \sqrt{||g_k||}\right)||g_k||$, using the preconditioned conjugate gradient method, which only requires the application of the (Gauss-Newton) Hessian to vectors. Each application of the (Gauss-Newton) Hessian to a vector requires solving one forward and one adjoint Stokes PDE of the form \eqref{Stokeseqn} , but with different right hand sides.
+
+We use the framework described in this paper to generate Hessian preconditioners. We use our methodology to build H-matrix approximations of the data-misfit component of the Gauss-Newton Hessian. That is, the term in the Gauss-Newton Hessian that arises from the data misfit term $J_d$. We approximate the Gauss-Newton Hessian rather than the Hessian because the Hessian often has negative values in its integral kernel when one is away from the optimal point. At the discrete level, straightforward calculation shows that the regularization term in both the Hessian and the Gauss-Newton Hessian is given by
+\begin{equation*}
+	\bm{K} \bm{M}^{-1} \bm{K},
+\end{equation*}
+where $\bm{K}$ is the finite element discretization of the elliptic operator $\mathcal{K}$, and $\bm{M}$ is the finite element mass matrix. These matrices are sparse, so we form H-matrix approximations of these matrices using standard techniques for approximating sparse matrices with H-matrices, then invert $\bm{M}^{-1}$, and multiply these matrices together using H-matrix methods. We then add this H-matrix to the H-matrix for the data misfit term constructed using our method, and factor the resulting Hessian approximation using fast H-matrix factorization methods \cite{HLIBPRO}. We construct preconditioners using our method with 1, 5, and 25 impulse responses batches. The resulting preconditioners are denoted by PSF (1), PSF (5), and PSF (25), respectively. We compare the performance of these preconditioners with the most commonly used existing preconditioners, which are no preconditioning (denoted by NONE), and preconditioning by the regularization operator (denoted REG).
+
 
 \begin{figure}[H]
 	\begin{subfigure}{0.24\textwidth}
@@ -797,7 +832,7 @@ where $\xi_{i}(\bm{x})$ are standard normal random numbers and $\varepsilon>0$ s
 	%\begin{subfigure}{0.05\textwidth}
 	%	\includegraphics[scale=0.1]{mColorBar.png}
 	%\end{subfigure}
-	\caption{The log basal friction parameter $\basalfriction$ after $1$ (left), $3$ (second from left), $4$ (third from left) Newton iterates and the final Newton iterate (right). The preconditioner is constructed between Newton iterations 3 and 4.} 
+	\caption{The log basal friction parameter $\basalfriction$ after $1$ (left), $3$ (second from left), and $4$ (third from left) Newton iterates and the final Newton iterate (right). The preconditioner is constructed between Newton iterations 3 and 4.} 
 \end{figure} 
 
 \begin{table}[H]
