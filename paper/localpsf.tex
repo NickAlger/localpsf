@@ -709,7 +709,7 @@ We use our method to approximate the data misfit Gauss-Newton Hessian in an inve
 		\includegraphics[scale=0.22]{meshHeight_view0_edges_withAxes.png}
 		\caption{Top-down view}
 	\end{subfigure}
-	\caption{The ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography). The radius of the domain is $10$ kilometers, and the maximum height of the mountain is $2.1$ kilometers.}
+	\caption{The ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography). The radius of the domain is $10$ kilometers, the maximum height of the mountain is $2.1$ kilometers, and the average thickness of the ice sheet is 250 meters.}
 	\label{fig:ice_mountain_mesh}
 \end{figure} 
 
@@ -791,9 +791,10 @@ In all results shown except one, $\gamma$ is chosen so that the solution satisfi
 \begin{equation*}
 	\frac{1}{2}\int_{\Gamma_{t}}||\observations_\text{obs} - \tangentop\velocity||_{2}^{2}\,dS = \frac{1}{2}\int_{\Gamma_{t}}||\xi||_{2}^{2}\,dS.
 \end{equation*}
-The value of $\gamma$ satisfying the Morozov discrepancy principle is $\gamma=7.3 \times 10^3$. The exception is Figure \ref{fig:gamma_sweep}, where we vary $\gamma$ to study the effect of changing $\gamma$ on the quality of our preconditioner. The constant $\delta$ is chosen so that the correlation length, $L$, of functions drawn from the normal distribution with covariance $\mathcal{L}^{-2}$, which is given by the formula $L=\sqrt{\gamma/\delta}$, is $1/10$th of the radius of the domain. The function $\basalfriction_0$ is the constant function with value $\basalfriction_0(x)=10.5$, which is halfway between the maximum and minimum values of $\basalfriction_\text{true}$.
+The value of $\gamma$ satisfying the Morozov discrepancy principle is $\gamma=7.3 \times 10^3$. The exception is Figure \ref{fig:gamma_sweep}, where we vary $\gamma$ to study the effect of changing $\gamma$ on the quality of our preconditioner. The constant $\delta$ is chosen so that the correlation length, $L=\sqrt{\gamma/\delta}$, of functions drawn from the normal distribution with covariance $\mathcal{L}^{-2}$, is $1/10$th of the radius of the domain. The function $\basalfriction_0$ is the constant function with value $\basalfriction_0(x)=10.5$.
+%, which is halfway between the maximum and minimum values of $\basalfriction_\text{true}$.
 
-The inverse problem is solved with a inexact Newton preconditioned conjugate gradient scheme (PCG) \cite{NOCEDAWRIGHT}. The constant function $\basalfriction_0$ is used as the initial guess. The parameter value is updated iteratively according to the formula
+The inverse problem is solved with a inexact Newton preconditioned conjugate gradient (PCG) scheme \cite{NOCEDAWRIGHT}. The constant function $\basalfriction_0$ is used as the initial guess. The parameter value is updated iteratively according to the formula
 $
 	\basalfriction_{k+1} = \basalfriction_k + \alpha_k \searchdir_k,
 $
@@ -834,7 +835,7 @@ We use $H_\text{gn}$ for the first five iterations, and $H$ for all subsequent i
 	\label{fig:newton_iterates} 
 \end{figure} 
 
-We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data-misfit Gauss-Newton Hessian (the term in $H_\text{gn}$ that arises from the data misfit) using 1, 5, and 25 impulse responses batches. The resulting H-matrices, which may be indefinite due to approximation error, are modified to be symmetric positive definite via the procedure described in Appendix \ref{sec:make_spd}, with $l=2$. We approximate $H_\text{gn}$ rather than $H$ because $H$ often has negative values in its integral kernel when one is away from the optimal point. Our results show that our preconditioners are also good preconditioners for $H$. The H-matrix approximation of data misfit Gauss-Newton Hessian is added to a H-matrix approximation of the Hessian of the regularization term, $J_r$, to form a H-matrix approximation of the Gauss-Newton Hessian. For the Hessian of the regularization term, straightforward calculation shows that the discrete regularization term in both the Hessian and the Gauss-Newton Hessian is given by
+We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data-misfit Gauss-Newton Hessian (the term in $H_\text{gn}$ that arises from the data misfit) using 1, 5, and 25 impulse responses batches. The resulting H-matrices, which may be indefinite due to approximation error, are modified to be symmetric positive definite via the procedure described in Appendix \ref{sec:make_spd}, with $l=2$. We approximate $H_\text{gn}$ rather than $H$ because $H$ often has negative values in its integral kernel when one is away from the optimal point. Our results show that our preconditioners are also good preconditioners for $H$. The H-matrix approximation of data misfit Gauss-Newton Hessian is added to a H-matrix approximation of the Hessian of the regularization term to form a H-matrix approximation of $H_\text{gn}$. Straightforward calculation shows that the discretized Hessian of the regularization term is given by
 $
 (\gamma \bm{K} + \delta \bm{M}) \bm{M}^{-1} (\gamma \bm{K} + \delta \bm{M})
 $
@@ -902,7 +903,7 @@ where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary co
 	\label{tab:newton_convergence_table}
 \end{table}
 
-In Table \ref{tab:newton_convergence_table} we study the performance of our preconditioner for accelerating the solution of optimization problem \eqref{eq:deterministic_optimization_problem}. We build the PSF (5) preconditioner in the third Gauss-Newton iteration, and re-use it for all subsequent Gauss-Newton and Newton iterations. No preconditioning is used in the three Gauss-Newton iterations before the PSF (5) preconditioner is built. We compare our method with the most commonly used existing preconditioners, which are no preconditioning (denoted by NONE), and preconditioning by the regularization term in the Hessian (denoted REG). In Figure \ref{fig:newton_iterates} we show select Newton iterates using our PSF (5) preconditioner. Using PSF (5) reduces the total number of Stokes PDE solves by a factor of six compared to no preconditioning, and by a factor of nine compared to regularization preconditioning. Interestingly, we observe that no preconditioning actually outperforms regularization preconditioning here because the noise level, and hence the regularization parameter, $\gamma$, are small.
+In Table \ref{tab:newton_convergence_table} we study the performance of our preconditioner for accelerating the solution of optimization problem \eqref{eq:deterministic_optimization_problem}. We build the PSF (5) preconditioner in the third Gauss-Newton iteration, and re-use it for all subsequent Gauss-Newton and Newton iterations. No preconditioning is used in the three Gauss-Newton iterations before the PSF (5) preconditioner is built. We compare our method with the most commonly used existing preconditioners, which are no preconditioning (denoted by NONE), and preconditioning by the regularization term in the Hessian (denoted REG). In Figure \ref{fig:newton_iterates} we show select Newton iterates using our PSF (5) preconditioner. Using PSF (5) reduces the total number of Stokes PDE solves by a factor of six compared to no preconditioning, and by a factor of nine compared to regularization preconditioning. Interestingly, we observe that no preconditioning actually outperforms regularization preconditioning here because the noise level (and hence $\gamma$) is small.
 
 \begin{figure}
 	\begin{subfigure}{0.49\textwidth}
