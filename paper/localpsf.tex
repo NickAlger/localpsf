@@ -741,7 +741,7 @@ tensor, $\stress$, to the strain rate tensor,
 $\dot{\strain}= \frac{1}{2}\left(
 \nabla\velocity+\nabla\velocity^{\top} \right)$. Here $\eta$ is the effective viscosity and $I$ is the unit matrix. Glen's exponent has been chosen $n=1$, which provides for a linear Stokes model. Note that while the PDE is linear, the parameter-to-solution map, $\basalfriction \mapsto (\velocity, \pressure)$, is nonlinear.
 
-The pressure, $\pressure$, is discretized with first order continuous Galerkin finite elements defined on a mesh of tetrahedra discretizing $U$. The velocity, $\velocity$, is discretized with second order continuous Galerkin finite elements on the same mesh. The parameter $\basalfriction$ is discretized with first order scalar continuous Galerkin finite elements on the mesh of triangles that results from restricting the tetrahedral mesh to the basal boundary, $\Gamma_b$. The basal boundary, $\Gamma_b$ is a 2D surface embedded in 3D due to the mountain topography. We also generate a flattened version of $\Gamma_b$, denoted by $\Omega \subset \mathbb{R}^2$, by ignoring the height coordinate. The parameter $\basalfriction$ is viewed as a function on $\Gamma_b$ for the purpose of solving the Stokes equation, but is viewed as a function on $\Omega$ for the purpose of building the Hessian preconditioner and defining the regularization. 
+The pressure, $\pressure$, is discretized with first order continuous Galerkin finite elements defined on a mesh of tetrahedra. The velocity, $\velocity$, is discretized with second order continuous Galerkin finite elements on the same mesh. The parameter $\basalfriction$ is discretized with first order scalar continuous Galerkin finite elements on the mesh of triangles that results from restricting the tetrahedral mesh to $\Gamma_b$. The basal boundary, $\Gamma_b$, is a 2D surface embedded in 3D due to the mountain topography. We also generate a flattened version of $\Gamma_b$, denoted by $\Omega \subset \mathbb{R}^2$, by ignoring the height coordinate. The parameter $\basalfriction$ is dually viewed as a function on $\Gamma_b$ for the purpose of solving the Stokes equations, and as a function on $\Omega$ for the purpose of building the Hessian preconditioner and defining the regularization. 
 %This flattening is necessary because our operator approximation method requires adding points on this surface together to get other points on the surface, and this is only well-defined in flat space. 
 
 
@@ -754,7 +754,7 @@ The pressure, $\pressure$, is discretized with first order continuous Galerkin f
 		\includegraphics[scale=0.243]{trueVelocity2_glyphs.png}
 		\caption{$\velocity_\text{true}$.}
 	\end{subfigure}
-	\caption{True logarithmic basal sliding parameter, $\basalfriction_\text{true}$, (left) and true velocity $\velocity_\text{true}$ (right). In the right plot, arrows indicate the direction of $\velocity_\text{true}$ and color indicates the magnitude.}
+	\caption{True parameter, $\basalfriction_\text{true}$, (left) and true velocity $\velocity_\text{true}$ (right). In the right plot, arrows indicate the direction of $\velocity_\text{true}$ and color indicates the magnitude of $\velocity_\text{true}$.}
 	\label{fig:true_beta_u}
 \end{figure} 
 
@@ -834,13 +834,11 @@ We use $H_\text{gn}$ for the first five iterations, and $H$ for all subsequent i
 	\label{fig:newton_iterates} 
 \end{figure} 
 
-We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data-misfit Gauss-Newton Hessian (the term in the Gauss-Newton Hessian that arises from the data misfit) using 1, 5, and 25 impulse responses batches. We approximate the Gauss-Newton Hessian rather than the Hessian because the Hessian often has negative values in its integral kernel when one is away from the optimal point. Our results show that our preconditioners, which are built using the Gauss-Newton Hessian, are also good preconditioners for the Hessian. 
-
-The H-matrix approximation of data misfit Gauss-Newton Hessian is added to a H-matrix approximation of the Hessian of the regularization term, $J_r$, to form a H-matrix approximation of the Gauss-Newton Hessian. For the Hessian of the regularization term, straightforward calculation shows that the discrete regularization term in both the Hessian and the Gauss-Newton Hessian is given by
+We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data-misfit Gauss-Newton Hessian (the term in $H_\text{gn}$ that arises from the data misfit) using 1, 5, and 25 impulse responses batches. The resulting H-matrices, which may be indefinite due to approximation error, are modified to be symmetric positive definite via the procedure described in Appendix \ref{sec:make_spd}, with $l=2$. We approximate $H_\text{gn}$ rather than $H$ because $H$ often has negative values in its integral kernel when one is away from the optimal point. Our results show that our preconditioners are also good preconditioners for $H$. The H-matrix approximation of data misfit Gauss-Newton Hessian is added to a H-matrix approximation of the Hessian of the regularization term, $J_r$, to form a H-matrix approximation of the Gauss-Newton Hessian. For the Hessian of the regularization term, straightforward calculation shows that the discrete regularization term in both the Hessian and the Gauss-Newton Hessian is given by
 $
 (\gamma \bm{K} + \delta \bm{M}) \bm{M}^{-1} (\gamma \bm{K} + \delta \bm{M})
 $
-where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary conditions, and $\bm{M}$ is the finite element mass matrix. These matrices are sparse, so we form H-matrix approximations of these matrices using standard techniques for approximating sparse matrices with H-matrices. Then we invert $\bm{M}^{-1}$, and multiply these matrices together using H-matrix methods. We factor the overall Gauss-Newton Hessian approximation using fast H-matrix methods, then and use the factorization as a preconditioner \cite{HLIBPRO}. The resulting preconditioners for 1, 5, and 25 impulse response batches are denoted by PSF (1), PSF (5), and PSF (25), respectively. 
+where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary conditions, and $\bm{M}$ is the finite element mass matrix. These matrices are sparse, so we form H-matrix representations of these matrices using standard sparse H-matrix techniques. Then we invert $\bm{M}^{-1}$, and multiply these matrices together using H-matrix methods. We factor the overall Gauss-Newton Hessian approximation, denoted $\widetilde{H}$, using fast H-matrix methods, then and use the factorization as a preconditioner \cite{HLIBPRO}. The resulting preconditioners for 1, 5, and 25 impulse response batches are denoted by PSF (1), PSF (5), and PSF (25), respectively. 
 
 \begin{table}
 	{\small
@@ -904,7 +902,7 @@ where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary co
 	\label{tab:newton_convergence_table}
 \end{table}
 
-In Table \ref{tab:newton_convergence_table} we study the performance of our preconditioner for accelerating the solution of optimization problem \eqref{eq:deterministic_optimization_problem}. We build the PSF (5) preconditioner in the third Gauss-Newton iteration, and re-use it for all subsequent Gauss-Newton and Newton iterations. No preconditioner is used in the three Gauss-Newton iterations before the PSF (5) preconditioner is built. We compare our method with the most commonly used existing preconditioners, which are no preconditioning (denoted by NONE), and preconditioning by the regularization term in the Hessian (denoted REG). In Figure \ref{fig:newton_iterates} we show several Newton iterates using our PSF (5) preconditioner. Our results show that our PSF (5) preconditioner substantially outperforms the no preconditioning and regularization preconditioning. Using PSF (5) reduces the total number of Stokes PDE solves by a factor of six compared to no preconditioning, and by a factor of nine compared to regularization preconditioning. Interestingly, we observe that no preconditioning actually outperforms regularization preconditioning here because the noise level, and hence the regularization parameter, $\gamma$, are small.
+In Table \ref{tab:newton_convergence_table} we study the performance of our preconditioner for accelerating the solution of optimization problem \eqref{eq:deterministic_optimization_problem}. We build the PSF (5) preconditioner in the third Gauss-Newton iteration, and re-use it for all subsequent Gauss-Newton and Newton iterations. No preconditioning is used in the three Gauss-Newton iterations before the PSF (5) preconditioner is built. We compare our method with the most commonly used existing preconditioners, which are no preconditioning (denoted by NONE), and preconditioning by the regularization term in the Hessian (denoted REG). In Figure \ref{fig:newton_iterates} we show select Newton iterates using our PSF (5) preconditioner. Using PSF (5) reduces the total number of Stokes PDE solves by a factor of six compared to no preconditioning, and by a factor of nine compared to regularization preconditioning. Interestingly, we observe that no preconditioning actually outperforms regularization preconditioning here because the noise level, and hence the regularization parameter, $\gamma$, are small.
 
 \begin{figure}
 	\begin{subfigure}{0.49\textwidth}
@@ -919,7 +917,7 @@ In Table \ref{tab:newton_convergence_table} we study the performance of our prec
 		axis y line*=left,
 		xtick={0, 200, 400, 600},
 		xlabel={CG iteration},
-		ylabel={Relative residual norm},
+		ylabel={$||b-Hx_k||/||b||$},
 		title={CG convergence},
 		legend style={at={(1.1,1)},anchor=north east},
 		%legend pos=north east,
@@ -971,11 +969,13 @@ In Table \ref{tab:newton_convergence_table} we study the performance of our prec
 		\caption{}
 		\label{fig:gamma_sweep}
 	\end{subfigure}
-	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving a linear system of the form $Hx=b$ using the preconditioned conjugate gradient method, where $b$ has random independent and identically distributed (i.i.d) entries drawn from the standard normal distribution. The y-axis is the relative $l^2$ norm of the residual, i.e., $||b-Hx_k||/||b||$, where $x_k$ is the $k$th iterate. Here the regularization parameter $\gamma$ is determined by the Morozov discrepancy principle. Right (\ref{fig:gamma_sweep}) shows the number of preconditioned conjugate gradient iterations required to reduce the relative $l^2$ norm of the residual below a tolerance of $10^{-6}$, for a range of different regularization parameters $\gamma$. Results in these figures are shown for our preconditioner with 1, 5, and 25 batches of impulse responses (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using the Gauss-Newton Hessian. For a fair comparison, even as $\gamma$ changes the Hessian and Gauss-Newton Hessian are always evaluated at the same parameter $\basalfriction$, which is the optimal point for the inverse problem with $\gamma=7.3 \times 10^3$, as determined by the Morozov discrepancy principle.}
+	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $Hx=b$ using PCG, where $b$ has i.i.d. random entries drawn from the standard normal distribution. 
+%		The y-axis is $||b-Hx_k||/||b||$, where $x_k$ is the $k$th PCG iterate. 
+	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle. Right (\ref{fig:gamma_sweep}) shows the number of PCG iterations required to achieve $||b-Hx_k||/||b|| < 10^{-6}$, where $x_k$ is the $k$th PCG iterate, for a range of different $\gamma$. Results in these figures are shown for our preconditioner with 1, 5, and 25 batches of impulse responses (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $H_\text{gn}$. For a fair comparison, even as $\gamma$ changes, $H$ and $H_\text{gn}$ are always evaluated at the same $\basalfriction$, which is the optimal point for the inverse problem with $\gamma=7.3 \times 10^3$.}
 	\label{fig:krylov_convergence}
 \end{figure} 
 
-Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\basalfriction$. We use the preconditioned conjugate gradient method to solve a linear system with the Hessian as the coefficient operator and a right hand random vector with i.i.d. entries drawn from the standard normal distribution. In Figure \ref{fig:cg_convergence} we compare the convergence of conjugate gradient for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. The preconditioned conjugate gradient method converges fastest with the PSF preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. Preconditioned conjugate gradient converges much slower with no preconditioning and regularization preconditioning than it does with PSF preconditioning, with no preconditioning outperforming regularization preconditioning. In Figure \ref{fig:gamma_sweep}, we perform preconditioned conjugate gradient solves on linear systems of the same form, except now we vary $\gamma$. The performance of our PSF preconditioners is good and relatively stable over a wide range of $\gamma$'s. All PSF preconditioners perform the same for medium and large values of $\gamma$. For small values of $\gamma$ PSF (25) performs slightly better than PSF (5), which performs slightly better than PSF (1). As expected, regularization preconditioning performs well for large $\gamma$ and poorly for small $\gamma$. Our PSF preconditioners outperform no preconditioning and regularization preconditioning for medium and small $\gamma$, and perform similarly to regularization preconditioning for large $\gamma$.
+Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\basalfriction$. We use the preconditioned conjugate gradient method to solve a linear system with the Hessian as the coefficient operator and a right hand random vector with i.i.d. entries drawn from the standard normal distribution. In Figure \ref{fig:cg_convergence} we compare the convergence of PCG for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. PCG converges fastest with the PSF preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. PCG converges much slower with no preconditioning and regularization preconditioning than it does with PSF preconditioning, with no preconditioning outperforming regularization preconditioning. In Figure \ref{fig:gamma_sweep}, we perform PCG solves on linear systems of the same form, except now we vary $\gamma$. The performance of our PSF preconditioners is good and relatively stable over a wide range of $\gamma$'s. All PSF preconditioners perform the same for medium and large values of $\gamma$. For small values of $\gamma$ PSF (25) performs slightly better than PSF (5), which performs slightly better than PSF (1). As expected, regularization preconditioning performs well for large $\gamma$ and poorly for small $\gamma$. Our PSF preconditioners outperform no preconditioning and regularization preconditioning for medium and small $\gamma$, and perform similarly to regularization preconditioning for large $\gamma$.
 
 \begin{figure}
 	\begin{subfigure}{0.59\textwidth}
@@ -1030,13 +1030,13 @@ Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss
 		\caption{}
 		\label{fig:condition_number}
 	\end{subfigure}
-	\caption{Left (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $H u_k = \lambda_k \preconditioner_k$. Here $H$ is the Hessian and $\preconditioner$ is the PSF approximation constructed using the Gauss-Newton Hessian, $H_\text{gn}$, for 1, 5, and 25 batches, or the regularization operator. Right (\ref{fig:condition_number}): condition number, $\kappa$, for the preconditioned Hessian and Gauss-Newton Hessian for different preconditioners. All operators are evaluated at the parameter $\basalfriction$ that solves the inverse problem for $\gamma$ given by the Morozov discrepancy principle.}
+	\caption{Left (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $H u_k = \lambda_k \preconditioner_k$. Here $H$ is the Hessian and $\preconditioner$ is the PSF approximation constructed using the Gauss-Newton Hessian, $H_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), or the regularization Hessian (REG). Right (\ref{fig:condition_number}): condition number, $\kappa$, for $\widetilde{H}^{-1} H$ and $\widetilde{H}^{-1} H_\text{gn}$ for these different preconditioners, and no preconditioner (NONE). All operators are evaluated at the $\basalfriction$ that solves the inverse problem for $\gamma=7.3 \times 10^3$, as determined by the Morozov discrepancy principle.}
 \end{figure}
 
 In Figure \ref{fig:generalized_eigenvalues} we show the generalized eigenvalues $\lambda$ for the generalized eigenvalue problem
-\begin{equation*}
+$
 	H u = \lambda \preconditioner u.
-\end{equation*}
+$
 Here $H$ is the Hessian evaluated at the reconstructed parameter $\basalfriction$ for $\gamma$ chosen to satisfy the Morozov discrepancy principle. The matrix $\preconditioner$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations constructed at that $\basalfriction$, or the regularization Hessian. The PSF preconditioners cluster the eigenvalues of the Hessian near $1$, with more batches yielding better clustering. The regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. In Figure \ref{fig:condition_number} we show the condition number of the preconditioned Hessian $\preconditioner^{-1}H$, and preconditioned Gauss-Newton Hessian, $\preconditioner^{-1}H_\text{gn}$. The condition numbers are similar for both the Hessian and the Gauss-Newton Hessian. The PSF preconditioners yield the the smallest condition numbers, with more batches yielding smaller condition numbers. Regularization preconditioning and no preconditioning yield larger condition numbers, with regularization preconditioning actually increasing the condition number as compared to no preconditioning.
 
 
@@ -1133,25 +1133,26 @@ where $\spatialmean_1, \spatialmean_2 \in \mathbb{R}^\gdim$, and $\spatialcov_1,
 \begin{equation*}
 	K(s) := 1 - \frac{1}{\tau^2} (\spatialmean_1 - \spatialmean_2)^T \left(\frac{1}{1-s}\spatialcov_1 + \frac{1}{s}\spatialcov_2\right)^{-1}(\spatialmean_1 - \spatialmean_2)	
 \end{equation*}
-In \cite{GilitschenskiHanebeck12} it is shown that $E_1 \cap E_2 = \{\}$ if and only if $K(s) < 0$ for some $s\in (0,1)$ (see Figure \ref{fig:ellipsoid_intersection_test}). 
+In \cite{GilitschenskiHanebeck12} it is shown that $E_1 \cap E_2 = \{\}$ if and only if $K(s) < 0$ for some $s\in (0,1)$.
+% (see Figure \ref{fig:ellipsoid_intersection_test}). 
 
-\begin{figure}
-	\begin{subfigure}{0.37\textwidth}
-		\centering
-		\includegraphics[scale=1.0]{ellipsoids_intersect0.pdf}
-	\end{subfigure}
-	\begin{subfigure}{0.30\textwidth}
-		\centering
-		\includegraphics[scale=1.0]{ellipsoids_intersect1.pdf}
-	\end{subfigure}
-	\begin{subfigure}{0.30\textwidth}
-		\centering
-		\includegraphics[scale=1.0]{ellipsoids_intersect2.pdf}
-	\end{subfigure}
-	\caption{The ellipsoids intersect if $K(s) \ge 0$ for all $s \in (0,1)$.
-	}
-	\label{fig:ellipsoid_intersection_test}
-\end{figure}
+%\begin{figure}
+%	\begin{subfigure}{0.37\textwidth}
+%		\centering
+%		\includegraphics[scale=1.0]{ellipsoids_intersect0.pdf}
+%	\end{subfigure}
+%	\begin{subfigure}{0.30\textwidth}
+%		\centering
+%		\includegraphics[scale=1.0]{ellipsoids_intersect1.pdf}
+%	\end{subfigure}
+%	\begin{subfigure}{0.30\textwidth}
+%		\centering
+%		\includegraphics[scale=1.0]{ellipsoids_intersect2.pdf}
+%	\end{subfigure}
+%	\caption{The ellipsoids intersect if $K(s) \ge 0$ for all $s \in (0,1)$.
+%	}
+%	\label{fig:ellipsoid_intersection_test}
+%\end{figure}
 
 The function $K(s)$ may be evaluated quickly for many $s$ by pre-computing the solution to the generalized eigenvalue problem
 \begin{equation*}
@@ -1212,9 +1213,7 @@ is given as follows:
 	\prod_{i=1}^\gdim \left[ \spatialmean_i -\tau\sqrt{\Sigma_{ii}}, \spatialmean_i +\tau\sqrt{\Sigma_{ii}} \right],
 \end{equation*}
 where $\Sigma_{ii}$ is the $i$th diagonal entry of $\Sigma$\footnote{See \url{https://math.stackexchange.com/q/3928964}}. The boxes
-\begin{equation*}
-	\prod_{i=1}^\gdim \left[a_i^-, a_i^+\right], \quad \text{and} \quad \prod_{i=1}^\gdim \left[b_i^-, b_i^+\right]
-\end{equation*}
+$\prod_{i=1}^\gdim \left[a_i^-, a_i^+\right]$ and $\prod_{i=1}^\gdim \left[b_i^-, b_i^+\right]$
 intersect if and only if $a_i^- \le b_i^+$ and $b_i^- \le a_i^+$ for $i=1,\dots,d$.
 
 
@@ -1227,9 +1226,9 @@ In many problems of practical interest (e.g., Hessian approximation) $\Aop$ is s
 This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms, such as the conjugate gradient method, to perform further useful operations involving $\mathbf{A}_H$.
 
 If $\Aop$ is symmetric, we symmetrize $\mathbf{A}_H$ as follows
-\begin{equation*}
+$
 \mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
-\end{equation*}
+$
 If $\Aop$ is also positive semi-definite, we adapt the high order rational function spectral projection method from \cite[Section 13.8]{HackbuschKress07} to flip (or approximately flip) the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ to be positive. In detail, let $\Pi$ be the indicator function for the interval $(a,b)$,
 \begin{equation*}
 	\Pi(\lambda) = \begin{cases}
@@ -1238,9 +1237,9 @@ If $\Aop$ is also positive semi-definite, we adapt the high order rational funct
 	\end{cases}
 \end{equation*}
 Using functional calculus to extend the domain of the function $\Pi$ from scalars to matrices, we define
-\begin{equation*}
+$
 \mathbf{\Pi} := \Pi(\mathbf{A}_H^{\text{sym}}).
-\end{equation*}
+$
 The matrix $\mathbf{\Pi}$ is the spectral projector onto the eigenspace of $\mathbf{A}_H^{\text{sym}}$ corresponding to eigenvalues of $\mathbf{A}_H^{\text{sym}}$ that reside in $(a,b)$. If we choose $a < \lambda_\text{min}$ and $b=0$, where $\lambda_\text{min}$ is the smallest eigenvalue of $\mathbf{A}_H^{\text{sym}}$, then $\mathbf{\Pi}$ is the spectral projector onto the eigenspace associated with negative eigenvalues, and $\mathbf{\Pi}\mathbf{A}_H^{\text{sym}}$ is the ``negative component'' of $\mathbf{A}_H^{\text{sym}}$ in which all the negative eigenvalues are the same but all the positive eigenvalues are replaced by zero. Subtracting a negative number from itself twice flips its sign, so the matrix absolute value of $\mathbf{A}_H^{\text{sym}}$ is given by
 \begin{equation}
 \label{eq:I_Pi_abs}
@@ -1268,9 +1267,9 @@ Replacing scalar operations with matrix operations, we have an approximation $\m
 \mathbf{\Pi}_\ratord := \Pi_\ratord\left(\mathbf{A}_H^{\text{sym}}\right) = \left(\mathbf{I} + \mathbf{T}^{2^\ratord}\right)^{-1},
 \end{equation}
 where
-\begin{equation*}
+$
 \mathbf{T} := T(\mathbf{A}_H^{\text{sym}}) = \left(2 \mathbf{A}_H^{\text{sym}} - (b+a) \mathbf{I}\right)/(b-a).
-\end{equation*}
+$
 Using $\mathbf{\Pi}_\ratord$ instead of $\mathbf{\Pi}$ in \eqref{eq:I_Pi_abs} allows us to efficiently approximate $|\mathbf{A}_H^{\text{sym}}|$ using H-matrix methods. 
 This approximation procedure is as follows. First, we compute $\lambda_\text{min}$ using the Lanczos method, and set $a=\gamma \lambda_\text{min}$ and $b=0$, where $\gamma\ge 1$ is a parameter that must be chosen. 
 The method is relatively insensitive to $\gamma$ and numerically we find that the method works well for any $\gamma \in [1,2]$. We use $\gamma=1.5$ in our numerical results. 
