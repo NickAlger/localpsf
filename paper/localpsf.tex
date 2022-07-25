@@ -62,10 +62,10 @@
 
 We present a fast \emph{matrix free} method for approximating operators, $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$, that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, $\gdim$ is the spatial dimension, and $L^2(\Omega)'$ is the space of continuous linear functionals on $L^2(\Omega)$ (i.e., the topological dual space). Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{le1997non,saad1999distributed,TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps) \cite{DTNMAP}, covariance operators in spatial statistics \cite{GeogaEtAl20,ChenStein21,LindgrenRueLindstrom11}, blurring operators in imaging \cite{DenisEtAl11,NagyOleary98}, and Hessians in distributed parameter PDE-constrained optimization and inverse problems \cite{AlgerEtAl19,IsaacEtAl15}. 
 
-By ``matrix free,'' we mean that we have a black-box computational procedure through which we may apply $\Aop$ and its transpose\footnote{Recall that the transpose $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(v) = \left(\Aop v\right)(u)$ for all $u,v \in L^2(\Omega)$, where the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(v)$ is the result of applying that linear functional to $v \in L^2(\Omega)$, and similar for the analogous operations with $\Aop^T$. }, $\Aop^T$, to arbitrary functions,
+By ``matrix free,'' we mean that we have a black-box computational procedure through which we may apply $\Aop$ and its transpose\footnote{Recall that the transpose $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(w) = \left(\Aop w\right)(u)$ for all $u,w \in L^2(\Omega)$, where the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$, and similar for the analogous operations with $\Aop^T$. }, $\Aop^T$, to arbitrary functions,
 \begin{equation}
 \label{eq:eval_maps}
-u \mapsto\Aop u \qquad \text{and} \qquad v \mapsto \Aop^Tv,
+u \mapsto\Aop u \qquad \text{and} \qquad w \mapsto \Aop^T w,
 \end{equation} 
 but we do not have any further access to $\Aop$. In particular, we cannot easily access entries of $\Aop$'s integral kernel. In applications, evaluating the maps in \eqref{eq:eval_maps} may involve iteratively solving a large linear system, timestepping, or performing some other costly computational procedure. 
 
@@ -94,7 +94,7 @@ However, low rank approximation methods suffer from a ``data predicament''---if 
 	\label{fig:batches_intro}
 \end{figure}
 
-The central challenge we face is that existing scalable high-rank approximation methods typically require the ability to rapidly evaluate arbitrary entries of $\Aop$'s integral kernel, and we cannot do this because $\Aop$ is only accessible matrix-free. We address this challenge using \emph{impulse response interpolation}. The impulse response, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(v) = \left(\rho^*,v\right)_{L^2(\Omega)}$ for all $v \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate translated versions of these impulse responses to approximate arbitrary entries of the operator's integral kernel. 
+The central challenge we face is that existing scalable high-rank approximation methods typically require the ability to rapidly evaluate arbitrary entries of $\Aop$'s integral kernel, and we cannot do this because $\Aop$ is only accessible matrix-free. We address this challenge using \emph{impulse response interpolation}. The impulse response, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate translated versions of these impulse responses to approximate arbitrary entries of the operator's integral kernel. 
 %This allows fast evaluation of approximate matrix entries, which are needed by high-rank approximation methods, in particular, classical H-matrix construction methods. 
 
 Picking the batches of points requires us to estimate the supports of the $\phi_x$, \emph{before} we compute them. The idea of estimating the supports of the functions $\phi_x$ a-priori was inspired by techniques from resolution analysis in seismic imaging, in which the width of $\phi_x$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $x$, where $\zeta$ is a random noise funtion  \cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. Rather than probing $\Aop^T$ with random noise functions, we use polynomial functions (see Section \ref{sec:intromoments}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing at the cost of the additional constraint that $\Aop$ has a positive integral kernel.
@@ -141,9 +141,9 @@ Methods based on the peeling process are asymptotically scalable (typically the 
 Let $\Omega \subset \mathbb{R}^\gdim$ be a bounded domain (in applications typically $\gdim=1$, $2$, or $3$). We seek to approximate integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ that may be written in the following form:
 \begin{equation}
 \label{eq:kernel_representation}
-(\Aop u)(v) := \int_\Omega \int_\Omega v(y) \Aker(y,x) u(x) dx dy.
+(\Aop u)(w) := \int_\Omega \int_\Omega w(y) \Aker(y,x) u(x) dx dy.
 \end{equation}
-Here the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(v)$ is the result of applying that linear functional to $v \in L^2(\Omega)$.
+Here the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$.
 The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, which exists in principle but is not easily accessible to us. In this section we describe how to extend the action of $\Aop$ to distributions, which allows us to define the impulse responses (Section \ref{sec:impulse_response_2}). Then we state the conditions on $\Aop$ that our method requires (Section \ref{sec:conditions_2}). Finally, we detail finite element discretization (Section \ref{sec:finite_element_kernel}).
 
 
@@ -154,15 +154,15 @@ The action of $\Aop$ may be extended to distributions if the kernel $\Aker$ is s
 \begin{subequations}
 	\label{eq:extension_to_distributions}
 	\begin{align}
-		\left(\Aop \genericdistribution^*\right)(v) &= \int_\Omega \int_\Omega v(y) \Aker(y,x) \genericdistribution^*(x) dx ~dy \\
-		&= \int_\Omega v(y) \int_\Omega \Aker(y,x) \genericdistribution^*(x) dx ~dy \\
-		&= \int_\Omega v(y) \genericdistribution\left(\Aker(y,\cdot)\right) dy, \label{eq:action_on_distribution}
+		\left(\Aop \genericdistribution^*\right)(w) &= \int_\Omega \int_\Omega w(y) \Aker(y,x) \genericdistribution^*(x) dx ~dy \\
+		&= \int_\Omega w(y) \int_\Omega \Aker(y,x) \genericdistribution^*(x) dx ~dy \\
+		&= \int_\Omega w(y) \genericdistribution\left(\Aker(y,\cdot)\right) dy, \label{eq:action_on_distribution}
 	\end{align}
 \end{subequations}
 where $\Aker(y,\cdot)$ denotes the function $x \mapsto \Aker(y,x)$.
 Now let $\mathcal{D}(\Omega) \subset L^2(\Omega)$ be a suitable space of test functions, and instead suppose $\rho:\mathcal{D}(\Omega) \rightarrow \mathbb{R}$ is a distribution. In this case, the Riesz representative $\rho^*$ may not exist, so the derivation in \eqref{eq:extension_to_distributions} is not valid. However, if $\Aker$ is sufficiently regular such that the function $y \mapsto \rho\left(\Aker(y,~\cdot~)\right)$ is well-defined for almost all $y\in\Omega$, and if this function is in $L^2(\Omega)$, then the right hand side of \eqref{eq:action_on_distribution} is well-defined. Hence, we \emph{define} the action of $\Aop$ on the distribution $\rho$ to be the right hand side of \eqref{eq:action_on_distribution}. For convenience of notation, we denote this action by ``$\Aop \genericdistribution^*$,'' even if $\rho^*$ does not exist.
 
-Let $\delta_x$ denote the delta distribution\footnote{Recall that the delta distribution $\delta_x:\mathcal{D}(\Omega)\rightarrow \mathbb{R}$ is the linear functional defined by $\delta_x(v) = v(x)$ for all $v\in \mathcal{D}(\Omega)$.} (i.e., point source, impulse) centered at the point $x \in \Omega$.
+Let $\delta_x$ denote the delta distribution\footnote{Recall that the delta distribution $\delta_x:\mathcal{D}(\Omega)\rightarrow \mathbb{R}$ is the linear functional defined by $\delta_x(w) = w(x)$ for all $w\in \mathcal{D}(\Omega)$.} (i.e., point source, impulse) centered at the point $x \in \Omega$.
 The \emph{impulse response} of $\Aop$ associated with $x$ is the function $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$, 
 \begin{equation}
 \label{eq:impulse_response_delta_action}
@@ -205,19 +205,19 @@ Here $\massmatrix \in \mathbb{R}^{\fedim \times \fedim}$ denotes the sparse fini
 \begin{equation*}
 \massmatrix_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx, \qquad i,j=1,\dots,\fedim,
 \end{equation*}
-the space $\mathbb{R}^\fedim_\massmatrix$ is $\mathbb{R}^\fedim$ with the inner product $(\mathbf{u},\mathbf{v})_\massmatrix := \mathbf{u}^T \massmatrix \mathbf{v}$, and $\mathbb{R}^\fedim_{\massmatrix^{-1}}$ is the analogous space with $\massmatrix^{-1}$ replacing $\massmatrix$. Direct calculation shows that $\mathbb{R}^\fedim_\massmatrix$ and $\mathbb{R}^\fedim_{\massmatrix^{-1}}$ are isomorphic to $V_h$ and $V_h'$ as Hilbert spaces, respectively.
+the space $\mathbb{R}^\fedim_\massmatrix$ is $\mathbb{R}^\fedim$ with the inner product $(\mathbf{u},\mathbf{w})_\massmatrix := \mathbf{u}^T \massmatrix \mathbf{w}$, and $\mathbb{R}^\fedim_{\massmatrix^{-1}}$ is the analogous space with $\massmatrix^{-1}$ replacing $\massmatrix$. Direct calculation shows that $\mathbb{R}^\fedim_\massmatrix$ and $\mathbb{R}^\fedim_{\massmatrix^{-1}}$ are isomorphic to $V_h$ and $V_h'$ as Hilbert spaces, respectively.
 
 After discretization, the operator $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$ is replaced by an operator $A_h:V_h \rightarrow V_h'$, which becomes an operator
 \begin{equation*}
 \mathbf{A}:\mathbb{R}^\fedim_\massmatrix \rightarrow \mathbb{R}^\fedim_{\massmatrix^{-1}}
 \end{equation*}
-under the isomorphism discussed above. Our method is agnostic to the computational procedure for approximating $\Aop$ with $\mathbf{A}$. What is important is that we do not have direct access to matrix entries $\mathbf{A}_{ij}$. Rather, we have a computational procedure that allows us to compute matrix-vector products $\mathbf{u}\mapsto \mathbf{A}\mathbf{u}$ and $\mathbf{v}\mapsto \mathbf{A}^T\mathbf{v}$, and computing these matrix-vector products is costly.
+under the isomorphism discussed above. Our method is agnostic to the computational procedure for approximating $\Aop$ with $\mathbf{A}$. What is important is that we do not have direct access to matrix entries $\mathbf{A}_{ij}$. Rather, we have a computational procedure that allows us to compute matrix-vector products $\mathbf{u}\mapsto \mathbf{A}\mathbf{u}$ and $\mathbf{w}\mapsto \mathbf{A}^T\mathbf{w}$, and computing these matrix-vector products is costly.
 Of course, matrix entries can be computed via matrix-vector products as $\mathbf{A}_{ij} = \left(\mathbf{A}\mathbf{e}_j\right)_i$,
 where $\mathbf{e}_j=(0,\dots,0,1,0,\dots,0)^T$ is the length $\fedim$ unit vector with one in the $j$th coordinate and zeros elsewhere. But computing the matrix-vector product $\mathbf{e}_j \mapsto \mathbf{A}\mathbf{e}_j$ is costly, and therefore wasteful if we do not use other matrix entries in the $j$th column of $\mathbf{A}$. Hence, methods for approximating $\mathbf{A}$ are computationally intractable if they require accessing scattered matrix entries from many different rows and columns of $\mathbf{A}$. 
 
 The operator $A_h:V_h \rightarrow V_h'$ can be written in integral kernel form as
 \begin{equation}
-(A_h u_h)(v_h) := \int_\Omega \int_\Omega v_h(y) \Aker_h(y,x) u_h(x) dx dy
+(A_h u_h)(w_h) := \int_\Omega \int_\Omega w_h(y) \Aker_h(y,x) u_h(x) dx dy
 \end{equation}
 for some kernel $\Aker_h$ which we do not know, and which may differ from $\Aker$ due to discretization error. Since the functions in $V_h$ are continuous at $x$, the delta distribution $\delta_x$ is a continuous linear functional on $V_h$, which has a discrete dual vector $\boldsymbol{\delta}_x \in \mathbb{R}^\fedim_{\massmatrix^{-1}}$ with entries $\left(\boldsymbol{\delta}_x\right)_i = \febasis_i(x)$ for $i=1,\dots,\fedim$. Additionally, it is straightforward to verify that the Riesz representation, $\rho_h^* \in V_h$, of a functional $\rho \in V_h'$ has coefficient vector
 \begin{equation*}
@@ -280,26 +280,26 @@ The vector $\spatialmean(x)\in \mathbb{R}^\gdim$ and the matrix $\spatialcov(x) 
 
 The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to obtain $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post-process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. However, this direct approach is not feasible because we need to know $V(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ before we compute $\phi_x$, in order choose the point $x$. Computing $\phi_x$ in order to determine $V(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ would be extremely computationally expensive, and defeat the purpose of our algorithm, which is to reduce the computational cost by computing impulse responses in batches. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ indirectly, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions (e.g., 6 total operator applies in two spatial dimensions and 10 in three spatial dimensions). This may be motivated by analogy to matrices. If $\mathbf{B}\in \mathbb{R}^{\fedim \times \fedim}$ is a matrix with $i^\text{th}$ column $\mathbf{b}_i$ and $\mathbf{f} \in \mathbb{R}^\fedim$, then
 \begin{equation*}
-\mathbf{B}^T \mathbf{f} = \begin{bmatrix}
+\mathbf{B}^T \mathbf{w} = \begin{bmatrix}
 \horzbar & \mathbf{b}_1^T & \horzbar \\
 \horzbar & \mathbf{b}_2^T & \horzbar \\
 & \vdots & \\
 \horzbar & \mathbf{b}_\fedim^T & \horzbar
 \end{bmatrix}
-\mathbf{f} = 
+\mathbf{w} = 
 \begin{bmatrix}
-\mathbf{b}_1^T \mathbf{f} \\
-\mathbf{b}_2^T \mathbf{f} \\
+\mathbf{b}_1^T \mathbf{w} \\
+\mathbf{b}_2^T \mathbf{w} \\
 \vdots \\
-\mathbf{b}_\fedim^T \mathbf{f}
+\mathbf{b}_\fedim^T \mathbf{w}
 \end{bmatrix}.
 \end{equation*}
-By computing one matrix-vector product of $\mathbf{B}^T$ with $\mathbf{f}$, we compute the inner product of each column of $\mathbf{B}$ with $\mathbf{f}$ simultaneously. The operator case is analogous, with the impulse response $\phi_x$ taking the place of a matrix column. We have
+By computing one matrix-vector product of $\mathbf{B}^T$ with $\mathbf{w}$, we compute the inner product of each column of $\mathbf{B}$ with $\mathbf{w}$ simultaneously. The operator case is analogous, with the impulse response $\phi_x$ taking the place of a matrix column. We have
 \begin{equation}
 \label{eq:operator_simultaneous_ips}
-\left(\Aop^T f\right)^*(x) = \int_\Omega \Aker(y,x) f(y) dy = \left(\phi_x, f\right)_{L^2(\Omega)}.
+\left(\Aop^T w\right)^*(x) = \int_\Omega \Aker(y,x) w(y) dy = \left(\phi_x, w\right)_{L^2(\Omega)}.
 \end{equation}
-By computing one operator application of $\Aop^T$ to $f$, we compute the inner product of each impulse response $\phi_x$ with $f$, for all points $x$ simultaneously. 
+By computing one operator application of $\Aop^T$ to $w$, we compute the inner product of each impulse response $\phi_x$ with $w$, for all points $x$ simultaneously. 
 
 Let $C$, $L^i$, and $Q^{ij}$ be the following constant, linear, and quadratic functions:
 \begin{equation*}
@@ -320,7 +320,7 @@ Hence, we may compute $\spatialvol(x)$ for all $x$ simultaneously by applying $\
 	\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
 	\end{align}
 \end{subequations}
-for $i,j=1,\dots, \gdim$. Here $f/g$ denotes pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ denotes pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
+for $i,j=1,\dots, \gdim$. Here $u/w$ denotes pointwise division of functions, $\left(u/w\right)(x) = u(x)/w(x)$, and $u\cdot w$ denotes pointwise multiplication of functions, $(u \cdot w)(x) = u(x)w(x)$.
 %The resulting method for computing discretized versions of $\spatialvol$, $\spatialmean$, and $\spatialcov$ is shown in Algorithm \ref{alg:varhpi_mean_cov}.
 
 %\begin{algorithm2e}
@@ -446,46 +446,46 @@ The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \re
 
 We choose sample points, $x_i$, in batches $\pointbatch_k$. We use a greedy ellipsoid packing algorithm to choose as many points as possible per batch, while ensuring that there is no overlap between the support ellipsoids, $E_{x_i}$, associated with the sample points within a batch.
 
-We start with a finite set of candidate points $P$ and build $\pointbatch_k$ incrementally with points selected from $P$. For simplicity of explanation, here $\pointbatch_k$ and $P$ are mutable sets that we add points to and remove points from. First we initialize $\pointbatch_k$ as an empty set. Then we select the candidate point $p \in P$ that is the farthest away from all points in previous sample point batches $S_1 \cup S_2 \cup \dots \cup S_{k-1}$. Candidate points for the first batch $S_1$ are chosen randomly from $P$.
-Once $p$ is selected, we remove $p$ from $P$. Then we perform the following two checks:
+We start with a finite set of candidate points $\candidatepts$ and build $\pointbatch_k$ incrementally with points selected from $\candidatepts$. For simplicity of explanation, here $\pointbatch_k$ and $\candidatepts$ are mutable sets that we add points to and remove points from. First we initialize $\pointbatch_k$ as an empty set. Then we select the candidate point $\candidatepoint_i \in \candidatepts$ that is the farthest away from all points in previous sample point batches $S_1 \cup S_2 \cup \dots \cup S_{k-1}$. Candidate points for the first batch $S_1$ are chosen randomly from $\candidatepts$.
+Once $\candidatepoint_i$ is selected, we remove $\candidatepoint_i$ from $\candidatepts$. Then we perform the following two checks:
 \begin{enumerate}
-	\item We check whether $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in \pointbatch_k$.
-	\item We make sure that $\spatialvol(p)$ is not too small, by checking whether $\spatialvol(p) > \epsilon \spatialvol_\text{max}$. Here $\spatialvol_\text{max}$ is the largest value of $\spatialvol(q)$ over all points $q$ in the initial set of candidate points, and $\tau$ is a small threshold parameter (we use $\epsilon=10^{-5}$).
+	\item We check whether $\candidatepoint_i$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_{\candidatepoint_i} \cap E_{\candidatepoint_j} = \{\}$ for all $\candidatepoint_j \in \pointbatch_k$.
+	\item We make sure that $\spatialvol(\candidatepoint_i)$ is not too small, by checking whether $\spatialvol(\candidatepoint_i) > \epsilon \spatialvol_\text{max}$. Here $\spatialvol_\text{max}$ is the largest value of $\spatialvol(\candidatepoint_j)$ over all points $q$ in the initial set of candidate points, and $\tau$ is a small threshold parameter (we use $\epsilon=10^{-5}$).
 \end{enumerate}
-If $p$ passes both these checks (i.e., if $p$ is sufficiently far from other points in the batch, and $\spatialvol(p)$ is not too small) then we add $p$ to $\pointbatch_k$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We check whether $E_p \cap E_q = \{\}$ using the ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
+If $\candidatepoint_i$ passes both these checks (i.e., if $\candidatepoint_i$ is sufficiently far from other points in the batch, and $\spatialvol(\candidatepoint_i)$ is not too small) then we add $\candidatepoint_i$ to $\pointbatch_k$. Otherwise we discard $\candidatepoint_i$. This process repeats until there are no more points in $\candidatepts$.  
+%This is detailed in Algorithm \ref{alg:point_choice}. 
+We check whether $E_{\candidatepoint_i} \cap E_{\candidatepoint_j} = \{\}$ using the ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}. We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots, \pointbatch_{\nbatch}$. In our implementation, for each batch, $\candidatepts$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, except for points in previously chosen batches.
 
-We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots$, until the number of batches equals t desired threshold $\nbatch$. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, except for points in previously chosen batches.
-
-\begin{algorithm2e}
-	\SetAlgoNoLine
-	\SetKwInOut{Input}{Input}
-	\SetKwInOut{Output}{Output}
-	\SetKwProg{Fn}{Function}{}{}
-	
-	\Input{Finite set of candidate points $P\subset \Omega$, \\spatially varying mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, \\previous sample point batches $\pointbatch_1, \dots, \pointbatch_{k-1}$}
-	\Output{Batch of new sample points $\pointbatch_k$}
-	
-	Initialize empty new batch of sample points, $\pointbatch_k = \{\}$
-	
-	\While{$P$ is not empty}{
-		Determine the point $p \in P$ that is farthest from all points in previous sample point batches $\pointbatch_1,\dots,\pointbatch_{k-1}$
-		
-		Remove $p$ from $P$
-
-	
-		\If{$E_p \cap E_q \neq \{\}$ for all $q \in \pointbatch_k$}{
-			\tcp{$E_p$ and $E_q$ are the ellipsoids defined in \eqref{eq:support_ellipsoid}}
-			
-			Add $p$ to $\pointbatch_k$
-			
-			Remove all points $p'$ satisfying $\spatialmean(p') \in E_p$ from $P$
-		}
-	}
-
-    \SetKwFunction{FMain}{point\_is\_acceptable}
-	\caption{Choosing one batch of sample points, $\pointbatch_k$}
-	\label{alg:point_choice}
-\end{algorithm2e}
+%\begin{algorithm2e}
+%	\SetAlgoNoLine
+%	\SetKwInOut{Input}{Input}
+%	\SetKwInOut{Output}{Output}
+%	\SetKwProg{Fn}{Function}{}{}
+%	
+%	\Input{Finite set of candidate points $\candidatepts\subset \Omega$, \\spatially varying mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, \\previous sample point batches $\pointbatch_1, \dots, \pointbatch_{k-1}$}
+%	\Output{Batch of new sample points $\pointbatch_k$}
+%	
+%	Initialize empty new batch of sample points, $\pointbatch_k = \{\}$
+%	
+%	\While{$\candidatepts$ is not empty}{
+%		Determine the point $\candidatepoint_i \in \candidatepts$ that is farthest from all points in previous sample point batches $\pointbatch_1,\dots,\pointbatch_{k-1}$
+%		
+%		Remove $\candidatepoint_i$ from $\candidatepts$
+%
+%	
+%		\If{$E_{\candidatepoint_i} \cap E_q \neq \{\}$ for all $\candidatepoint_j \in \pointbatch_k$}{
+%			\tcp{$E_{\candidatepoint_i}$ and $E_{\candidatepoint_j}$ are the ellipsoids defined in \eqref{eq:support_ellipsoid}}
+%			
+%			Add $\candidatepoint_i$ to $\pointbatch_k$
+%			
+%			Remove all points $\candidatepoint$ satisfying $\spatialmean(\candidatepoint) \in E_{\candidatepoint_i}$ from $\candidatepts$
+%		}
+%	}
+%
+%    \SetKwFunction{FMain}{point\_is\_acceptable}
+%	\caption{Choosing one batch of sample points, $\pointbatch_k$}
+%	\label{alg:point_choice}
+%\end{algorithm2e}
 
 
 \subsection{Impulse response batches}
@@ -537,11 +537,11 @@ To find the $\numnbr$ nearest sample points to $x$, we query a precomputed k-d t
 
 Interpolation is performed using the following radial basis function scheme:
 \begin{equation}
-\Aker(y,x) \approx \widetilde{\Aker}(y,x) := \sum_{i=1}^{\numnbr} w_i~ b\left(\|x-x_i\|\right),
+\Aker(y,x) \approx \widetilde{\Aker}(y,x) := \sum_{i=1}^{\numnbr} \rbfweight_i~ b\left(\|x-x_i\|\right),
 \end{equation}
-where $b_i$ are radial basis functions and $w_i$ are weights. The vector of weights, $w = (w_1, w_2, \dots, w_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
+where $b_i$ are radial basis functions and $\rbfweight_i$ are weights. The vector of weights, $\rbfweight = (\rbfweight_1, \rbfweight_2, \dots, \rbfweight_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
 \begin{equation}
-Bw = f,
+B \rbfweight = f,
 \end{equation}
 where $B \in \mathbb{R}^{\numnbr \times \numnbr}$ has entries
 $
@@ -549,19 +549,19 @@ B_{ij} := b\left(\|x_i - x_j\|\right),
 $
 and $f \in \mathbb{R}^\numnbr$ has entries $f_i$ from \eqref{eq:fxyxp}. We use polyharmonic spline radial basis functions, which are defined as follows:
 \begin{equation}
-b_i(r) := \begin{cases}
+b(r) := \begin{cases}
 r^\gdim, & \gdim=1,3,5,\dots \\
 r^\gdim \log r, & \gdim=2,4,6,\dots
 \end{cases}
 \end{equation}
-for $r>0$, and $b_i(0):=0$. This yields the smoothest interpolant of the given points and values, in a certain least-squares sense \cite{Duchon77}. For more details on radial basis function interpolation, see \cite{Wendland04}. The interpolation procedure is illustrate in Figure \ref{fig:rbf_interpolation}.
+for $r>0$, and $b(0):=0$. This yields the smoothest interpolant of the given points and values, in a certain least-squares sense \cite{Duchon77}. For more details on radial basis function interpolation, see \cite{Wendland04}. The interpolation procedure is illustrate in Figure \ref{fig:rbf_interpolation}.
 
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.2]{interpolation_rbf_boundary.pdf}
-	\caption{To compute the kernel entry $\Aker(y,x)$, we use radial basis functions to interpolate the values $\frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}(y-\spatialmean(x)-\spatialmean(x_i))$ for the $\numnbr$ nearest sample points $x_i$ to $x$, excluding sample points for which $y-\spatialmean(x)-\spatialmean(x_i)$ is outside of the domain.}
-	\label{fig:rbf_interpolation}
-\end{figure}
+%\begin{figure}
+%	\centering
+%	\includegraphics[scale=0.2]{interpolation_rbf_boundary.pdf}
+%	\caption{To compute the kernel entry $\Aker(y,x)$, we use radial basis functions to interpolate the values $\frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}(y-\spatialmean(x)-\spatialmean(x_i))$ for the $\numnbr$ nearest sample points $x_i$ to $x$, excluding sample points for which $y-\spatialmean(x)-\spatialmean(x_i)$ is outside of the domain.}
+%	\label{fig:rbf_interpolation}
+%\end{figure}
 
 To evaluate $f_i$, we check whether $z_i \in E_{x_i}$ using \eqref{eq:support_ellipsoid}. If $z_i \notin E_{x_i}$, then $z_i$ is outside the estimated support of $\impulseresponse_{x_i}$, so we set $f_i=0$. If $z_i \in E_{x_i}$, we look up the batch index $b$ such that $x_i \in S_b$, and evaluate $f_i$ via the formula
 \begin{equation}
@@ -721,28 +721,29 @@ equations,
 
 \begin{subequations}\label{Stokeseqn}
 	\begin{align}
-	-\nabla\cdot\bm{\sigma}_{\bm{u}}
-	&=\rho\bm{g}\,\,\,\text{ in }\icedomain, \label{Stokeseqn:1}\\
-	\nabla\cdot\bm{u}
+	-\nabla \cdot \stress
+	&=\bodyforce\,\,\,\,\,\text{ in }\icedomain, \label{Stokeseqn:1}\\
+	\nabla\cdot \velocity
 	&=0\,\,\,\,\,\,\text{ in }\icedomain, \label{Stokeseqn:2}\\
-	\bm{\sigma}_{\bm{u}}\bm{n}
-	&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{t}, \label{Stokeseqn:3}\\
-	\bm{u}\cdot\bm{n} =0 \quad\text{and}\quad \bm{T}\left(\bm{\sigma}_{\bm{u}}\bm{n}+\exp\left(\basalfriction\right)\bm{u}\right)
-	&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{b},\label{Stokeseqn:4} \\
-	\left(\bm{\sigma}_{\bm{u}}\bm{n}+\mu\bm{u}\right)&=\bm{0}\,\,\,\,\,\,\text{ on }\Gamma_{l}.\label{Stokeseqn:5}	
+	\stress\normalvec
+	&=0\,\,\,\,\,\,\text{ on }\Gamma_{t}, \label{Stokeseqn:3}\\
+	\velocity \cdot\normalvec =0 \quad\text{and}\quad \tangentop\left(\stress\normalvec+\exp\left(\basalfriction\right)\velocity\right)
+	&=0\,\,\,\,\,\,\text{ on }\Gamma_{b},\label{Stokeseqn:4} \\
+	\stress\normalvec+\mu \velocity &=0\,\,\,\,\,\,\text{ on }\Gamma_{l}.\label{Stokeseqn:5}	
 	\end{align}
 \end{subequations}
-The solution to these equations is the tuple $(\bm{u}, p)$, where $\bm{u}$ is the ice flow velocity field, and $p$ is the pressure field. Here, $\basalfriction$ is the unknown logarithmic
-basal sliding parameter field which is defined on the $2D$ surface $\Gamma_b$. The quantity $\rho\bm{g}$ is the body force density due to gravity, $\bm{n}$ is the outward normal and $\bm{T}$ is the tangential projection operator that restricts a vector field to its tangential component along the boundary. 
-We employ Glen's flow law \cite{Glen1955},
+The solution to these equations is the pair $(\velocity, \pressure)$, where $\velocity$ is the ice flow velocity field, and $\pressure$ is the pressure field. Here, $\basalfriction$ is the unknown logarithmic
+basal sliding parameter field which is defined on the $2D$ surface $\Gamma_b$. The quantity $\bodyforce$ is the body force density due to gravity, $\normalvec$ is the outward normal and $\tangentop$ is the tangential projection operator that restricts a vector field to its tangential component along the boundary. 
+We employ Glen's flow law \cite{Glen1955}, $\stress= 2\eta
+\dot{\strain} -I\pressure$,
 which is a constitutive law for ice that relates the stress
-tensor $\bm{\sigma}_{\bm{u}}$ and the strain rate tensor
-$\bm{\dot{\varepsilon}}_{\bm{u}}= \frac{1}{2}\left(
-\bm{\nabla}\bm{u}+\bm{\nabla}\bm{u}^{\top} \right)$, $\bm{\sigma}_{\bm{u}}= 2\eta
-\bm{\dot{\varepsilon}}_{\bm{u}} -\bm{I}p$, where $\eta=\frac{1}{2}A^{-1}$ is the effective viscosity, $\bm{I}$ is the unit matrix,
-and $A$ is a flow rate factor. Glen's exponent has been chosen $n=1$, which provides for a linear Stokes model. Note that while the PDE is linear, the parameter-to-solution map, $\basalfriction \mapsto (\bm{u}, p)$, is nonlinear.
+tensor, $\stress$, to the strain rate tensor,
+$\dot{\strain}= \frac{1}{2}\left(
+\nabla\velocity+\nabla\velocity^{\top} \right)$. Here $\eta$ is the effective viscosity and $I$ is the unit matrix. Glen's exponent has been chosen $n=1$, which provides for a linear Stokes model. Note that while the PDE is linear, the parameter-to-solution map, $\basalfriction \mapsto (\velocity, \pressure)$, is nonlinear.
 
-The pressure, $p$, is discretized with first order continuous Galerkin finite elements defined on a mesh of tetrahedra discretizing $U$. The velocity, $\bm{u}$, is discretized with second order continuous Galerkin finite elements on the same mesh, as required for discrete stability. The parameter $\basalfriction$ is discretized with first order scalar continuous Galerkin finite elements on the mesh of triangles that results from restricting the tetrahedral mesh to the basal boundary, $\Gamma_b$. 
+The pressure, $\pressure$, is discretized with first order continuous Galerkin finite elements defined on a mesh of tetrahedra discretizing $U$. The velocity, $\velocity$, is discretized with second order continuous Galerkin finite elements on the same mesh. The parameter $\basalfriction$ is discretized with first order scalar continuous Galerkin finite elements on the mesh of triangles that results from restricting the tetrahedral mesh to the basal boundary, $\Gamma_b$. The basal boundary, $\Gamma_b$ is a 2D surface embedded in 3D due to the mountain topography. We also generate a flattened version of $\Gamma_b$, denoted by $\Omega \subset \mathbb{R}^2$, by ignoring the height coordinate. The parameter $\basalfriction$ is viewed as a function on $\Gamma_b$ for the purpose of solving the Stokes equation, but is viewed as a function on $\Omega$ for the purpose of building the Hessian preconditioner and defining the regularization. 
+%This flattening is necessary because our operator approximation method requires adding points on this surface together to get other points on the surface, and this is only well-defined in flat space. 
+
 
 \begin{figure}[H]
 	\begin{subfigure}{0.49\textwidth}
@@ -751,76 +752,61 @@ The pressure, $p$, is discretized with first order continuous Galerkin finite el
 	\end{subfigure}
 	\begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.243]{trueVelocity2_glyphs.png}
-		\caption{$\bm{u}_\text{true}$.}
+		\caption{$\velocity_\text{true}$.}
 	\end{subfigure}
-	\caption{True logarithmic basal sliding parameter, $\basalfriction_\text{true}$, (left) and true velocity $\bm{u}_\text{true}$ (right). In the right plot, arrows indicate the direction of $\bm{u}_\text{true}$ and color indicates the magnitude.}
+	\caption{True logarithmic basal sliding parameter, $\basalfriction_\text{true}$, (left) and true velocity $\velocity_\text{true}$ (right). In the right plot, arrows indicate the direction of $\velocity_\text{true}$ and color indicates the magnitude.}
 	\label{fig:true_beta_u}
 \end{figure} 
 
-The true parameter field, $\basalfriction_\text{true}$, and corresponding velocity field, $\bm{u}_\text{true}$, are shown in Figure \ref{fig:true_beta_u}. We generate synthetic observations by restricting the tangential component of $\bm{u}_\text{true}$ to the top surface to get
+The true parameter field, $\basalfriction_\text{true}$, and corresponding velocity field, $\velocity_\text{true}$, are shown in Figure \ref{fig:true_beta_u}. We generate synthetic observations by restricting the tangential component of $\velocity_\text{true}$ to the top surface to get
 \begin{equation*}
-\bm{y}_\text{true} = \bm{T} \bm{u}_\text{true} |_{\Gamma_t}.
+\observations_\text{true} = \tangentop \velocity_\text{true} |_{\Gamma_t}.
 \end{equation*}
-We add $1\%$ multiplicative gaussian noise, $\boldsymbol{\xi}$, to all components of the finite element vector representing $\bm{y}_\text{true}$ to get noisy synthetic observations, $\bm{y}_\text{obs}$, which are used for the inversion. That is, 
+We add $1\%$ multiplicative Gaussian noise to all components of the finite element vector, $\bm{\observations}_\text{true}$, corresponding to the function $\observations_\text{true}$, which yields noisy synthetic observations, $\observations_\text{obs}$ which are used for the inversion. That is, 
 \begin{equation*}
-\left[\bm{y}_\text{obs}\right]_j := \left[\bm{y}_\text{true}\right]_j + \epsilon \left[\boldsymbol{\xi}\right]_j \left|\left[\bm{y}_\text{true}\right]_j\right|
+\left(\bm{\observations}_\text{obs}\right)_j := \left(\bm{\observations}_\text{true}\right)_j + 0.01 \cdot \boldsymbol{\xi}_j \cdot \left|\left(\bm{\observations}_\text{true}\right)_j\right|,
 \end{equation*}
-where $\epsilon=0.01$, and the components of the noise function, $\boldsymbol{\xi}_j \sim N(0,1)$, are independent and identically distributed (i.i.d) random numbers drawn from the standard normal distribution. Here $\left[\bm{f}\right]_j$ denotes the $j$th entries of the finite element vector for the discretized versions of the function $\bm{f}$, and $j$ ranges over all entries of the finite element vector. Here we do not use bold to distinguish finite element vectors from their associated functions (as we did previously) because the functions $\bm{y}_\text{true}$, $\bm{y}_\text{obs}$, and $\bm{\xi}$ are already written in bold to denote the fact that they are vector valued.
+where $j$ ranges over all entries of the vector of coefficients representing the finite element functions $\observations_\text{true}$ and $\observations_\text{obs}$, and $\boldsymbol{\xi}_j$ are independent and identically distributed (i.i.d) random numbers drawn from the standard normal distribution. We also define the noise function, $\xi$, to be the finite element function with $j$th vector entry $\boldsymbol{\xi}_j$.
 
 The reconstructed parameter field $\basalfriction$ is found as the solution to an optimization problem of the following form:
 \begin{equation}
 	\label{eq:deterministic_optimization_problem}
-	\min_{\basalfriction} \quad J(\basalfriction) = J_d(\basalfriction) + J_r(\basalfriction).
+	\min_{\basalfriction} \quad J(\basalfriction) := J_d(\basalfriction) + J_r(\basalfriction).
 \end{equation}
 The first term in the objective function is
 \begin{equation*}
-	J_d(\basalfriction) := \frac{1}{2}\int_{\Gamma_{t}}||\bm{d} - \bm{T}\bm{u}||_{2}^{2}\,dS.
+	J_d(\basalfriction) := \frac{1}{2}\int_{\Gamma_{t}}||\observations_\text{obs} - \tangentop\velocity||_{2}^{2}\,dS.
 \end{equation*}
-We call this term the data misfit, because it measures the mismatch between the observed data and the predicted data based on a candidate parameter $\basalfriction$. Here $\bm{u} = \bm{u}(\basalfriction)$ denotes the velocity field solving $\ref{Stokeseqn}$ for the given parameter $\basalfriction$. The second term,
+We call this term the data misfit, because it measures the mismatch between the observed data and the predicted data based on a candidate parameter $\basalfriction$. Here $\velocity = \velocity(\basalfriction)$ denotes the velocity field solving $\ref{Stokeseqn}$ for the given parameter $\basalfriction$. The second term,
 \begin{equation*}
 	J_r(\basalfriction) := \frac{1}{2}\int_{\Omega}\left| \mathcal{L}(\basalfriction - \basalfriction_0)\right|^2\,dx,
 \end{equation*}
 is a Bilaplacian regularization term. Specifically, $\mathcal{L}$ is the inverse of the solution operator for the following elliptic PDE:
 \begin{align*}
--\gamma\Delta u +\delta\,u&=s\,\,\,\,\text{ in }\Gamma_{b},\\
-\gamma \bm{\nabla}u\cdot\bm{n}+\mu\,u&=0\,\,\,\text{ on }\partial\Gamma_{b}.
+-\gamma\Delta u +\delta\,u&=s\,\,\,\,\text{ in }\Omega,\\
+\gamma \nabla u\cdot\normalvec+\mu\,u&=0\,\,\,\text{ on }\partial\Omega.
 \end{align*}
+Recall that $\Omega$ is the 2D flattened version of the basal surface $\Gamma_b$.
 In all results shown except one, $\gamma$ is chosen so that the solution satisfies the Morozov discrepancy principle, that is,
 \begin{equation*}
-	\frac{1}{2}\int_{\Gamma_{t}}||\bm{d} - \bm{T}\bm{u}||_{2}^{2}\,dS = \frac{1}{2}\int_{\Gamma_{t}}||\boldsymbol{\xi}||_{2}^{2}\,dS.
+	\frac{1}{2}\int_{\Gamma_{t}}||\observations_\text{obs} - \tangentop\velocity||_{2}^{2}\,dS = \frac{1}{2}\int_{\Gamma_{t}}||\xi||_{2}^{2}\,dS.
 \end{equation*}
-The value of $\gamma$ satisfying the Morozov discrepancy principle is $\gamma=7.3 \times 10^3$. The exception is Figure \ref{fig:gamma_sweep}, where we vary $\gamma$ to study the effect of changing $\gamma$ on the quality of our preconditioner. The constant $\delta$ is chosen so that the correlation length of functions drawn from $N(0,\mathcal{L}^{-2})$, which is given by the formula $L=\sqrt{\gamma/\delta}$, is $1/10$th of the radius of the domain. The function $\basalfriction_0$ is the constant function with value $\basalfriction_0(x)=10.5$, which is halfway between the maximum and minimum values of $\basalfriction_\text{true}$.
+The value of $\gamma$ satisfying the Morozov discrepancy principle is $\gamma=7.3 \times 10^3$. The exception is Figure \ref{fig:gamma_sweep}, where we vary $\gamma$ to study the effect of changing $\gamma$ on the quality of our preconditioner. The constant $\delta$ is chosen so that the correlation length, $L$, of functions drawn from the normal distribution with covariance $\mathcal{L}^{-2}$, which is given by the formula $L=\sqrt{\gamma/\delta}$, is $1/10$th of the radius of the domain. The function $\basalfriction_0$ is the constant function with value $\basalfriction_0(x)=10.5$, which is halfway between the maximum and minimum values of $\basalfriction_\text{true}$.
 
-The inverse problem is solved with a preconditioned inexact-Newton conjugate gradient scheme \cite{NOCEDAWRIGHT}. The constant function $\basalfriction_0$ is used as the initial guess. The parameter value is updated iteratively according to the formula
-\begin{equation*}
-	\basalfriction_{k+1} = \basalfriction_k + \alpha_k p_k,
-\end{equation*}
-where the search direction $p_k$ is an approximate solution to the Newton linear system
+The inverse problem is solved with a inexact Newton preconditioned conjugate gradient scheme (PCG) \cite{NOCEDAWRIGHT}. The constant function $\basalfriction_0$ is used as the initial guess. The parameter value is updated iteratively according to the formula
+$
+	\basalfriction_{k+1} = \basalfriction_k + \alpha_k \searchdir_k,
+$
+where $\searchdir_k$ approximately solves one of the following Newton linear systems
 \begin{equation}
 	\label{eq:newton_system}
-	H p_k = - g_k,
+	H \searchdir_k = - g_k \qquad \text{or} \qquad H_\text{gn}, \searchdir_k = - g_k
 \end{equation}
-and $\alpha_k \in \mathbb{R}$ is a step length parameter chosen to satisfy the Armijo conditions \cite{ARMIJO}. Here $g_k$ is the gradient of $J$ with respect to $\basalfriction$ at $\basalfriction_k$, and $H$ is either the Hessian or Gauss-Newton Hessian of $J$ with respect to $\basalfriction$. The Gauss-Newton Hessian is Hessian of $J$, except in the data misfit, $J_d$, the nonlinear mapping $\basalfriction \mapsto \bm{T} \bm{u}$ is replaced by its local linearization at $\basalfriction_k$. The Gauss-Newton Hessian is used for the first five iterations, and the Hessian is used for all subsequent iterations.  The method terminates when $||g_k||/||g_0|| < 10^{-8}$. The Newton systems, \eqref{eq:newton_system}, are solved inexactly using an inner conjugate gradient (CG) iteration, which we terminate when $||g_k + H p_k|| < \min \left(0.5, \sqrt{||g_k||}\right)||g_k||$. The preconditioned conjugate gradient method only requires the application of the (Gauss-Newton) Hessian to vectors. Each application of the (Gauss-Newton) Hessian to a vector requires solving one forward and one adjoint Stokes PDE of the form \eqref{Stokeseqn}, but with different right hand sides.
+and the step length $\alpha_k \in \mathbb{R}$ is chosen to satisfy the Armijo conditions \cite{ARMIJO}. Here $g_k$ is the gradient of $J$, $H$ is the Hessian of $J$, and $H_\text{gn}$ is the Gauss-Newton Hessian, and these derivatives are evaluated at $\basalfriction_k$. 
+%The Gauss-Newton Hessian is Hessian of $J$, except in the data misfit, $J_d$, the nonlinear mapping $\basalfriction \mapsto \tangentop \velocity$ is replaced by its local linearization at $\basalfriction_k$.
+We use $H_\text{gn}$ for the first five iterations, and $H$ for all subsequent iterations.  The method terminates when $||g_k||/||g_0|| < 10^{-8}$. The systems \eqref{eq:newton_system} are solved inexactly using an inner PCG iteration, which terminates when the norm of the residual for the linear system is less than $\min \left(0.5, \sqrt{||g_k||}\right)||g_k||$. The PCG method only requires applying $H$ (or $H_\text{gn}$) to vectors. Each application of $H$ (or $H_\text{gn}$) to a vector requires solving one incremental forward and one incremental adjoint Stokes PDE of the form \eqref{Stokeseqn}, but with different right hand sides.
 
-We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data-misfit Gauss-Newton Hessian (the term in the Gauss-Newton Hessian that arises from the data misfit) using 1, 5, and 25 impulse responses batches. We approximate the Gauss-Newton Hessian rather than the Hessian because the Hessian often has negative values in its integral kernel when one is away from the optimal point. Our results show that our preconditioners, which are built using the Gauss-Newton Hessian, are also good preconditioners for the Hessian. For the purpose of building the Hessian approximation, the basal surface, which is a 2D surface embedded in 3D due to the mountain topography, is flattened into the plane by ignoring the height coordinate. This flattening is necessary because our method requires adding points on the basal surface together to get other points on the basal surface, and this is only well-defined in flat space. 
-
-The H-matrix approximation of data misfit Gauss-Newton Hessian is added to a H-matrix approximation of the Hessian of the regularization term, $J_r$, to form a H-matrix approximation of the Gauss-Newton Hessian. For the Hessian of the regularization term, straightforward calculation shows that the discrete regularization term in both the Hessian and the Gauss-Newton Hessian is given by
-$
-(\gamma \bm{K} + \delta \bm{M}) \bm{M}^{-1} (\gamma \bm{K} + \delta \bm{M})
-$
-where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary conditions, and $\bm{M}$ is the finite element mass matrix. These matrices are sparse, so we form H-matrix approximations of these matrices using standard techniques for approximating sparse matrices with H-matrices. Then we invert $\bm{M}^{-1}$, and multiply these matrices together using H-matrix methods. We factor the overall Gauss-Newton Hessian approximation using fast H-matrix methods, then and use the factorization as a preconditioner \cite{HLIBPRO}. The resulting preconditioners for 1, 5, and 25 impulse response batches are denoted by PSF (1), PSF (5), and PSF (25), respectively. 
-
-In Table \ref{tab:newton_convergence_table} we study the performance of our preconditioner for accelerating the solution of optimization problem \eqref{eq:deterministic_optimization_problem}. We build the PSF (5) preconditioner in the third Gauss-Newton iteration, and re-use it for all subsequent Gauss-Newton and Newton iterations. No preconditioner is used in the three Gauss-Newton iterations before the PSF (5) preconditioner is built. We compare our method with the most commonly used existing preconditioners, which are no preconditioning (denoted by NONE), and preconditioning by the regularization term in the Hessian (denoted REG). In Figure \ref{fig:newton_iterates} we show several Newton iterates using our PSF (5) preconditioner. Our results show that our PSF (5) preconditioner substantially outperforms the no preconditioning and regularization preconditioning. Using PSF (5) reduces the total number of Stokes PDE solves by a factor of six compared to no preconditioning, and by a factor of nine compared to regularization preconditioning. Interestingly, we observe that no preconditioning actually outperforms regularization preconditioning here because the noise level, and hence the regularization parameter, $\gamma$, are small.
-
-Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\basalfriction$. We use the preconditioned conjugate gradient method to solve a linear system with the Hessian as the coefficient operator and a right hand random vector with i.i.d. entries drawn from the standard normal distribution. In Figure \ref{fig:cg_convergence} we compare the convergence of conjugate gradient for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. The preconditioned conjugate gradient method converges fastest with the PSF preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. Preconditioned conjugate gradient converges much slower with no preconditioning and regularization preconditioning than it does with PSF preconditioning, with no preconditioning outperforming regularization preconditioning. In Figure \ref{fig:gamma_sweep}, we perform preconditioned conjugate gradient solves on linear systems of the same form, except now we vary $\gamma$. The performance of our PSF preconditioners is good and relatively stable over a wide range of $\gamma$'s. All PSF preconditioners perform the same for medium and large values of $\gamma$. For small values of $\gamma$ PSF (25) performs slightly better than PSF (5), which performs slightly better than PSF (1). As expected, regularization preconditioning performs well for large $\gamma$ and poorly for small $\gamma$. Our PSF preconditioners outperform no preconditioning and regularization preconditioning for medium and small $\gamma$, and perform similarly to regularization preconditioning for large $\gamma$.
-
-In Figure \ref{fig:generalized_eigenvalues} we show the generalized eigenvalues $\lambda$ for the generalized eigenvalue problem
-\begin{equation*}
-	H u = \lambda P u.
-\end{equation*}
-Here $H$ is the Hessian evaluated at the reconstructed parameter $\basalfriction$ for $\gamma$ chosen to satisfy the Morozov discrepancy principle. The matrix $P$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations constructed at that $\basalfriction$, or the regularization Hessian. The PSF preconditioners cluster the eigenvalues of the Hessian near $1$, with more batches yielding better clustering. The regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. In Figure \ref{fig:condition_number} we show the condition number of the preconditioned Hessian $P^{-1}H$, and preconditioned Gauss-Newton Hessian, $P^{-1}H_\text{gn}$. The condition numbers are similar for both the Hessian and the Gauss-Newton Hessian. The PSF preconditioners yield the the smallest condition numbers, with more batches yielding smaller condition numbers. Regularization preconditioning and no preconditioning yield larger condition numbers, with regularization preconditioning actually increasing the condition number as compared to no preconditioning.
-
-\begin{figure}[H]
+\begin{figure}
 	\begin{subfigure}{0.24\textwidth}
 		\includegraphics[scale=0.1]{m1_psf.png}
 		%		\caption{}
@@ -844,72 +830,83 @@ Here $H$ is the Hessian evaluated at the reconstructed parameter $\basalfriction
 	%\begin{subfigure}{0.05\textwidth}
 	%	\includegraphics[scale=0.1]{mColorBar.png}
 	%\end{subfigure}
-	\caption{The log basal friction parameter $\basalfriction$ after $1$ (left), $3$ (second from left), and $4$ (third from left) Newton iterations, and the final Newton iterate (right). The PSF (5) preconditioner is constructed between Newton iterations 3 and 4 and re-used for all subsequent iterations.}
+	\caption{The log basal friction parameter $\basalfriction$ after $1$ (left), $3$ (second from left), and $4$ (third from left) Newton iterations, and the final Newton iterate (right). The PSF (5) preconditioner is constructed between Newton iterations 3 and 4.}
 	\label{fig:newton_iterates} 
 \end{figure} 
 
-\begin{table}[H]
-	\begin{center}
-		\begingroup
-		\setlength{\tabcolsep}{3pt}
-		\renewcommand{\arraystretch}{1.25}
-		\begin{tabular}{c| c c c | c c c | c c c}
-			&  \multicolumn{3}{|c|}{PSF (5)} & \multicolumn{3}{|c|}{REG} & \multicolumn{3}{|c}{NONE} \\
-			\hline
-			Iter & 
-			\#CG & \#Stokes & $||g||$ & 
-			\#CG & \#Stokes & $||g||$ & 
-			\#CG & \#Stokes & $||g||$ \\
-			\verb~0~ &
-			\verb~1~ & \verb~4~ & \verb~2.0e+7~ &
-			\verb~1~ & \verb~4~ & \verb~2.0e+7~ &
-			\verb~1~ & \verb~4~ & \verb~2.0e+7~ \\
-			\verb~1~ &
-			\verb~2~ & \verb~6~ & \verb~5.8e+6~ &
-			\verb~2~ & \verb~6~ & \verb~7.9e+6~ &
-			\verb~2~ & \verb~6~ & \verb~5.8e+6~ \\
-			\verb~2~ &
-			\verb~4~ & \verb~10~ & \verb~2.4e+6~ &
-			\verb~5~ & \verb~12~ & \verb~3.9e+6~ &
-			\verb~4~ & \verb~10~ & \verb~2.4e+6~ \\
-			\verb~3~ &
-			\verb~2~ & \verb~6+22~ & \verb~5.8e+5~ &
-			\verb~13~ & \verb~28~ & \verb~1.6e+6~ &
-			\verb~13~ & \verb~28~ & \verb~5.8e+5~ \\
-			\verb~4~ &
-			\verb~5~ & \verb~12~ & \verb~5.6e+4~ &
-			\verb~42~ & \verb~86~ & \verb~4.8e+5~ &
-			\verb~33~ & \verb~68~ & \verb~9.1e+4~ \\
-			\verb~5~ &
-			\verb~10~ & \verb~22~ & \verb~3.5e+3~ &
-			\verb~84~ & \verb~170~ & \verb~7.7e+4~ &
-			\verb~57~ & \verb~116~ & \verb~6.2e+3~ \\
-			\verb~6~ &
-			\verb~14~ & \verb~30~ & \verb~2.7e+1~ &
-			\verb~125~ & \verb~252~ & \verb~5.0e+3~ &
-			\verb~76~ & \verb~154~ & \verb~1.1e+2~ \\
-			\verb~7~ &
-			\verb~0~ & \verb~2~ & \verb~4.1e-2~ &
-			\verb~194~ & \verb~390~ & \verb~7.9e+1~ &
-			\verb~117~ & \verb~236~ & \verb~2.3e-1~ \\
-			\verb~8~ & 
-			\verb~---~ & \verb~---~ & \verb~---~ &
-			\verb~0~ & \verb~2~ & \verb~1.6e-1~ &
-			\verb~0~ & \verb~2~ & \verb~4.1e-2~ \\
-			\hline
-			Total & 
-			\verb~38~ & \verb~114~ & \verb~---~ &
-			\verb~466~ & \verb~950~ & \verb~---~ &
-			\verb~303~ & \verb~624~ & \verb~---~ \\
-		\end{tabular}
-		\endgroup
-	\end{center}
-	\caption{Convergence history for solving the Stokes inverse problem using the preconditioned inexact Newton-Krylov method. The Newton iteration terminates when the norm of the gradient has decreased from its initial value by a factor of $10^{-8}$. The Gauss-Newton Hessian is used in iterations $0$--$5$, and the Hessian is used in all subsequent iterations. Preconditioners shown are our method with five impulse response batches (PSF (5)), regularization preconditioning (REG), and no preconditioning (NONE). Our preconditioner (PSF (5)) is built at iteration $3$ using the Gauss-Newton Hessian, and re-used for all subsequent iterations. The iterates are $\basalfriction_0$ (initial guess), $\basalfriction_1$ (parameter after one Newton step), $\basalfriction_2$ (parameter after two Newton steps), and so on. The columns titled \#CG show the number of conjugate gradient iterations used to solve the Newton system at $\basalfriction_k$, for the purpose of computing a search direction towards $\basalfriction_{k+1}$. The columns titled $||g||$ show the $l^2$ norm of the gradient at $\basalfriction_k$. The columns titled \#Stokes show the number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\basalfriction_{k-1}$ to $\basalfriction_k$ (including one Stokes solve at $\basalfriction_k$), plus one adjoint Stokes solve to compute the gradient at $\basalfriction_k$, plus one incremental forward and one incremental adjoint Stokes solve per CG iteration for solving the Newton system at iteration $k$. In the PSF (5) portion of row 3, we write $6+22$ to indicate that 6 Stokes solves were used during the standard course of the iteration, and 22 additional Stokes solves were used to build the PSF (5) preconditioner. }
+We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data-misfit Gauss-Newton Hessian (the term in the Gauss-Newton Hessian that arises from the data misfit) using 1, 5, and 25 impulse responses batches. We approximate the Gauss-Newton Hessian rather than the Hessian because the Hessian often has negative values in its integral kernel when one is away from the optimal point. Our results show that our preconditioners, which are built using the Gauss-Newton Hessian, are also good preconditioners for the Hessian. 
+
+The H-matrix approximation of data misfit Gauss-Newton Hessian is added to a H-matrix approximation of the Hessian of the regularization term, $J_r$, to form a H-matrix approximation of the Gauss-Newton Hessian. For the Hessian of the regularization term, straightforward calculation shows that the discrete regularization term in both the Hessian and the Gauss-Newton Hessian is given by
+$
+(\gamma \bm{K} + \delta \bm{M}) \bm{M}^{-1} (\gamma \bm{K} + \delta \bm{M})
+$
+where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary conditions, and $\bm{M}$ is the finite element mass matrix. These matrices are sparse, so we form H-matrix approximations of these matrices using standard techniques for approximating sparse matrices with H-matrices. Then we invert $\bm{M}^{-1}$, and multiply these matrices together using H-matrix methods. We factor the overall Gauss-Newton Hessian approximation using fast H-matrix methods, then and use the factorization as a preconditioner \cite{HLIBPRO}. The resulting preconditioners for 1, 5, and 25 impulse response batches are denoted by PSF (1), PSF (5), and PSF (25), respectively. 
+
+\begin{table}
+	{\small
+		\begin{center}
+			\begingroup
+			\setlength{\tabcolsep}{3pt}
+			\renewcommand{\arraystretch}{1.1}
+			\begin{tabular}{c| c c c | c c c | c c c}
+				&  \multicolumn{3}{|c|}{PSF (5)} & \multicolumn{3}{|c|}{REG} & \multicolumn{3}{|c}{NONE} \\
+				\hline
+				Iter & 
+				\#CG & \#Stokes & $||g||$ & 
+				\#CG & \#Stokes & $||g||$ & 
+				\#CG & \#Stokes & $||g||$ \\
+				\verb~0~ &
+				\verb~1~ & \verb~4~ & \verb~2.0e+7~ &
+				\verb~1~ & \verb~4~ & \verb~2.0e+7~ &
+				\verb~1~ & \verb~4~ & \verb~2.0e+7~ \\
+				\verb~1~ &
+				\verb~2~ & \verb~6~ & \verb~5.8e+6~ &
+				\verb~2~ & \verb~6~ & \verb~7.9e+6~ &
+				\verb~2~ & \verb~6~ & \verb~5.8e+6~ \\
+				\verb~2~ &
+				\verb~4~ & \verb~10~ & \verb~2.4e+6~ &
+				\verb~5~ & \verb~12~ & \verb~3.9e+6~ &
+				\verb~4~ & \verb~10~ & \verb~2.4e+6~ \\
+				\verb~3~ &
+				\verb~2~ & \verb~6+22~ & \verb~5.8e+5~ &
+				\verb~13~ & \verb~28~ & \verb~1.6e+6~ &
+				\verb~13~ & \verb~28~ & \verb~5.8e+5~ \\
+				\verb~4~ &
+				\verb~5~ & \verb~12~ & \verb~5.6e+4~ &
+				\verb~42~ & \verb~86~ & \verb~4.8e+5~ &
+				\verb~33~ & \verb~68~ & \verb~9.1e+4~ \\
+				\verb~5~ &
+				\verb~10~ & \verb~22~ & \verb~3.5e+3~ &
+				\verb~84~ & \verb~170~ & \verb~7.7e+4~ &
+				\verb~57~ & \verb~116~ & \verb~6.2e+3~ \\
+				\verb~6~ &
+				\verb~14~ & \verb~30~ & \verb~2.7e+1~ &
+				\verb~125~ & \verb~252~ & \verb~5.0e+3~ &
+				\verb~76~ & \verb~154~ & \verb~1.1e+2~ \\
+				\verb~7~ &
+				\verb~0~ & \verb~2~ & \verb~4.1e-2~ &
+				\verb~194~ & \verb~390~ & \verb~7.9e+1~ &
+				\verb~117~ & \verb~236~ & \verb~2.3e-1~ \\
+				\verb~8~ & 
+				\verb~---~ & \verb~---~ & \verb~---~ &
+				\verb~0~ & \verb~2~ & \verb~1.6e-1~ &
+				\verb~0~ & \verb~2~ & \verb~4.1e-2~ \\
+				\hline
+				Total & 
+				\verb~38~ & \verb~114~ & \verb~---~ &
+				\verb~466~ & \verb~950~ & \verb~---~ &
+				\verb~303~ & \verb~624~ & \verb~---~ \\
+			\end{tabular}
+			\endgroup
+		\end{center}
+	}
+	\caption{Convergence history for solving the Stokes inverse problem using the preconditioned inexact Newton-PCG method. Preconditioners shown are our method with five impulse response batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). The columns titled \#CG show the number of conjugate gradient iterations used to solve the Newton system at $\basalfriction_k$, for the purpose of computing a search direction towards $\basalfriction_{k+1}$. The columns titled $||g||$ show the $l^2$ norm of the gradient at $\basalfriction_k$. The columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\basalfriction_{k-1}$ to $\basalfriction_k$, plus the adjoint Stokes solve to compute the gradient at $\basalfriction_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system at iteration $k$. In the PSF (5) portion of row 3, we write $6+22$ to indicate that 6 Stokes solves were used during the standard course of the iteration, and 22 Stokes solves were used to build the PSF (5) preconditioner. }
 	\label{tab:newton_convergence_table}
 \end{table}
 
+In Table \ref{tab:newton_convergence_table} we study the performance of our preconditioner for accelerating the solution of optimization problem \eqref{eq:deterministic_optimization_problem}. We build the PSF (5) preconditioner in the third Gauss-Newton iteration, and re-use it for all subsequent Gauss-Newton and Newton iterations. No preconditioner is used in the three Gauss-Newton iterations before the PSF (5) preconditioner is built. We compare our method with the most commonly used existing preconditioners, which are no preconditioning (denoted by NONE), and preconditioning by the regularization term in the Hessian (denoted REG). In Figure \ref{fig:newton_iterates} we show several Newton iterates using our PSF (5) preconditioner. Our results show that our PSF (5) preconditioner substantially outperforms the no preconditioning and regularization preconditioning. Using PSF (5) reduces the total number of Stokes PDE solves by a factor of six compared to no preconditioning, and by a factor of nine compared to regularization preconditioning. Interestingly, we observe that no preconditioning actually outperforms regularization preconditioning here because the noise level, and hence the regularization parameter, $\gamma$, are small.
 
-\begin{figure}[H]
+\begin{figure}
 	\begin{subfigure}{0.49\textwidth}
 		\centering
 		\begin{tikzpicture}[baseline, trim axis right]
@@ -978,7 +975,9 @@ Here $H$ is the Hessian evaluated at the reconstructed parameter $\basalfriction
 	\label{fig:krylov_convergence}
 \end{figure} 
 
-\begin{figure}[H]
+Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\basalfriction$. We use the preconditioned conjugate gradient method to solve a linear system with the Hessian as the coefficient operator and a right hand random vector with i.i.d. entries drawn from the standard normal distribution. In Figure \ref{fig:cg_convergence} we compare the convergence of conjugate gradient for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. The preconditioned conjugate gradient method converges fastest with the PSF preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. Preconditioned conjugate gradient converges much slower with no preconditioning and regularization preconditioning than it does with PSF preconditioning, with no preconditioning outperforming regularization preconditioning. In Figure \ref{fig:gamma_sweep}, we perform preconditioned conjugate gradient solves on linear systems of the same form, except now we vary $\gamma$. The performance of our PSF preconditioners is good and relatively stable over a wide range of $\gamma$'s. All PSF preconditioners perform the same for medium and large values of $\gamma$. For small values of $\gamma$ PSF (25) performs slightly better than PSF (5), which performs slightly better than PSF (1). As expected, regularization preconditioning performs well for large $\gamma$ and poorly for small $\gamma$. Our PSF preconditioners outperform no preconditioning and regularization preconditioning for medium and small $\gamma$, and perform similarly to regularization preconditioning for large $\gamma$.
+
+\begin{figure}
 	\begin{subfigure}{0.59\textwidth}
 		\begin{center}
 			\begin{tikzpicture}[baseline, trim axis right]
@@ -996,7 +995,7 @@ Here $H$ is the Hessian evaluated at the reconstructed parameter $\basalfriction
 			axis x line*=bottom,
 			axis y line*=left,
 			legend style={at={(0.95,1)},anchor=north east},
-			title={Generalized eigenvalues, $Hu_{k}=\lambda_{k}Pu_{k}$}
+			title={Generalized eigenvalues, $Hu_{k}=\lambda_{k}\preconditioner u_{k}$}
 			]
 			\addlegendentry{PSF (1)}
 			\addplot[blue, line width=0.5mm] table[x=k, y=psf1] {generalizedEigenvalues.dat};
@@ -1018,7 +1017,7 @@ Here $H$ is the Hessian evaluated at the reconstructed parameter $\basalfriction
 			\setlength{\tabcolsep}{4pt}
 			\renewcommand{\arraystretch}{1.25}
 			\begin{tabular}{c| c c}
-				& $\kappa(P^{-1}H)$ &	$\kappa(P^{-1}H_{\text{gn}})$ \\
+				& $\kappa(\preconditioner^{-1}H)$ &	$\kappa(\preconditioner^{-1}H_{\text{gn}})$ \\
 				\hline 
 				PSF $(1)$  & \verb~1.75e+1~ & \verb~1.76e+1~ \\
 				PSF $(5)$  & \verb~1.39e+1~ & \verb~1.39e+1~ \\
@@ -1031,8 +1030,14 @@ Here $H$ is the Hessian evaluated at the reconstructed parameter $\basalfriction
 		\caption{}
 		\label{fig:condition_number}
 	\end{subfigure}
-	\caption{Left (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $H u_k = \lambda_k P_k$. Here $H$ is the Hessian and $P$ is the PSF approximation constructed using the Gauss-Newton Hessian, $H_\text{gn}$, for 1, 5, and 25 batches, or the regularization operator. Right (\ref{fig:condition_number}): condition number, $\kappa$, for the preconditioned Hessian and Gauss-Newton Hessian for different preconditioners. All operators are evaluated at the parameter $\basalfriction$ that solves the inverse problem for $\gamma$ given by the Morozov discrepancy principle.}
+	\caption{Left (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $H u_k = \lambda_k \preconditioner_k$. Here $H$ is the Hessian and $\preconditioner$ is the PSF approximation constructed using the Gauss-Newton Hessian, $H_\text{gn}$, for 1, 5, and 25 batches, or the regularization operator. Right (\ref{fig:condition_number}): condition number, $\kappa$, for the preconditioned Hessian and Gauss-Newton Hessian for different preconditioners. All operators are evaluated at the parameter $\basalfriction$ that solves the inverse problem for $\gamma$ given by the Morozov discrepancy principle.}
 \end{figure}
+
+In Figure \ref{fig:generalized_eigenvalues} we show the generalized eigenvalues $\lambda$ for the generalized eigenvalue problem
+\begin{equation*}
+	H u = \lambda \preconditioner u.
+\end{equation*}
+Here $H$ is the Hessian evaluated at the reconstructed parameter $\basalfriction$ for $\gamma$ chosen to satisfy the Morozov discrepancy principle. The matrix $\preconditioner$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations constructed at that $\basalfriction$, or the regularization Hessian. The PSF preconditioners cluster the eigenvalues of the Hessian near $1$, with more batches yielding better clustering. The regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. In Figure \ref{fig:condition_number} we show the condition number of the preconditioned Hessian $\preconditioner^{-1}H$, and preconditioned Gauss-Newton Hessian, $\preconditioner^{-1}H_\text{gn}$. The condition numbers are similar for both the Hessian and the Gauss-Newton Hessian. The PSF preconditioners yield the the smallest condition numbers, with more batches yielding smaller condition numbers. Regularization preconditioning and no preconditioning yield larger condition numbers, with regularization preconditioning actually increasing the condition number as compared to no preconditioning.
 
 
 \section{Conclusions}
@@ -1150,14 +1155,14 @@ In \cite{GilitschenskiHanebeck12} it is shown that $E_1 \cap E_2 = \{\}$ if and 
 
 The function $K(s)$ may be evaluated quickly for many $s$ by pre-computing the solution to the generalized eigenvalue problem
 \begin{equation*}
-	\spatialcov_1 P = \spatialcov_2 P \Lambda,
+	\spatialcov_1 \eigenvectormatrix = \spatialcov_2 \eigenvectormatrix \Lambda,
 \end{equation*}
-where $P \in \mathbb{R}^{\gdim \times \gdim}$ is the matrix of generalized eigenvectors (which may be non-orthogonal), and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_\gdim)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. The matrix $P$ simultaneously diagonalizes $\spatialcov_1$ and $\spatialcov_2$, in the sense that $P^T\spatialcov_1 P = \Lambda$, and $P^T\spatialcov_2 P = I$, where $I$ is the $\gdim \times \gdim$ identity matrix. Using this diagonalization, and some algebraic manipulations, we may write $K(s)$ as
+where $\eigenvectormatrix \in \mathbb{R}^{\gdim \times \gdim}$ is the matrix of generalized eigenvectors (which may be non-orthogonal), and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_\gdim)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. The matrix $\eigenvectormatrix$ simultaneously diagonalizes $\spatialcov_1$ and $\spatialcov_2$, in the sense that $\eigenvectormatrix^T\spatialcov_1 \eigenvectormatrix = \Lambda$, and $\eigenvectormatrix^T\spatialcov_2 \eigenvectormatrix = I$, where $I$ is the $\gdim \times \gdim$ identity matrix. Using this diagonalization, and some algebraic manipulations, we may write $K(s)$ as
 \begin{equation}
 	\label{eq:Ks_generalized}
 	K(s) = 1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2,
 \end{equation}
-where $v := P^T\left(\spatialmean_1 - \spatialmean_2\right)$. 
+where $v := \eigenvectormatrix^T\left(\spatialmean_1 - \spatialmean_2\right)$. 
 
 To check whether $E_1$ and $E_2$ intersect, we compute the generalized eigenvalue decomposition of $\spatialcov_1$ and $\spatialcov_2$, form $v$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's minimization algorithm \cite{Brent71} (any fast 1 dimensional convex optimization routine may be used). If $K(s^*) <0$ at the minimizer $s^*$, then $E_1 \cap E_2 = \{\}$. Otherwise $E_1 \cap E_2 \neq \{\}$.
 %The resulting algorithm for checking whether $E_1$ and $E_2$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
