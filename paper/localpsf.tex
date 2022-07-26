@@ -422,7 +422,7 @@ The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \re
 %		Compute $\bm{\spatialvol}$, $\bm{\spatialmean}$, and $\bm{\spatialcov}$ using Algorithm \ref{alg:varhpi_mean_cov}.
 		
 		\For{$k=1,2,\dots,\nbatch$}{
-			Choose a batch of sample points, $\pointbatch_k$, using Algorithm \ref{alg:point_choice}
+			Choose a batch of sample points, $\pointbatch_k$ (Section \ref{sec:sample_point_selection})
 			
 			Compute $\combresponse_k$ by applying $\Aop$ to the Dirac comb for $\pointbatch_k$ (Section \ref{sec:get_impulse_response})
 			
@@ -432,7 +432,7 @@ The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \re
 
 		Form H-matrix approximation $\mathbf{A}_H$ of $\Aop$ (Section \ref{sec:h_matrix_construction_short})
 		
-		(optional) Modify $\mathbf{A}_H$ to make $\mathbf{A}_H^{\text{sym}+}$ (Appendix \ref{sec:make_spd})
+		(optional) Modify $\mathbf{A}_H$ to make it symmetric positive definite (Appendix \ref{sec:make_spd})
 		
 	}
 	\caption{Construct H-matrix approximation}
@@ -737,7 +737,7 @@ tensor, $\stress$, to the strain rate tensor,
 $\dot{\strain}= \frac{1}{2}\left(
 \nabla\velocity+\nabla\velocity^{\top} \right)$. Here $\eta$ is the effective viscosity and $I$ is the unit matrix. Glen's exponent has been chosen $n=1$, which provides for a linear Stokes model. Note that while the PDE is linear, the parameter-to-solution map, $\basalfriction \mapsto (\velocity, \pressure)$, is nonlinear.
 
-The pressure, $\pressure$, is discretized with first order continuous Galerkin finite elements defined on a mesh of tetrahedra. The velocity, $\velocity$, is discretized with second order continuous Galerkin finite elements on the same mesh. The parameter $\basalfriction$ is discretized with first order scalar continuous Galerkin finite elements on the mesh of triangles that results from restricting the tetrahedral mesh to $\Gamma_b$. The basal boundary, $\Gamma_b$, is a 2D surface embedded in 3D due to the mountain topography. We also generate a flattened version of $\Gamma_b$, denoted by $\Omega \subset \mathbb{R}^2$, by ignoring the height coordinate. The parameter $\basalfriction$ is dually viewed as a function on $\Gamma_b$ for the purpose of solving the Stokes equations, and as a function on $\Omega$ for the purpose of building the Hessian preconditioner and defining the regularization. 
+The pressure, $\pressure$, is discretized with first order continuous Galerkin finite elements defined on a mesh of tetrahedra. The velocity, $\velocity$, is discretized with second order continuous Galerkin finite elements on the same mesh. The parameter $\basalfriction$ is discretized with first order scalar continuous Galerkin finite elements on the mesh of triangles that results from restricting the tetrahedral mesh to $\Gamma_b$. The basal boundary, $\Gamma_b$, is a 2D surface embedded in 3D due to the mountain topography. We also generate a flattened version of $\Gamma_b$, denoted by $\Omega \subset \mathbb{R}^2$, by ignoring the height coordinate. The parameter $\basalfriction$ is dually viewed as a function on $\Gamma_b$ for the purpose of solving the Stokes equations, and as a function on $\Omega$ for the purpose of building our Hessian approximations and defining the regularization. 
 %This flattening is necessary because our operator approximation method requires adding points on this surface together to get other points on the surface, and this is only well-defined in flat space. 
 
 
@@ -775,9 +775,9 @@ The first term in the objective function is
 \end{equation*}
 We call this term the data misfit, because it measures the mismatch between the observed data and the predicted data based on a candidate parameter $\basalfriction$. Here $\velocity = \velocity(\basalfriction)$ denotes the velocity field solving $\ref{Stokeseqn}$ for the given parameter $\basalfriction$. The second term,
 \begin{equation*}
-	J_r(\basalfriction) := \frac{1}{2}\int_{\Omega}\left| \mathcal{L}(\basalfriction - \basalfriction_0)\right|^2\,dx,
+	J_r(\basalfriction) := \frac{1}{2}\int_{\Omega}\left| \mathcal{K}(\basalfriction - \basalfriction_0)\right|^2\,dx,
 \end{equation*}
-is a Bilaplacian regularization term. Specifically, $\basalfriction_0$ is the constant function $\basalfriction_0(x)=10.5$, and $\mathcal{L}$ is the inverse of the solution operator for the following elliptic PDE:
+is a Bilaplacian regularization term. Specifically, $\basalfriction_0$ is the constant function $\basalfriction_0(x)=10.5$, and $\mathcal{K}$ is the inverse of the solution operator for the following elliptic PDE:
 \begin{align*}
 -\gamma\Delta u +\delta\,u&=s\,\,\,\,\text{ in }\Omega,\\
 \gamma \nabla u\cdot\normalvec+\mu\,u&=0\,\,\,\text{ on }\partial\Omega.
@@ -787,19 +787,19 @@ In all results except one, $\gamma$ is chosen so that the Morozov discrepancy pr
 \begin{equation*}
 	\frac{1}{2}\int_{\Gamma_{t}}||\observations_\text{obs} - \tangentop\velocity||_{2}^{2}\,dS = \frac{1}{2}\int_{\Gamma_{t}}||\xi||_{2}^{2}\,dS.
 \end{equation*}
-The value of $\gamma$ satisfying the Morozov discrepancy principle is $\gamma=7.3 \times 10^3$. The exception is Figure \ref{fig:gamma_sweep}, where we vary $\gamma$ to study how changing $\gamma$ impacts the effectiveness of our preconditioner. The constant $\delta$ is chosen so that the correlation length of functions drawn from the normal distribution with covariance $\mathcal{L}^{-2}$, given by $L=\sqrt{\gamma/\delta}$, is $1/10$th the radius of the domain. 
+The value of $\gamma$ satisfying the Morozov discrepancy principle is $\gamma=7.3 \times 10^3$. The exception is Figure \ref{fig:gamma_sweep}, where we vary $\gamma$ to study how changing $\gamma$ impacts the effectiveness of our preconditioner. The constant $\delta$ is chosen so that the correlation length of functions drawn from the normal distribution with covariance $\mathcal{K}^{-2}$, given by $L=\sqrt{\gamma/\delta}$, is $1/10$th the radius of the domain. 
 %, which is halfway between the maximum and minimum values of $\basalfriction_\text{true}$.
 
 We solve the inverse problem with an inexact Newton preconditioned conjugate gradient (PCG) scheme \cite{NOCEDAWRIGHT}, using $\basalfriction_0$ as the initial guess. The parameter is updated iteratively according to the formula
 $
 	\basalfriction_{k+1} = \basalfriction_k + \alpha_k \searchdir_k,
 $
-where $\searchdir_k$ approximately solves one of the following Newton linear systems
+where $\searchdir_k$ approximately solves one of the following Newton linear systems,
 \begin{equation}
 	\label{eq:newton_system}
-	H \searchdir_k = - g_k \qquad \text{or} \qquad H_\text{gn}, \searchdir_k = - g_k
+	H \searchdir_k = - g_k \qquad \text{or} \qquad H_\text{gn}, \searchdir_k = - g_k,
 \end{equation}
-and the step length $\alpha_k \in \mathbb{R}$ is chosen to satisfy the Armijo conditions \cite{ARMIJO}. Here $g_k$ is the gradient of $J$, $H$ is the Hessian, and $H_\text{gn}$ is the Gauss-Newton Hessian, and these derivatives are evaluated at $\basalfriction_k$. 
+and the step length $\alpha_k \in \mathbb{R}$ is chosen by line search to satisfy the Armijo conditions \cite{ARMIJO}. Here $g_k$ is the gradient of $J$, $H$ is the Hessian, and $H_\text{gn}$ is the Gauss-Newton Hessian, and these derivatives are evaluated at $\basalfriction_k$. 
 %The Gauss-Newton Hessian is Hessian of $J$, except in the data misfit, $J_d$, the nonlinear mapping $\basalfriction \mapsto \tangentop \velocity$ is replaced by its local linearization at $\basalfriction_k$.
 We use $H_\text{gn}$ for the first five iterations, and $H$ for all subsequent iterations.  The Newton iteration terminates when $||g_k||/||g_0|| < 10^{-8}$. Systems \eqref{eq:newton_system} are solved inexactly using an inner PCG iteration, which terminates when the norm of the residual for the linear system is less than $\min \left(0.5, \sqrt{||g_k||}\right)||g_k||$. PCG only requires applying $H$ (or $H_\text{gn}$) to vectors. Each application of $H$ (or $H_\text{gn}$) to a vector requires solving one incremental forward and one incremental adjoint Stokes PDE of the form \eqref{Stokeseqn}, but with different right hand sides.
 
@@ -1040,9 +1040,7 @@ Here $H$ is the Hessian evaluated at the reconstructed parameter $\basalfriction
 \section{Conclusions}
 \label{sec:conclusions}
 
-Some conclusions here. 
-
-Although the method we present in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because our method can form high rank approximations of an operator using a small number of matrix-vector products.
+We presented an efficient matrix-free method for approximating operators with locally supported non-negative integral kernels. The method only requires access to the operator via application of the operator to a small number of vectors; fast access to entries of the operator's matrix representation is not required. The idea of the method is to compute batches of impulse responses by applying the operator to Dirac combs of scattered point sources, then interpolate these known impulse responses to approximate unknown entries of the operator's integral kernel. The interpolation is based on a new principle we call ``local mean displacement invariance,'' which generalizes and improves upon classical local translation invariance. The ability to quickly approximate arbitrary integral kernel entries permits us to form a H-matrix approximation of the operator. Fast H-matrix arithmetic is then used to perform further linear algebra operations that cannot be performed easily with the original operator, such as matrix factorization or inversion. The supports of the impulse responses are estimated to be contained in ellipsoids, which are determined a-priori via a new procedure we presented that involves applying the operator to a small number of polynomial functions. Point source locations for the impulse response batches are chosen using a greedy ellipsoid packing procedure, in which we choose as many impulse responses per batch as possible, while ensuring that the supports of the corresponding ellipsoids do not overlap. We applied the method to approximate the Gauss-Newton Hessian in a Stokes ice sheet inverse problem, and saw that the approximation substantially outperforms existing Hessian approximation methods. Although the method we presented in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because our method can form high rank approximations of an operator using a small number of operator applications.
 
 \appendix
 
