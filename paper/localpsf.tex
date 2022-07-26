@@ -522,39 +522,38 @@ Given $(y,x)\in \Omega \times \Omega$, let
 \begin{equation*}
 	z_i := y - \spatialmean(x) + \spatialmean(x_i), \qquad i=1,\dots,\numnbr,
 \end{equation*}
-where $\{x_i\}_{i=1}^{\numnbr}$ are the $\numnbr$ nearest sample points to $x$, excluding sample points $x_i$ for which $z_i \notin \Omega$. Here $\numnbr$ is a small user defined parameter; e.g., $\numnbr=10$. Further, let
+where $\{x_i\}_{i=1}^{\numnbr}$ are the $\numnbr$ nearest sample points to $x$, excluding sample points $x_i$ for which $z_i \notin \Omega$. Here $\numnbr$ is a small user defined parameter; e.g., $\numnbr=10$. To find the $\numnbr$ nearest sample points to $x$, we query a precomputed k-d tree \cite{Bentley75} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{Ericson04} of the mesh cells used to discretize the problem. Further, let
 \begin{equation}
 \label{eq:fxyxp}
 f_i := \frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}\left(z_i\right), \qquad i=1,\dots,\numnbr,
 \end{equation}
-Note that $f_i$ is well-defined, because $\phi_{x_i}\left(z_i\right)$ is defined if and only if $z_i \in \Omega$, and $\spatialvol(x_i)>0$ by our sample point picking procedure in Section \ref{sec:sample_point_selection}. We approximate $\Aker(y,x)$ by interpolating the (point,value) pairs
+Note that $\phi_{x_i}\left(z_i\right)$ is well-defined because $z_i \in \Omega$, and $\frac{\spatialvol(x)}{\spatialvol(x_i)}$ is well-defined because our sample point picking procedure in Section \ref{sec:sample_point_selection} ensures that $\spatialvol(x_i)>0$. We approximate $\Aker(y,x)$ by interpolating the (point,value) pairs
 \begin{equation}
 \left(x_i, f_i\right), \qquad i=1,\dots,\numnbr,
 \end{equation}
 at the point $x$. The idea is that $\Aker(y,x) = f_i$ per the discussion in Section \ref{sec:local_mean_displacement_invariance}, so we approximate $\Aker(y,x)$ by interpolating the values $f_i$. 
 
-To find the $\numnbr$ nearest sample points to $x$, we query a precomputed k-d tree \cite{Bentley75} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{Ericson04} of the mesh cells used to discretize the problem. 
-
 Interpolation is performed using the following radial basis function scheme:
 \begin{equation}
-\Aker(y,x) \approx \widetilde{\Aker}(y,x) := \sum_{i=1}^{\numnbr} \rbfweight_i~ b\left(\|x-x_i\|\right),
+\Aker(y,x) \approx \widetilde{\Aker}(y,x) := \sum_{i=1}^{\numnbr} \rbfweight_i~ \rbf\left(\|x-x_i\|\right),
 \end{equation}
-where $b_i$ are radial basis functions and $\rbfweight_i$ are weights. The vector of weights, $\rbfweight = (\rbfweight_1, \rbfweight_2, \dots, \rbfweight_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
+where $\rbfweight_i$ are weights, and $\rbf$ is a polyharmonic spline radial basis function, which is defined as follows:
+\begin{equation}
+\rbf(r) := \begin{cases}
+r^\gdim, & \gdim=1,3,5,\dots \\
+r^\gdim \log r, & \gdim=2,4,6,\dots
+\end{cases}
+\end{equation}
+for $r>0$, and $\rbf(0):=0$. The vector of weights, $\rbfweight = (\rbfweight_1, \rbfweight_2, \dots, \rbfweight_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
 \begin{equation}
 B \rbfweight = f,
 \end{equation}
 where $B \in \mathbb{R}^{\numnbr \times \numnbr}$ has entries
 $
-B_{ij} := b\left(\|x_i - x_j\|\right),
+B_{ij} := \rbf\left(\|x_i - x_j\|\right),
 $
-and $f \in \mathbb{R}^\numnbr$ has entries $f_i$ from \eqref{eq:fxyxp}. We use polyharmonic spline radial basis functions, which are defined as follows:
-\begin{equation}
-b(r) := \begin{cases}
-r^\gdim, & \gdim=1,3,5,\dots \\
-r^\gdim \log r, & \gdim=2,4,6,\dots
-\end{cases}
-\end{equation}
-for $r>0$, and $b(0):=0$. This yields the smoothest interpolant of the given points and values, in a certain least-squares sense \cite{Duchon77}. For more details on radial basis function interpolation, see \cite{Wendland04}. The interpolation procedure is illustrate in Figure \ref{fig:rbf_interpolation}.
+and $f \in \mathbb{R}^\numnbr$ has entries $f_i$ from \eqref{eq:fxyxp}. Polyharmonic spline radial basis function interpolation yields the smoothest interpolant of the given points and values, in a certain least-squares sense \cite{Duchon77}. For more details on radial basis function interpolation, see \cite{Wendland04}. 
+%The interpolation procedure is illustrate in Figure \ref{fig:rbf_interpolation}.
 
 %\begin{figure}
 %	\centering
@@ -567,11 +566,8 @@ To evaluate $f_i$, we check whether $z_i \in E_{x_i}$ using \eqref{eq:support_el
 \begin{equation}
 f_i = \spatialvol(x)\eta_b\left(z_i\right),
 \end{equation}
-per \eqref{eq:varphi_eval}. 
-
- 
-Note that $z_i$ is generally not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Hence,
-evaluating $\eta_b\left(z_i\right)$ requires determining which mesh cell contains $z_i$, then evaluating finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $z_i$ was already determined as a side effect of querying the AABB tree of mesh cells when we checked whether $z_i \in \Omega$. 
+per \eqref{eq:varphi_eval}. Note that $z_i$ is typically not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Hence,
+evaluating $\eta_b\left(z_i\right)$ requires determining which mesh cell contains $z_i$, then evaluating finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $z_i$ was determined as a side effect of querying the AABB tree of mesh cells when we checked whether $z_i \in \Omega$. 
 
 
 
@@ -647,7 +643,7 @@ requires evaluating $O(\hrank^2 \fedim \log \fedim)$ matrix entries of the appro
 \end{equation}
 where $a \in \{0,1,2,3\}$ \cite{GrasedyckHackbusch03}. The precise cost depends on the type of H-matrix used and the operation being performed. In this paper, we use one matrix-matrix addition to add the H-matrix approximation of the data misfit term in the Hessian to the regularization term in the Hessian. Then, we use one matrix inversion to form the inverse of the Hessian, which is used as a preconditioner for the Newton linear system. 
 %We perform low-rank updates to the H-matrix as the Newton iterations proceed, as per the discussion in Appendix \ref{sec:recycle_krylov}.
-The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, described in Appendix \ref{sec:make_spd}, is performed using two matrix-matrix additions, $\ratord+1$ matrix-matrix multiplications, and one matrix inversion, where $2^\ratord$ is the order of the rational function used.
+The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, described in Appendix \ref{sec:make_spd}, is performed using two matrix-matrix additions, $\ratord+1$ matrix-matrix multiplications, and one matrix inversion, where $2^\ratord$ is the rational function order.
 
 
 \section{Numerical results}
