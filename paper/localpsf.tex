@@ -60,9 +60,9 @@
 \section{Introduction}
 \label{sec:intro}
 
-We present a fast \emph{matrix free} method for approximating operators, $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$, that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, $\gdim$ is the spatial dimension, and $L^2(\Omega)'$ is the space of continuous linear functionals on $L^2(\Omega)$ (i.e., the topological dual space). Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{le1997non,saad1999distributed,TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps) \cite{DTNMAP}, covariance operators in spatial statistics \cite{GeogaEtAl20,ChenStein21,LindgrenRueLindstrom11}, blurring operators in imaging \cite{DenisEtAl11,NagyOleary98}, and Hessians in distributed parameter PDE-constrained optimization and inverse problems \cite{AlgerEtAl19,IsaacEtAl15}. 
+We present a fast \emph{matrix-free} method for approximating operators, $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$, that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, $\gdim$ is the spatial dimension, and $L^2(\Omega)'$ is the space of continuous linear functionals on $L^2(\Omega)$ (i.e., the topological dual space). Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{le1997non,saad1999distributed,TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps) \cite{DTNMAP}, covariance operators in spatial statistics \cite{GeogaEtAl20,ChenStein21,LindgrenRueLindstrom11}, blurring operators in imaging \cite{DenisEtAl11,NagyOleary98}, and Hessians in distributed parameter PDE-constrained optimization and inverse problems \cite{AlgerEtAl19,IsaacEtAl15}. 
 
-By ``matrix free,'' we mean that we have a black-box computational procedure through which we may apply $\Aop$ and its transpose\footnote{Recall that the transpose $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(w) = \left(\Aop w\right)(u)$ for all $u,w \in L^2(\Omega)$, where the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$, and similar for the analogous operations with $\Aop^T$. }, $\Aop^T$, to arbitrary functions,
+By ``matrix-free,'' we mean that we have a black-box computational procedure through which we may apply $\Aop$ and its transpose\footnote{Recall that the transpose $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(w) = \left(\Aop w\right)(u)$ for all $u,w \in L^2(\Omega)$, where the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$, and similar for the analogous operations with $\Aop^T$. }, $\Aop^T$, to arbitrary functions,
 \begin{equation}
 \label{eq:eval_maps}
 u \mapsto\Aop u \qquad \text{and} \qquad w \mapsto \Aop^T w,
@@ -72,7 +72,7 @@ but we do not have any further access to $\Aop$. In particular, we cannot easily
 Our motivation is Hessian approximation in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field from noisy observations of a state variable that depends on the parameter implicitly through the solution of a PDE.
 In the deterministic approach to the inverse problem, one solves a regularized minimization problem to find the parameter that best fits the data. The objective function in the minimization problem is defined implicitly, so information about the Hessian of the objective function is only accessible via application of the Hessian to vectors \cite{HESSIANACTION}. 
 The most popular matrix-free Hessian approximation methods are based on low rank approximation \cite{BuiEtAl13,CuiEtAl14,FlathEtAl11,PetraEtAl14,SpantiniEtAl15} because there are efficient methods for constructing low rank approximations of a matrix using only matrix-vector products \cite{Cheng05,HalkoMartinssonTropp11}. 
-However, low rank approximation methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator applies are required to form an accurate ``low rank'' approximation \cite{Alger19,AlgerEtAl17}. High-rank approximation methods are needed.
+However, low rank approximation methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator applies are required to form an accurate ``low rank'' approximation \cite{Alger19,AlgerEtAl17}. High rank approximation methods are needed.
 
 \begin{figure}
 	\begin{subfigure}{0.32\textwidth}
@@ -94,10 +94,10 @@ However, low rank approximation methods suffer from a ``data predicament''---if 
 	\label{fig:batches_intro}
 \end{figure}
 
-The central challenge we face is that existing scalable high-rank approximation methods typically require the ability to rapidly evaluate arbitrary entries of $\Aop$'s integral kernel, and we cannot do this because $\Aop$ is only accessible matrix-free. We address this challenge using \emph{impulse response interpolation}. The impulse response, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate translated versions of these impulse responses to approximate arbitrary entries of the operator's integral kernel. 
+The central challenge we face is that existing scalable high rank approximation methods typically require the ability to rapidly evaluate arbitrary entries of $\Aop$'s integral kernel, and we cannot do this because $\Aop$ is only accessible matrix-free. We address this challenge using \emph{impulse response interpolation}. The impulse response, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate translated versions of these impulse responses to approximate arbitrary entries of the operator's integral kernel. 
 %This allows fast evaluation of approximate matrix entries, which are needed by high-rank approximation methods, in particular, classical H-matrix construction methods. 
 
-Picking the batches of points requires us to estimate the supports of the $\phi_x$, \emph{before} we compute them. The idea of estimating the supports of the functions $\phi_x$ a-priori was inspired by techniques from resolution analysis in seismic imaging, in which the width of $\phi_x$ is estimated to be the local autocorrelation length of the function $\Aop^T \zeta$ near $x$, where $\zeta$ is a random noise funtion  \cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. Rather than probing $\Aop^T$ with random noise functions, we use polynomial functions (see Section \ref{sec:intromoments}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing at the cost of the additional constraint that $\Aop$ has a positive integral kernel.
+Picking the batches of points requires us to estimate the supports of the $\phi_x$, \emph{before} we compute them. The idea of estimating the supports of the functions $\phi_x$ a-priori was inspired by techniques from resolution analysis in seismic imaging. There, $\Aop^T$ is applied to a random noise function, and the width of $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$  \cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. Rather than probing $\Aop^T$ with random noise functions, we use polynomial functions (see Section \ref{sec:intromoments}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing at the cost of the additional constraint that $\Aop$ has a positive integral kernel.
 
 Our impulse response interpolation procedure may be categorized as a ``point spread function'' (PSF) method that is loosely based on so-called ``product-convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others),  \cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,NagyOleary98,FishEtAl96,EscandeWeiss12,EscandeWeiss15,EscandeWeiss22,ZhuLiFomelEtAl16}, in which the convolution kernels are constructed from sampling impulse responses of the operator to scattered point sources. For background on PC and PSF methods, we recommend the following papers which provide well-written reviews of the topic: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. While PC approximations are based on an assumption of local translation invariance, the method we propose is based on an assumption that we call ``local mean displacement invariance'' (see Figure \ref{fig:mean_displacement_invariance}). This is more general than local translation invariance, and includes both low rank approximation and local translation invariance as special cases (see Section \ref{sec:local_mean_displacement_invariance}). Furthermore, PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulse responses. We avoid this issue by temporarily excluding impulse responses from the approximation procedure whenever an attempt is made to evaluate the impulse response at a location where it is undefined. 
 
@@ -110,11 +110,13 @@ Our impulse response interpolation procedure may be categorized as a ``point spr
 %	\label{fig:hmatrix_intro}
 %\end{figure}
 
-The ability to rapidly evaluate approximations of arbitrary entries of $\Aop$'s integral kernel allows us to form a hierarchical matrix (H-matrix) \cite{Hackbusch99,} approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high-rank. 
+The ability to rapidly approximate entries of $\Aop$'s integral kernel allows us to form a hierarchical matrix (H-matrix) \cite{Hackbusch99,} approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high rank. 
 %(see Figure \ref{fig:hmatrix_intro} and Appendix \ref{app:h_matrix}).
-H-matrix methods permit us to perform matrix-vector products cheaply. Furthermore, one may use H-matrix methods to perform useful linear algebra operations involving the H-matrix that cannot easily be done using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. 
+H-matrix methods permit us to perform matrix-vector products cheaply, and perform other useful linear algebra operations that cannot be done easily using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. 
 %These H-matrix methods are fast and scale well to large problems. 
-The work and memory required to perform these operations for an $\fedim \times \fedim$ H-matrix is scales as $O(\fedim \log(\fedim)^a)$, where $a \in \{0,1,2,3\}$. That is, the cost is \emph{nearly-linear} in $N$. The exact cost depends on the type of H-matrix used, the operation being performed, and the rank of the off-diagonal blocks; for more details see \cite{GrasedyckHackbusch03}. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
+The work and memory required to perform these operations for an $\fedim \times \fedim$ H-matrix scales 
+%as $O(\fedim \log(\fedim)^a)$, where $a \in \{0,1,2,3\}$. That is, the cost is \emph{nearly-linear}
+\emph{nearly-linearly} in $N$ (i.e., $o(N^{1+\epsilon})$ for any $\epsilon > 0$). The exact cost depends on the type of H-matrix used, the operation being performed, and the rank of the off-diagonal blocks; for more details see \cite{GrasedyckHackbusch03}. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
 
 %Classical H-matrix construction methods 
 %(described in Appendix \ref{sec:H_matrix_construction}) 
@@ -191,7 +193,7 @@ Our method may still perform well if these conditions are relaxed slightly. For 
 
 In computations, functions are discretized and replaced by finite dimensional vectors, and operators mapping between infinite dimensional spaces are replaced by operators mapping between finite dimensional spaces. In this paper we discretize using continuous Galerkin finite elements satisfying the Kronecker property (defined below). With minor modifications, our method could be used with more general finite element methods, or other discretization schemes such as finite differences or finite volumes.
 
-Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of continuous Galerkin finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space under the $L^2$ inner product, and let $p_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. We assume that the finite element basis satisfies the Kronecker property, i.e., $\febasis_i(p_i)=1$ and $\febasis_i(p_j)=0$ if $i\neq j$. 
+Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of continuous Galerkin finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space under the $L^2$ inner product, and let $\fepoint_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. We assume that the finite element basis satisfies the Kronecker property, i.e., $\febasis_i(\fepoint_i)=1$ and $\febasis_i(\fepoint_j)=0$ if $i\neq j$. 
 For $u_h \in V_h$ we write $\bm{u} \in \mathbb{R}^\nsamplepts_\massmatrix$ to denote the coefficient vector for $u_h$ with respect to the finite element basis, i.e.,
 \begin{equation}
 \label{eq:fem_coeff_basis}
@@ -236,11 +238,11 @@ and the $(y,x)$ kernel entry of $\Aker_h$ may be written as
 Now define $\mathbf{\Aker} \in \mathbb{R}^{\fedim \times \fedim}$ to be the following dense matrix of kernel entries evaluated at all pairs of Lagrange nodes:
 \begin{equation}
 \label{eq:Akerpcmat_entries}
-\mathbf{\Aker}_{ij} := \Aker_h(p_i, p_j).
+\mathbf{\Aker}_{ij} := \Aker_h(\fepoint_i, \fepoint_j).
 \end{equation}
-Because of the Kronecker property of the finite element basis, we have $\boldsymbol{\delta}_{p_i} = \mathbf{e}_i$. Thus from \eqref{eq:approx_kernel_entry_81} we have
+Because of the Kronecker property of the finite element basis, we have $\boldsymbol{\delta}_{\fepoint_i} = \mathbf{e}_i$. Thus from \eqref{eq:approx_kernel_entry_81} we have
 $
-	\Aker_h(p_i,p_j) = \left(\massmatrix^{-1}\mathbf{A} \massmatrix^{-1}\right)_{ij},
+	\Aker_h(\fepoint_i,\fepoint_j) = \left(\massmatrix^{-1}\mathbf{A} \massmatrix^{-1}\right)_{ij},
 $
 which implies
 \begin{equation}
@@ -378,7 +380,7 @@ Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and con
 \end{align}
 These are four different ways to approximate an impulse response by a nearby impulse response, with each successive approximation building upon the previous ones. Our method uses \eqref{eq:translate4}, which is the most sophisticated of these approximations.
 
-Approximation \eqref{eq:translate1} says that $\phi_x$ can be approximated by $\phi_{x'}$ when $x$ and $x'$ are close. Operators satisfying \eqref{eq:translate1} can be well-approximated via low-rank CUR approximation \cite{CUR,NYSTROM}. However, the required rank in the low rank approximation can be large, which makes algorithms based on \eqref{eq:translate1} expensive. 
+Approximation \eqref{eq:translate1} says that $\phi_x$ can be approximated by $\phi_{x'}$ when $x$ and $x'$ are close. Operators satisfying \eqref{eq:translate1} can be well-approximated via low rank CUR approximation \cite{CUR,NYSTROM}. However, the required rank in the low rank approximation can be large, which makes algorithms based on \eqref{eq:translate1} expensive. 
 
 Operators that satisfy \eqref{eq:translate2} are called ``locally translation-invariant'' because integral kernel entries $\Aker(y,x)$ for such operators are approximately invariant under translation of $x$ and $y$ by the same displacement, i.e., $x \rightarrow x+h$ and $y \rightarrow y+h$. It is straightforward to show that if equality holds in \eqref{eq:translate2}, then $\Aop$ is a convolution operator. Locally translation-invariant operators act like convolutions locally, and can therefore be well-approximated by PC approximations.
 
@@ -396,7 +398,7 @@ Section \ref{sec:intromoments} allows us to compute $\spatialvol$, $\spatialmean
 
 Once the impulse response batches $\eta_b$ are computed, we approximate the integral kernel $\Aker(y,x)$ at arbitrary points $(y,x)$ by interpolation (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{sec:local_mean_displacement_invariance}. We approximate $\Aker(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}(y - \spatialmean(x) + \spatialmean(x_i))$ for a collection of sample points $x_i$ near $x$. The weights are determined by radial basis function interpolation.
 
-The ability to rapidly evaluate approximate kernel entries $\Aker(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Aker}_H \approx \mathbf{\Aker}$, using the conventional adaptive cross H-matrix construction method (Section \ref{sec:h_matrix_construction_short}). In this method, one forms low-rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Aker}_H$ into an H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$. 
+The ability to rapidly evaluate approximate kernel entries $\Aker(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Aker}_H \approx \mathbf{\Aker}$, using the conventional adaptive cross H-matrix construction method (Section \ref{sec:h_matrix_construction_short}). In this method, one forms low rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Aker}_H$ into an H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$. 
 
 When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be non-symmetric and indefinite due to errors in the approximation. In this case, one may (optionally) modify the H-matrix representation of $\mathbf{A}_H$ to make it symmetric positive semi-definite using the rational method described in Appendix \ref{sec:make_spd}.
 
@@ -450,7 +452,7 @@ We start with a finite set of candidate points $\candidatepts$ and build $\point
 Once $\candidatepoint_i$ is selected, we remove $\candidatepoint_i$ from $\candidatepts$. Then we perform the following two checks:
 \begin{enumerate}
 	\item We check whether $\candidatepoint_i$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_{\candidatepoint_i} \cap E_{\candidatepoint_j} = \{\}$ for all $\candidatepoint_j \in \pointbatch_k$.
-	\item We make sure that $\spatialvol(\candidatepoint_i)$ is not too small, by checking whether $\spatialvol(\candidatepoint_i) > \epsilon \spatialvol_\text{max}$. Here $\spatialvol_\text{max}$ is the largest value of $\spatialvol(\candidatepoint_j)$ over all points $q$ in the initial set of candidate points, and $\tau$ is a small threshold parameter (we use $\epsilon=10^{-5}$).
+	\item We make sure that $\spatialvol(\candidatepoint_i)$ is not too small, by checking whether $\spatialvol(\candidatepoint_i) > \epsilon \spatialvol_\text{max}$. Here $\spatialvol_\text{max}$ is the largest value of $\spatialvol(\candidatepoint_j)$ over all points $q$ in the initial set of candidate points, and $\epsilon$ is a small threshold parameter (we use $\epsilon=10^{-5}$).
 \end{enumerate}
 If $\candidatepoint_i$ passes both these checks (i.e., if $\candidatepoint_i$ is sufficiently far from other points in the batch, and $\spatialvol(\candidatepoint_i)$ is not too small) then we add $\candidatepoint_i$ to $\pointbatch_k$. Otherwise we discard $\candidatepoint_i$. This process repeats until there are no more points in $\candidatepts$.  
 %This is detailed in Algorithm \ref{alg:point_choice}. 
@@ -522,7 +524,7 @@ Given $(y,x)\in \Omega \times \Omega$, let
 \begin{equation*}
 	z_i := y - \spatialmean(x) + \spatialmean(x_i), \qquad i=1,\dots,\numnbr,
 \end{equation*}
-where $\{x_i\}_{i=1}^{\numnbr}$ are the $\numnbr$ nearest sample points to $x$, excluding sample points $x_i$ for which $z_i \notin \Omega$. Here $\numnbr$ is a small user defined parameter; e.g., $\numnbr=10$. To find the $\numnbr$ nearest sample points to $x$, we query a precomputed k-d tree \cite{Bentley75} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{Ericson04} of the mesh cells used to discretize the problem. Further, let
+where $\{x_i\}_{i=1}^{\numnbr}$ are the $\numnbr$ nearest sample points to $x$, excluding sample points $x_i$ for which $z_i \notin \Omega$. Here $\numnbr$ is a small user defined parameter; e.g., $\numnbr=10$. To find the $\numnbr$ nearest sample points to $x$, we query a precomputed kd-tree \cite{Bentley75} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{Ericson04} of the mesh cells used to discretize the problem. Further, let
 \begin{equation}
 \label{eq:fxyxp}
 f_i := \frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}\left(z_i\right), \qquad i=1,\dots,\numnbr,
@@ -581,7 +583,7 @@ We form our H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by forming 
 %Once $\mathbf{A}_H$ is formed, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. 
 We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, see \cite{Hackbusch15}. 
 
-We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{Kriemann08}. Although $\mathbf{\Aker}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Aker}_H$ only requires evaluation of $O(\hrank^2 \fedim \log \fedim)$ entries $\mathbf{\Aker}_{ij} = \widetilde{\Aker}(p_i, p_j)$, and these entries are computed via the radial basis function interpolation method described in Section \ref{sec:approximate_kernel_entries}. Here $\hrank$ is the rank of the highest-rank block in the H-matrix. 
+We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{Kriemann08}. Although $\mathbf{\Aker}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Aker}_H$ only requires evaluation of $O(\hrank^2 \fedim \log \fedim)$ entries $\mathbf{\Aker}_{ij} = \widetilde{\Aker}(p_i, p_j)$, and these entries are computed via the radial basis function interpolation method described in Section \ref{sec:approximate_kernel_entries}. Here $\hrank$ is the rank of the highest rank block in the H-matrix. 
 A dense representation of $\mathbf{\Aker}$ is never formed. 
 %We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. 
 We form $\massmatrix_H$ using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\mathbf{\Aker}$. 
@@ -630,7 +632,7 @@ However, from a practical perspective, the cost for picking sample points is sma
 
 \paragraph{(2) Building the H-matrix} The classical H-matrix construction technique
 %, which is described in Appendix \ref{app:h_matrix}, 
-requires evaluating $O(\hrank^2 \fedim \log \fedim)$ matrix entries of the approximation, where $\hrank$ is the H-matrix rank, i.e,  the maximum rank among the blocks of the H-matrix. To evaluate one matrix entry, first one must find the $\numnbr$ nearest sample points to a given point, where $\numnbr$ is the number of impulses used in the RBF interpolation. This is done using a precomputed KD tree of sample points, and requires $O(\numnbr \log \nsamplepts)$ floating point and logical elementary operations. Second, one must find the mesh cells that the points $\{z_i\}_{i=1}^{\numnbr}$ reside. This is done using an AABB tree of mesh cells, and requires $O(\numnbr \log \fedim)$ elementary operations. Third, we must evaluate finite element basis functions on each of those cells, which requires $O(\numnbr)$ elementary operations. Finally, we must solve a $\numnbr \times \numnbr$ linear system to perform the radial basis function interpolation, which requires $O(\numnbr^3)$ elementary operations, which typically is negligible. Therefore, building the H-matrix requires
+requires evaluating $O(\hrank^2 \fedim \log \fedim)$ matrix entries of the approximation, where $\hrank$ is the H-matrix rank, i.e,  the maximum rank among the blocks of the H-matrix. To evaluate one matrix entry, first one must find the $\numnbr$ nearest sample points to a given point, where $\numnbr$ is the number of impulses used in the RBF interpolation. This is done using a precomputed kd-tree of sample points, and requires $O(\numnbr \log \nsamplepts)$ floating point and logical elementary operations. Second, one must find the mesh cells that the points $\{z_i\}_{i=1}^{\numnbr}$ reside. This is done using an AABB tree of mesh cells, and requires $O(\numnbr \log \fedim)$ elementary operations. Third, we must evaluate finite element basis functions on each of those cells, which requires $O(\numnbr)$ elementary operations. Finally, we must solve a $\numnbr \times \numnbr$ linear system to perform the radial basis function interpolation, which requires $O(\numnbr^3)$ elementary operations, which typically is negligible. Therefore, building the H-matrix requires
 \begin{equation*}
 	O\left(\left(\hrank^2 \fedim \log \fedim\right)\left(\numnbr \log \fedim + \numnbr^3\right)\right) \qquad \text{elementary operations}.
 \end{equation*}
@@ -705,7 +707,7 @@ We use our method to approximate the data misfit Gauss-Newton Hessian in an inve
 		\includegraphics[scale=0.22]{meshHeight_view0_edges_withAxes.png}
 		\caption{Top-down view}
 	\end{subfigure}
-	\caption{The ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography). The radius of the domain is $10$ kilometers, the maximum height of the mountain is $2.1$ kilometers, and the average thickness of the ice sheet is 250 meters.}
+	\caption{The ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography). The radius of the domain is $10^4$ meters, the maximum height of the mountain is $2.1 \times 10^3$ meters, and the average thickness of the ice sheet is 250 meters.}
 	\label{fig:ice_mountain_mesh}
 \end{figure} 
 
@@ -725,11 +727,11 @@ equations,
 	&=0\,\,\,\,\,\,\text{ on }\Gamma_{t}, \label{Stokeseqn:3}\\
 	\velocity \cdot\normalvec =0 \quad\text{and}\quad \tangentop\left(\stress\normalvec+\exp\left(\basalfriction\right)\velocity\right)
 	&=0\,\,\,\,\,\,\text{ on }\Gamma_{b},\label{Stokeseqn:4} \\
-	\stress\normalvec+\mu \velocity &=0\,\,\,\,\,\,\text{ on }\Gamma_{l}.\label{Stokeseqn:5}	
+	\stress\normalvec+\stokesrobincoeff \velocity &=0\,\,\,\,\,\,\text{ on }\Gamma_{l}.\label{Stokeseqn:5}	
 	\end{align}
 \end{subequations}
 The solution to these equations is the pair $(\velocity, \pressure)$, where $\velocity$ is the ice flow velocity field, and $\pressure$ is the pressure field. Here, $\basalfriction$ is the unknown logarithmic
-basal sliding parameter field which is defined on the $2D$ surface $\Gamma_b$. The quantity $\bodyforce$ is the body force density due to gravity, $\normalvec$ is the outward normal and $\tangentop$ is the tangential projection operator that restricts a vector field to its tangential component along the boundary. 
+basal sliding parameter field which is defined on the $2D$ surface $\Gamma_b$. The quantity $\bodyforce$ is the body force density due to gravity, $\stokesrobincoeff=10^6$ is a Robin boundary condition constant,  $\normalvec$ is the outward normal and $\tangentop$ is the tangential projection operator that restricts a vector field to its tangential component along the boundary. 
 We employ Glen's flow law \cite{Glen1955}, $\stress= 2\eta
 \dot{\strain} -I\pressure$,
 which is a constitutive law for ice that relates the stress
@@ -779,10 +781,10 @@ We call this term the data misfit, because it measures the mismatch between the 
 \end{equation*}
 is a Bilaplacian regularization term. Specifically, $\basalfriction_0$ is the constant function $\basalfriction_0(x)=10.5$, and $\mathcal{K}$ is the inverse of the solution operator for the following elliptic PDE:
 \begin{align*}
--\gamma\Delta u +\delta\,u&=s\,\,\,\,\text{ in }\Omega,\\
-\gamma \nabla u\cdot\normalvec+\mu\,u&=0\,\,\,\text{ on }\partial\Omega.
+-\gamma\Delta u +\delta\,u&=\regrhs\,\,\,\,\text{ in }\Omega,\\
+\gamma \nabla u\cdot\normalvec+\regrobincoeff\,u&=0\,\,\,\text{ on }\partial\Omega.
 \end{align*}
-Recall that $\Omega$ is the 2D flattened version of the basal surface $\Gamma_b$.
+Recall that $\Omega$ is the 2D flattened version of the basal surface $\Gamma_b$. Here $\regrhs$ is a generic forcing term, and $\regrobincoeff=\sqrt{\delta \gamma}/1.42$ is a Robin boundary condition coefficient \cite{WhittleMatern}, and these quantities are different from $\bodyforce$ and $\stokesrobincoeff$ in the Stokes equation, \eqref{Stokeseqn}.
 In all results except one, $\gamma$ is chosen so that the Morozov discrepancy principle is satisfied, i.e.,
 \begin{equation*}
 	\frac{1}{2}\int_{\Gamma_{t}}||\observations_\text{obs} - \tangentop\velocity||_{2}^{2}\,dS = \frac{1}{2}\int_{\Gamma_{t}}||\xi||_{2}^{2}\,dS.
@@ -790,18 +792,18 @@ In all results except one, $\gamma$ is chosen so that the Morozov discrepancy pr
 The value of $\gamma$ satisfying the Morozov discrepancy principle is $\gamma=7.3 \times 10^3$. The exception is Figure \ref{fig:gamma_sweep}, where we vary $\gamma$ to study how changing $\gamma$ impacts the effectiveness of our preconditioner. The constant $\delta$ is chosen so that the correlation length of functions drawn from the normal distribution with covariance $\mathcal{K}^{-2}$, given by $L=\sqrt{\gamma/\delta}$, is $1/10$th the radius of the domain. 
 %, which is halfway between the maximum and minimum values of $\basalfriction_\text{true}$.
 
-We solve the inverse problem with an inexact Newton preconditioned conjugate gradient (PCG) scheme \cite{NOCEDAWRIGHT}, using $\basalfriction_0$ as the initial guess. The parameter is updated iteratively according to the formula
+We solve the inverse problem with an inexact Newton preconditioned conjugate gradient (PCG) scheme \cite{NOCEDAWRIGHT}, using $\basalfriction_0$ as the initial guess. The discretized parameter, $\bm{\basalfriction}$ is updated iteratively according to the formula
 $
-	\basalfriction_{k+1} = \basalfriction_k + \alpha_k \searchdir_k,
+	\bm{\basalfriction}_{k+1} = \bm{\basalfriction}_k + \alpha_k \bm{\searchdir}_k,
 $
-where $\searchdir_k$ approximately solves one of the following Newton linear systems,
+where $\bm{\searchdir}_k$ approximately solves one of the following Newton linear systems,
 \begin{equation}
 	\label{eq:newton_system}
-	H \searchdir_k = - g_k \qquad \text{or} \qquad H_\text{gn} \searchdir_k = - g_k,
+	\bm{H} \bm{\searchdir}_k = - \bm{g}_k \qquad \text{or} \qquad \bm{H}_\text{gn} \bm{\searchdir}_k = - \bm{g}_k,
 \end{equation}
-and the step length $\alpha_k \in \mathbb{R}$ is chosen by line search to satisfy the Armijo conditions \cite{ARMIJO}. Here $g_k$ is the gradient of $J$, $H$ is the Hessian, and $H_\text{gn}$ is the Gauss-Newton Hessian, and these derivatives are evaluated at $\basalfriction_k$. 
+and the step length $\alpha_k \in \mathbb{R}$ is chosen by line search to satisfy the Armijo conditions \cite{ARMIJO}. Here $\bm{g}_k$ is the discretized gradient of $J$, $\bm{H}$ is the discretized Hessian, and $\bm{H}_\text{gn}$ is the discretized Gauss-Newton Hessian, and these derivatives are evaluated at $\bm{\basalfriction}_k$. 
 %The Gauss-Newton Hessian is Hessian of $J$, except in the data misfit, $J_d$, the nonlinear mapping $\basalfriction \mapsto \tangentop \velocity$ is replaced by its local linearization at $\basalfriction_k$.
-We use $H_\text{gn}$ for the first five iterations, and $H$ for all subsequent iterations.  The Newton iteration terminates when $||g_k||/||g_0|| < 10^{-8}$. Systems \eqref{eq:newton_system} are solved inexactly using an inner PCG iteration, which terminates when the norm of the residual for the linear system is less than $\min \left(0.5, \sqrt{||g_k||}\right)||g_k||$. PCG only requires applying $H$ (or $H_\text{gn}$) to vectors. Each application of $H$ (or $H_\text{gn}$) to a vector requires solving one incremental forward and one incremental adjoint Stokes PDE of the form \eqref{Stokeseqn}, but with different right hand sides.
+We use $\bm{H}_\text{gn}$ for the first five iterations, and $\bm{H}$ for all subsequent iterations.  The Newton iteration terminates when $||\bm{g}_k||/||\bm{g}_0|| < 10^{-8}$. Systems \eqref{eq:newton_system} are solved inexactly using an inner PCG iteration, which terminates when the norm of the residual for the linear system is less than $\min \left(0.5, \sqrt{||\bm{g}_k||}\right)||\bm{g}_k||$. PCG only requires applying $\bm{H}$ (or $\bm{H}_\text{gn}$) to vectors. Each application of $\bm{H}$ (or $\bm{H}_\text{gn}$) to a vector requires solving one incremental forward and one incremental adjoint Stokes PDE of the form \eqref{Stokeseqn}, but with different right hand sides.
 
 \begin{figure}
 	\begin{subfigure}{0.24\textwidth}
@@ -827,15 +829,15 @@ We use $H_\text{gn}$ for the first five iterations, and $H$ for all subsequent i
 	%\begin{subfigure}{0.05\textwidth}
 	%	\includegraphics[scale=0.1]{mColorBar.png}
 	%\end{subfigure}
-	\caption{The log basal friction parameter $\basalfriction$ after $1$ (left), $3$ (second from left), and $4$ (third from left) Newton iterations, and the final Newton iterate (right). The PSF (5) preconditioner is constructed between Newton iterations 3 and 4.}
+	\caption{The log basal friction parameter after $1$ (left), $3$ (second from left), and $4$ (third from left) Newton iterations, and the final Newton iterate (right). The PSF (5) preconditioner is constructed between Newton iterations 3 and 4.}
 	\label{fig:newton_iterates} 
 \end{figure} 
 
-We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data-misfit Gauss-Newton Hessian (the term in $H_\text{gn}$ that arises from the data misfit) using 1, 5, and 25 impulse responses batches. These approximations are denoted by PSF (1), PSF (5), and PSF (25), respectively. The resulting H-matrices, which may be indefinite due to approximation error, are modified to be symmetric positive definite via the procedure described in Appendix \ref{sec:make_spd}, with $l=2$. We approximate $H_\text{gn}$ rather than $H$ because $H$ often has negative values in its integral kernel when one is away from the optimal point. Our results show that our preconditioners are also good preconditioners for $H$. The H-matrix approximation of the data misfit Gauss-Newton Hessian is added to a H-matrix approximation of the Hessian of the regularization term to form a H-matrix approximation of $H_\text{gn}$. Straightforward calculation shows that the discretized Hessian of the regularization term is given by
+We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data misfit Gauss-Newton Hessian (the term in $\bm{H}_\text{gn}$ that arises from the data misfit) using 1, 5, and 25 impulse responses batches. These approximations are denoted by PSF (1), PSF (5), and PSF (25), respectively. The resulting H-matrices, which may be indefinite due to approximation error, are modified to be symmetric positive definite via the procedure described in Appendix \ref{sec:make_spd}, with $l=2$. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $\bm{H}$ often has negative values in its integral kernel when one is away from the optimal point. Our results show that our preconditioners are also good preconditioners for $\bm{H}$. The H-matrix approximation of the data misfit Gauss-Newton Hessian is added to a H-matrix approximation of the Hessian of the regularization term to form a H-matrix approximation of $\bm{H}_\text{gn}$. Straightforward calculation shows that the discretized Hessian of the regularization term is given by
 $
 (\gamma \bm{K} + \delta \bm{M}) \bm{M}^{-1} (\gamma \bm{K} + \delta \bm{M})
 $
-where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary conditions, and $\bm{M}$ is the finite element mass matrix. These matrices are sparse, so we form H-matrix representations of these matrices and combine them using standard sparse H-matrix techniques. We factor the overall Gauss-Newton Hessian approximation, denoted $\widetilde{H}$, using fast H-matrix methods, then and use the factorization as a preconditioner \cite{HLIBPRO}. 
+where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary conditions, and $\bm{M}$ is the finite element mass matrix. These matrices are sparse, so we form H-matrix representations of these matrices and combine them using standard sparse H-matrix techniques. We factor the overall Gauss-Newton Hessian approximation, denoted $\bm{\preconditioner}$, using fast H-matrix methods, then and use the factorization as a preconditioner \cite{HLIBPRO}. 
 
 \begin{table}
 	{\small
@@ -847,9 +849,9 @@ where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary co
 				&  \multicolumn{3}{|c|}{PSF (5)} & \multicolumn{3}{|c|}{REG} & \multicolumn{3}{|c}{NONE} \\
 				\hline
 				Iter & 
-				\#CG & \#Stokes & $||g||$ & 
-				\#CG & \#Stokes & $||g||$ & 
-				\#CG & \#Stokes & $||g||$ \\
+				\#CG & \#Stokes & $||\bm{g}||$ & 
+				\#CG & \#Stokes & $||\bm{g}||$ & 
+				\#CG & \#Stokes & $||\bm{g}||$ \\
 				\verb~0~ &
 				\verb~1~ & \verb~4~ & \verb~2.0e+7~ &
 				\verb~1~ & \verb~4~ & \verb~2.0e+7~ &
@@ -895,7 +897,7 @@ where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary co
 			\endgroup
 		\end{center}
 	}
-	\caption{Convergence history for solving the Stokes inverse problem using preconditioned inexact Newton PCG. Preconditioners shown are our method with five impulse response batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\widehat{\basalfriction}_k$. Columns titled $||g||$ show the $l^2$ norm of the gradient at $\basalfriction_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\basalfriction_{k-1}$ to $\basalfriction_k$, plus one adjoint Stokes solve to compute the gradient at $\basalfriction_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. In the PSF (5) portion of row 3, we write $6+22$ to indicate that 6 Stokes solves were used during the standard course of the iteration, and 22 Stokes solves were used to build the PSF (5) preconditioner. }
+	\caption{Convergence history for solving the Stokes inverse problem using preconditioned inexact Newton PCG. Preconditioners shown are our method with five impulse response batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $||\bm{g}||$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. In the PSF (5) portion of row 3, we write $6+22$ to indicate that 6 Stokes solves were used during the standard course of the iteration, and 22 Stokes solves were used to build the PSF (5) preconditioner. }
 	\label{tab:newton_convergence_table}
 \end{table}
 
@@ -914,7 +916,7 @@ Table \ref{tab:newton_convergence_table} shows the performance of our preconditi
 		axis y line*=left,
 		xtick={0, 200, 400, 600},
 		xlabel={CG iteration},
-		ylabel={$||b-Hx_k||/||b||$},
+		ylabel={$||\bm{b}-\bm{H} \bm{x}_k||/||\bm{b}||$},
 		title={CG convergence},
 		legend style={at={(1.1,1)},anchor=north east},
 		%legend pos=north east,
@@ -966,13 +968,13 @@ Table \ref{tab:newton_convergence_table} shows the performance of our preconditi
 		\caption{}
 		\label{fig:gamma_sweep}
 	\end{subfigure}
-	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $Hx=b$ using PCG, where $b$ has i.i.d. random entries drawn from the standard normal distribution. 
+	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard normal distribution. 
 %		The y-axis is $||b-Hx_k||/||b||$, where $x_k$ is the $k$th PCG iterate. 
-	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle. Right (\ref{fig:gamma_sweep}) shows the number of PCG iterations required to achieve $||b-Hx_k||/||b|| < 10^{-6}$, where $x_k$ is the $k$th PCG iterate, for a range of different $\gamma$. Results in these figures are shown for our preconditioner with 1, 5, and 25 batches of impulse responses (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $H_\text{gn}$. For a fair comparison, even as $\gamma$ changes, $H$ and $H_\text{gn}$ are always evaluated at the same $\basalfriction$, which is the optimal point for the inverse problem with $\gamma=7.3 \times 10^3$.}
+	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle. Right (\ref{fig:gamma_sweep}) shows the number of PCG iterations required to achieve $||\bm{b}-\bm{H} \bm{x}_k||/||\bm{b}|| < 10^{-6}$, where $\bm{x}_k$ is the $k$th PCG iterate, for a range of different $\gamma$. Results in these figures are shown for our preconditioner with 1, 5, and 25 batches of impulse responses (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$. For a fair comparison, even as $\gamma$ changes, $\bm{H}$ and $\bm{H}_\text{gn}$ are always evaluated at the same $\bm{\basalfriction}$, which is the optimal point for the inverse problem with $\gamma=7.3 \times 10^3$.}
 	\label{fig:krylov_convergence}
 \end{figure} 
 
-Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\basalfriction$. We use PCG to solve a linear system with the Hessian as the coefficient operator and a right hand vector with random i.i.d. entries drawn from the standard normal distribution. In Figure \ref{fig:cg_convergence} we compare the convergence of PCG for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. PCG converges fastest with the PSF preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. PCG converges much slower with no preconditioning and regularization preconditioning than it does with PSF preconditioning, with no preconditioning outperforming regularization preconditioning. In Figure \ref{fig:gamma_sweep}, we perform PCG solves on linear systems of the same form, except now we vary $\gamma$. The performance of our PSF preconditioners is good and relatively stable over a wide range of $\gamma$'s. All PSF preconditioners perform the same for medium and large values of $\gamma$. For small values of $\gamma$ PSF (25) performs slightly better than PSF (5), which performs slightly better than PSF (1). As expected, regularization preconditioning performs well for large $\gamma$ and poorly for small $\gamma$. Our PSF preconditioners outperform no preconditioning and regularization preconditioning for medium and small $\gamma$, and perform similarly to regularization preconditioning for large $\gamma$.
+Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\bm{\basalfriction}$. We use PCG to solve a linear system with the Hessian as the coefficient operator and a right hand vector with random i.i.d. entries drawn from the standard normal distribution. In Figure \ref{fig:cg_convergence} we compare the convergence of PCG for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. PCG converges fastest with the PSF preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. PCG converges much slower with no preconditioning and regularization preconditioning than it does with PSF preconditioning, with no preconditioning outperforming regularization preconditioning. In Figure \ref{fig:gamma_sweep}, we perform PCG solves on linear systems of the same form, except now we vary $\gamma$. The performance of our PSF preconditioners is good and relatively stable over a wide range of $\gamma$'s. All PSF preconditioners perform the same for medium and large values of $\gamma$. For small values of $\gamma$ PSF (25) performs slightly better than PSF (5), which performs slightly better than PSF (1). As expected, regularization preconditioning performs well for large $\gamma$ and poorly for small $\gamma$. Our PSF preconditioners outperform no preconditioning and regularization preconditioning for medium and small $\gamma$, and perform similarly to regularization preconditioning for large $\gamma$.
 
 \begin{figure}
 	\begin{subfigure}{0.59\textwidth}
@@ -992,7 +994,7 @@ Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss
 			axis x line*=bottom,
 			axis y line*=left,
 			legend style={at={(0.95,1)},anchor=north east},
-			title={Generalized eigenvalues, $Hu_{k}=\lambda_{k}\preconditioner u_{k}$}
+			title={Generalized eigenvalues, $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$}
 			]
 			\addlegendentry{PSF (1)}
 			\addplot[blue, line width=0.5mm] table[x=k, y=psf1] {generalizedEigenvalues.dat};
@@ -1014,7 +1016,7 @@ Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss
 			\setlength{\tabcolsep}{4pt}
 			\renewcommand{\arraystretch}{1.25}
 			\begin{tabular}{c| c c}
-				& $\kappa(\preconditioner^{-1}H)$ &	$\kappa(\preconditioner^{-1}H_{\text{gn}})$ \\
+				& $\kappa(\bm{\preconditioner}^{-1} \bm{H})$ &	$\kappa(\bm{\preconditioner}^{-1} \bm{H}_{\text{gn}})$ \\
 				\hline 
 				PSF $(1)$  & \verb~1.75e+1~ & \verb~1.76e+1~ \\
 				PSF $(5)$  & \verb~1.39e+1~ & \verb~1.39e+1~ \\
@@ -1027,20 +1029,20 @@ Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss
 		\caption{}
 		\label{fig:condition_number}
 	\end{subfigure}
-	\caption{Left (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $H u_k = \lambda_k \preconditioner_k$. Here $H$ is the Hessian and $\preconditioner$ is the PSF approximation constructed using the Gauss-Newton Hessian, $H_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), or the regularization Hessian (REG). Right (\ref{fig:condition_number}): condition number, $\kappa$, for $\widetilde{H}^{-1} H$ and $\widetilde{H}^{-1} H_\text{gn}$ for these different preconditioners, and no preconditioner (NONE). All operators are evaluated at the $\basalfriction$ that solves the inverse problem for $\gamma=7.3 \times 10^3$, as determined by the Morozov discrepancy principle.}
+	\caption{Left (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_k = \lambda_k \bm{\preconditioner}_k$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), or the regularization Hessian (REG). Right (\ref{fig:condition_number}): condition number, $\kappa$, for $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$ for these different preconditioners, and no preconditioner (NONE). All operators are evaluated at the $\bm{\basalfriction}$ that solves the inverse problem for $\gamma=7.3 \times 10^3$, as determined by the Morozov discrepancy principle.}
 \end{figure}
 
 In Figure \ref{fig:generalized_eigenvalues} we show the generalized eigenvalues for the generalized eigenvalue problem
 $
-	H u = \lambda \preconditioner u.
+	\bm{H} \bm{u} = \lambda \bm{\preconditioner} \bm{u}.
 $
-Here $H$ is the Hessian evaluated at the reconstructed parameter $\basalfriction$ for $\gamma$ chosen to satisfy the Morozov discrepancy principle. The matrix $\preconditioner$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations constructed at that $\basalfriction$, or the regularization Hessian. The PSF preconditioners cluster the eigenvalues of the Hessian near one, with more batches yielding better clustering. The regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. In Figure \ref{fig:condition_number} we show the condition numbers of $\preconditioner^{-1}H$ and $\preconditioner^{-1}H_\text{gn}$. The PSF preconditioners yield the the smallest condition numbers, with more batches yielding smaller condition numbers. Regularization preconditioning and no preconditioning yield larger condition numbers. The condition numbers are similar for both $\preconditioner^{-1}H$ and $\preconditioner^{-1}H_\text{gn}$, demonstrating that the preconditioner built based on $H_\text{gn}$ is a good preconditioner for $H$.
+Here $\bm{H}$ is the Hessian evaluated at the reconstructed parameter $\bm{\basalfriction}$ for $\gamma$ chosen to satisfy the Morozov discrepancy principle. The matrix $\bm{\preconditioner}$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations constructed at that $\bm{\basalfriction}$, or the regularization Hessian. The PSF preconditioners cluster the eigenvalues of the Hessian near one, with more batches yielding better clustering. The regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. In Figure \ref{fig:condition_number} we show the condition numbers of $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$. The PSF preconditioners yield the the smallest condition numbers, with more batches yielding smaller condition numbers. Regularization preconditioning and no preconditioning yield larger condition numbers. The condition numbers are similar for both $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$, demonstrating that the preconditioner built based on $\bm{H}_\text{gn}$ is a good preconditioner for $\bm{H}$.
 
 
 \section{Conclusions}
 \label{sec:conclusions}
 
-We presented an efficient matrix-free method for approximating operators with locally supported non-negative integral kernels. The method only requires access to the operator via application of the operator to a small number of vectors; fast access to entries of the operator's matrix representation is not required. The idea of the method is to compute batches of impulse responses by applying the operator to Dirac combs of scattered point sources, then interpolate these known impulse responses to approximate unknown entries of the operator's integral kernel. The interpolation is based on a new principle we call ``local mean displacement invariance,'' which generalizes and improves upon classical local translation invariance. The ability to quickly approximate arbitrary integral kernel entries permits us to form a H-matrix approximation of the operator. Fast H-matrix arithmetic is then used to perform further linear algebra operations that cannot be performed easily with the original operator, such as matrix factorization and inversion. The supports of the impulse responses are estimated to be contained in ellipsoids, which are determined a-priori via a new procedure we presented that involves applying the operator to a small number of polynomial functions. Point source locations for the impulse response batches are chosen using a greedy ellipsoid packing procedure, in which we choose as many impulse responses per batch as possible, while ensuring that the supports of the corresponding ellipsoids do not overlap. We applied the method to approximate the Gauss-Newton Hessian in a Stokes ice sheet inverse problem, and saw that the approximation substantially outperforms existing Hessian approximation methods. Although the method we presented in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because our method can form high rank approximations of an operator using a small number of operator applications.
+We presented an efficient matrix-free method for approximating operators with locally supported non-negative integral kernels. The method only requires access to the operator via application of the operator to a small number of vectors; fast access to entries of the operator's matrix representation is not required. The idea of the method is to compute batches of impulse responses by applying the operator to Dirac combs of scattered point sources, then interpolate these known impulse responses to approximate unknown entries of the operator's integral kernel. The interpolation is based on a new principle we call ``local mean displacement invariance,'' which generalizes and improves upon classical local translation invariance. The ability to quickly approximate arbitrary integral kernel entries permits us to form a H-matrix approximation of the operator. Fast H-matrix arithmetic is then used to perform further linear algebra operations that cannot be performed easily with the original operator, such as matrix factorization and inversion. The supports of the impulse responses are estimated to be contained in ellipsoids, which are determined a-priori via a new procedure we presented that involves applying the operator to a small number of polynomial functions. Point source locations for the impulse response batches are chosen using a greedy ellipsoid packing procedure, in which we choose as many impulse responses per batch as possible, while ensuring that the supports of the corresponding ellipsoids do not overlap. We applied the method to approximate the Gauss-Newton Hessian in a Stokes ice sheet inverse problem, and saw that the approximation substantially outperforms existing Hessian approximation methods. Although the method we presented in this paper is not applicable to all Hessians, it is applicable to several Hessians of practical interest. For these Hessians, our method offers a \emph{data-scalable} alternative to conventional low rank Hessian approximation methods, because our method can form high rank approximations of an operator using a small number of operator applications.
 
 \appendix
 
