@@ -784,7 +784,7 @@ is a Bilaplacian regularization term. Specifically, $\basalfriction_0$ is the co
 -\gamma\Delta u +\delta\,u&=\regrhs\,\,\,\,\text{ in }\Omega,\\
 \gamma \nabla u\cdot\normalvec+\regrobincoeff\,u&=0\,\,\,\text{ on }\partial\Omega.
 \end{align*}
-Recall that $\Omega$ is the 2D flattened version of the basal surface $\Gamma_b$. Here $\regrhs$ is a generic forcing term, and $\regrobincoeff=\sqrt{\delta \gamma}/1.42$ is a Robin boundary condition coefficient \cite{WhittleMatern}, and these quantities are different from $\bodyforce$ and $\stokesrobincoeff$ in the Stokes equation, \eqref{Stokeseqn}.
+Recall that $\Omega$ is the 2D flattened version of the basal surface $\Gamma_b$. Here $\regrhs$ is a generic forcing term, and $\regrobincoeff=\sqrt{\delta \gamma}/1.42$ is a Robin boundary condition coefficient \cite{Roininen14}, and these quantities are different from $\bodyforce$ and $\stokesrobincoeff$ in the Stokes equation, \eqref{Stokeseqn}.
 In all results except one, $\gamma$ is chosen so that the Morozov discrepancy principle is satisfied, i.e.,
 \begin{equation*}
 	\frac{1}{2}\int_{\Gamma_{t}}||\observations_\text{obs} - \tangentop\velocity||_{2}^{2}\,dS = \frac{1}{2}\int_{\Gamma_{t}}||\xi||_{2}^{2}\,dS.
