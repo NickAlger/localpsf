@@ -797,7 +797,7 @@ $
 where $\searchdir_k$ approximately solves one of the following Newton linear systems,
 \begin{equation}
 	\label{eq:newton_system}
-	H \searchdir_k = - g_k \qquad \text{or} \qquad H_\text{gn}, \searchdir_k = - g_k,
+	H \searchdir_k = - g_k \qquad \text{or} \qquad H_\text{gn} \searchdir_k = - g_k,
 \end{equation}
 and the step length $\alpha_k \in \mathbb{R}$ is chosen by line search to satisfy the Armijo conditions \cite{ARMIJO}. Here $g_k$ is the gradient of $J$, $H$ is the Hessian, and $H_\text{gn}$ is the Gauss-Newton Hessian, and these derivatives are evaluated at $\basalfriction_k$. 
 %The Gauss-Newton Hessian is Hessian of $J$, except in the data misfit, $J_d$, the nonlinear mapping $\basalfriction \mapsto \tangentop \velocity$ is replaced by its local linearization at $\basalfriction_k$.
