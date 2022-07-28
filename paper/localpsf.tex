@@ -109,7 +109,7 @@ Picking the batches of points requires us to estimate the supports of the $\phi_
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=0.85]{mean_displacement_invariance.pdf}
+		\includegraphics[scale=0.8]{mean_displacement_invariance.pdf}
 	\end{center}
 	\caption{$\Aop$ is locally mean-displacement invariant if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \spatialmean(x) + \spatialmean(x')\right)$ when $x$ is close to $x'$. Here $\spatialmean(z)$ denotes the mean (center of mass) of $\phi_z$.}
 	\label{fig:mean_displacement_invariance}
@@ -150,7 +150,9 @@ The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral
 \subsection{Distributions and impulse responses}
 \label{sec:impulse_response_2}
 
-The action of $\Aop$ may be extended to distributions if $\Aker$ is sufficiently regular. We derive the extension as follows. Suppose $\rho \in L^2(\Omega)'$, and let $\rho^* \in L^2(\Omega)$ denote the Riesz representative of $\rho$ with respect to the $L^2(\Omega)$ inner product. We have
+The action of $\Aop$ may be extended to distributions if $\Aker$ is sufficiently regular. 
+%We derive the extension as follows. 
+Let $\rho \in L^2(\Omega)'$, and let $\rho^* \in L^2(\Omega)$ denote the Riesz representative of $\rho$ with respect to the $L^2(\Omega)$ inner product. We have
 \begin{subequations}
 	\label{eq:extension_to_distributions}
 	\begin{align}
@@ -160,7 +162,7 @@ The action of $\Aop$ may be extended to distributions if $\Aker$ is sufficiently
 	\end{align}
 \end{subequations}
 where $\Aker(y,\cdot)$ denotes the function $x \mapsto \Aker(y,x)$.
-Now let $\mathcal{D}(\Omega) \subset L^2(\Omega)$ be a suitable space of test functions, and instead suppose $\rho:\mathcal{D}(\Omega) \rightarrow \mathbb{R}$ is a distribution. In this case, the Riesz representative $\rho^*$ may not exist, so the derivation in \eqref{eq:extension_to_distributions} is not valid. However, if $\Aker$ is sufficiently regular such that the function $y \mapsto \rho\left(\Aker(y,~\cdot~)\right)$ is well-defined for almost all $y\in\Omega$, and if this function is in $L^2(\Omega)$, then the right hand side of \eqref{eq:action_on_distribution} is well-defined. Hence, we \emph{define} the action of $\Aop$ on the distribution $\rho$ to be the right hand side of \eqref{eq:action_on_distribution}. For convenience of notation, we denote this action by ``$\Aop \genericdistribution^*$,'' even if $\rho^*$ does not exist.
+Now let $\mathcal{D}(\Omega) \subset L^2(\Omega)$ be a suitable space of test functions, and let $\rho:\mathcal{D}(\Omega) \rightarrow \mathbb{R}$ be a distribution. In this case, the Riesz representative $\rho^*$ may not exist, so the derivation in \eqref{eq:extension_to_distributions} is not valid. However, if $\Aker$ is sufficiently regular such that the function $y \mapsto \rho\left(\Aker(y,~\cdot~)\right)$ is well-defined for almost all $y\in\Omega$, and if this function is in $L^2(\Omega)$, then the right hand side of \eqref{eq:action_on_distribution} is well-defined. Hence, we \emph{define} the action of $\Aop$ on the distribution $\rho$ to be the right hand side of \eqref{eq:action_on_distribution}. For convenience of notation, we denote this action by ``$\Aop \genericdistribution^*$,'' even if $\rho^*$ does not exist.
 
 Let $\delta_x$ denote the delta distribution\footnote{Recall that the delta distribution $\delta_x:\mathcal{D}(\Omega)\rightarrow \mathbb{R}$ is the linear functional defined by $\delta_x(w) = w(x)$ for all $w\in \mathcal{D}(\Omega)$.} (i.e., point source, impulse) centered at the point $x \in \Omega$.
 The \emph{impulse response} of $\Aop$ associated with $x$ is the function $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$, 
@@ -1150,17 +1152,15 @@ In \cite{GilitschenskiHanebeck12} it is shown that $E_1 \cap E_2 = \{\}$ if and 
 %\end{figure}
 
 The function $K(s)$ may be evaluated quickly for many $s$ by pre-computing the solution to the generalized eigenvalue problem
-\begin{equation*}
+$
 	\spatialcov_1 \eigenvectormatrix = \spatialcov_2 \eigenvectormatrix \Lambda,
-\end{equation*}
+$
 where $\eigenvectormatrix \in \mathbb{R}^{\gdim \times \gdim}$ is the matrix of generalized eigenvectors (which may be non-orthogonal), and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_\gdim)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. The matrix $\eigenvectormatrix$ simultaneously diagonalizes $\spatialcov_1$ and $\spatialcov_2$, in the sense that $\eigenvectormatrix^T\spatialcov_1 \eigenvectormatrix = \Lambda$, and $\eigenvectormatrix^T\spatialcov_2 \eigenvectormatrix = I$, where $I$ is the $\gdim \times \gdim$ identity matrix. Using this diagonalization, and some algebraic manipulations, we may write $K(s)$ as
 \begin{equation}
 	\label{eq:Ks_generalized}
 	K(s) = 1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2,
 \end{equation}
-where $v := \eigenvectormatrix^T\left(\spatialmean_1 - \spatialmean_2\right)$. 
-
-To check whether $E_1$ and $E_2$ intersect, we compute the generalized eigenvalue decomposition of $\spatialcov_1$ and $\spatialcov_2$, form $v$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's minimization algorithm \cite{Brent71} (any fast 1 dimensional convex optimization routine may be used). If $K(s^*) <0$ at the minimizer $s^*$, then $E_1 \cap E_2 = \{\}$. Otherwise $E_1 \cap E_2 \neq \{\}$.
+where $v := \eigenvectormatrix^T\left(\spatialmean_1 - \spatialmean_2\right)$. To check whether $E_1$ and $E_2$ intersect, we compute the generalized eigenvalue decomposition of $\spatialcov_1$ and $\spatialcov_2$, form $v$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's minimization algorithm \cite{Brent71}. If $K(s^*) <0$ at the minimizer, $s^*$, then $E_1 \cap E_2 = \{\}$. Otherwise $E_1 \cap E_2 \neq \{\}$.
 %The resulting algorithm for checking whether $E_1$ and $E_2$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
 
 %\begin{algorithm2e}
@@ -1197,16 +1197,14 @@ To check whether $E_1$ and $E_2$ intersect, we compute the generalized eigenvalu
 
 \subsection{Ellipsoid bounding box test}
 
-One may reduce the average cost of performing ellipsoid intersection tests by first checking whether the coordinate axis aligned bounding boxes for the ellipsoids intersect. If the bounding boxes do not intersect, then the ellipsoids do not intersect, so no further action is necessary. If the bounding boxes intersect, the ellipsoids might intersect, or they might not intersect, so one must perform the complete ellipsoid intersection test described in Section \ref{sec:fast_ellipsoid_intersection_test}.
-
-The smallest coordinate axis aligned box that contains the ellipsoid 
+One may reduce the average cost of performing ellipsoid intersection tests by first checking whether the coordinate axis aligned bounding boxes for the ellipsoids intersect. If the bounding boxes do not intersect, then the ellipsoids do not intersect, so no further action is necessary. If the bounding boxes intersect, the ellipsoids might intersect, or they might not intersect, so one must perform the complete ellipsoid intersection test described in Section \ref{sec:fast_ellipsoid_intersection_test}. The smallest coordinate axis aligned box that contains the ellipsoid 
 $
 E = \{x : (x - \spatialmean)^T \spatialcov^{-1} (x - \spatialmean) \le \tau^2\}
 $
-is given as follows:
-\begin{equation*}
+is the box
+$
 	\prod_{i=1}^\gdim \left[ \spatialmean_i -\tau\sqrt{\Sigma_{ii}}, \spatialmean_i +\tau\sqrt{\Sigma_{ii}} \right],
-\end{equation*}
+$
 where $\Sigma_{ii}$ is the $i$th diagonal entry of $\Sigma$\footnote{See \url{https://math.stackexchange.com/q/3928964}}. The boxes
 $\prod_{i=1}^\gdim \left[a_i^-, a_i^+\right]$ and $\prod_{i=1}^\gdim \left[b_i^-, b_i^+\right]$
 intersect if and only if $a_i^- \le b_i^+$ and $b_i^- \le a_i^+$ for $i=1,\dots,d$.
@@ -1224,13 +1222,13 @@ If $\Aop$ is symmetric, we symmetrize $\mathbf{A}_H$ as follows
 $
 \mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
 $
-If $\Aop$ is also positive semi-definite, we adapt the high order rational function spectral projection method from \cite[Section 13.8]{HackbuschKress07} to flip (or approximately flip) the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ to be positive. In detail, let $\Pi$ be the indicator function for the interval $(a,b)$,
-\begin{equation*}
-	\Pi(\lambda) = \begin{cases}
-		1, & \lambda \in (a,b), \\
-		0, & \text{otherwise}.
-	\end{cases}
-\end{equation*}
+If $\Aop$ is also positive semi-definite, we adapt the high order rational function spectral projection method from \cite[Section 13.8]{HackbuschKress07} to flip (or approximately flip) the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ to be positive. In detail, let $\Pi$ be the indicator function for the interval $(a,b)$. That is, $\Pi(\lambda)=0$ for $\lambda \in (0,1)$, and $\Pi(\lambda)=0$ otherwise.
+%\begin{equation*}
+%	\Pi(\lambda) = \begin{cases}
+%		1, & \lambda \in (a,b), \\
+%		0, & \text{otherwise}.
+%	\end{cases}
+%\end{equation*}
 Using functional calculus to extend the domain of the function $\Pi$ from scalars to matrices, we define
 $
 \mathbf{\Pi} := \Pi(\mathbf{A}_H^{\text{sym}}).
