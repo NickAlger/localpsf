@@ -1,41 +1,43 @@
 import numpy as np
 
-N1 = 4
-N2 = 5
-N3 = 7
-N4 = 2
-N5 = 3
 
-r1 = 3
-r2 = 4
-r3 = 5
-r4 = 2
-r5 = 2
+####    Make random Tucker tensor A    ####
 
-U1 = np.random.randn(N1, r1)
-U2 = np.random.randn(N2, r2)
-U3 = np.random.randn(N3, r3)
-U4 = np.random.randn(N4, r4)
-U5 = np.random.randn(N5, r5)
+NN = [7,8,6,5]
+rr_tucker = [3,4,5,2]
+UU = [np.random.randn(N, r) for N, r in zip(NN, rr_tucker)]
+C = np.random.randn(*tuple(rr_tucker))
 
-C = np.random.randn(r1,r2,r3,r4,r5)
-A = np.einsum('ia,jb,kc,ld,he,abcde->ijklh', U1, U2, U3, U4, U5, C)
-
-# A = np.random.randn(N1, N2, N3, N4, N5)
+A = np.einsum('ia,jb,kc,ld,abcd->ijkl', UU[0], UU[1], UU[2], UU[3], C)
 print('A.shape=', A.shape)
 
-Q_A = np.linalg.svd(A.swapaxes(0,1).reshape((N2, N1*N3*N4*N5)))[0][:,:r2]
 
-Z = np.random.randn(N1, N1)
-ZA = np.dot(Z, A.reshape((N1, N2*N3*N4*N5))).reshape((N1, N2, N3, N4, N5))
-Q_ZA = np.linalg.svd(ZA.swapaxes(0,1).reshape((N2, N1*N3*N4*N5)))[0][:,:r2]
-# Q_ZA = np.linalg.svd(ZA.reshape((N1*N2, N3*N4*N5)))[0][:,:r1]
+####    Construct low rank basis, Q, for combined first two modes of A    ####
+
+U, ss, _ = np.linalg.svd(A.reshape((NN[0]*NN[1], NN[2]*NN[3])), full_matrices=False)
+good_inds = (ss >  np.max(ss) * 1e-10)
+Q = U[:, good_inds]
+print('Q.shape=', Q.shape)
 
 
+####    Form tensor B by contracting random square matrix into first mode of A    ####
 
-# np.einsum('')
+Z = np.random.randn(NN[0], NN[0])
+B = np.einsum('ai,ijkl->ajkl', Z, A)
 
-Q2_A, R2_A = np.linalg.qr(np.dot(np.linalg.inv(Z), Q_ZA.reshape((r1, N2))).reshape((r1*N2, N1*N2)))
 
-err = np.linalg.norm(Q_A - Q2_A @ Q2_A.T @ Q_A) / np.linalg.norm(Q_A)
-print('err', err)
+####    Construct low rank basis, QB, for combined first two modes of B    ####
+
+UB, ssB, _ = np.linalg.svd(B.reshape((NN[0]*NN[1], NN[2]*NN[3])), full_matrices=False)
+good_indsB = (ssB >  np.max(ssB) * 1e-10)
+QB = UB[:, good_indsB]
+print('QB.shape=', QB.shape)
+
+
+####    Contract A^-1 into first mode of 3-tensor reshaped QB, turn into a matrix again, and reorthogonalize to get Q2    ####
+
+G = np.einsum('ai,ijk->ajk', np.linalg.inv(Z), QB.reshape((NN[0], NN[1], QB.shape[1])))
+Q2, _ = np.linalg.qr(G.reshape((NN[0]*NN[1], QB.shape[1])))
+
+err = np.linalg.norm(Q - np.dot(Q2, np.dot(Q2.T, Q))) / np.linalg.norm(Q)
+print('err=', err)
