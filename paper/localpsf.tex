@@ -1121,7 +1121,7 @@ We presented an efficient matrix-free PSF method for approximating operators wit
 The procedure for choosing sample points relies on quickly determining whether two ellipsoids intersect. Let $E_1$ and $E_2$ be the ellipsoids defined as
 \begin{align*}
 	E_1 :=& \{x : (x - \spatialmean_1)^T \spatialcov_1^{-1} (x - \spatialmean_1) \le \tau^2\}, \\
-	E_2 :=& \{x : (x - \spatialmean_2)^T \spatialcov_2^{-1} (x - \spatialmean_2) \le \tau^2\}, \\
+	E_2 :=& \{x : (x - \spatialmean_2)^T \spatialcov_2^{-1} (x - \spatialmean_2) \le \tau^2\},
 \end{align*}
 where $\spatialmean_1, \spatialmean_2 \in \mathbb{R}^\gdim$, and $\spatialcov_1, \spatialcov_2 \in \mathbb{R}^{\gdim \times \gdim}$ are positive definite. Let $K$ be the following one dimensional convex function:
 \begin{equation*}
