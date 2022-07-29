@@ -11,7 +11,7 @@
 % Optional PDF information
 \ifpdf
 \hypersetup{
-  pdftitle={Fast matrix-free approximation of locally translation invariant operators that have locally supported non-negative integral kernels, with application to Hessians in PDE-constrained inverse problems},
+  pdftitle={Efficient matrix-free point spread function approximation of operators with locally supported non-negative integral kernels, with application to Hessians in PDE constrained inverse problems},
   pdfauthor={N. Alger, N. Petra, T. Hartland, and O. Ghattas}
 }
 \fi
@@ -40,27 +40,27 @@
 
 % REQUIRED
 \begin{abstract}
-	We present an efficient matrix-free point spread function (PSF) method for approximating operators that have locally supported non-negative integral kernels. Such operators arise as Schur complements in Schur complement methods for solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in PDE-constrained inverse problems. We compute impulse responses of the operator at a collection of scattered points, then interpolate translated versions of these impulse responses to evaluate entries of the integral kernel at other points where the impulse response is not known. The interpolation uses a new approximation we call ``local mean displacement invariance,'' which improves upon classical local translation invariance.
+	We present an efficient matrix-free point spread function (PSF) method for approximating operators that have locally supported non-negative integral kernels. Such operators arise as Schur complements in Schur complement methods for solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in PDE constrained inverse problems. We compute impulse responses of the operator at a collection of scattered points, then interpolate translated versions of these impulse responses to approximate entries of the integral kernel. The interpolation uses a new approximation we call ``local mean displacement invariance,'' which improves upon classical local translation invariance.
 %	Classical H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. 
-	Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. By solving an ellipsoid packing problem, we choose as many point sources as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. Support ellipsoids for the impulse responses are estimated a-priori by applying the operator to a small number of low order polynomial functions, then post-processing the resulting functions to determine impulse response moments for all points simultaneously.
-	The ability to rapidly evaluate kernel entries allows us to construct a hierarchical matrix (H-matrix) approximation of the operator. Fast H-matrix methods are used to perform further matrix computations including matrix-matrix addition and multiplication, matrix inversion and factorization, and matrix-vector products in nearly-linear complexity.
-	We apply the method to approximate the Hessian in a large-scale PDE-constrained inverse problem with highly informative data. Numerical results demonstrate that our method substantially outperforms existing methods. We are able to approximate high rank operators using only a small number of operator applies.
+	Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. By solving an ellipsoid packing problem, we choose as many point sources as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. Support ellipsoids are estimated a-priori based on impulse response moments, and these moments are computed for impulse responses at all points simultaneously via a procedure that involves applying the operator to a small number of polynomial functions.
+	The ability to rapidly evaluate kernel entries allows us to construct a hierarchical matrix (H-matrix) approximation of the operator. Fast H-matrix methods are used to perform further matrix computations in nearly-linear complexity, including matrix-matrix addition and multiplication, matrix inversion and factorization, and matrix-vector products.
+	We use the method to approximate the Hessian in an ice sheet flow PDE constrained inverse problem. Numerical results demonstrate that our method substantially outperforms existing methods. We are able to approximate high rank operators using a small number of operator applies.
 \end{abstract}
 
 % REQUIRED
 \begin{keywords}
-  
+ 	data scalability, Hessian, hierarchical matrix, matrix-free, operator approximation, PDE constrained inverse problems, point spread function, product-convolution, local translation invariance, impulse response
 \end{keywords}
 
 % REQUIRED
 \begin{AMS}
-  
+ 	35R30, 41A05, 41A35, 41A36, 42A85, 47A52, 47A58, 49K20, 65D12, 65F08, 65F10, 65N20, 65N21, 86A22, 86A40
 \end{AMS}
 
 \section{Introduction}
 \label{sec:intro}
 
-We present a fast \emph{matrix-free} point spread function (PSF) method for approximating operators, $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$, that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, $\gdim$ is the spatial dimension, and $L^2(\Omega)'$ is the space of continuous linear functionals on $L^2(\Omega)$ (i.e., the topological dual space). Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{le1997non,saad1999distributed,TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps) \cite{DTNMAP}, covariance operators in spatial statistics \cite{GeogaEtAl20,ChenStein21,LindgrenRueLindstrom11}, blurring operators in imaging \cite{DenisEtAl11,NagyOleary98}, and Hessians in distributed parameter PDE-constrained optimization and inverse problems \cite{AlgerEtAl19,IsaacEtAl15}. By ``matrix-free,'' we mean that we have a black-box computational procedure through which we may apply $\Aop$ and its transpose\footnote{Recall that the transpose $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(w) = \left(\Aop w\right)(u)$ for all $u,w \in L^2(\Omega)$, where the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$, and similar for the analogous operations with $\Aop^T$. }, $\Aop^T$, to arbitrary functions,
+We present a fast \emph{matrix-free} point spread function (PSF) method for approximating operators, $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$, that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, $\gdim$ is the spatial dimension, and $L^2(\Omega)'$ is the space of continuous linear functionals on $L^2(\Omega)$ (i.e., the topological dual space). Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{le1997non,saad1999distributed,TOBYPAPER}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps) \cite{DTNMAP}, covariance operators in spatial statistics \cite{GeogaEtAl20,ChenStein21,LindgrenRueLindstrom11}, blurring operators in imaging \cite{DenisEtAl11,NagyOleary98}, and Hessians in distributed parameter PDE constrained optimization and inverse problems \cite{AlgerEtAl19,IsaacEtAl15}. By ``matrix-free,'' we mean that we have a black-box computational procedure through which we may apply $\Aop$ and its transpose\footnote{Recall that the transpose $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(w) = \left(\Aop w\right)(u)$ for all $u,w \in L^2(\Omega)$, where the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$, and similar for the analogous operations with $\Aop^T$. }, $\Aop^T$, to arbitrary functions,
 \begin{equation}
 \label{eq:eval_maps}
 u \mapsto\Aop u \qquad \text{and} \qquad w \mapsto \Aop^T w,
@@ -121,7 +121,7 @@ H-matrix methods permit us to perform matrix-vector products cheaply, and perfor
 %These H-matrix methods are fast and scale well to large problems. 
 The work and memory required to perform these operations for an $\fedim \times \fedim$ H-matrix scales 
 %as $O(\fedim \log(\fedim)^a)$, where $a \in \{0,1,2,3\}$. That is, the cost is \emph{nearly-linear}
-\emph{nearly-linearly} in $N$ (i.e., $o(N^{1+\epsilon})$ for any $\epsilon > 0$). The exact cost depends on the type of H-matrix used, the operation being performed, and the rank of the off-diagonal blocks (see \cite{GrasedyckHackbusch03}). The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE-constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
+\emph{nearly-linearly} in $N$ (i.e., $o(N^{1+\epsilon})$ for any $\epsilon > 0$). The exact cost depends on the type of H-matrix used, the operation being performed, and the rank of the off-diagonal blocks (see \cite{GrasedyckHackbusch03}). The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
 %Classical H-matrix construction methods 
 %(described in Appendix \ref{sec:H_matrix_construction}) 
 %require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available matrix free.
