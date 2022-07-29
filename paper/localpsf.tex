@@ -195,10 +195,10 @@ In computations, functions are discretized and replaced by finite dimensional ve
 
 Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of continuous Galerkin finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space under the $L^2$ inner product, and let $\fepoint_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. We assume that the finite element basis satisfies the Kronecker property, i.e., $\febasis_i(\fepoint_i)=1$ and $\febasis_i(\fepoint_j)=0$ if $i\neq j$. 
 For $u_h \in V_h$ we write $\bm{u} \in \mathbb{R}^\nsamplepts_\massmatrix$ to denote the coefficient vector for $u_h$ with respect to the finite element basis, i.e.,
-\begin{equation}
-\label{eq:fem_coeff_basis}
+$
+%\label{eq:fem_coeff_basis}
 u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x).
-\end{equation}
+$
 Linear functionals $\rho_h \in V_h'$ have coefficient dual vectors $\boldsymbol{\rho}\in \mathbb{R}^\nsamplepts_{\massmatrix^{-1}}$, with entries $\boldsymbol{\rho}_i = \rho_h(\febasis_i)$ for $i=1,\dots,\nsamplepts$.
 %\begin{equation*}
 %\boldsymbol{\rho}_i = \rho_h(\febasis_i), \qquad i=1,\dots,\nsamplepts. 
@@ -226,21 +226,21 @@ $
 \boldsymbol{\rho}^* = \massmatrix^{-1} \boldsymbol{\rho}.
 $
 Therefore, the formula for the impulse response from \eqref{eq:impulse_response_delta_action} becomes 
-\begin{equation}
-\label{eq:discrete_kernel}
+$
+%\label{eq:discrete_kernel}
 \boldsymbol{\impulseresponse}_x = \left(A_h \delta_x^*\right)^* =  \massmatrix^{-1}\mathbf{A} \massmatrix^{-1} \boldsymbol{\delta}_x,
-\end{equation}
+$
 and the $(y,x)$ kernel entry of $\Aker_h$ may be written as
-\begin{equation}
-\label{eq:approx_kernel_entry_81}
+$
+%\label{eq:approx_kernel_entry_81}
 	\Aker_h(y,x) = \boldsymbol{\delta}_y^T \boldsymbol{\impulseresponse}_x = \boldsymbol{\delta}_y^T \massmatrix^{-1}\mathbf{A} \massmatrix^{-1} \boldsymbol{\delta}_x.
-\end{equation}
+$
 Now define $\mathbf{\Aker} \in \mathbb{R}^{\fedim \times \fedim}$ to be the following dense matrix of kernel entries evaluated at all pairs of Lagrange nodes:
 \begin{equation}
 \label{eq:Akerpcmat_entries}
 \mathbf{\Aker}_{ij} := \Aker_h(\fepoint_i, \fepoint_j).
 \end{equation}
-Because of the Kronecker property of the finite element basis, we have $\boldsymbol{\delta}_{\fepoint_i} = \mathbf{e}_i$. Thus from \eqref{eq:approx_kernel_entry_81} we have
+Because of the Kronecker property of the finite element basis, we have $\boldsymbol{\delta}_{\fepoint_i} = \mathbf{e}_i$. Thus, we have
 $
 	\Aker_h(\fepoint_i,\fepoint_j) = \left(\massmatrix^{-1}\mathbf{A} \massmatrix^{-1}\right)_{ij},
 $
@@ -249,10 +249,9 @@ which implies
 \label{eq:boldA}
 	\mathbf{A} = \massmatrix \mathbf{\Aker} \massmatrix.
 \end{equation}
-Broadly, our method will construct an H-matrix approximation of $\mathbf{A}$ by forming H-matrix approximations of $\boldsymbol{\Aker}$ and $\massmatrix$ (or a lumped mass version of $\massmatrix$), then multiplying these matrices with H-matrix methods per \eqref{eq:boldA}. Classical H-matrix construction methods require access to arbitrary matrix entries $\mathbf{\Aker}_{ij}$, but these matrix entries are not easily accessible. The bulk of our method is therefore dedicated to forming approximations of these matrix entries that can be evaluated rapidly.
+Broadly, our method will construct an H-matrix approximation of $\mathbf{A}$ by forming H-matrix approximations of $\boldsymbol{\Aker}$ and $\massmatrix$ (or a lumped mass version of $\massmatrix$), then multiplying these matrices per \eqref{eq:boldA} using H-matrix methods. Classical H-matrix construction methods require access to arbitrary matrix entries $\mathbf{\Aker}_{ij}$, but these matrix entries are not easily accessible. The bulk of our method is therefore dedicated to forming approximations of these matrix entries that can be evaluated rapidly.
 
-\paragraph{Lumped mass matrix} At the continuum level, the integral kernel $\Aker$ is assumed to be non-negative. However, when we compute impulse responses we are effectively operating with the discrete integral kernel shown in \eqref{eq:approx_kernel_entry_81}.
-The inverse mass matrices in this formula, $\massmatrix^{-1}$, will typically contain negative numbers. If there are too many negative numbers, or if the negative numbers are too large, our algorithm will be less robust. We therefore recommend replacing the mass matrix $\massmatrix$ with a positive diagonal \emph{lumped mass} approximation. 
+\paragraph{Lumped mass matrix} At the continuum level, $\Aker$ is assumed to be non-negative. However, entries of the discrete integral kernel, $\Aker_h$, involve inverse mass matrices, $\massmatrix^{-1}$, which typically contain negative numbers. If there are too many negative numbers, or if the negative numbers are too large, our algorithm will be less robust. We therefore recommend replacing the mass matrix, $\massmatrix$, with a positive diagonal \emph{lumped mass} approximation. 
 In our numerical results, we use the lumped mass matrix constructed by replacing off-diagonal entries of the mass matrix by zero. Other more advanced mass lumping techniques may be used. See \cite{Hughes12} for a discussion of lumped mass matrices.
 
 
@@ -313,7 +312,7 @@ for $i,j=1,\dots,\gdim$. Using the definition of $\spatialvol$ in \eqref{eq:defi
 \begin{equation*}
 	\spatialvol(x) = \int_\Omega \phi_x(y) C(y) ~ dy = \left(\phi_x, C\right)_{L^2(\Omega)} = \left(\mathcal{A}^T C\right)^*(x).
 \end{equation*}
-Hence, we may compute $\spatialvol(x)$ for all $x$ simultaneously by applying $\Aop^T$ to $C$. Analogous manipulations show that $\spatialmean(x)$ and $\spatialcov(x)$ may be computed for all points $x$ simultaneously by applying $\Aop^T$ to the functions $L^i$ and $Q^{ij}$, respectively. To summarize the results of doing this, we have
+Hence, we compute $\spatialvol(x)$ for all $x$ simultaneously by applying $\Aop^T$ to $C$. Analogous manipulations show that $\spatialmean(x)$ and $\spatialcov(x)$ may be computed for all points $x$ simultaneously by applying $\Aop^T$ to the functions $L^i$ and $Q^{ij}$, respectively. To summarize the results of doing this, we have
 \begin{subequations}
 	\label{eq:vol_mean_var}
 	\begin{align}
@@ -322,7 +321,7 @@ Hence, we may compute $\spatialvol(x)$ for all $x$ simultaneously by applying $\
 	\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
 	\end{align}
 \end{subequations}
-for $i,j=1,\dots, \gdim$. Here $u/w$ denotes pointwise division of functions, $\left(u/w\right)(x) = u(x)/w(x)$, and $u\cdot w$ denotes pointwise multiplication of functions, $(u \cdot w)(x) = u(x)w(x)$.
+for $i,j=1,\dots, \gdim$. Here $u/w$ denotes pointwise division, $\left(u/w\right)(x) = u(x)/w(x)$, and $u\cdot w$ denotes pointwise multiplication, $(u \cdot w)(x) = u(x)w(x)$.
 %The resulting method for computing discretized versions of $\spatialvol$, $\spatialmean$, and $\spatialcov$ is shown in Algorithm \ref{alg:varhpi_mean_cov}.
 
 %\begin{algorithm2e}
@@ -363,9 +362,7 @@ Next, we make the approximation that the support of $\impulseresponse_x$ is cont
 \label{eq:support_ellipsoid}
 E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
 \end{equation}
-where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$.
-
-The quantity $\tau$ is a parameter that must be chosen appropriately. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (the more ellipsoids the better), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. In practice, we find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
+where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$. The quantity $\tau$ is a parameter that must be chosen appropriately. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids is better), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. In practice, we find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
 
 
 \subsection{Local mean-displacement invariance}
@@ -394,9 +391,9 @@ We use approximation \eqref{eq:translate4}, which is the same as \eqref{eq:trans
 \section{Operator approximation algorithm}
 \label{sec:method}
 
-Section \ref{sec:intromoments} allows us to compute $\spatialvol$, $\spatialmean$, and $\spatialcov$ by applying $\Aop^T$ to a small number of polynomial functions, and \eqref{eq:support_ellipsoid} uses $\spatialvol$, $\spatialmean$, and $\spatialcov$ to form an ellipsoid shaped estimate for the support of $\phi_x$, \emph{without} computing $\phi_x$. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute the impulse response batch $\eta_b$ by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support of $\impulseresponse_{x_i}$ and the support of $\impulseresponse_{x_j}$ do not overlap (or do not overlap much) if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because these supports do not overlap, we can post-process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated to get more batches, until a desired number of impulse responses is reached.
+We use \eqref{eq:vol_mean_var} in Section \ref{sec:intromoments} to compute $\spatialvol$, $\spatialmean$, and $\spatialcov$ by applying $\Aop^T$ to a small number of polynomial functions. Then we use \eqref{eq:support_ellipsoid} to form ellipsoid shaped estimates for the support of the impulse responses $\phi_x$, \emph{without} computing them. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute one batch of impulse responses, denoted $\eta_b$, by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support ellipsoid for $\impulseresponse_{x_i}$ and the support ellipsoid for $\impulseresponse_{x_j}$ do not overlap if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because the supports of these impulse responses do not overlap (or do not overlap much), we can post-process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated until a desired number of batches is reached.
 
-Once the impulse response batches $\eta_b$ are computed, we approximate the integral kernel $\Aker(y,x)$ at arbitrary points $(y,x)$ by interpolation (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{sec:local_mean_displacement_invariance}. We approximate $\Aker(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}(y - \spatialmean(x) + \spatialmean(x_i))$ for a collection of sample points $x_i$ near $x$. The weights are determined by radial basis function interpolation.
+Once the impulse response batches $\eta_b$ are computed, we approximate the integral kernel $\Aker(y,x)$ at arbitrary points $(y,x)$ by interpolation of translated and scaled versions of the computed impulse responses (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{sec:local_mean_displacement_invariance}. Specifically, we approximate $\Aker(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}(y - \spatialmean(x) + \spatialmean(x_i))$ for a small number of sample points $x_i$ near $x$. The weights are determined by radial basis function interpolation.
 
 The ability to rapidly evaluate approximate kernel entries $\Aker(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Aker}_H \approx \mathbf{\Aker}$, using the conventional adaptive cross H-matrix construction method (Section \ref{sec:h_matrix_construction_short}). In this method, one forms low rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Aker}_H$ into an H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$. Schematically the algorithm proceeds as follows:
 \begin{equation*}
@@ -404,7 +401,7 @@ The ability to rapidly evaluate approximate kernel entries $\Aker(y,x)$ allows u
 \end{equation*}
 The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \ref{alg:construct_Atilde}. The cost is discussed in Section \ref{sec:overall_cost}.
 
-When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be non-symmetric and indefinite due to errors in the approximation. In this case, one may (optionally) modify the H-matrix representation of $\mathbf{A}_H$ to make it symmetric positive semi-definite using the rational method described in Appendix \ref{sec:make_spd}.
+When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be non-symmetric and indefinite due to errors in the approximation. In this case, one may (optionally) modify the H-matrix representation of $\mathbf{A}_H$ to make it symmetric positive semi-definite using a rational function method that we describe in Appendix \ref{sec:make_spd}.
 
 %. The matrix is symmetrized by computing $\left(\mathbf{A}_H+\mathbf{A}_H^T\right)/2$ using H-matrix addition. Negative eigenvalues modified to be positive using a rational method that is described in Appendix \ref{sec:make_spd}.
 
@@ -419,7 +416,7 @@ When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be non-symme
 		\Input{Linear operator $\Aop$, parameter $\nbatch$}
 		\Output{H-matrix $\mathbf{A}_H$}
 		
-		Compute $V, \mu$, and $\Sigma$ (Section \ref{sec:intromoments})
+		Compute $V, \mu$, and $\Sigma$ (Equations \eqref{eq:vol_mean_var} in Section \ref{sec:intromoments})
 		
 %		Compute $\bm{\spatialvol}$, $\bm{\spatialmean}$, and $\bm{\spatialcov}$ using Algorithm \ref{alg:varhpi_mean_cov}.
 		
@@ -524,17 +521,17 @@ Given $(y,x)\in \Omega \times \Omega$, let
 \begin{equation*}
 	z_i := y - \spatialmean(x) + \spatialmean(x_i), \qquad i=1,\dots,\numnbr,
 \end{equation*}
-where $\{x_i\}_{i=1}^{\numnbr}$ are the $\numnbr$ nearest sample points to $x$, excluding sample points $x_i$ for which $z_i \notin \Omega$. Here $\numnbr$ is a small user defined parameter; e.g., $\numnbr=10$. To find the $\numnbr$ nearest sample points to $x$, we query a precomputed kd-tree \cite{Bentley75} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{Ericson04} of the mesh cells used to discretize the problem. Further, let
+where $\{x_i\}_{i=1}^{\numnbr}$ are the $\numnbr$ nearest sample points to $x$, excluding sample points $x_i$ for which $z_i \notin \Omega$. Here $\numnbr$ is a small user defined parameter; e.g., $\numnbr=10$. We find the $\numnbr$ nearest sample points to $x$ by querying a precomputed kd-tree \cite{Bentley75} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{Ericson04} of the mesh cells used to discretize the problem. Further, let
 \begin{equation}
 \label{eq:fxyxp}
 f_i := \frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}\left(z_i\right), \qquad i=1,\dots,\numnbr,
 \end{equation}
-Note that $\phi_{x_i}\left(z_i\right)$ is well-defined because $z_i \in \Omega$, and $\frac{\spatialvol(x)}{\spatialvol(x_i)}$ is well-defined because our sample point picking procedure in Section \ref{sec:sample_point_selection} ensures that $\spatialvol(x_i)>0$. We approximate $\Aker(y,x)$ by interpolating the (point,value) pairs
-\begin{equation}
-\left(x_i, f_i\right), \qquad i=1,\dots,\numnbr,
-\end{equation}
-at the point $x$. The idea is that $\Aker(y,x) = f_i$ per the discussion in Section \ref{sec:local_mean_displacement_invariance}, so we approximate $\Aker(y,x)$ by interpolating the values $f_i$. 
-
+Note that $\phi_{x_i}\left(z_i\right)$ is well-defined because $z_i \in \Omega$, and $\frac{\spatialvol(x)}{\spatialvol(x_i)}$ is well-defined because our sample point picking procedure in Section \ref{sec:sample_point_selection} ensures that $\spatialvol(x_i)>0$. Per the discussion in Section \ref{sec:local_mean_displacement_invariance}, we expect $\Aker(y,x) \approx f_i$ for $i=1,\dots,\numnbr$; the closer $x_i$ is to $x$, the better we expect the approximation to be. We therefore approximate $\Aker(y,x)$ by interpolating the (point,value) pairs
+$
+\left\{\left(x_i, f_i\right)\right\}_{i=1}^{\numnbr}
+$
+at the point $x$. 
+%The idea is that $\Aker(y,x) = f_i$ per the discussion in Section \ref{sec:local_mean_displacement_invariance}, so we approximate $\Aker(y,x)$ by interpolating the values $f_i$. 
 Interpolation is performed using the following radial basis function scheme:
 \begin{equation}
 \Aker(y,x) \approx \widetilde{\Aker}(y,x) := \sum_{i=1}^{\numnbr} \rbfweight_i~ \rbf\left(\|x-x_i\|\right),
@@ -565,9 +562,9 @@ and $f \in \mathbb{R}^{\numnbr}$ has entries $f_i$ from \eqref{eq:fxyxp}. Polyha
 %\end{figure}
 
 To evaluate $f_i$, we check whether $z_i \in E_{x_i}$ using \eqref{eq:support_ellipsoid}. If $z_i \notin E_{x_i}$, then $z_i$ is outside the estimated support of $\impulseresponse_{x_i}$, so we set $f_i=0$. If $z_i \in E_{x_i}$, we look up the batch index $b$ such that $x_i \in S_b$, and evaluate $f_i$ via the formula
-\begin{equation}
+$
 f_i = \spatialvol(x)\eta_b\left(z_i\right),
-\end{equation}
+$
 per \eqref{eq:varphi_eval}. Note that $z_i$ is typically not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Hence,
 evaluating $\eta_b\left(z_i\right)$ requires determining which mesh cell contains $z_i$, then evaluating finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $z_i$ was determined as a side effect of querying the AABB tree of mesh cells when we checked whether $z_i \in \Omega$. 
 
@@ -577,13 +574,13 @@ evaluating $\eta_b\left(z_i\right)$ requires determining which mesh cell contain
 \label{sec:h_matrix_construction_short}
 
 We form our H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by forming H-matrix representations $\mathbf{\Aker}_H$ and $\massmatrix_H$ of $\mathbf{\Aker}$ and $\massmatrix$, respectively, then using fast H-matrix methods to multiply these matrices per \eqref{eq:boldA} to form
-\begin{equation*}
+$
 \mathbf{A}_H = \massmatrix_H \mathbf{\Aker}_H \massmatrix_H.
-\end{equation*}
+$
 %Once $\mathbf{A}_H$ is formed, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. 
 We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, see \cite{Hackbusch15}. 
 
-We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{Kriemann08}. Although $\mathbf{\Aker}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Aker}_H$ only requires evaluation of $O(\hrank^2 \fedim \log \fedim)$ entries $\mathbf{\Aker}_{ij} = \widetilde{\Aker}(p_i, p_j)$, and these entries are computed via the radial basis function interpolation method described in Section \ref{sec:approximate_kernel_entries}. Here $\hrank$ is the rank of the highest rank block in the H-matrix. 
+We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{Kriemann08}. Although $\mathbf{\Aker}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Aker}_H$ only requires evaluation of $O(\hrank^2 \fedim \log \fedim)$ kernel entries $\mathbf{\Aker}_{ij} = \widetilde{\Aker}(\fepoint_i, \fepoint_j)$, and these entries are computed via the radial basis function interpolation method described in Section \ref{sec:approximate_kernel_entries}. Here $\hrank$ is the rank of the highest rank block in the H-matrix. 
 A dense representation of $\mathbf{\Aker}$ is never formed. 
 %We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. 
 We form $\massmatrix_H$ using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\mathbf{\Aker}$. 
@@ -698,7 +695,7 @@ The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, d
 
 We use our method to approximate the data misfit Gauss-Newton Hessian in an inverse problem governed by a PDE which models steady-state ice sheet flow. Briefly, a sheet of ice is sliding down a mountain (see Figure \ref{fig:ice_mountain_mesh}). Given observations of the tangential component of the ice velocity on the top surface of the ice, we invert for the logarithm of the unknown spatially varying basal friction parameter which governs how easily the ice slides along the ground underneath it.
 
-\begin{figure}[H]
+\begin{figure}
 	\begin{subfigure}{0.5\textwidth}
 		\includegraphics[scale=0.23]{meshHeight_view2_edges.png}
 		\caption{Bird's eye view}
@@ -743,7 +740,7 @@ The pressure, $\pressure$, is discretized with first order scalar continuous Gal
 %This flattening is necessary because our operator approximation method requires adding points on this surface together to get other points on the surface, and this is only well-defined in flat space. 
 
 
-\begin{figure}[H]
+\begin{figure}
 	\begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.243]{mtrue_withColorBar.png}
 		\caption{$\basalfriction_\text{true}$.}
