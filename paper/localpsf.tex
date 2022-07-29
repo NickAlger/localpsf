@@ -199,10 +199,10 @@ For $u_h \in V_h$ we write $\bm{u} \in \mathbb{R}^\nsamplepts_\massmatrix$ to de
 \label{eq:fem_coeff_basis}
 u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x).
 \end{equation}
-Linear functionals $\rho_h \in V_h'$ have coefficient dual vectors $\boldsymbol{\rho}\in \mathbb{R}^\nsamplepts_{\massmatrix^{-1}}$, with entries 
-\begin{equation*}
-\boldsymbol{\rho}_i = \rho_h(\febasis_i), \qquad i=1,\dots,\nsamplepts. 
-\end{equation*}
+Linear functionals $\rho_h \in V_h'$ have coefficient dual vectors $\boldsymbol{\rho}\in \mathbb{R}^\nsamplepts_{\massmatrix^{-1}}$, with entries $\boldsymbol{\rho}_i = \rho_h(\febasis_i)$ for $i=1,\dots,\nsamplepts$.
+%\begin{equation*}
+%\boldsymbol{\rho}_i = \rho_h(\febasis_i), \qquad i=1,\dots,\nsamplepts. 
+%\end{equation*}
 Here $\massmatrix \in \mathbb{R}^{\fedim \times \fedim}$ denotes the sparse finite element mass matrix which has entries
 \begin{equation*}
 \massmatrix_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx, \qquad i,j=1,\dots,\fedim,
@@ -222,9 +222,9 @@ The operator $A_h:V_h \rightarrow V_h'$ can be written in integral kernel form a
 (A_h u_h)(w_h) := \int_\Omega \int_\Omega w_h(y) \Aker_h(y,x) u_h(x) dx dy
 \end{equation}
 for some kernel $\Aker_h$ which we do not know, and which may differ from $\Aker$ due to discretization error. Since the functions in $V_h$ are continuous at $x$, the delta distribution $\delta_x$ is a continuous linear functional on $V_h$, which has a discrete dual vector $\boldsymbol{\delta}_x \in \mathbb{R}^\fedim_{\massmatrix^{-1}}$ with entries $\left(\boldsymbol{\delta}_x\right)_i = \febasis_i(x)$ for $i=1,\dots,\fedim$. Additionally, it is straightforward to verify that the Riesz representation, $\rho_h^* \in V_h$, of a functional $\rho \in V_h'$ has coefficient vector
-\begin{equation*}
+$
 \boldsymbol{\rho}^* = \massmatrix^{-1} \boldsymbol{\rho}.
-\end{equation*}
+$
 Therefore, the formula for the impulse response from \eqref{eq:impulse_response_delta_action} becomes 
 \begin{equation}
 \label{eq:discrete_kernel}
@@ -249,7 +249,7 @@ which implies
 \label{eq:boldA}
 	\mathbf{A} = \massmatrix \mathbf{\Aker} \massmatrix.
 \end{equation}
-Broadly, our method will construct an H-matrix approximation of $\mathbf{A}$ by forming H-matrix approximations of $\boldsymbol{\Aker}$ and $\massmatrix$ (or a lumped mass version of $\massmatrix$), then multiplying these matrices with H-matrix methods per \eqref{eq:boldA}. The central challenge is that classical H-matrix construction methods require access to arbitrary matrix entries $\mathbf{\Aker}_{ij}$, but these matrix entries are not easily accessible. The bulk of our method is therefore dedicated to forming approximations of these matrix entries that can be evaluated rapidly.
+Broadly, our method will construct an H-matrix approximation of $\mathbf{A}$ by forming H-matrix approximations of $\boldsymbol{\Aker}$ and $\massmatrix$ (or a lumped mass version of $\massmatrix$), then multiplying these matrices with H-matrix methods per \eqref{eq:boldA}. Classical H-matrix construction methods require access to arbitrary matrix entries $\mathbf{\Aker}_{ij}$, but these matrix entries are not easily accessible. The bulk of our method is therefore dedicated to forming approximations of these matrix entries that can be evaluated rapidly.
 
 \paragraph{Lumped mass matrix} At the continuum level, the integral kernel $\Aker$ is assumed to be non-negative. However, when we compute impulse responses we are effectively operating with the discrete integral kernel shown in \eqref{eq:approx_kernel_entry_81}.
 The inverse mass matrices in this formula, $\massmatrix^{-1}$, will typically contain negative numbers. If there are too many negative numbers, or if the negative numbers are too large, our algorithm will be less robust. We therefore recommend replacing the mass matrix $\massmatrix$ with a positive diagonal \emph{lumped mass} approximation. 
@@ -398,17 +398,17 @@ Section \ref{sec:intromoments} allows us to compute $\spatialvol$, $\spatialmean
 
 Once the impulse response batches $\eta_b$ are computed, we approximate the integral kernel $\Aker(y,x)$ at arbitrary points $(y,x)$ by interpolation (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{sec:local_mean_displacement_invariance}. We approximate $\Aker(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}(y - \spatialmean(x) + \spatialmean(x_i))$ for a collection of sample points $x_i$ near $x$. The weights are determined by radial basis function interpolation.
 
-The ability to rapidly evaluate approximate kernel entries $\Aker(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Aker}_H \approx \mathbf{\Aker}$, using the conventional adaptive cross H-matrix construction method (Section \ref{sec:h_matrix_construction_short}). In this method, one forms low rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Aker}_H$ into an H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$. 
+The ability to rapidly evaluate approximate kernel entries $\Aker(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Aker}_H \approx \mathbf{\Aker}$, using the conventional adaptive cross H-matrix construction method (Section \ref{sec:h_matrix_construction_short}). In this method, one forms low rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks \cite{HACA}. We then use H-matrix methods to convert $\boldsymbol{\Aker}_H$ into an H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$. Schematically the algorithm proceeds as follows:
+\begin{equation*}
+\Aop \longrightarrow \spatialvol, \spatialmean, \spatialcov \longrightarrow \underbrace{\{x_i\}_{i=1}^r}_{\text{as }S_b\text{'s}} \longrightarrow \underbrace{\{\impulseresponse_{x_i}\}_{i=1}^r}_{\text{as }\eta_b\text{'s}} \longrightarrow \boldsymbol{\Aker}_H \longrightarrow \mathbf{A}_H.
+\end{equation*}
+The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \ref{alg:construct_Atilde}. The cost is discussed in Section \ref{sec:overall_cost}.
 
 When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be non-symmetric and indefinite due to errors in the approximation. In this case, one may (optionally) modify the H-matrix representation of $\mathbf{A}_H$ to make it symmetric positive semi-definite using the rational method described in Appendix \ref{sec:make_spd}.
 
 %. The matrix is symmetrized by computing $\left(\mathbf{A}_H+\mathbf{A}_H^T\right)/2$ using H-matrix addition. Negative eigenvalues modified to be positive using a rational method that is described in Appendix \ref{sec:make_spd}.
 
-Schematically the overall H-matrix approximation proceeds as follows:
-\begin{equation*}
-\Aop \longrightarrow \spatialvol, \spatialmean, \spatialcov \longrightarrow \underbrace{\{x_i\}_{i=1}^r}_{\text{as }S_b\text{'s}} \longrightarrow \underbrace{\{\impulseresponse_{x_i}\}_{i=1}^r}_{\text{as }\eta_b\text{'s}} \longrightarrow \boldsymbol{\Aker}_H \longrightarrow \mathbf{A}_H.
-\end{equation*}
-The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \ref{alg:construct_Atilde}. The cost to construct $\mathbf{A}_H$ is discussed in Section \ref{sec:overall_cost}.
+
 
 
 \begin{algorithm2e}
@@ -417,7 +417,7 @@ The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \re
 	\SetKwInOut{Output}{Output}
 	{	
 		\Input{Linear operator $\Aop$, parameter $\nbatch$}
-		\Output{H-matrix $\mathbf{A}_H$ (optionally, $\mathbf{A}_H^{\text{sym}+}$)}
+		\Output{H-matrix $\mathbf{A}_H$}
 		
 		Compute $V, \mu$, and $\Sigma$ (Section \ref{sec:intromoments})
 		
