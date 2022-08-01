@@ -40,13 +40,13 @@
 % 1) Incorporate Ronald Kriemann's suggested citations: (Nick)
 %    - Steffen Börm, Lars Grasedyck and Wolfgang Hackbusch:
 %      "Introduction to Hierarchical Matrices with Applications",
-%       Engineering Analysis with Boundary Elements 27(5), pp. 405--422, 2003.
+%       Engineering Analysis with Boundary Elements 27(5), pp. 405--422, 2003. (DONE)
 %    - Lars Grasedyck, Ronald Kriemann and Sabine Le Borne:
 %      "Parallel blackbox H-LU preconditioning for elliptic boundary value problems",
-%       Computing and Visualization in Sciences, Vol. 11, pp 273--291, 2007.
+%       Computing and Visualization in Sciences, Vol. 11, pp 273--291, 2007. (DONE)
 %    - Ronald Kriemann:
 %      "H-LU Factorization on Many-Core Systems",
-%      Computing and Visualization in Science, 16, pp. 105-117, 2015.
+%      Computing and Visualization in Science, 16, pp. 105-117, 2015. (DONE)
 %
 % 2) Grants
 %    - Nick and Omar's grants (Omar)
@@ -62,9 +62,9 @@
 % 5) Find and cite relevant papers from Omar's group
 %    - Toby's papers (Tucker)
 %    - Noemi's 2012 stokes paper (Tucker)
-%    - Omar and Karen's recent review paper (Nick)
+%    - Omar and Karen's recent review paper (DONE)
 %
-% 6) Look through Nick's previous PC paper for missed citations (Nick)
+% 6) Look through Nick's previous PC paper for missed citations (DONE)
 
 % For citations we need:
 %    a) bibtex info
@@ -103,7 +103,7 @@ u \mapsto\Aop u \qquad \text{and} \qquad w \mapsto \Aop^T w,
 but we do not have further access to $\Aop$. In particular, we cannot easily access entries of $\Aop$'s integral kernel. In applications, evaluating the maps in \eqref{eq:eval_maps} may require performing a costly computational procedure, such as solving a large linear system.
 
 Our motivation is Hessian approximation in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field from noisy observations of a state variable that depends on the parameter implicitly through the solution of a PDE.
-In the deterministic approach to the inverse problem, one solves a regularized minimization problem to find the parameter that best fits the data. The objective function in the minimization problem is defined implicitly, so information about the Hessian of the objective function is only accessible via application of the Hessian to vectors \cite{HESSIANACTION}. 
+In the deterministic approach to the inverse problem, one solves a regularized minimization problem to find the parameter that best fits the data. The objective function in the minimization problem is defined implicitly, so information about the Hessian of the objective function is only accessible via application of the Hessian to vectors \cite{Alger19,GhattasWillcox21}. 
 The most popular matrix-free Hessian approximation methods are based on low rank approximation \cite{BuiEtAl13,CuiEtAl14,FlathEtAl11,PetraEtAl14,SpantiniEtAl15} because there are efficient methods for constructing low rank approximations of a matrix using only matrix-vector products \cite{Cheng05,HalkoMartinssonTropp11}. 
 However, low rank approximation methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator applies are required to form an accurate ``low rank'' approximation \cite{Alger19,AlgerEtAl17}. Matrix-free high rank approximation methods are needed.
 
@@ -150,13 +150,13 @@ Picking the batches of points requires us to estimate the supports of the $\phi_
 	\label{fig:mean_displacement_invariance}
 \end{figure}
 
-The ability to rapidly approximate entries of $\Aop$'s integral kernel allows us to form a hierarchical matrix (H-matrix) \cite{Hackbusch99,} approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high rank. 
+The ability to rapidly approximate entries of $\Aop$'s integral kernel allows us to form a hierarchical matrix (H-matrix) \cite{Hackbusch99,BormGrasedyckHackbusch03} approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high rank. 
 %(see Figure \ref{fig:hmatrix_intro} and Appendix \ref{app:h_matrix}).
 H-matrix methods permit us to perform matrix-vector products cheaply, and perform other useful linear algebra operations that cannot be done easily using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. 
 %These H-matrix methods are fast and scale well to large problems. 
 The work and memory required to perform these operations for an $\fedim \times \fedim$ H-matrix scales 
 %as $O(\fedim \log(\fedim)^a)$, where $a \in \{0,1,2,3\}$. That is, the cost is \emph{nearly-linear}
-\emph{nearly linearly} in $N$ (i.e., $o(N^{1+\epsilon})$ for any $\epsilon > 0$). The exact cost depends on the type of H-matrix used, the operation being performed, and the rank of the off-diagonal blocks (see \cite{GrasedyckHackbusch03}). The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
+\emph{nearly linearly} in $N$ (i.e., $o(N^{1+\epsilon})$ for any $\epsilon > 0$). The exact cost depends on the type of H-matrix used, the operation being performed, and the rank of the off-diagonal blocks \cite{GrasedyckHackbusch03}. The ability to perform these operations permits, for example, fast solution of Newton linear systems in PDE constrained optimization, fast sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank surrogate models that can be used for uncertainty quantification. 
 %Classical H-matrix construction methods 
 %(described in Appendix \ref{sec:H_matrix_construction}) 
 %require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available matrix free.
@@ -410,9 +410,7 @@ Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and con
 \phi_x(y) &\approx \phi_{x'}\left(y-\spatialmean(x)+\spatialmean(x')\right) \label{eq:translate3}\\
 \phi_x(y)/\spatialvol(x) &\approx \phi_{x'}\left(y-\spatialmean(x)+\spatialmean(x')\right) / \spatialvol(x'). \label{eq:translate4}
 \end{align}
-These are four different ways to approximate an impulse response by a nearby impulse response, with each successive approximation building upon the previous ones. Our method uses \eqref{eq:translate4}, which is the most sophisticated of these approximations.
-
-Approximation \eqref{eq:translate1} says that $\phi_x$ can be approximated by $\phi_{x'}$ when $x$ and $x'$ are close. Operators satisfying \eqref{eq:translate1} can be well approximated via low rank CUR approximation \cite{CUR,NYSTROM}. However, the required rank in the low rank approximation can be large, which makes algorithms based on \eqref{eq:translate1} expensive. 
+These are four different ways to approximate an impulse response by a nearby impulse response, with each successive approximation building upon the previous ones. Our method uses \eqref{eq:translate4}, which is the most sophisticated of these approximations. Approximation \eqref{eq:translate1} says that $\phi_x$ can be approximated by $\phi_{x'}$ when $x$ and $x'$ are close. Operators satisfying \eqref{eq:translate1} can be well approximated via low rank CUR approximation \cite{MahoneyDrineas09}. However, the required rank in the low rank approximation can be large, which makes algorithms based on \eqref{eq:translate1} expensive. 
 
 Operators that satisfy \eqref{eq:translate2} are called ``locally translation invariant'' because integral kernel entries $\Aker(y,x)$ for such operators are approximately invariant under translation of $x$ and $y$ by the same displacement, i.e., $x \rightarrow x+h$ and $y \rightarrow y+h$. It is straightforward to show that if equality holds in \eqref{eq:translate2}, then $\Aop$ is a convolution operator. Locally translation invariant operators act like convolutions locally, and can therefore be well approximated by PC approximations.
 
@@ -613,12 +611,12 @@ $
 \mathbf{A}_H = \massmatrix_H \mathbf{\Aker}_H \massmatrix_H.
 $
 %Once $\mathbf{A}_H$ is formed, useful matrix operations such as matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, and matrix inversion may be performed using fast scalable H-matrix methods \cite{BORMHACKBUSCHBOOK}. 
-We use H1 matrices in our numerical results, but any of the other H-matrix formats (such as H2, HODLR, HSS, HBS, and others \cite{HMATRIX}) could be used instead. For more details on H-matrices, see \cite{Hackbusch15}. 
+We use H1 matrices in our numerical results, but any other H-matrix format could be used instead. For more details on H-matrices, see \cite{Hackbusch15}. 
 
-We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{Kriemann08}. Although $\mathbf{\Aker}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Aker}_H$ only requires evaluation of $O(\hrank^2 \fedim \log \fedim)$ kernel entries $\mathbf{\Aker}_{ij} = \widetilde{\Aker}(\fepoint_i, \fepoint_j)$, and these entries are computed via the radial basis function interpolation method described in Section \ref{sec:approximate_kernel_entries}. Here $\hrank$ is the rank of the highest rank block in the H-matrix. 
+We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package \cite{Kriemann08}. For details about the algorithms used for geometrical clustering, H-matrix construction, and H-matrix operations in HLIBpro, we recommend the the following papers \cite{BormGrasedyckHackbusch03,GrasedyckKriemannLeBorne08,Kriemann13}. Although $\mathbf{\Aker}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Aker}_H$ only requires evaluation of $O(\hrank^2 \fedim \log \fedim)$ kernel entries $\mathbf{\Aker}_{ij} = \widetilde{\Aker}(\fepoint_i, \fepoint_j)$, and these entries are computed via the radial basis function interpolation method described in Section \ref{sec:approximate_kernel_entries}. Here $\hrank$ is the rank of the highest rank block in the H-matrix. 
 A dense representation of $\mathbf{\Aker}$ is never formed. 
 %We describe this H-matrix construction process in detail in Appendix \ref{app:h_matrix}. 
-We form $\massmatrix_H$ using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same recursive block partitioning structure as was used for $\mathbf{\Aker}$. 
+We form $\massmatrix_H$ using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same geometrical clustering block cluster tree as was used for $\mathbf{\Aker}$. 
 
 
 
