@@ -820,7 +820,7 @@ In all results except one, $\gamma$ is chosen so that the Morozov discrepancy pr
 The value of $\gamma$ satisfying the Morozov discrepancy principle is $\gamma=7.3 \times 10^3$. The exception is Figure \ref{fig:gamma_sweep}, where we vary $\gamma$ to study how changing $\gamma$ impacts the effectiveness of our preconditioner. The constant $\delta$ is chosen so that the correlation length of functions drawn from the normal distribution with covariance $\mathcal{K}^{-2}$, given by $L=\sqrt{\gamma/\delta}$, is $1/10$th the radius of the domain. 
 %, which is halfway between the maximum and minimum values of $\basalfriction_\text{true}$.
 
-We solve the inverse problem with an inexact Newton preconditioned conjugate gradient (PCG) scheme \cite{NOCEDAWRIGHT}, using $\basalfriction_0$ as the initial guess. The discretized parameter, $\bm{\basalfriction}$ is updated iteratively according to the formula
+We solve the inverse problem with an inexact Newton preconditioned conjugate gradient (PCG) scheme \cite[Section 7.1]{NocedalWright99}, using $\basalfriction_0$ as the initial guess. The discretized parameter, $\bm{\basalfriction}$ is updated iteratively according to the formula
 $
 	\bm{\basalfriction}_{k+1} = \bm{\basalfriction}_k + \alpha_k \bm{\searchdir}_k,
 $
@@ -829,7 +829,7 @@ where $\bm{\searchdir}_k$ approximately solves one of the following Newton linea
 	\label{eq:newton_system}
 	\bm{H} \bm{\searchdir}_k = - \bm{g}_k \qquad \text{or} \qquad \bm{H}_\text{gn} \bm{\searchdir}_k = - \bm{g}_k,
 \end{equation}
-and the step length $\alpha_k \in \mathbb{R}$ is chosen by line search to satisfy the Armijo conditions \cite{ARMIJO}. Here $\bm{g}_k$ is the discretized gradient of $J$, $\bm{H}$ is the discretized Hessian, and $\bm{H}_\text{gn}$ is the discretized Gauss-Newton Hessian, and these derivatives are evaluated at $\bm{\basalfriction}_k$. 
+and the step length $\alpha_k \in \mathbb{R}$ is chosen by line search to satisfy the Armijo conditions \cite[Section 3.1]{NocedalWright99}. Here $\bm{g}_k$ is the discretized gradient of $J$, $\bm{H}$ is the discretized Hessian, and $\bm{H}_\text{gn}$ is the discretized Gauss-Newton Hessian, and these derivatives are evaluated at $\bm{\basalfriction}_k$. 
 %The Gauss-Newton Hessian is Hessian of $J$, except in the data misfit, $J_d$, the nonlinear mapping $\basalfriction \mapsto \tangentop \velocity$ is replaced by its local linearization at $\basalfriction_k$.
 We use $\bm{H}_\text{gn}$ for the first five iterations, and $\bm{H}$ for all subsequent iterations.  The Newton iteration terminates when $||\bm{g}_k||/||\bm{g}_0|| < 10^{-8}$. Systems \eqref{eq:newton_system} are solved inexactly using an inner PCG iteration, which terminates when the norm of the residual for the linear system is less than $\min \left(0.5, \sqrt{||\bm{g}_k||}\right)||\bm{g}_k||$. PCG only requires applying $\bm{H}$ (or $\bm{H}_\text{gn}$) to vectors. Each application of $\bm{H}$ (or $\bm{H}_\text{gn}$) to a vector requires solving one incremental forward and one incremental adjoint Stokes PDE of the form \eqref{Stokeseqn}, but with different right hand sides.
 
@@ -865,7 +865,7 @@ We use the framework described in this paper to generate Hessian preconditioners
 $
 (\gamma \bm{K} + \delta \bm{M}) \bm{M}^{-1} (\gamma \bm{K} + \delta \bm{M})
 $
-where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary conditions, and $\bm{M}$ is the finite element mass matrix. These matrices are sparse, so we form H-matrix representations of these matrices and combine them using standard sparse H-matrix techniques. We factor the overall Gauss-Newton Hessian approximation, denoted $\bm{\preconditioner}$, using fast H-matrix methods \cite{RONKRIEMANNEMAIL}, then and use the factorization as a preconditioner \cite{HLIBPRO}. 
+where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary conditions, and $\bm{M}$ is the finite element mass matrix. These matrices are sparse, so we form H-matrix representations of these matrices and combine them using standard sparse H-matrix techniques. We factor the overall Gauss-Newton Hessian approximation, denoted $\bm{\preconditioner}$, using fast H-matrix methods, then and use the factorization as a preconditioner. 
 
 \begin{table}
 	{\small
