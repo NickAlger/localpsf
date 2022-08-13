@@ -555,7 +555,7 @@ Given $(y,x)\in \Omega \times \Omega$, let
 where $\{x_i\}_{i=1}^{\numnbr}$ are the $\numnbr$ nearest sample points to $x$, excluding sample points $x_i$ for which $z_i \notin \Omega$. Here $\numnbr$ is a small user defined parameter; e.g., $\numnbr=10$. We find the $\numnbr$ nearest sample points to $x$ by querying a precomputed kd-tree \cite{Bentley75} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{Ericson04} of the mesh cells used to discretize the problem. Further, let
 \begin{equation}
 \label{eq:fxyxp}
-f_i := \frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}\left(z_i\right), \qquad i=1,\dots,\numnbr,
+f_i := \frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}\left(z_i\right), \qquad i=1,\dots,\numnbr.
 \end{equation}
 Note that $\phi_{x_i}\left(z_i\right)$ is well defined because $z_i \in \Omega$, and $\frac{\spatialvol(x)}{\spatialvol(x_i)}$ is well defined because our sample point picking procedure in Section \ref{sec:sample_point_selection} ensures that $\spatialvol(x_i)>0$. Per the discussion in Section \ref{sec:local_mean_displacement_invariance}, we expect $\Aker(y,x) \approx f_i$ for $i=1,\dots,\numnbr$; the closer $x_i$ is to $x$, the better we expect the approximation to be. We therefore approximate $\Aker(y,x)$ by interpolating the (point,value) pairs
 $
