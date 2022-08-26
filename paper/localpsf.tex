@@ -11,7 +11,7 @@
 % Optional PDF information
 \ifpdf
 \hypersetup{
-  pdftitle={Efficient matrix-free point spread function approximation of operators with locally supported non-negative integral kernels, with application to Hessians in PDE constrained inverse problems},
+  pdftitle={Matrix-free point spread function approximation of operators with locally supported non-negative integral kernels, with application to Hessians in PDE constrained inverse problems},
   pdfauthor={N. Alger, N. Petra, T. Hartland, and O. Ghattas}
 }
 \fi
@@ -79,12 +79,12 @@
 
 % REQUIRED
 \begin{abstract}
-	We present an efficient matrix-free point spread function (PSF) based method for approximating operators that have locally supported non-negative integral kernels. Such operators arise as Schur complements when solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in PDE constrained inverse problems. The proposed method uses impulse responses of the underlying operator (computed at a collection of scattered points) and interpolates translated versions of these impulse responses to approximate entries of the integral kernel. The interpolation uses a ``local mean displacement invariance'' approximation, which improves upon classical local translation invariance. Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. By solving an ellipsoid packing problem, we choose as many point sources as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. Support ellipsoids are estimated a-priori based on impulse response moments, and these moments are computed for impulse responses at all points simultaneously via a procedure that involves applying the operator to a small number of polynomial functions. The ability to rapidly evaluate kernel entries allows us to construct a hierarchical matrix (H-matrix) approximation of the operator. Fast H-matrix methods are used to perform further matrix computations in nearly linear complexity, including matrix-matrix addition and multiplication, matrix inversion and factorization, and matrix-vector products. We illustrate our approach by applying the method to approximate the Hessian in an ice sheet flow PDE constrained inverse problem. Numerical results demonstrate that the proposed method substantially outperforms existing methods. We show that high rank operators can be efficiently approximated using only a small number of operator applies.
+	We present an efficient matrix-free point spread function (PSF) method for approximating operators that have locally supported non-negative integral kernels. Such operators arise as Schur complements when solving partial differential equations (PDEs), Poincare-Steklov operators in domain decomposition methods, covariance operators in spatial statistics, blurring operators in imaging, and Hessians in PDE constrained inverse problems. The proposed method uses impulses of the underlying operator (computed at a collection of scattered points) and interpolates translated and scaled versions of these impulses to approximate entries of the integral kernel. The interpolation uses a ``local mean displacement invariance'' approximation, which improves upon classical local translation invariance. Impulse responses are computed by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. By solving an ellipsoid packing problem, we choose as many point sources as possible per batch, while ensuring that the supports of the impulses within each batch do not overlap. Support ellipsoids are estimated a-priori based on impulse moments, and these moments are computed for impulses at all points simultaneously via a procedure that involves applying the operator to a small number of polynomial functions. The ability to rapidly evaluate kernel entries allows us to construct a hierarchical matrix (H-matrix) approximation of the operator. Fast H-matrix methods are used to perform further matrix computations in nearly linear complexity, including matrix-matrix addition and multiplication, matrix inversion and factorization, and matrix-vector products. We illustrate our approach by applying the method to approximate the Hessian in an ice sheet flow PDE constrained inverse problem. Numerical results demonstrate that the proposed method substantially outperforms existing methods. We show that high rank operators can be efficiently approximated using only a small number of operator applies.
 \end{abstract}
 
 % REQUIRED
 \begin{keywords}
- 	data scalability, Hessian, hierarchical matrix, matrix-free, operator approximation, PDE constrained inverse problems, point spread function, product convolution, local translation invariance, impulse response
+ 	data scalability, Hessian, hierarchical matrix, matrix-free, operator approximation, PDE constrained inverse problems, point spread function, product convolution, local translation invariance, impulse
 \end{keywords}
 
 % REQUIRED
@@ -95,17 +95,22 @@
 \section{Introduction}
 \label{sec:intro}
 
-We present a fast \emph{matrix-free} point spread function (PSF) method for approximating operators, $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$, that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, $\gdim$ is the spatial dimension, and $L^2(\Omega)'$ is the space of continuous linear functionals on $L^2(\Omega)$ (i.e., the topological dual space). Such operators arise as Schur complements in Schur complements methods for solving partial differential equations (PDEs) \cite{le1997non,saad1999distributed}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps), covariance operators in spatial statistics \cite{ChenStein21,GeogaEtAl20,LindgrenRueLindstrom11}, blurring operators in imaging \cite{DenisEtAl11,NagyOleary98}, and Hessians in distributed parameter PDE constrained optimization and inverse problems \cite{AlgerEtAl19,IsaacEtAl15}. By ``matrix-free,'' we mean that we have a black box computational procedure through which we may apply $\Aop$ and its transpose\footnote{Recall that the transpose $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(w) = \left(\Aop^T w\right)(u)$ for all $u,w \in L^2(\Omega)$, where the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$, and similar for the analogous operations with $\Aop^T$. }, $\Aop^T$, to arbitrary functions,
+We present an efficient \emph{matrix-free} point spread function (PSF) method for approximating operators, $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$, that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, and $L^2(\Omega)'$ is the space of real-valued continuous linear functionals on $L^2(\Omega)$. Such operators arise as Schur complements in Schur complement methods for solving partial differential equations (PDEs) \cite{le1997non,saad1999distributed}, Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps), covariance operators in spatial statistics \cite{ChenStein21,GeogaEtAl20,LindgrenRueLindstrom11}, blurring operators in imaging \cite{DenisEtAl11,NagyOleary98}, and Hessians in distributed parameter PDE constrained optimization and inverse problems \cite{AlgerEtAl19,IsaacEtAl15}. Here ``matrix-free'' means that we may apply $\Aop$ and its transpose\footnote{Recall that $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(w) = \left(\Aop^T w\right)(u)$ for all $u,w \in L^2(\Omega)$, where $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$, and similar for operations with $\Aop^T$. }, $\Aop^T$, to arbitrary functions,
 \begin{equation}
 \label{eq:eval_maps}
 u \mapsto\Aop u \qquad \text{and} \qquad w \mapsto \Aop^T w,
 \end{equation} 
-but we do not have further access to $\Aop$. In particular, we cannot easily access entries of $\Aop$'s integral kernel. In applications, evaluating the maps in \eqref{eq:eval_maps} may require performing a costly computational procedure, such as solving a large linear system.
+via a black box computational procedure, 
+but we cannot easily access entries of $\Aop$'s integral kernel. In applications, evaluating the maps in \eqref{eq:eval_maps} may require performing a costly computational procedure, such as solving a large linear system.
 
-Our motivation is Hessian approximation in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field from noisy observations of a state variable that depends on the parameter implicitly through the solution of a PDE.
-In the deterministic approach to the inverse problem, one solves a regularized minimization problem to find the parameter that best fits the data. The objective function in the minimization problem is defined implicitly, so information about the Hessian of the objective function is only accessible via application of the Hessian to vectors \cite{Alger19,GhattasWillcox21}. 
-The most popular matrix-free Hessian approximation methods are based on low rank approximation \cite{BuiEtAl13,CuiEtAl14,FlathEtAl11,PetraEtAl14,SpantiniEtAl15} because there are efficient methods for constructing low rank approximations of a matrix using only matrix-vector products \cite{Cheng05,HalkoMartinssonTropp11}. 
-However, in many inverse problems of practical interest, the Hessian or other important operators are high rank \cite{AmbartsumyanEtAl20,HartlandEtAl21}. Low rank approximation methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator applies are required to form an accurate ``low rank'' approximation \cite{AlexanderianGloorGhattas16,Alger19,AlgerEtAl17}. Matrix-free high rank approximation methods are needed.
+Our motivation is Hessian approximation in distributed parameter inverse problems governed by PDEs. 
+%That is, inverse problems in which one seeks to reconstruct an unknown parameter field from noisy observations of a state variable that depends on the parameter implicitly through the solution of a PDE.
+The Hessian is an operator that is central to efficient methods for solving such inverse problems in both the deterministic and Bayesian settings,
+%In the deterministic approach to the inverse problem, one solves a regularized minimization problem to find the parameter that best fits the data. The objective function in the minimization problem is defined implicitly, so 
+but information about the Hessian is only accessible via application of the Hessian to vectors \cite{Alger19,GhattasWillcox21}. 
+The most popular matrix-free Hessian approximation methods are based on low rank approximation \cite{BuiEtAl13,CuiEtAl14,FlathEtAl11,PetraEtAl14,SpantiniEtAl15} because there are efficient matrix-free methods for constructing low rank matrix approximations \cite{Cheng05,HalkoMartinssonTropp11}. 
+However, in many inverse problems of practical interest the Hessian is high rank \cite{AmbartsumyanEtAl20,HartlandEtAl21}. Moreover, the numerical rank of the Hessian grows as the data in the inverse problem become more informative about the unknown parameter. Low rank approximation methods therefore suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator applies are required to form an accurate ``low rank'' approximation \cite{AlexanderianGloorGhattas16,Alger19,AlgerEtAl17}. 
+%Matrix-free high rank approximation methods are needed.
 
 \begin{figure}
 	\begin{subfigure}{0.32\textwidth}
@@ -120,18 +125,20 @@ However, in many inverse problems of practical interest, the Hessian or other im
 		\centering
 		\includegraphics[scale=0.33]{impulse_batch3.png}
 	\end{subfigure}
-	\caption{Batches of normalized impulse responses for the Stokes inverse problem data misfit Gauss-Newton Hessian, described in Section \ref{sec:numerical_results}. 
+	\caption{Batches, $\eta_b$, of normalized impulses, $\impulseresponse_{x}$, for the Stokes inverse problem data misfit Gauss-Newton Hessian (Section \ref{sec:numerical_results}). 
 %	Brightness scale differs between the subfigures. 
-	Black stars indicate point source locations. Dashed gray ellipses indicate the estimated support ellipsoids. The large circle is the boundary of the domain. 
+	Black stars are point source locations. Dashed gray ellipses are estimated impulse support ellipsoids. The large circle is $\partial \Omega$. 
 	}
 	\label{fig:batches_intro}
 \end{figure}
 
 %Existing scalable high rank approximation methods typically require the ability to rapidly evaluate arbitrary entries of $\Aop$'s integral kernel, which we cannot do. 
-We form a high rank approximation using \emph{impulse response interpolation}. The impulse response, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate translated versions of these impulse responses to approximate entries of the operator's integral kernel. 
+We use \emph{impulse interpolation} to form a high rank operator approximation using a small number of operator applies. The impulse, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure \ref{fig:batches_intro}). Then we interpolate translated and scaled versions of these impulses to approximate entries of the operator's integral kernel. 
 %This allows fast evaluation of approximate matrix entries, which are needed by high-rank approximation methods, in particular, classical H-matrix construction methods. 
-Picking the batches of points requires us to estimate the supports of the $\phi_x$, \emph{before} we compute them. The idea of estimating the supports of the functions $\phi_x$ a-priori was inspired by techniques from resolution analysis in seismic imaging. There, $\Aop^T$ is applied to a random noise function, and the width of $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$  \cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. We use polynomial functions instead of random noise functions (see Section \ref{sec:intromoments}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. Our impulse response interpolation may be categorized as a PSF method that is loosely based on ``product convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others),  \cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,EscandeWeiss15,EscandeWeiss22,EscandeWeiss12,FishEtAl96,NagyOleary98,ZhuLiFomelEtAl16}, in which the convolution kernels are constructed from sampling impulse responses of the operator to scattered point sources. For background on PC and PSF methods, we recommend the following papers: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. While PC approximations are based on an assumption of local translation invariance, the method we propose is based on an assumption that we call ``local mean displacement invariance,'' which is more general than local translation invariance, and includes both CUR low rank approximation and local translation invariance as special cases (see Section \ref{sec:local_mean_displacement_invariance} and Figure \ref{fig:mean_displacement_invariance}). 
-%Furthermore, PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulse responses. We avoid this issue by temporarily excluding impulse responses from the approximation procedure whenever an attempt is made to evaluate the impulse response at a location where it is undefined. 
+Picking the batches of points requires us to estimate the supports of the impulses $\phi_x$ \emph{before} we compute them. 
+The idea of estimating the supports of the functions $\phi_x$ a-priori was inspired by techniques from resolution analysis in seismic imaging. There, 
+$\Aop^T$ is applied to a random noise function, and the width of $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$  \cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. We use polynomial functions instead of random noise functions (see Section \ref{sec:intromoments}). Our method estimates the support of $\phi_x$ more accurately and reliably than random noise probing at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. Our impulse interpolation may be categorized as a PSF method that is loosely based on ``product convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others),  \cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,EscandeWeiss15,EscandeWeiss22,EscandeWeiss12,FishEtAl96,NagyOleary98,ZhuLiFomelEtAl16}, in which the convolution kernels are constructed from sampling impulses of the operator to scattered point sources. For background on PC and PSF methods, we recommend the following papers: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. While PC approximations are based on an assumption of local translation invariance, the method we propose is based on an assumption that we call ``local mean displacement invariance,'' which is more general than local translation invariance, and includes both CUR low rank approximation and local translation invariance as special cases (Section \ref{sec:local_mean_displacement_invariance} and Figure \ref{fig:mean_displacement_invariance}). 
+%Furthermore, PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulses. We avoid this issue by temporarily excluding impulses from the approximation procedure whenever an attempt is made to evaluate the impulse at a location where it is undefined. 
 
 %\begin{figure}
 %	\begin{center}
@@ -144,7 +151,7 @@ Picking the batches of points requires us to estimate the supports of the $\phi_
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=0.8]{mean_displacement_invariance.pdf}
+		\includegraphics[scale=0.75]{mean_displacement_invariance.pdf}
 	\end{center}
 	\caption{$\Aop$ is locally mean displacement invariant if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \spatialmean(x) + \spatialmean(x')\right)$ when $x$ is close to $x'$. Here $\spatialmean(z)$ denotes the mean (center of mass) of $\phi_z$.}
 	\label{fig:mean_displacement_invariance}
@@ -173,16 +180,16 @@ but in practice the required number of matrix vector products is large.
 
 \section{Preliminaries}
 
-Let $\Omega \subset \mathbb{R}^\gdim$ be a bounded domain (in applications typically $\gdim=1$, $2$, or $3$). We seek to approximate integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ that may be written in the following form:
+Let $\Omega \subset \mathbb{R}^\gdim$ be a bounded domain (typically $\gdim=1$, $2$, or $3$). We seek to approximate integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ of the form
 \begin{equation}
 \label{eq:kernel_representation}
 (\Aop u)(w) := \int_\Omega \int_\Omega w(y) \Aker(y,x) u(x) dx dy.
 \end{equation}
 Here the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$.
-The function $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$ is the integral kernel, which exists in principle but is not easily accessible to us. In this section we describe how to extend the action of $\Aop$ to distributions, which allows us to define the impulse responses (Section \ref{sec:impulse_response_2}). Then we state the conditions on $\Aop$ that our method requires (Section \ref{sec:conditions_2}). Finally, we detail finite element discretization (Section \ref{sec:finite_element_kernel}).
+The integral kernel, $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$, exists in principle but is not easily accessible. In this section we describe how to extend the action of $\Aop$ to distributions, which allows us to define impulses (Section \ref{sec:impulse_response_2}), we state the conditions on $\Aop$ that our method requires (Section \ref{sec:conditions_2}), and we detail finite element discretization (Section \ref{sec:finite_element_kernel}).
 
 
-\subsection{Distributions and impulse responses}
+\subsection{Distributions and impulses}
 \label{sec:impulse_response_2}
 
 The action of $\Aop$ may be extended to distributions if $\Aker$ is sufficiently regular. 
@@ -197,31 +204,32 @@ Let $\rho \in L^2(\Omega)'$, and let $\rho^* \in L^2(\Omega)$ denote the Riesz r
 	\end{align}
 \end{subequations}
 where $\Aker(y,\cdot)$ denotes the function $x \mapsto \Aker(y,x)$.
-Now let $\mathcal{D}(\Omega) \subset L^2(\Omega)$ be a suitable space of test functions, and let $\rho:\mathcal{D}(\Omega) \rightarrow \mathbb{R}$ be a distribution. In this case, the Riesz representative $\rho^*$ may not exist, so the derivation in \eqref{eq:extension_to_distributions} is not valid. However, if $\Aker$ is sufficiently regular such that the function $y \mapsto \rho\left(\Aker(y,~\cdot~)\right)$ is well defined for almost all $y\in\Omega$, and if this function is in $L^2(\Omega)$, then the right hand side of \eqref{eq:action_on_distribution} is well defined. Hence, we \emph{define} the action of $\Aop$ on the distribution $\rho$ to be the right hand side of \eqref{eq:action_on_distribution}. For convenience of notation, we denote this action by ``$\Aop \genericdistribution^*$,'' even if $\rho^*$ does not exist.
+Now let $\mathcal{D}(\Omega) \subset L^2(\Omega)$ be a suitable space of test functions and let $\rho:\mathcal{D}(\Omega) \rightarrow \mathbb{R}$ be a distribution. In this case, the Riesz representative $\rho^*$ may not exist, so the derivation in \eqref{eq:extension_to_distributions} is not valid. However, if $\Aker$ is sufficiently regular such that the function $y \mapsto \rho\left(\Aker(y,~\cdot~)\right)$ is well defined for almost all $y\in\Omega$, and if this function is in $L^2(\Omega)$, then the right hand side of \eqref{eq:action_on_distribution} is well defined. Hence, we \emph{define} the action of $\Aop$ on the distribution $\rho$ to be the right hand side of \eqref{eq:action_on_distribution}. We denote this action by ``$\Aop \genericdistribution^*$,'' even if $\rho^*$ does not exist.
 
-Let $\delta_x$ denote the delta distribution\footnote{Recall that the delta distribution $\delta_x:\mathcal{D}(\Omega)\rightarrow \mathbb{R}$ is the linear functional defined by $\delta_x(w) = w(x)$ for all $w\in \mathcal{D}(\Omega)$.} (i.e., point source, impulse) centered at the point $x \in \Omega$.
-The \emph{impulse response} of $\Aop$ associated with $x$ is the function $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$, 
+Let $\delta_x$ denote the delta distribution\footnote{Recall that the delta distribution $\delta_x:\mathcal{D}(\Omega)\rightarrow \mathbb{R}$ is defined by $\delta_x(w) = w(x)$ for all $w\in \mathcal{D}(\Omega)$.} (i.e., point source, impulse) centered at the point $x \in \Omega$.
+The \emph{impulse} of $\Aop$ associated with $x$ is the function $\impulseresponse_x:\Omega \rightarrow \mathbb{R}$, 
 \begin{equation}
 \label{eq:impulse_response_delta_action}
 \impulseresponse_x := \left( \Aop \delta_x^* \right)^*,
 \end{equation}
-that is formed by applying $\Aop$ to $\delta_x$, then taking the Riesz representation of the resulting linear functional. Using \eqref{eq:action_on_distribution} and the definition of the delta distribution, we see that $\phi_x$ may also be written as the function
-\begin{equation}
-\label{eq:impulse_response_defn}
-\impulseresponse_x(y) = \Aker(y, x),
-\end{equation} 
-which results from keeping $x$ fixed and viewing $\Aker(y,x)$ as a function of $y$. 
+that is formed by applying $\Aop$ to $\delta_x$, then taking the Riesz representation of the resulting linear functional. Using \eqref{eq:action_on_distribution} and the definition of the delta distribution, we see that $\phi_x$ may also be written as the function $\impulseresponse_x(y) = \Aker(y, x)$.
+%\begin{equation}
+%\label{eq:impulse_response_defn}
+%\impulseresponse_x(y) = \Aker(y, x),
+%\end{equation} 
+%which results from keeping $x$ fixed and viewing $\Aker(y,x)$ as a function of $y$. 
 
 \subsection{Required conditions}
 \label{sec:conditions_2}
 
 We focus on approximating operators that satisfy the following conditions: 
 \begin{enumerate}
-	\item The kernel $\Aker$ is sufficiently regular such that $\phi_x$ is a well defined function for all $x\in \Omega$.
-	\item The supports of the impulse responses $\impulseresponse_x$ are contained in localized regions.
+	\item The kernel $\Aker$ is sufficiently regular so that $\phi_x$ is well defined for all $x\in \Omega$.
+	\item The supports of the impulses $\impulseresponse_x$ are contained in localized regions.
 	\item The integral kernel is non-negative in the sense that $$\Aker(y,x) \ge 0$$ for all $(y,x) \in \Omega \times \Omega$.\footnote{Note that having a non-negative integral kernel is different from positive semi-definiteness. The operator $\Aop$ need not be positive semi-definite to use our method, and positive semi-definite operators need not have a non-negative integral kernel.}
 \end{enumerate}
-Our method may still perform well if these conditions are relaxed slightly. For example, it is fine if the support of $\impulseresponse_x$ is not perfectly contained in a localized region, so long as the bulk of the ``mass'' of $\impulseresponse_x$ is contained in a localized region. The integral kernel does not need to be non-negative for all pairs of points $(y,x) \in \Omega \times \Omega$, as long as it is non-negative for the vast majority of pairs of points $(y,x)$, and as long as the negative numbers are comparatively small. If these conditions are violated, our method will incur additional error. If these conditions are violated too much, our method may fail. Not all operators of interest (and in particular not all Hessians) satisfy these conditions, but many operators of practical interest do satisfy these conditions, and our method is highly effective for approximating these operators.
+Our method may still perform well if these conditions are relaxed slightly. It is fine if the support of $\impulseresponse_x$ is not perfectly contained in a localized region, so long as the bulk of the ``mass'' of $\impulseresponse_x$ is contained in a localized region. The integral kernel does not need to be non-negative for all pairs of points $(y,x) \in \Omega \times \Omega$, so long as it is non-negative for the vast majority of pairs of points $(y,x)$, and as long as the negative numbers are comparatively small. If these conditions are violated, our method will incur additional error. If these conditions are violated too much, our method may fail. 
+%Not all operators of interest (and in particular not all Hessians) satisfy these conditions, but many operators of practical interest do satisfy these conditions, and our method is highly effective for approximating these operators.
 
 \subsection{Finite element discretization}
 \label{sec:finite_element_kernel}
@@ -238,11 +246,11 @@ Linear functionals $\rho_h \in V_h'$ have coefficient dual vectors $\boldsymbol{
 %\begin{equation*}
 %\boldsymbol{\rho}_i = \rho_h(\febasis_i), \qquad i=1,\dots,\nsamplepts. 
 %\end{equation*}
-Here $\massmatrix \in \mathbb{R}^{\fedim \times \fedim}$ denotes the sparse finite element mass matrix which has entries
-\begin{equation*}
-\massmatrix_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx, \qquad i,j=1,\dots,\fedim,
-\end{equation*}
-the space $\mathbb{R}^\fedim_\massmatrix$ is $\mathbb{R}^\fedim$ with the inner product $(\mathbf{u},\mathbf{w})_\massmatrix := \mathbf{u}^T \massmatrix \mathbf{w}$, and $\mathbb{R}^\fedim_{\massmatrix^{-1}}$ is the analogous space with $\massmatrix^{-1}$ replacing $\massmatrix$. Direct calculation shows that $\mathbb{R}^\fedim_\massmatrix$ and $\mathbb{R}^\fedim_{\massmatrix^{-1}}$ are isomorphic to $V_h$ and $V_h'$ as Hilbert spaces, respectively.
+Here $\massmatrix \in \mathbb{R}^{\fedim \times \fedim}$ denotes the sparse finite element mass matrix which has entries $\massmatrix_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx$ for $i,j=1,\dots,\fedim$.
+%\begin{equation*}
+%\massmatrix_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx, \qquad i,j=1,\dots,\fedim,
+%\end{equation*}
+The space $\mathbb{R}^\fedim_\massmatrix$ is $\mathbb{R}^\fedim$ with the inner product $(\mathbf{u},\mathbf{w})_\massmatrix := \mathbf{u}^T \massmatrix \mathbf{w}$, and $\mathbb{R}^\fedim_{\massmatrix^{-1}}$ is the analogous space with $\massmatrix^{-1}$ replacing $\massmatrix$. Direct calculation shows that $\mathbb{R}^\fedim_\massmatrix$ and $\mathbb{R}^\fedim_{\massmatrix^{-1}}$ are isomorphic to $V_h$ and $V_h'$ as Hilbert spaces, respectively.
 
 After discretization, the operator $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$ is replaced by an operator $A_h:V_h \rightarrow V_h'$, which becomes an operator
 \begin{equation*}
@@ -252,15 +260,16 @@ under the isomorphism discussed above. Our method is agnostic to the computation
 Of course, matrix entries can be computed via matrix-vector products as $\mathbf{A}_{ij} = \left(\mathbf{A}\mathbf{e}_j\right)_i$,
 where $\mathbf{e}_j=(0,\dots,0,1,0,\dots,0)^T$ is the length $\fedim$ unit vector with one in the $j$th coordinate and zeros elsewhere. But computing the matrix-vector product $\mathbf{e}_j \mapsto \mathbf{A}\mathbf{e}_j$ is costly, and therefore wasteful if we do not use other matrix entries in the $j$th column of $\mathbf{A}$. Hence, methods for approximating $\mathbf{A}$ are computationally intractable if they require accessing scattered matrix entries from many different rows and columns of $\mathbf{A}$. 
 
-The operator $A_h:V_h \rightarrow V_h'$ can be written in integral kernel form as
-\begin{equation}
-(A_h u_h)(w_h) := \int_\Omega \int_\Omega w_h(y) \Aker_h(y,x) u_h(x) dx dy
-\end{equation}
-for some kernel $\Aker_h$ which we do not know, and which may differ from $\Aker$ due to discretization error. Since the functions in $V_h$ are continuous at $x$, the delta distribution $\delta_x$ is a continuous linear functional on $V_h$, which has a discrete dual vector $\boldsymbol{\delta}_x \in \mathbb{R}^\fedim_{\massmatrix^{-1}}$ with entries $\left(\boldsymbol{\delta}_x\right)_i = \febasis_i(x)$ for $i=1,\dots,\fedim$. Additionally, it is straightforward to verify that the Riesz representation, $\rho_h^* \in V_h$, of a functional $\rho \in V_h'$ has coefficient vector
+The operator $A_h:V_h \rightarrow V_h'$ can be written in integral kernel form, \eqref{eq:kernel_representation}, but with $\Aker$ replaced by a slightly different integral kernel,
+%as
+%\begin{equation}
+%(A_h u_h)(w_h) := \int_\Omega \int_\Omega w_h(y) \Aker_h(y,x) u_h(x) dx dy
+%\end{equation}
+$\Aker_h$, which we do not know, and which differs from $\Aker$ due to discretization error. Since the functions in $V_h$ are continuous at $x$, the delta distribution $\delta_x$ is a continuous linear functional on $V_h$, which has a discrete dual vector $\boldsymbol{\delta}_x \in \mathbb{R}^\fedim_{\massmatrix^{-1}}$ with entries $\left(\boldsymbol{\delta}_x\right)_i = \febasis_i(x)$ for $i=1,\dots,\fedim$. Additionally, it is straightforward to verify that the Riesz representation, $\rho_h^* \in V_h$, of a functional $\rho \in V_h'$ has coefficient vector
 $
 \boldsymbol{\rho}^* = \massmatrix^{-1} \boldsymbol{\rho}.
 $
-Therefore, the formula for the impulse response from \eqref{eq:impulse_response_delta_action} becomes 
+Therefore, the formula for the impulse from \eqref{eq:impulse_response_delta_action} becomes 
 $
 %\label{eq:discrete_kernel}
 \boldsymbol{\impulseresponse}_x = \left(A_h \delta_x^*\right)^* =  \massmatrix^{-1}\mathbf{A} \massmatrix^{-1} \boldsymbol{\delta}_x,
@@ -286,22 +295,25 @@ which implies
 \end{equation}
 Broadly, our method will construct an H-matrix approximation of $\mathbf{A}$ by forming H-matrix approximations of $\boldsymbol{\Aker}$ and $\massmatrix$ (or a lumped mass version of $\massmatrix$), then multiplying these matrices per \eqref{eq:boldA} using H-matrix methods. Classical H-matrix construction methods require access to arbitrary matrix entries $\mathbf{\Aker}_{ij}$, but these matrix entries are not easily accessible. The bulk of our method is therefore dedicated to forming approximations of these matrix entries that can be evaluated rapidly.
 
-\paragraph{Lumped mass matrix} At the continuum level, $\Aker$ is assumed to be non-negative. However, entries of the discrete integral kernel, $\Aker_h$, involve inverse mass matrices, $\massmatrix^{-1}$, which typically contain negative numbers. If there are too many negative numbers, or if the negative numbers are too large, our algorithm will be less robust. We therefore recommend replacing the mass matrix, $\massmatrix$, with a positive diagonal \emph{lumped mass} approximation. 
-In our numerical results, we use the lumped mass matrix constructed by replacing off-diagonal entries of the mass matrix by zero. Other more advanced mass lumping techniques may be used. See \cite{Hughes12} for a discussion of lumped mass matrices.
+\paragraph{Lumped mass matrix} At the continuum level, $\Aker$ is assumed to be non-negative. However, entries of $\Aker_h$, involve inverse mass matrices, which typically contain negative numbers. If there are too many negative numbers, or if the negative numbers are too large, our algorithm will be less robust. We therefore recommend replacing the mass matrix, $\massmatrix$, with a positive diagonal \emph{lumped mass} approximation. 
+In our numerical results, we use the lumped mass matrix constructed by replacing off-diagonal entries of the mass matrix by zero. Other mass lumping techniques may be used \cite{Hughes12}.
 
 
 \section{Key innovations}
 \label{sec:prerequisites}
 
 In this section we present two key innovations that our method is based on.
-First, we define moments of the impulse responses, $\phi_x$, show how these moments can be computed efficiently, and use these moments to form ellipsoid shaped a-priori estimates for the supports of the impulse responses (Section \ref{sec:intromoments}). Our method will use these ellipsoid estimates to choose sets of impulse responses that can be computed in batches. Second, we describe an improved method of approximating impulse responses by other nearby impulse responses, which we call ``normalized local mean displacement invariance'' (Section \ref{sec:local_mean_displacement_invariance}). Our method will interpolate impulse responses using this approximation. 
+First, we define moments of the impulses, $\phi_x$, show how these moments can be computed efficiently, and use these moments to form ellipsoid shaped a-priori estimates for the supports of the impulses (Section \ref{sec:intromoments}). 
+%Our method will use these ellipsoid estimates to choose sets of impulses that can be computed in batches. 
+Second, we describe an improved method of approximating impulses by other nearby impulses, which we call ``normalized local mean displacement invariance'' (Section \ref{sec:local_mean_displacement_invariance}). 
+%Our method will interpolate impulses using this approximation. 
 
 
 
 \subsection{Impulse response moments and ellipsoid support estimate}
 \label{sec:intromoments}
 
-The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative integral kernel property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
+The impulse $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative integral kernel property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
 \begin{equation}
 \label{eq:define_vol}
 \spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy
@@ -314,28 +326,28 @@ denote the spatially varying scaling factor, and for $i,j=1,\dots,\gdim$ define 
 where $\spatialmean^i(x)$ denotes the $i^\text{th}$ component of the vector $\spatialmean(x)$, and $\spatialcov^{ij}(x)$ denotes the $(i,j)$ entry of the matrix $\spatialcov(x)$.
 The vector $\spatialmean(x)\in \mathbb{R}^\gdim$ and the matrix $\spatialcov(x) \in \mathbb{R}^{\gdim \times \gdim}$ are the mean and covariance of the normalized version of $\impulseresponse_x$, respectively. 
 
-The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to obtain $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. However, this direct approach is not feasible because we need to know $V(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ before we compute $\phi_x$, in order choose the point $x$. Computing $\phi_x$ in order to determine $V(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ would be extremely computationally expensive, and defeat the purpose of our algorithm, which is to reduce the computational cost by computing impulse responses in batches. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ indirectly, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions (e.g., 6 total operator applies in two spatial dimensions and 10 in three spatial dimensions). This may be motivated by analogy to matrices. If $\mathbf{B}\in \mathbb{R}^{\fedim \times \fedim}$ is a matrix with $i^\text{th}$ column $\mathbf{b}_i$ and $\mathbf{w} \in \mathbb{R}^\fedim$, then
+The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to obtain $\impulseresponse_x$, as per \eqref{eq:impulse_response_delta_action}. Then one can post process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. However, this direct approach is not feasible because we need to know $V(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ before we compute $\phi_x$, in order choose the point $x$. Computing $\phi_x$ in order to determine $V(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ would be extremely computationally expensive, and defeat the purpose of our algorithm, which is to reduce the computational cost by computing impulses in batches. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ indirectly, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions (e.g., 6 total operator applies in two spatial dimensions and 10 in three spatial dimensions). This may be motivated by analogy to matrices. If $\mathbf{B}\in \mathbb{R}^{\fedim \times \fedim}$ is a matrix with $i^\text{th}$ column $\mathbf{b}_i$ and $\mathbf{w} \in \mathbb{R}^\fedim$, then
 \begin{equation*}
 \mathbf{B}^T \mathbf{w} = \begin{bmatrix}
 \horzbar & \mathbf{b}_1^T & \horzbar \\
-\horzbar & \mathbf{b}_2^T & \horzbar \\
+%\horzbar & \mathbf{b}_2^T & \horzbar \\
 & \vdots & \\
 \horzbar & \mathbf{b}_\fedim^T & \horzbar
 \end{bmatrix}
 \mathbf{w} = 
 \begin{bmatrix}
 \mathbf{b}_1^T \mathbf{w} \\
-\mathbf{b}_2^T \mathbf{w} \\
+%\mathbf{b}_2^T \mathbf{w} \\
 \vdots \\
 \mathbf{b}_\fedim^T \mathbf{w}
 \end{bmatrix}.
 \end{equation*}
-By computing one matrix-vector product of $\mathbf{B}^T$ with $\mathbf{w}$, we compute the inner product of each column of $\mathbf{B}$ with $\mathbf{w}$ simultaneously. The operator case is analogous, with the impulse response $\phi_x$ taking the place of a matrix column. We have
+By computing one matrix-vector product of $\mathbf{B}^T$ with $\mathbf{w}$, we compute the inner product of each column of $\mathbf{B}$ with $\mathbf{w}$ simultaneously. The operator case is analogous, with the impulse $\phi_x$ taking the place of a matrix column. We have
 \begin{equation}
 \label{eq:operator_simultaneous_ips}
 \left(\Aop^T w\right)^*(x) = \int_\Omega \Aker(y,x) w(y) dy = \left(\phi_x, w\right)_{L^2(\Omega)}.
 \end{equation}
-By computing one operator application of $\Aop^T$ to $w$, we compute the inner product of each impulse response $\phi_x$ with $w$, for all points $x$ simultaneously. 
+By computing one operator application of $\Aop^T$ to $w$, we compute the inner product of each impulse $\phi_x$ with $w$, for all points $x$ simultaneously. 
 
 Let $C$, $L^i$, and $Q^{ij}$ be the following constant, linear, and quadratic functions:
 \begin{equation*}
@@ -347,7 +359,7 @@ for $i,j=1,\dots,\gdim$. Using the definition of $\spatialvol$ in \eqref{eq:defi
 \begin{equation*}
 	\spatialvol(x) = \int_\Omega \phi_x(y) C(y) ~ dy = \left(\phi_x, C\right)_{L^2(\Omega)} = \left(\mathcal{A}^T C\right)^*(x).
 \end{equation*}
-Hence, we compute $\spatialvol(x)$ for all $x$ simultaneously by applying $\Aop^T$ to $C$. Analogous manipulations show that $\spatialmean(x)$ and $\spatialcov(x)$ may be computed for all points $x$ simultaneously by applying $\Aop^T$ to the functions $L^i$ and $Q^{ij}$, respectively. To summarize the results of doing this, we have
+Hence, we compute $\spatialvol(x)$ for all $x$ simultaneously by applying $\Aop^T$ to $C$. Analogous manipulations show that $\spatialmean(x)$ and $\spatialcov(x)$ may be computed for all points $x$ simultaneously by applying $\Aop^T$ to the functions $L^i$ and $Q^{ij}$, respectively. We have
 \begin{subequations}
 	\label{eq:vol_mean_var}
 	\begin{align}
@@ -392,12 +404,13 @@ for $i,j=1,\dots, \gdim$. Here $u/w$ denotes pointwise division, $\left(u/w\righ
 %	\label{alg:varhpi_mean_cov}
 %\end{algorithm2e}
 
-Next, we make the approximation that the support of $\impulseresponse_x$ is contained within the ellipsoid
+We approximate the support of $\impulseresponse_x$ with the ellipsoid
 \begin{equation}
 \label{eq:support_ellipsoid}
 E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
 \end{equation}
-where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$. The quantity $\tau$ is a parameter that must be chosen appropriately. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids is better), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. In practice, we find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is conservative and typically far less mass resides in this region. 
+where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$. The quantity $\tau$ is a parameter that must be chosen appropriately. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section \ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids is better), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. In practice, we find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is typically conservative.
+% and typically far less mass resides in this region. 
 
 
 \subsection{Local mean displacement invariance}
@@ -410,7 +423,7 @@ Let $x$ and $x'$ be points in $\Omega$ that are ``close'' to each other, and con
 \phi_x(y) &\approx \phi_{x'}\left(y-\spatialmean(x)+\spatialmean(x')\right) \label{eq:translate3}\\
 \phi_x(y)/\spatialvol(x) &\approx \phi_{x'}\left(y-\spatialmean(x)+\spatialmean(x')\right) / \spatialvol(x'). \label{eq:translate4}
 \end{align}
-These are four different ways to approximate an impulse response by a nearby impulse response, with each successive approximation building upon the previous ones. Our method uses \eqref{eq:translate4}, which is the most sophisticated of these approximations. Approximation \eqref{eq:translate1} says that $\phi_x$ can be approximated by $\phi_{x'}$ when $x$ and $x'$ are close. Operators satisfying \eqref{eq:translate1} can be well approximated via low rank CUR approximation \cite{MahoneyDrineas09}. However, the required rank in the low rank approximation can be large, which makes algorithms based on \eqref{eq:translate1} expensive. Operators that satisfy \eqref{eq:translate2} are called ``locally translation invariant'' because integral kernel entries $\Aker(y,x)$ for such operators are approximately invariant under translation of $x$ and $y$ by the same displacement, i.e., $x \rightarrow x+h$ and $y \rightarrow y+h$. It is straightforward to show that if equality holds in \eqref{eq:translate2}, then $\Aop$ is a convolution operator. Locally translation invariant operators act like convolutions locally, and can therefore be well approximated by PC approximations.
+These are four different ways to approximate an impulse by a nearby impulse, with each successive approximation building upon the previous ones. Our method uses \eqref{eq:translate4}, which is the most sophisticated of these approximations. Approximation \eqref{eq:translate1} says that $\phi_x$ can be approximated by $\phi_{x'}$ when $x$ and $x'$ are close. Operators satisfying \eqref{eq:translate1} can be well approximated via low rank CUR approximation \cite{MahoneyDrineas09}. However, the required rank in the low rank approximation can be large, which makes algorithms based on \eqref{eq:translate1} expensive. Operators that satisfy \eqref{eq:translate2} are called ``locally translation invariant'' because integral kernel entries $\Aker(y,x)$ for such operators are approximately invariant under translation of $x$ and $y$ by the same displacement, i.e., $x \rightarrow x+h$ and $y \rightarrow y+h$. It is straightforward to show that if equality holds in \eqref{eq:translate2}, then $\Aop$ is a convolution operator. Locally translation invariant operators act like convolutions locally, and can therefore be well approximated by PC approximations.
 
 
 Approximation \eqref{eq:translate3} improves upon \eqref{eq:translate1} and \eqref{eq:translate2}, and generalizes both. On one hand, if \eqref{eq:translate1} holds, then $\spatialmean(x) \approx \spatialmean(x')$, and so \eqref{eq:translate3} holds. On the other hand, translating a distribution translates its mean, so if \eqref{eq:translate2} holds, then $\spatialmean(x')-\spatialmean(x) \approx x' - x$, so again \eqref{eq:translate3} holds. But approximation \eqref{eq:translate3} can hold in situations where neither \eqref{eq:translate1} nor \eqref{eq:translate2} holds. For example, because the expected value commutes with affine transformations, \eqref{eq:translate3} will hold when $\Aop$ is locally translation invariant with respect to a rotated frame of reference, while \eqref{eq:translate2} will not hold in this case. Additionally, \eqref{eq:translate3} generalizes to operators $\Aop:L^2(\Omega_1) \rightarrow L^2(\Omega_2)'$ that map between function spaces on different domains $\Omega_1$ and $\Omega_2$, and even operators that map between domains with different spatial dimensions. In contrast, \eqref{eq:translate2} does not naturally generalize to operators that map between function spaces on different domains, because the formula $y-x+x'$ requires vectors in $\Omega_2$ and $\Omega_1$ to be added together.  We call \eqref{eq:translate3} ``local mean displacement invariance,'' and illustrate \eqref{eq:translate3} in Figure \ref{fig:mean_displacement_invariance}.
@@ -422,14 +435,15 @@ We use approximation \eqref{eq:translate4}, which is the same as \eqref{eq:trans
 \section{Operator approximation algorithm}
 \label{sec:method}
 
-We use \eqref{eq:vol_mean_var} in Section \ref{sec:intromoments} to compute $\spatialvol$, $\spatialmean$, and $\spatialcov$ by applying $\Aop^T$ to a small number of polynomial functions. Then we use \eqref{eq:support_ellipsoid} to form ellipsoid shaped estimates for the support of the impulse responses $\phi_x$, \emph{without} computing them. This allows us to compute large numbers of impulse responses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute one batch of impulse responses, denoted $\eta_b$, by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support ellipsoid for $\impulseresponse_{x_i}$ and the support ellipsoid for $\impulseresponse_{x_j}$ do not overlap if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because the supports of these impulse responses do not overlap (or do not overlap much), we can post process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated until a desired number of batches is reached.
+We use \eqref{eq:vol_mean_var} in Section \ref{sec:intromoments} to compute $\spatialvol$, $\spatialmean$, and $\spatialcov$ by applying $\Aop^T$ to a small number of polynomial functions. Then we use \eqref{eq:support_ellipsoid} to form ellipsoid shaped estimates for the support of the impulses $\phi_x$, \emph{without} computing them. This allows us to compute large numbers of impulses, $\impulseresponse_{x_i}$, in ``batches,'' $\eta_b$ (see Figure \ref{fig:batches_intro}). We compute one batch of impulses, denoted $\eta_b$, by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section \ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support ellipsoid for $\impulseresponse_{x_i}$ and the support ellipsoid for $\impulseresponse_{x_j}$ do not overlap if $i \neq j$ (Section \ref{sec:sample_point_selection}). Because the supports of these impulses do not overlap (or do not overlap much), we can post process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section \ref{sec:get_impulse_response}). The process is repeated until a desired number of batches is reached.
 
-Once the impulse response batches $\eta_b$ are computed, we approximate the integral kernel $\Aker(y,x)$ at arbitrary points $(y,x)$ by interpolation of translated and scaled versions of the computed impulse responses (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{sec:local_mean_displacement_invariance}. Specifically, we approximate $\Aker(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}(y - \spatialmean(x) + \spatialmean(x_i))$ for a small number of sample points $x_i$ near $x$. The weights are determined by radial basis function interpolation.
+Once the impulse batches $\eta_b$ are computed, we approximate the integral kernel $\Aker(y,x)$ at arbitrary points $(y,x)$ by interpolation of translated and scaled versions of the computed impulses (Section \ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section \ref{sec:local_mean_displacement_invariance}. Specifically, we approximate $\Aker(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}(y - \spatialmean(x) + \spatialmean(x_i))$ for a small number of sample points $x_i$ near $x$. The weights are determined by radial basis function interpolation.
 
-The ability to rapidly evaluate approximate kernel entries $\Aker(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Aker}_H \approx \mathbf{\Aker}$, using the conventional adaptive cross H-matrix construction method (Section \ref{sec:h_matrix_construction_short}). In this method, one forms low rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks. We then use H-matrix methods to convert $\boldsymbol{\Aker}_H$ into an H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$. Schematically the algorithm proceeds as follows:
-\begin{equation*}
-\Aop \longrightarrow \spatialvol, \spatialmean, \spatialcov \longrightarrow \underbrace{\{x_i\}_{i=1}^\nsamplepts}_{\text{as }S_b\text{'s}} \longrightarrow \underbrace{\{\impulseresponse_{x_i}\}_{i=1}^\nsamplepts}_{\text{as }\eta_b\text{'s}} \longrightarrow \boldsymbol{\Aker}_H \longrightarrow \mathbf{A}_H.
-\end{equation*}
+The ability to rapidly evaluate approximate kernel entries $\Aker(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Aker}_H \approx \mathbf{\Aker}$, using the conventional adaptive cross H-matrix construction method (Section \ref{sec:h_matrix_construction_short}). In this method, one forms low rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks. We then use H-matrix methods to convert $\boldsymbol{\Aker}_H$ into an H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$. 
+%Schematically the algorithm proceeds as follows:
+%\begin{equation*}
+%\Aop \longrightarrow \spatialvol, \spatialmean, \spatialcov \longrightarrow \underbrace{\{x_i\}_{i=1}^\nsamplepts}_{\text{as }S_b\text{'s}} \longrightarrow \underbrace{\{\impulseresponse_{x_i}\}_{i=1}^\nsamplepts}_{\text{as }\eta_b\text{'s}} \longrightarrow \boldsymbol{\Aker}_H \longrightarrow \mathbf{A}_H.
+%\end{equation*}
 The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm \ref{alg:construct_Atilde}. The cost is discussed in Section \ref{sec:overall_cost}.
 
 When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be non-symmetric and indefinite due to errors in the approximation. In this case, one may (optionally) modify the H-matrix representation of $\mathbf{A}_H$ to make it symmetric positive semi-definite using a rational function method that we describe in Appendix \ref{sec:make_spd}.
@@ -521,11 +535,11 @@ We check whether $E_{\candidatepoint_i} \cap E_{\candidatepoint_j} = \{\}$ using
 \subsection{Impulse response batches}
 \label{sec:get_impulse_response}
 
-We compute impulse responses $\impulseresponse_{x_i}$ in batches by applying $\Aop$ to Dirac combs. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the following weighted sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$:
+We compute impulses $\impulseresponse_{x_i}$ in batches by applying $\Aop$ to Dirac combs. The Dirac comb, $\diraccomb_k$, associated with a batch of sample points, $\pointbatch_k$, is the following weighted sum of Dirac distributions (point sources) centered at the points $x_i \in \pointbatch_k$:
 \begin{equation*}
 	\diraccomb_k := \sum_{x_i \in \pointbatch_k} \delta_{x_i} / \spatialvol(x_i).
 \end{equation*}
-We compute the \emph{impulse response batch}, $\eta_k$, by applying $\Aop$ to the Dirac comb:
+We compute the \emph{impulse batch}, $\eta_k$, by applying $\Aop$ to the Dirac comb:
 \begin{equation}
 	\label{eq:dirac_comb_H_action}
 	\combresponse_k := \left(\Aop \diraccomb_k^*\right)^*
@@ -540,9 +554,9 @@ The last equality in \eqref{eq:dirac_comb_H_action} follows from linearity and t
 		0, & \text{otherwise}
 	\end{cases}
 \end{equation}
-for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, $\xi_k \mapsto \left(\Aop \diraccomb_k^*\right)^*$, we recover the impulse responses $\impulseresponse_{x_i}$ associated with every point $x_i \in \pointbatch_k$. 
+for all $x_i \in \pointbatch_k$. By performing one matrix-vector product, $\xi_k \mapsto \left(\Aop \diraccomb_k^*\right)^*$, we recover the impulses $\impulseresponse_{x_i}$ associated with every point $x_i \in \pointbatch_k$. 
 
-Each point source $\delta_{x_i}$ is scaled by $1/\spatialvol(x_i)$ so that the resulting scaled impulse responses within $\eta_k$ are comparable in magnitude. Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section \ref{sec:sample_point_selection} excludes $x_i$ from consideration as a sample point if $\spatialvol(x_i)$ is smaller than a predetermined threshold. Without this scaling, the portion of $\phi_{x_i}$ outside of $E_{x_i}$, which we neglect, may overwhelm $\phi_{x_j}$ for a nearby point $x_j$ if $\spatialvol(x_i)$ is much larger than $\spatialvol(x_j)$. 
+Each point source $\delta_{x_i}$ is scaled by $1/\spatialvol(x_i)$ so that the resulting scaled impulses within $\eta_k$ are comparable in magnitude. Without this scaling, the portion of $\phi_{x_i}$ outside of $E_{x_i}$, which we neglect, may overwhelm $\phi_{x_j}$ for a nearby point $x_j$ if $\spatialvol(x_i)$ is much larger than $\spatialvol(x_j)$. Note that we are not in danger of dividing by zero, because our ellipsoid packing procedure from Section \ref{sec:sample_point_selection} excludes $x_i$ from consideration as a sample point if $\spatialvol(x_i)$ is smaller than a predetermined threshold.  
 
 
 \subsection{Approximate integral kernel entries}
@@ -552,7 +566,7 @@ Given $(y,x)\in \Omega \times \Omega$, let
 \begin{equation*}
 	z_i := y - \spatialmean(x) + \spatialmean(x_i), \qquad i=1,\dots,\numnbr,
 \end{equation*}
-where $\{x_i\}_{i=1}^{\numnbr}$ are the $\numnbr$ nearest sample points to $x$, excluding sample points $x_i$ for which $z_i \notin \Omega$. Here $\numnbr$ is a small user defined parameter; e.g., $\numnbr=10$. We find the $\numnbr$ nearest sample points to $x$ by querying a precomputed kd-tree \cite{Bentley75} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{Ericson04} of the mesh cells used to discretize the problem. Further, let
+where $\{x_i\}_{i=1}^{\numnbr}$ are the $\numnbr$ nearest sample points to $x$, excluding points $x_i$ for which $z_i \notin \Omega$. Here $\numnbr$ is a small user defined parameter; e.g., $\numnbr=10$. We find the $\numnbr$ nearest sample points to $x$ by querying a precomputed kd-tree \cite{Bentley75} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree) \cite{Ericson04} of the mesh cells used to discretize the problem. Further, let
 \begin{equation}
 \label{eq:fxyxp}
 f_i := \frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}\left(z_i\right), \qquad i=1,\dots,\numnbr.
@@ -563,18 +577,19 @@ $
 $
 at the point $x$. 
 %The idea is that $\Aker(y,x) = f_i$ per the discussion in Section \ref{sec:local_mean_displacement_invariance}, so we approximate $\Aker(y,x)$ by interpolating the values $f_i$. 
-Interpolation is performed using the following radial basis function scheme:
+Interpolation is performed using the following radial basis function \cite{Wendland04} scheme:
 \begin{equation}
 \Aker(y,x) \approx \widetilde{\Aker}(y,x) := \sum_{i=1}^{\numnbr} \rbfweight_i~ \rbf\left(\|x-x_i\|\right),
 \end{equation}
-where $\rbfweight_i$ are weights, and $\rbf$ is a polyharmonic spline radial basis function, which is defined as follows:
-\begin{equation}
-\rbf(r) := \begin{cases}
-r^\gdim, & \gdim=1,3,5,\dots \\
-r^\gdim \log r, & \gdim=2,4,6,\dots
-\end{cases}
-\end{equation}
-for $r>0$, and $\rbf(0):=0$. The vector of weights, $\rbfweight = (\rbfweight_1, \rbfweight_2, \dots, \rbfweight_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
+where $\rbfweight_i$ are weights, and $\rbf$ is a polyharmonic spline radial basis function, which is defined as $\rbf(r):=r^\gdim$ if $\gdim$ is odd, and $\rbf(r):=r^\gdim \log r$ for $r>0$ and $\rbf(0):=0$ if $\gdim$ is even.
+%\begin{equation}
+%\rbf(r) := \begin{cases}
+%r^\gdim, & \gdim=1,3,5,\dots \\
+%r^\gdim \log r, & \gdim=2,4,6,\dots
+%\end{cases}
+%\end{equation}
+%for $r>0$, and $\rbf(0):=0$. 
+The vector of weights, $\rbfweight = (\rbfweight_1, \rbfweight_2, \dots, \rbfweight_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
 \begin{equation}
 B \rbfweight = f,
 \end{equation}
@@ -582,7 +597,8 @@ where $B \in \mathbb{R}^{\numnbr \times \numnbr}$ has entries
 $
 B_{ij} := \rbf\left(\|x_i - x_j\|\right),
 $
-and $f \in \mathbb{R}^{\numnbr}$ has entries $f_i$ from \eqref{eq:fxyxp}. Polyharmonic spline radial basis function interpolation yields the smoothest interpolant of the given points and values, in a certain least squares sense \cite{Duchon77}. For more details on radial basis function interpolation, see \cite{Wendland04}. 
+and $f \in \mathbb{R}^{\numnbr}$ has entries $f_i$ from \eqref{eq:fxyxp}. Polyharmonic spline radial basis function interpolation yields the smoothest interpolant of the given points and values, in a certain least squares sense \cite{Duchon77}. 
+%For more details on radial basis function interpolation, see \cite{Wendland04}. 
 %The interpolation procedure is illustrate in Figure \ref{fig:rbf_interpolation}.
 
 %\begin{figure}
@@ -621,7 +637,7 @@ We form $\massmatrix_H$ using standard H-matrix methods for sparse matrices impl
 \section{Computational cost}
 \label{sec:overall_cost}
 
-The computational cost of our method may be divided into the costs to perform the following tasks: (1) Computing impulse response moments and batches; (2) Building the H-matrix; (3) Performing linear algebra operations with the H-matrix. This may optionally include modifying the H-matrix to make it symmetric positive semi-definite.
+The computational cost of our method may be divided into the costs to perform the following tasks: (1) Computing impulse moments and batches; (2) Building the H-matrix; (3) Performing linear algebra operations with the H-matrix. This may optionally include modifying the H-matrix to make it symmetric positive semi-definite.
 In practice, (1) is the dominant cost, because (1) is the only task that requires applying $\Aop$ to vectors, and our method is targeted at applications in which applying $\Aop$ to a vector requires an expensive computational procedure such as solving a large scale PDE. All operations that do not require applications of $\Aop$ to vectors are nearly linear, and therefore scalable, in the size of the problem, $N$.
 We now describe these costs in detail. For convenience, Table \ref{tab:vars} lists variable symbols and their approximate sizes.
 
@@ -630,7 +646,7 @@ We now describe these costs in detail. For convenience, Table \ref{tab:vars} lis
 		Symbol & Typical size & Variable name \\
 		\hline
 		$\fedim$ & $10^2$--$10^9$ & Number of finite element degrees of freedom \\
-		$\nbatch$ & $1$--$25$ & Number of impulse response batches \\
+		$\nbatch$ & $1$--$25$ & Number of impulse batches \\
 		$\hrank$ & $5$--$50$ & H-matrix rank \\
 		$\numnbr$ & $5$--$15$ & Number of nearest neighbors for RBF interpolation \\
 		$\gdim$ & $1$--$3$ & Spatial dimension \\
@@ -643,14 +659,14 @@ We now describe these costs in detail. For convenience, Table \ref{tab:vars} lis
 	\label{tab:vars}
 \end{table}
 
-\paragraph{(1) Computing impulse response moments and batches} Computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ requires applying $\Aop$ to $1$, $\gdim$, and $\gdim(\gdim+1)/2$ vectors, respectively.
-Computing each impulse response batch requires applying $\Aop$ to one vector, so computing all impulse response batches $\{\eta_i\}_{i=1}^{\nbatch}$ requires $\nbatch$ operator applies. In total, computing all impulse response moments and batches therefore requires
+\paragraph{(1) Computing impulse moments and batches} Computing $\spatialvol$, $\spatialmean$, and $\spatialcov$ requires applying $\Aop$ to $1$, $\gdim$, and $\gdim(\gdim+1)/2$ vectors, respectively.
+Computing each impulse batch requires applying $\Aop$ to one vector, so computing all impulse batches $\{\eta_i\}_{i=1}^{\nbatch}$ requires $\nbatch$ operator applies. In total, computing all impulse moments and batches therefore requires
 \begin{equation*}
 	1 + \gdim + \gdim(\gdim+1)/2 + \nbatch \qquad \text{operator applies.}
 \end{equation*}
 In a typical application one might have $\gdim=2$ and $\nbatch=5$, in which case a modest $11$ operator applies are required.
 
-Computing the impulse response batches also requires choosing sample point batches via the greedy ellipsoid packing algorithm described in Section \ref{sec:sample_point_selection}. Choosing the $i$th batch of sample points may require performing up to $\fedim |\pointbatch_i|$ ellipsoid intersection tests, where $|\pointbatch_i|$ is the number of sample points in the $i$th batch. Choosing all of the sample points therefore requires performing at most
+Computing the impulse batches also requires choosing sample point batches via the greedy ellipsoid packing algorithm described in Section \ref{sec:sample_point_selection}. Choosing the $i$th batch of sample points may require performing up to $\fedim |\pointbatch_i|$ ellipsoid intersection tests, where $|\pointbatch_i|$ is the number of sample points in the $i$th batch. Choosing all of the sample points therefore requires performing at most
 \begin{equation*}
 	\fedim \nsamplepts \qquad \text{ellipsoid intersection tests,}
 \end{equation*}
@@ -660,7 +676,7 @@ However, from a practical perspective, the cost for picking sample points is sma
 
 \paragraph{(2) Building the H-matrix} The classical H-matrix construction technique
 %, which is described in Appendix \ref{app:h_matrix}, 
-requires evaluating $O(\hrank^2 \fedim \log \fedim)$ matrix entries of the approximation, where $\hrank$ is the H-matrix rank, i.e,  the maximum rank among the blocks of the H-matrix. To evaluate one matrix entry, first one must find the $\numnbr$ nearest sample points to a given point, where $\numnbr$ is the number of impulse responses used in the RBF interpolation. This is done using a precomputed kd-tree of sample points, and requires $O(\numnbr \log \nsamplepts)$ floating point and logical elementary operations. Second, one must find the mesh cells that the points $\{z_i\}_{i=1}^{\numnbr}$ reside. This is done using an AABB tree of mesh cells, and requires $O(\numnbr \log \fedim)$ elementary operations. Third, one must evaluate finite element basis functions on each of those cells, which requires $O(\numnbr)$ elementary operations. Finally, one must solve a $\numnbr \times \numnbr$ linear system to perform the radial basis function interpolation, which requires $O(\numnbr^3)$ elementary operations, which typically is negligible. Therefore, building the H-matrix requires
+requires evaluating $O(\hrank^2 \fedim \log \fedim)$ matrix entries of the approximation, where $\hrank$ is the H-matrix rank, i.e,  the maximum rank among the blocks of the H-matrix. To evaluate one matrix entry, first one must find the $\numnbr$ nearest sample points to a given point, where $\numnbr$ is the number of impulses used in the RBF interpolation. This is done using a precomputed kd-tree of sample points, and requires $O(\numnbr \log \nsamplepts)$ floating point and logical elementary operations. Second, one must find the mesh cells that the points $\{z_i\}_{i=1}^{\numnbr}$ reside. This is done using an AABB tree of mesh cells, and requires $O(\numnbr \log \fedim)$ elementary operations. Third, one must evaluate finite element basis functions on each of those cells, which requires $O(\numnbr)$ elementary operations. Finally, one must solve a $\numnbr \times \numnbr$ linear system to perform the radial basis function interpolation, which requires $O(\numnbr^3)$ elementary operations, which typically is negligible. Therefore, building the H-matrix requires
 \begin{equation*}
 	O\left(\left(\hrank^2 \fedim \log \fedim\right)\left(\numnbr \log \fedim + \numnbr^3\right)\right) \qquad \text{elementary operations}.
 \end{equation*}
@@ -861,7 +877,7 @@ We use $\bm{H}_\text{gn}$ for the first five iterations, and $\bm{H}$ for all su
 	\label{fig:newton_iterates} 
 \end{figure} 
 
-We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data misfit Gauss-Newton Hessian (the term in $\bm{H}_\text{gn}$ that arises from the data misfit) using 1, 5, and 25 impulse responses batches. These approximations are denoted by PSF (1), PSF (5), and PSF (25), respectively. The resulting H-matrices, which may be indefinite due to approximation error, are modified to be symmetric positive definite via the procedure described in Appendix \ref{sec:make_spd}, with $l=2$. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $\bm{H}$ more often has negative values in its integral kernel, especially when one is away from the optimal point. Our results show that our preconditioners are also good preconditioners for $\bm{H}$. The H-matrix approximation of the data misfit Gauss-Newton Hessian is added to a H-matrix approximation of the Hessian of the regularization term to form a H-matrix approximation of $\bm{H}_\text{gn}$. Straightforward calculation shows that the discretized Hessian of the regularization term is given by
+We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data misfit Gauss-Newton Hessian (the term in $\bm{H}_\text{gn}$ that arises from the data misfit) using 1, 5, and 25 impulse batches. These approximations are denoted by PSF (1), PSF (5), and PSF (25), respectively. The resulting H-matrices, which may be indefinite due to approximation error, are modified to be symmetric positive definite via the procedure described in Appendix \ref{sec:make_spd}, with $l=2$. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $\bm{H}$ more often has negative values in its integral kernel, especially when one is away from the optimal point. Our results show that our preconditioners are also good preconditioners for $\bm{H}$. The H-matrix approximation of the data misfit Gauss-Newton Hessian is added to a H-matrix approximation of the Hessian of the regularization term to form a H-matrix approximation of $\bm{H}_\text{gn}$. Straightforward calculation shows that the discretized Hessian of the regularization term is given by
 $
 (\gamma \bm{K} + \delta \bm{M}) \bm{M}^{-1} (\gamma \bm{K} + \delta \bm{M})
 $
@@ -925,7 +941,7 @@ where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary co
 			\endgroup
 		\end{center}
 	}
-	\caption{Convergence history for solving the Stokes inverse problem using preconditioned inexact Newton PCG. Preconditioners shown are our method with five impulse response batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $||\bm{g}||$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. In the PSF (5) portion of row 3, we write $6+22$ to indicate that 6 Stokes solves were used during the standard course of the iteration, and 22 Stokes solves were used to build the PSF (5) preconditioner. }
+	\caption{Convergence history for solving the Stokes inverse problem using preconditioned inexact Newton PCG. Preconditioners shown are our method with five impulse batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $||\bm{g}||$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. In the PSF (5) portion of row 3, we write $6+22$ to indicate that 6 Stokes solves were used during the standard course of the iteration, and 22 Stokes solves were used to build the PSF (5) preconditioner. }
 	\label{tab:newton_convergence_table}
 \end{table}
 
@@ -998,7 +1014,7 @@ Table \ref{tab:newton_convergence_table} shows the performance of our preconditi
 	\end{subfigure}
 	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard normal distribution. 
 %		The y-axis is $||b-Hx_k||/||b||$, where $x_k$ is the $k$th PCG iterate. 
-	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle. Right (\ref{fig:gamma_sweep}) shows the number of PCG iterations required to achieve $||\bm{b}-\bm{H} \bm{x}_k||/||\bm{b}|| < 10^{-6}$, where $\bm{x}_k$ is the $k$th PCG iterate, for a range of different $\gamma$. Results in these figures are shown for our preconditioner with 1, 5, and 25 batches of impulse responses (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$. For a fair comparison, even as $\gamma$ changes, $\bm{H}$ and $\bm{H}_\text{gn}$ are always evaluated at the same $\bm{\basalfriction}$, which is the optimal point for the inverse problem with $\gamma=7.3 \times 10^3$.}
+	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle. Right (\ref{fig:gamma_sweep}) shows the number of PCG iterations required to achieve $||\bm{b}-\bm{H} \bm{x}_k||/||\bm{b}|| < 10^{-6}$, where $\bm{x}_k$ is the $k$th PCG iterate, for a range of different $\gamma$. Results in these figures are shown for our preconditioner with 1, 5, and 25 batches of impulses (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$. For a fair comparison, even as $\gamma$ changes, $\bm{H}$ and $\bm{H}_\text{gn}$ are always evaluated at the same $\bm{\basalfriction}$, which is the optimal point for the inverse problem with $\gamma=7.3 \times 10^3$.}
 	\label{fig:krylov_convergence}
 \end{figure} 
 
@@ -1070,7 +1086,7 @@ Here $\bm{H}$ is the Hessian evaluated at the reconstructed parameter $\bm{\basa
 \section{Conclusions}
 \label{sec:conclusions}
 
-We presented an efficient matrix-free PSF method for approximating operators with locally supported non-negative integral kernels. The method only requires access to the operator via application of the operator to a small number of vectors. The idea of the method is to compute batches of impulse responses by applying the operator to Dirac combs of scattered point sources, then interpolate these impulse responses to approximate entries of the operator's integral kernel. The interpolation is based on a new principle we call ``local mean displacement invariance,'' which generalizes and improves upon classical local translation invariance. The ability to quickly approximate arbitrary integral kernel entries permits us to form a H-matrix approximation of the operator. Fast H-matrix arithmetic is then used to perform further linear algebra operations that cannot be performed easily with the original operator, such as matrix factorization and inversion. The supports of the impulse responses are estimated to be contained in ellipsoids, which are determined a-priori via a new procedure that involves applying the operator to a small number of polynomial functions. Point source locations for the impulse response batches are chosen using a greedy ellipsoid packing procedure, in which we choose as many impulse responses per batch as possible, while ensuring that the corresponding ellipsoids do not overlap. We applied the method to approximate the Gauss-Newton Hessian in a Stokes ice sheet inverse problem, and saw that the approximation substantially outperforms existing Hessian approximation methods. Although the method we presented is not applicable to all Hessians, it is applicable to many Hessians of practical interest. For these Hessians, our method offers a \emph{data scalable} alternative to conventional low rank approximation, because our method can form high rank approximations of an operator using a small number of operator applies.
+We presented an efficient matrix-free PSF method for approximating operators with locally supported non-negative integral kernels. The method only requires access to the operator via application of the operator to a small number of vectors. The idea of the method is to compute batches of impulses by applying the operator to Dirac combs of scattered point sources, then interpolate these impulses to approximate entries of the operator's integral kernel. The interpolation is based on a new principle we call ``local mean displacement invariance,'' which generalizes and improves upon classical local translation invariance. The ability to quickly approximate arbitrary integral kernel entries permits us to form a H-matrix approximation of the operator. Fast H-matrix arithmetic is then used to perform further linear algebra operations that cannot be performed easily with the original operator, such as matrix factorization and inversion. The supports of the impulses are estimated to be contained in ellipsoids, which are determined a-priori via a new procedure that involves applying the operator to a small number of polynomial functions. Point source locations for the impulse batches are chosen using a greedy ellipsoid packing procedure, in which we choose as many impulses per batch as possible, while ensuring that the corresponding ellipsoids do not overlap. We applied the method to approximate the Gauss-Newton Hessian in a Stokes ice sheet inverse problem, and saw that the approximation substantially outperforms existing Hessian approximation methods. Although the method we presented is not applicable to all Hessians, it is applicable to many Hessians of practical interest. For these Hessians, our method offers a \emph{data scalable} alternative to conventional low rank approximation, because our method can form high rank approximations of an operator using a small number of operator applies.
 
 \appendix
 
@@ -1223,9 +1239,9 @@ where $v := \eigenvectormatrix^T\left(\spatialmean_1 - \spatialmean_2\right)$. T
 %	\label{alg:ellipsoid_intersection_test}
 %\end{algorithm2e}
 
-\subsection{Ellipsoid bounding box test}
+%\subsection{Ellipsoid bounding box test}
 
-One may reduce the average cost of performing ellipsoid intersection tests by first checking whether the coordinate axis aligned bounding boxes for the ellipsoids intersect. If the bounding boxes do not intersect, then the ellipsoids do not intersect, so no further action is necessary. If the bounding boxes intersect, the ellipsoids might intersect, or they might not intersect, so one must perform the complete ellipsoid intersection test described in Section \ref{sec:fast_ellipsoid_intersection_test}. The smallest coordinate axis aligned box that contains the ellipsoid 
+\paragraph{Ellipsoid bounding box test} Before performing the ellipsoid intersection test described above, we check whether the coordinate axis aligned bounding boxes for the ellipsoids intersect. If the bounding boxes do not intersect, then the ellipsoids do not intersect, so no further action is necessary. If the bounding boxes intersect, the ellipsoids might or might not intersect, so we perform the complete ellipsoid intersection test described above. The smallest coordinate axis aligned box that contains the ellipsoid 
 $
 E = \{x : (x - \spatialmean)^T \spatialcov^{-1} (x - \spatialmean) \le \tau^2\}
 $
