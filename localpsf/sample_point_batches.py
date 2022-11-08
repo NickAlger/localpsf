@@ -3,8 +3,8 @@ import dolfin as dl
 from numba import jit
 from tqdm.auto import tqdm
 
-from .ellipsoid import points_which_are_not_in_ellipsoid_numba, ellipsoids_intersect
 from nalger_helper_functions import *
+from .ellipsoid import points_which_are_not_in_ellipsoid_numba, ellipsoids_intersect
 
 
 def choose_sample_point_batches(num_batches, V, mu_function, Sigma_function, tau, max_candidate_points=None):
@@ -91,8 +91,9 @@ def choose_one_sample_point_batch(mu, Sigma, num_standard_deviations_tau, candid
         p_ind = P_inds_perm.pop()
         p_is_acceptable = True
         for x_ind in X_inds_perm:
-            if ellipsoids_intersect(Sigma_perm[x_ind, :, :], Sigma_perm[p_ind, :, :], mu_perm[x_ind, :],
-                                    mu_perm[p_ind, :], num_standard_deviations_tau):
+            if ellipsoids_intersect(Sigma_perm[x_ind, :, :], Sigma_perm[p_ind, :, :],
+                                    mu_perm[x_ind, :], mu_perm[p_ind, :],
+                                    num_standard_deviations_tau):
                 p_is_acceptable = False
                 break
         if p_is_acceptable:
