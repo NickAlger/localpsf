@@ -165,38 +165,42 @@ The work and memory required to perform these operations for an $\fedim \times \
 %require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available matrix free.
 
 
-\section{The need for high rank Hessian approximations in inverse problems governed by PDEs}
+\section{Why we need high rank Hessian approximations}
 \label{sec:hessian}
 
 In distributed parameter inverse problems governed by PDEs, one seeks to infer an unknown spatially varying parameter field from limited observations of a state variable that depends on the parameter implicitly through the solution of a PDE. 
 %Inverse problems are typically ill-posed, in the sense that many different parameter fields may yield predicted observations that agree with the actual observations to within the noise level. 
-Two different frameworks are conventionally used to deal with this ill-posedness: the deterministic framework \cite{DETERMINISTIC}, and the Bayesian probabilistic framework \cite{STUART,TARANTOLA}. In the deterministic framework, one solves an optimization problem to find the parameter that best fits the observations, subject to appropriate regularization. In the probabilistic setting, Bayes' theorem combines the observations with prior information to form a posterior distribution over the space of all possible parameter fields, and computations are performed to extract statistical information about the parameter from this posterior. The Hessian of the objective function in the determinstic optimization problem and the Hessian of the negative log posterior in the Bayesian setting are equal or approximately equal to each other under typical noise, regularization, and prior models, so we refer to both of these Hessians as ``the Hessian''. The Hessian consists of a data misfit term (the ``data misfit Hessian''), which depends on mismatch between the actual observations and predicted observations based on a candidate parameter, and a regularization or prior term (the ``regularization Hessian'') which does not depend on the observations. 
+Conventionally, the inverse problem is formulated using either a deterministic framework \cite{DETERMINISTIC}, or a Bayesian probabilistic framework \cite{STUART,TARANTOLA}. In the deterministic framework, one solves an optimization problem to find the parameter that best fits the observations, subject to appropriate regularization. In the probabilistic framework, Bayes' theorem is used to combine the observations with prior information to form a posterior distribution over the space of all possible parameter fields, and computations are performed to extract statistical information about the parameter from this posterior. The Hessian of the objective function in the determinstic optimization problem and the Hessian of the negative log posterior in the Bayesian setting are equal or approximately equal to each other under typical noise, regularization, and prior models, so we refer to both of these Hessians as ``the Hessian''. The Hessian consists of a data misfit term (the ``data misfit Hessian''), which depends on mismatch between the actual observations and predicted observations based on a candidate parameter, and a regularization or prior term (the ``regularization Hessian'') which does not depend on the observations. 
 
 Hessian approximations and preconditioners are highly desirable because the Hessian is central to efficient solution of inverse problems in both the deterministic and Bayesian settings. When solving the deterministic optimization problem with Newton-type methods, the Hessian is the coefficient operator for the linear system that must be solved at every Newton iteration. Good Hessian preconditioners reduce the number of iterations required to solve these Newton linear systems with Krylov methods such as conjugate gradient. In the Bayesian setting, the inverse of the Hessian is the covariance of the best local Gaussian approximation of the posterior. Hessian-based local Gaussian approximations of the posterior may be used as surrogate models of the posterior, or may be used as proposal distributions for Markov chain Monte-Carlo (MCMC) methods for drawing samples from the posterior. 
 
-\begin{figure}
-	\begin{subfigure}{0.5\textwidth}
-		\includegraphics[scale=0.23]{informed_uninformed_modes_quadratic.pdf}
-		\caption{}
-	\end{subfigure}
-	\begin{subfigure}{0.48\textwidth}
-		\includegraphics[scale=0.1]{misfit_and_reg_hessian_eigenvalues.pdf}
-		\caption{}
-	\end{subfigure}
-	\caption{(a) The Hessian eigenstructure characterizes the directional scalings of the best local quadratic approximation to the objective function in an inverse problem. The larger an eigenvalue of the Hessian is, the more closely spaced the contours of the local quadratic approximation are in the corresponding eigenvector direction. (b) As the data in an inverse problem becomes more informative about the parameter, the eigenvalues of the data misfit Hessian increase. As the regularization is weakened, the eigenvalues of the regularization Hessian decrease. These illustrations are taken from \cite[Chapter 1]{Alger19}, with minor modifications.}
-	\label{fig:hessian_eigenstructure}
-\end{figure} 
+%\begin{figure}
+%	\begin{subfigure}{0.5\textwidth}
+%		\includegraphics[scale=0.23]{informed_uninformed_modes_quadratic.pdf}
+%		\caption{}
+%	\end{subfigure}
+%	\begin{subfigure}{0.48\textwidth}
+%		\includegraphics[scale=0.1]{misfit_and_reg_hessian_eigenvalues.pdf}
+%		\caption{}
+%	\end{subfigure}
+%	\caption{(a) The Hessian eigenstructure characterizes the directional scalings of the best local quadratic approximation to the objective function in an inverse problem. The larger an eigenvalue of the Hessian is, the more closely spaced the contours of the local quadratic approximation are in the corresponding eigenvector direction. (b) As the data in an inverse problem becomes more informative about the parameter, the eigenvalues of the data misfit Hessian increase. As the regularization is weakened, the eigenvalues of the regularization Hessian decrease. These illustrations are taken from \cite[Chapter 1]{Alger19}, with minor modifications.}
+%	\label{fig:hessian_eigenstructure}
+%\end{figure} 
 
 
 Owing to the implicit dependence of predicted observations on the parameter, entries of the Hessian are not easily accessible. Rather, the Hessian may be applied to a vector via a computational process that involves solving a pair of forward and adjoint PDEs which are linearizations of the original PDE \cite{Alger19,GhattasWillcox21}. The most popular matrix-free Hessian approximation methods are based on low rank approximation of either the data misfit Hessian, or the data misfit Hessian preconditioned by the regularization Hessian  \cite{BuiEtAl13,CuiEtAl14,FlathEtAl11,PetraEtAl14,SpantiniEtAl15}. Krylov methods or randomized methods are typically used to construct these low rank matrix approximations by applying the Hessian to vectors \cite{Cheng05,HalkoMartinssonTropp11}. Using these methods, the required number of Hessian applications (and hence the required number of PDE solves) is proportional to the rank of the low rank approximation. 
-However, in many inverse problems of practical interest the data misfit Hessian is high rank, which makes makes it extremely costly to approximate the Hessian using these low rank approximation methods \cite{AmbartsumyanEtAl20,HartlandEtAl21}. Examples of inverse problems with high-rank data misfit Hessians include advection dominated advection-diffusion inverse problems, high frequency wave inverse problems, and more generally, all inverse problem in which the observations are highly informative about the parameter. The eigenvalues of the data misfit Hessian characterize the sensitivity of the predicted observations to perturbations of the parameter in the corresponding eigenvector directions (see Figure \ref{fig:hessian_eigenstructure}), so more informative data leads to larger eigenvalues and therefore a larger numerical rank. Roughly speaking, the numerical rank of the data misfit Hessian is the dimension of the subspace of parameter space that is informed by the data. The numerical rank of the regularization preconditioned data misfit Hessian may be reduced by increasing the strength of the regularization, but this is throwing away useful information---components of the parameter that could be learned from the observations are instead reconstructed based on the regularization. Hence, low rank approximation methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator applies are required to form an accurate ``low rank'' approximation. The best case scenario from a scientific perspective (highly informative data) is the worst case scenario from a computational perspective (large computational cost) \cite{AlexanderianGloorGhattas16,Alger19,AlgerEtAl17}. Matrix-free high rank Hessian approximation methods are needed.
+However, in many inverse problems of practical interest the rank of the data misfit Hessian is large, which makes makes it extremely costly to approximate the Hessian using these low rank approximation methods \cite{AmbartsumyanEtAl20,HartlandEtAl21}. 
+
+Examples of inverse problems with high rank data misfit Hessians include advection dominated advection-diffusion inverse problems, high frequency wave inverse problems, and more generally, all inverse problem in which the observations are highly informative about the parameter. The eigenvalues of the data misfit Hessian characterize the sensitivity of the predicted observations to perturbations of the parameter in the corresponding eigenvector directions,
+%(see Figure \ref{fig:hessian_eigenstructure})
+so more informative data leads to larger eigenvalues and therefore a larger numerical rank. Roughly speaking, the numerical rank of the data misfit Hessian is the dimension of the subspace of parameter space that is informed by the data. The numerical rank of the regularization preconditioned data misfit Hessian may be reduced by increasing the strength of the regularization, but this is throwing away useful information---components of the parameter that could be learned from the observations are instead reconstructed based on the regularization. Hence, low rank approximation methods suffer from a ``data predicament''---if the data are highly informative about the unknown parameter, then the numerical rank of the data misfit term in the Hessian is large, so a large number of operator applies are required to form an accurate ``low rank'' approximation. The best case scenario from a scientific perspective (highly informative data) is the worst case scenario from a computational perspective (large computational cost) \cite{AlexanderianGloorGhattas16,Alger19,AlgerEtAl17}. Matrix-free high rank Hessian approximation methods are needed.
 
 Recently there have been improvements in matrix-free H-matrix construction methods in which the operator is applied to structured random vectors, and the response of the operator to those random vectors is then processed to construct the H-matrix  \cite{LinYing11,Martinsson11,Martinsson16,MartinssonTropp20}. 
 These methods have been applied to form H-matrix representations of Hessians in PDE constrained inverse problems \cite{AmbartsumyanEtAl20}. 
 These methods are asymptotically scalable, but in practice a large number of matrix vector products are required. 
 %Improving the peeling process to reduce its cost is currently an area of active research \cite{PEELINGRESEARCH}.
 %This is an area of active research, so more efficient and practical matrix-free H-matrix construction methods based on the peeling process may be discovered in the future.
-Matrix-free H-matrix construction methods are currently an area of active research (see, e.g., \cite{LevittMartinsson}), so more efficient matrix-free H-matrix methods may be discovered in the future. In this paper, we form a H-matrix Hessian approximation. But rather than use these modern randomized methods to form the H-matrix directly, instead we exploit locality and non-negative integral kernel properties to form a PSF approximation of the data misfit Hessian, then convert the PSF approximation to H-matrix format and combine it with the regularization Hessian using classical H-matrix construction techniques. Not all data misfit Hessians satisfy the local non-negative integral kernel properties (for example, the wave inverse problem data misfit Hessian has a substantial amount of negative entries in its integral kernel). However, many data misfit Hessians of practical interest do satisfy these properties (either exactly or approximately), and our method is effective for approximating these Hessians.
+Matrix-free H-matrix construction methods are currently an area of active research (see, e.g., \cite{LevittMartinsson}), so more efficient matrix-free H-matrix methods may be discovered in the future. In this paper, we form a H-matrix Hessian approximation. But rather than use these modern methods to form the H-matrix directly, instead we exploit locality and non-negative integral kernel properties to form a PSF approximation of the data misfit Hessian, then convert the PSF approximation to H-matrix format and combine it with the regularization Hessian using classical H-matrix construction techniques. Not all data misfit Hessians satisfy the local non-negative integral kernel properties (for example, the wave inverse problem data misfit Hessian has a substantial amount of negative entries in its integral kernel). However, many data misfit Hessians of practical interest do satisfy these properties (either exactly or approximately), and our method is effective for approximating these Hessians.
 
 %Classical methods for approximating the Hessian are based on low rank approximation of either the data misfit Hessian, or the data misfit Hessian preconditioned by the inverse of the prior term in the Hessian. However,  More generally, the eigenvalues of the Hessian characterize how informative the data are about the component of the parameter in the corresponding parameter direction. The more informed the component of the parameter, the larger
 
@@ -230,10 +234,6 @@ Matrix-free H-matrix construction methods are currently an area of active resear
 
 \section{Preliminaries}
 
-
-\subsection{Integral operators, distributions and impulse responses}
-\label{sec:impulse_response_2}
-
 Let $\Omega \subset \mathbb{R}^\gdim$ be a bounded domain (typically $\gdim=1$, $2$, or $3$). We seek to approximate integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ of the form
 \begin{equation}
 \label{eq:kernel_representation}
@@ -241,6 +241,9 @@ Let $\Omega \subset \mathbb{R}^\gdim$ be a bounded domain (typically $\gdim=1$, 
 \end{equation}
 Here the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$.
 The integral kernel, $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$, exists in principle but is not easily accessible. In this section we describe how to extend the action of $\Aop$ to distributions, which allows us to define impulse responses (Section \ref{sec:impulse_response_2}), we state the conditions on $\Aop$ that our method requires (Section \ref{sec:conditions_2}), and we detail finite element discretization (Section \ref{sec:finite_element_kernel}).
+
+\subsection{Distributions and impulse responses}
+\label{sec:impulse_response_2}
 
 The action of $\Aop$ may be extended to distributions if $\Aker$ is sufficiently regular. 
 %We derive the extension as follows. 
