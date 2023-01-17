@@ -754,13 +754,11 @@ The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, d
 \section{Numerical results}
 \label{sec:numerical_results}
 
-\begin{itemize}
-	\item Picture of velocity field, initial condition, final condition, reconstruction (1)
-	\item Impulse responses: vary time and Peclet number (3)
-	\item CG convergence (1)
-	\item CG iters vs Peclet number (Morozov) (2)
-	\item Preconditioned spectrum, condition numbers? (1)
-\end{itemize}
+
+
+
+\subsection{Example 1: Inversion for the basal sliding coefficient in an ice sheet flow problem}
+
 
 %\textbf{Heat equation}
 %\begin{itemize}
@@ -1140,7 +1138,8 @@ Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss
 		\caption{}
 		\label{fig:condition_number}
 	\end{subfigure}
-	\caption{Left (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_k = \lambda_k \bm{\preconditioner} \bm{u}_k$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), or the regularization Hessian (REG). Right (\ref{fig:condition_number}): condition number, $\kappa$, for $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$ for these different preconditioners, and no preconditioner (NONE). All operators are evaluated at the $\bm{\basalfriction}$ that solves the inverse problem for $\gamma=7.3 \times 10^3$, as determined by the Morozov discrepancy principle.}
+	\caption{Left (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_k = \lambda_k \bm{\preconditioner} \bm{u}_k$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), or the regularization Hessian (REG). Right (\ref{fig:condition_number}): condition number for $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$ for these different preconditioners, and no preconditioner (NONE). All operators are evaluated at the $\bm{\basalfriction}$ that solves the inverse problem for $\gamma=7.3 \times 10^3$, as determined by the Morozov discrepancy principle. COND(H) LABELS!}
+	\label{fig:stokes_spectrum}
 \end{figure}
 
 In Figure \ref{fig:generalized_eigenvalues} we show the generalized eigenvalues for the generalized eigenvalue problem
@@ -1148,6 +1147,213 @@ $
 	\bm{H} \bm{u} = \lambda \bm{\preconditioner} \bm{u}.
 $
 Here $\bm{H}$ is the Hessian evaluated at the reconstructed parameter $\bm{\basalfriction}$ for $\gamma$ chosen to satisfy the Morozov discrepancy principle. The matrix $\bm{\preconditioner}$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations constructed at that $\bm{\basalfriction}$, or the regularization Hessian. The PSF preconditioners cluster the eigenvalues of the Hessian near one, with more batches yielding better clustering. The regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. In Figure \ref{fig:condition_number} we show the condition numbers of $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$. The PSF preconditioners yield the the smallest condition numbers, with more batches yielding smaller condition numbers. Regularization preconditioning and no preconditioning yield larger condition numbers. The condition numbers are similar for both $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$, demonstrating that the preconditioner built based on $\bm{H}_\text{gn}$ is a good preconditioner for $\bm{H}$.
+
+
+\subsection{Example 2: Inversion for the initial condition in an advection-diffusion problem}
+
+%INTRODUCE EQUATIONS: REWRITE HERE vvvvvvv
+
+%The parameter-to-observable map $\iFF \,\ipar := \obsop\, u(\ipar)$ maps an initial condition $\ipar \in L^2(\D)$ to pointwise spatiotemporal observations of the concentration field $u({\vec x},t)$ through solution of the advection-diffusion equation given by
+%
+%$$
+%\begin{split}
+%u_t - \kappa\Delta u + {\vec v} \cdot \nabla u &= 0     & \quad \text{in } \D\times(0,T),\\
+%u(\cdot, 0) &= \ipar & \quad \text{in } \D,\\
+%\kappa \nabla u\cdot {\vec{n}} &= 0     & \quad \text{on } \partial\D \times (0,T).
+%\end{split}
+%$$
+%
+%Here, $\D \subset \R^d$ ($d \in \{2, 3\}$) is a bounded domain, $\kappa > 0$ is the diffusion coefficient and $T > 0$ is the final
+%time. The velocity field
+%$\vec{v}$ is computed by solving the following steady-state
+%Navier-Stokes equation with the side walls driving the flow:
+%
+%$$
+%\begin{aligned}
+%- \frac{1}{\operatorname{Re}} \Delta {\vec v} + \nabla q + {\vec v} \cdot \nabla {\vec v} &= 0 &\quad&\text{ in }\D,\\
+%\nabla \cdot {\vec v} &= 0 &&\text{ in }\D,\\
+%{\vec v} &= {\vec g} &&\text{ on } \partial\D.
+%\end{aligned}
+%$$
+%
+%Here, $q$ is pressure, $\text{Re}$ is the Reynolds number. The Dirichlet boundary data
+%${\vec g} \in \R^d$ is given by 
+%${\vec g} = {\vec e}_2$ on the left wall of the domain, 
+%${\vec g}=-{\vec e}_2$ on the right wall,  and ${\vec g} = {\vec 0}$ everywhere else.
+
+% INTRODUCE EQUATIONS: REWRITE HERE ^^^^^
+
+\begin{figure}
+	\begin{subfigure}{0.24\textwidth}
+		\includegraphics[scale=0.25]{adv_ic_true_tmp.png}
+		%		\caption{}
+		%		\label{fig:newtoniter2}
+	\end{subfigure}
+	\begin{subfigure}{0.24\textwidth}
+		\includegraphics[scale=0.25]{velocity_tmp.png}
+		%		\caption{}
+		%		\label{fig:newtoniter1}
+	\end{subfigure}
+	\begin{subfigure}{0.24\textwidth}
+		\includegraphics[scale=0.25]{adv_final_condition_true_tmp.png}
+		%		\caption{}
+		%		\label{fig:newtoniter3}
+	\end{subfigure}
+	\begin{subfigure}{0.24\textwidth}
+		\includegraphics[scale=0.25]{adv_reconstruction_tmp.png}
+		%		\caption{}
+		%		\label{fig:newtoniter4}
+	\end{subfigure}
+	%\begin{subfigure}{0.05\textwidth}
+	%	\includegraphics[scale=0.1]{mColorBar.png}
+	%\end{subfigure}
+	\caption{(a) true initial condition. (b) velocity field. (c) observed concentration at final time. (d) reconstruction of initial condition. black=0, white=1}
+	\label{fig:adv_inversion1} 
+\end{figure} 
+
+
+\begin{figure}
+	\begin{center}
+		\includegraphics[scale=0.75]{adv_vary_kappa_tf_tmp.png}
+	\end{center}
+	\caption{Impulse responses for various diffusivities kappa and fixed simulation time Tf=0.5 (top) and simulation times with fixed kappa=1e-3 (bot). Colorbar is normalized independently for each subfigure}
+	\label{fig:adv_vary_kappa_tf}
+\end{figure}
+
+\begin{figure}
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\begin{tikzpicture}[baseline, trim axis right]
+		\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
+		ymode=log,
+		ymin=1e-11,
+		ymax=2,
+		xmax=750,
+		axis x line*=bottom,
+		axis y line*=left,
+		xtick={0, 200, 400, 600},
+		xlabel={CG iteration},
+		ylabel={$||\bm{b}-\bm{H} \bm{x}_k||/||\bm{b}||$},
+		title={CG convergence},
+		legend style={at={(1.1,1)},anchor=north east},
+		%legend pos=north east,
+		legend style={font=\small}
+		]
+		\addlegendentry{Reg}
+		\addplot[dotted, line width=0.5mm] table {cg_relres_reg.dat};
+		\addlegendentry{None}
+		\addplot[dash dot, line width=0.5mm] table {cg_relres_none.dat};
+		\addlegendentry{PSF (1)}
+		\addplot[blue, line width=0.5mm] table {cg_relres_p1.dat};
+		\addlegendentry{PSF (5)}
+		\addplot[red, line width=0.5mm] table {cg_relres_p5.dat};
+		\addlegendentry{PSF (25)}
+		\addplot[purple, line width=0.5mm] table {cg_relres_p25.dat};
+		\end{axis}
+		\end{tikzpicture}
+		\caption{}
+		\label{fig:adv_cg_convergence}
+	\end{subfigure}
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\begin{tikzpicture}[baseline, trim axis right]
+		\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
+		xmode=log,
+		ymode=log,
+		xlabel={$\gamma$, regularization parameter},
+		ylabel={\# of CG iterations},
+		axis y line*=right,
+		axis x line*=bottom,
+		ylabel near ticks, yticklabel pos=right,
+		%ylabel near ticks, ylabel shift={-6pt},
+		%legend pos=north east,
+		title={Regularization robustness}
+		%title={CG iterations to achieve $||H x-b||/||b||<10^{-6}$}
+		]
+		%\addlegendentry{None}
+		\addplot[dash dot, line width=0.5mm] table[x=gamma, y=none] {CGitsvsGamma.dat};
+		%\addlegendentry{REG}
+		\addplot[dotted, line width=0.5mm] table[x=gamma, y=reg] {CGitsvsGamma.dat};
+		%\addlegendentry{PSF (1)}
+		\addplot[blue, line width=0.5mm] table[x=gamma, y=psf1] {CGitsvsGamma.dat};
+		%\addlegendentry{PSF (5)}
+		\addplot[red, line width=0.5mm] table[x=gamma, y=psf5] {CGitsvsGamma.dat};
+		%\addlegendentry{PSF (25)}
+		\addplot[purple, line width=0.5mm] table[x=gamma, y=psf25] {CGitsvsGamma.dat};
+		\end{axis}
+		\end{tikzpicture}
+		\caption{}
+		\label{fig:adv_kappa_sweep}
+	\end{subfigure}
+	\caption{Left (\ref{fig:adv_cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard normal distribution. BLAH BLAH BLAH
+		%		The y-axis is $||b-Hx_k||/||b||$, where $x_k$ is the $k$th PCG iterate. 
+		Here we use $\gamma=9999 \times 10^9$, which is determined by the Morozov discrepancy principle. Right (\ref{fig:adv_kappa_sweep}) shows the number of PCG iterations required to achieve $||\bm{b}-\bm{H} \bm{x}_k||/||\bm{b}|| < 10^{-6}$, where $\bm{x}_k$ is the $k$th PCG iterate, for a range of different $\kappa$. Results in these figures are shown for our preconditioner with 5, 15, and 30 batches (PSF (5), PSF (15), and PSF(30), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.}
+	\label{fig:adv_krylov_convergence}
+\end{figure} 
+
+\begin{figure}
+	\begin{subfigure}{0.59\textwidth}
+		\begin{center}
+			\begin{tikzpicture}[baseline, trim axis right]
+			\begin{axis}[width=0.99\linewidth, height=0.8\linewidth,
+			ymode=log,
+			xmin=-50,
+			xmax=1450,
+			ymax=1.e4,
+			xlabel={$k$, generalized eigenvalue \#},
+			ylabel={$\lambda_{k}$},
+			xtick={0, 300, 600, 900, 1200},
+			%legend pos=north east,
+			legend style={font=\small},
+			ylabel near ticks, ylabel shift={-6pt},
+			axis x line*=bottom,
+			axis y line*=left,
+			legend style={at={(0.95,1)},anchor=north east},
+			title={Generalized eigenvalues, $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$}
+			]
+			\addlegendentry{REG}
+			\addplot[dotted, line width=0.5mm] table[x=k, y=reg] {generalizedEigenvalues.dat};
+			\addlegendentry{PSF (1)}
+			\addplot[blue, line width=0.5mm] table[x=k, y=psf1] {generalizedEigenvalues.dat};
+			\addlegendentry{PSF (5)}
+			\addplot[red, line width=0.5mm] table[x=k, y=psf5] {generalizedEigenvalues.dat};
+			\addlegendentry{PSF (25)}
+			\addplot[purple, line width=0.5mm] table[x=k, y=psf25] {generalizedEigenvalues.dat};
+			\end{axis}
+			\end{tikzpicture}
+		\end{center}
+		\caption{}
+		\label{fig:adv_generalized_eigenvalues}
+	\end{subfigure}
+	\begin{subfigure}{0.39\textwidth}
+		\begin{center}
+			\begingroup
+			\setlength{\tabcolsep}{4pt}
+			\renewcommand{\arraystretch}{1.25}
+			\begin{tabular}{c| c c}
+				& $\kappa(\bm{\preconditioner}^{-1} \bm{H})$\\
+				\hline 
+				REG        & 7.02e+3 \\
+				NONE       & 8.71e+2 \\
+				PSF $(5)$  & 1.75e+1 \\
+				PSF $(15)$  & 1.39e+1 \\
+				PSF $(30)$ & 1.03e+1
+			\end{tabular}
+			\endgroup
+		\end{center}
+		\caption{}
+		\label{fig:adv_condition_number}
+	\end{subfigure}
+	\caption{Left (\ref{fig:adv_generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_k = \lambda_k \bm{\preconditioner} \bm{u}_k$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 5, 15, and 30 batches (PSF (5), PSF (15), and PSF (30), respectively), or the regularization Hessian (REG). Right (\ref{fig:adv_condition_number}): condition number for $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$ for these different preconditioners, and no preconditioner (NONE). COND(H) LABELS!}
+	\label{fig:adv_spectrum}
+\end{figure}
+
+\begin{itemize}
+	\item Picture of velocity field, initial condition, final condition, reconstruction (1) (OKOK)
+	\item Impulse responses: vary time and Peclet number (3) (OKOK)
+	\item CG convergence (1) CG iters vs Peclet number (Morozov) (2) (OKOK)
+	\item Preconditioned spectrum, condition numbers? (1)
+\end{itemize}
 
 
 \section{Conclusions}
