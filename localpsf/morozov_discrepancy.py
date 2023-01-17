@@ -3,6 +3,7 @@ from scipy.optimize import root_scalar
 from typing import Callable
 
 
+
 def compute_morozov_regularization_parameter(solve_inverse_problem : Callable,
                                              compute_morozov_discrepancy : Callable,
                                              noise_level,
