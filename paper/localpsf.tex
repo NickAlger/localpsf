@@ -200,7 +200,7 @@ so more informative data leads to larger eigenvalues and therefore a larger nume
 High rank Hessian approximation methods are needed.
 
 Recently there have been improvements in matrix-free H-matrix construction methods in which an operator is applied to structured random vectors, and the response of the operator to those random vectors is processed to construct an H-matrix approximation  \cite{LevittMartinsson22,LinYing11,Martinsson11,Martinsson16,MartinssonTropp20}. 
-These methods (which we do not use here) have been used to approximate Hessians in PDE constrained inverse problems \cite{AmbartsumyanEtAl20,HartlandEtAl22}. 
+These methods (which we do not use here) have been used to approximate Hessians in PDE constrained inverse problems \cite{AmbartsumyanEtAl20,HartlandEtAl23}. 
 Although the required number of matrix-vector products grows nearly linearly in the discretized parameter dimension and linearly in the rank of the off-diagonal blocks, the required number of matrix-vector products is still large (e.g., hundreds to thousands).
 %These methods are asymptotically scalable in the sense that the required number of matrix-vector products grows nearly linearly in the dimension of the discretized parameter and linearly in the rank of the off-diagonal blocks. But despite asymptotic scalability, from a practical perspective the required number of matrix-vector products is large (e.g., hundreds to thousands). 
 %Improving the peeling process to reduce its cost is currently an area of active research \cite{PEELINGRESEARCH}.
@@ -788,7 +788,7 @@ The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, d
 %	\item Stokes Krylov convergence (10 solves for nonlinear forward + 6 hessian matvecs for ellipsoid estimation + 10 matvecs for impulse responses + 30 matvecs for PCH6 CG solve + 100 matvecs for Reg CG solve)
 %	\item Stokes error vs num batches (small number of batches; 1, 3, 6, 9 batches?) (50 matvecs for randomized error estimation +)
 %	\item Velocity field
-%	\item Basal friction field
+%	\item basal sliding field
 %	\item Picture of impulse responses
 %	\item Mesh negative numbers picture
 %\end{itemize}
@@ -805,7 +805,7 @@ The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, d
 %	\item 
 %\end{itemize}
 
-We use our method to approximate the data misfit Gauss-Newton Hessian in an inverse problem governed by a PDE which models steady state ice sheet flow \cite{PetraEtAl12}. Briefly, a sheet of ice is flowing down a mountain (see Figure \ref{fig:ice_mountain_mesh}). Given observations of the tangential component of the ice velocity on the top surface of the ice, we invert for the logarithm of the unknown spatially varying basal friction parameter field, which governs the resistance to sliding along the base of the ice sheet. The inverse problem considered here is synthetic, but in practice surface velocity observations are available from satellites.
+We use our method to approximate the data misfit Gauss-Newton Hessian in an inverse problem governed by a PDE which models steady state ice sheet flow \cite{PetraEtAl12}. Briefly, a sheet of ice is flowing down a mountain (see Figure \ref{fig:ice_mountain_mesh}). Given observations of the tangential component of the ice velocity on the top surface of the ice, we invert for the logarithm of the unknown spatially varying basal sliding parameter field, which governs the resistance to sliding along the base of the ice sheet. The inverse problem considered here is synthetic, but in practice surface velocity observations are available from satellites.
 
 \begin{figure}
 	\begin{subfigure}{0.5\textwidth}
@@ -840,7 +840,7 @@ equations,
 	\end{align}
 \end{subequations}
 The solution to these equations is the pair $(\velocity, \pressure)$, where $\velocity$ is the ice flow velocity field, and $\pressure$ is the pressure field. Here, $\basalfriction$ is the unknown logarithmic
-basal friction field (note that large $\basalfriction$ corresponds to high resistance to sliding) which is defined on the $2D$ surface $\Gamma_b$. The quantity $\bodyforce$ is the body force density due to gravity, $\stokesrobincoeff=10^6$ is a Robin boundary condition constant,  $\normalvec$ is the outward normal and $\tangentop$ is the tangential projection operator that restricts a vector field to its tangential component along the boundary. 
+basal sliding field (note that large $\basalfriction$ corresponds to high resistance to sliding) which is defined on the $2$D surface $\Gamma_b$. The quantity $\bodyforce$ is the body force density due to gravity, $\stokesrobincoeff=10^6$ is a Robin boundary condition constant,  $\normalvec$ is the outward normal and $\tangentop$ is the tangential projection operator that restricts a vector field to its tangential component along the boundary. 
 We employ Glen's flow law \cite{Glen1955}, $\stress= 2\eta
 \dot{\strain} -I\pressure$,
 which is a constitutive law for ice that relates the stress
@@ -850,7 +850,11 @@ $\dot{\strain}= \frac{1}{2}\left(
 
 The pressure, $\pressure$, is discretized with first order scalar continuous Galerkin finite elements defined on a mesh of tetrahedra. The velocity, $\velocity$, is discretized with second order continuous Galerkin finite elements on the same mesh. The parameter $\basalfriction$ is discretized with first order scalar continuous Galerkin finite elements on the mesh of triangles that results from restricting the tetrahedral mesh to the basal boundary, $\Gamma_b$. Note that $\Gamma_b$ is a 2D surface embedded in 3D due to the mountain topography. We also generate a flattened version of $\Gamma_b$, denoted by $\Omega \subset \mathbb{R}^2$, by ignoring the height coordinate. The parameter $\basalfriction$ is dually viewed as a function on $\Gamma_b$ for the purpose of solving the Stokes equations, and as a function on $\Omega$ for the purpose of building our Hessian approximations and defining the regularization. 
 %This flattening is necessary because our operator approximation method requires adding points on this surface together to get other points on the surface, and this is only well-defined in flat space. 
-
+The observations are generated by adding $1\%$ multiplicative
+Gaussian noise to the tangential component of the velocity field
+restricted to the top surface of the geometry. The true basal sliding
+coefficient field and the true velocity field, which is obtained by
+solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 
 \begin{figure}
 	\begin{subfigure}{0.49\textwidth}
@@ -865,12 +869,6 @@ The pressure, $\pressure$, is discretized with first order scalar continuous Gal
 	\label{fig:true_beta_u}
 \end{figure} 
 
-The observations are generated by adding $1\%$ multiplicative
-Gaussian noise to the tangential component of the velocity field
-restricted to the top surface of the geometry. The true basal sliding
-coefficient field and the true velocity field , which is obtained by
-solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
-
 To reconstruct the basal sliding parameter field $\basalfriction$, we
 formulate an inverse problem governed by the Stokes
 problem~\eqref{Stokeseqn}. In particular this problem is formulated as
@@ -882,9 +880,9 @@ centered at the constant function $q_0(x) = 10.5$. To mitigate
 boundary effects we use a constant coefficient Robin boundary
 condition as in~\cite{Roininen14}. The parameters are chosen so that
 the Green's function of the Hessian of the regularization has a
-characteristic length of $0.25$ of the radius of the domain. For the
+characteristic length of $0.25$ of the domain radius. For the
 specific setup, we refer the reader
-to~[sec.22]\cite{VillaPetraGhattas21}. We choose the regularization
+to~\cite[Section 2.2]{VillaPetraGhattas21}. We choose the regularization
 parameter, $\gamma$, that controls the overall strength of the
 regularization using Morozov's discrepancy principle. The optimal
 value of $\gamma$ is $7.3 \times 10^3$, which is used for all the
@@ -931,25 +929,24 @@ of the proposed preconditioner.
 %
 
 We solve the inverse problem with an inexact Newton preconditioned
-conjugate gradient (PCG) scheme and Armijo line search for
-globalization~\cite{NocedalWright99}. The (discrete) Newton updates,
+conjugate gradient (PCG) scheme and a globalizing Armijo line search~\cite{NocedalWright99}. The (discrete) Newton updates,
 $\bm{\searchdir}_k$, are obtained by solving 
+%
 \begin{equation}
 	\label{eq:newton_system}
 	\bm{H} \bm{\searchdir}_k = - \bm{g}_k \qquad \text{or} \qquad \bm{H}_\text{gn} \bm{\searchdir}_k = - \bm{g}_k,
 \end{equation}
-The initial guess is chosen as the discretization of the constant
+%
+wherein we choose the initial guess as the discretization of the constant
 function $q_0$. Here $\bm{g}_k$, $\bm{H}$ and $\bm{H}_\text{gn}$ are
-the discretized gradient Hessian and Gauss-Newton Hessian of the
+the discretized gradient, Hessian, and Gauss-Newton Hessian of the
 inverse problem cost function, respectively.
 %The Gauss-Newton Hessian is Hessian of $J$, except in the data misfit, $J_d$, the nonlinear mapping $\basalfriction \mapsto \tangentop \velocity$ is replaced by its local linearization at $\basalfriction_k$.
 To ensure positive definiteness of the Hessian we use
 $\bm{H}_\text{gn}$ for the first five iterations, and $\bm{H}$ for all
 subsequent iterations. The Newton iterations are terminated when
-$||\bm{g}_k||/||\bm{g}_0|| < 10^{-8}$. Systems
-\eqref{eq:newton_system} are solved inexactly using an inner PCG
-iteration, which terminates when the norm of the residual for the
-linear system is less than $\min \left(0.5,
+$||\bm{g}_k||/||\bm{g}_0|| < 10^{-8}$. Systems~\eqref{eq:newton_system} are solved inexactly using an inner PCG
+iteration, which terminates when the norm of the linear system residual is less than $\min \left(0.5,
 \sqrt{||\bm{g}_k||}\right)||\bm{g}_k||$. %PCG only requires applying
 %$\bm{H}$ (or $\bm{H}_\text{gn}$) to vectors. Each application of
 %$\bm{H}$ (or $\bm{H}_\text{gn}$) to a vector requires solving one
@@ -979,11 +976,11 @@ linear system is less than $\min \left(0.5,
 	%\begin{subfigure}{0.05\textwidth}
 	%	\includegraphics[scale=0.1]{mColorBar.png}
 	%\end{subfigure}
-	\caption{The log basal friction parameter after $1$ (left), $3$ (second from left), and $4$ (third from left) Newton iterations, and the final Newton iterate (right). The PSF (5) preconditioner is constructed between Newton iterations 3 and 4.}
+	\caption{The log basal sliding parameter after $1$ (left), $3$ (second from left), and $4$ (third from left) Newton iterations, and the final Newton iterate (right). The PSF (5) preconditioner is constructed between Newton iterations 3 and 4.}
 	\label{fig:newton_iterates} 
 \end{figure} 
 
-We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data misfit Gauss-Newton Hessian (the term in $\bm{H}_\text{gn}$ that arises from the data misfit) using 1, 5, and 25 batches. These approximations are denoted by PSF (1), PSF (5), and PSF (25), respectively. The resulting H-matrices, which may be indefinite due to approximation error, are modified to be symmetric positive definite via the procedure described in Appendix \ref{sec:make_spd}, with $l=2$. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $\bm{H}$ more often has negative values in its integral kernel, especially when one is away from the optimal point. Our results show that our preconditioners are also good preconditioners for $\bm{H}$. The H-matrix approximation of the data misfit Gauss-Newton Hessian is added to an H-matrix approximation of the Hessian of the regularization term to form an H-matrix approximation of $\bm{H}_\text{gn}$.
+We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data misfit Gauss-Newton Hessian (the term in $\bm{H}_\text{gn}$ that arises from the data misfit) using 1, 5, and 25 batches. These approximations are denoted by PSF (1), PSF (5), and PSF (25), respectively. The resulting H-matrices, which may be indefinite due to approximation error, are modified to be symmetric positive definite via the procedure described in Appendix~\ref{sec:make_spd}, with $l=2$. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $\bm{H}$ more often has negative values in its integral kernel, especially when one is away from the optimal basal sliding parameter. Our results show that our preconditioners are also good preconditioners for $\bm{H}$. The H-matrix approximation of the data misfit Gauss-Newton Hessian is added to an H-matrix approximation of the Hessian of the regularization term to form an H-matrix approximation of $\bm{H}_\text{gn}$.
 %
 %Straightforward calculation shows that the discretized Hessian of the regularization term is given by
 %$
