@@ -15,7 +15,8 @@ def positive_gmres(apply_A: typ.Callable[[np.ndarray], np.ndarray],  # R^N -> R^
                    display=True,
                    callback: typ.Callable[[np.ndarray, float, float], None]=None, # callback(xk, norm_r, xt_A_x)
                    ) -> np.ndarray:
-    '''Modified from Algorithm 6.9 in Saad iterative methods book page 172. No restarts.'''
+    '''Modified from Algorithm 6.9 in Saad iterative methods book page 172. No restarts.
+    By default, method terminates when negative direction encountered and returns last positive direction.'''
     assert(len(b.shape) == 1)
     N = len(b)
 
