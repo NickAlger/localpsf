@@ -1208,6 +1208,36 @@ Here $\bm{H}$ is the Hessian evaluated at the reconstructed parameter $\bm{\basa
 \subsection{Example 2: Inversion for the initial condition in an advection-diffusion problem}
 \label{sec:adv}
 
+Here we consider a time-dependent advection-diffusion equation for
+which we seek to infer an unknown initial contaminant field from
+pointwise measurements of its concentration. The problem description
+below closely follows the one in~\cite{PetraStadler11}. This PDE
+models diffusive transport in a domain $\D \subset \R^d$, which is
+depicted in Figure~\ref{fig:adv_inversion1}.  The domain
+boundaries $\partial \D$ include the outer boundaries as well as the
+internal boundaries of the rectangles, which represent buildings.  The
+parameter-to-observable map $\iFF$ in this case maps an initial
+condition $\ipar \in L^2(\D)$ to observations of the concentration
+field $u(\vec{x}, t)$ through solution of the advection-diffusion
+equation given by
+\begin{equation}\label{eq:ad}
+  \begin{aligned}
+    u_t - \kappa\Delta u + \vec{v}\cdot\nabla u &= 0 & \quad&\text{in
+    }\D\times (0,T), \\
+    u(\cdot, 0) &= \ipar  &&\text{in } \D , \\
+    \kappa\nabla u\cdot \vec{n} &= 0 &&\text{on } \partial\D \times (0,T).
+  \end{aligned}
+\end{equation}
+Here, $\kappa > 0$ is a diffusivity coefficient, and $T > 0$ is the
+final time of observations.  The velocity field $\vec{v}$, shown in
+Figure~\ref{fig:adv_inversion1}, is computed by solving the
+steady-state Navier-Stokes equations for a two dimensional flow with
+Reynolds number 50 and boundary conditions as in
+Figure~\ref{fig:adv_inversion} (left); see \cite{PetraStadler11} for
+details.  The time evolution of the state variable $u$ from a given
+initial condition $\ipar$ is illustrated in
+Figure~\ref{fig:adv_inversion1}.
+
 %INTRODUCE EQUATIONS: REWRITE HERE vvvvvvv
 
 %The parameter-to-observable map $\iFF \,\ipar := \obsop\, u(\ipar)$ maps an initial condition $\ipar \in L^2(\D)$ to pointwise spatiotemporal observations of the concentration field $u({\vec x},t)$ through solution of the advection-diffusion equation given by
