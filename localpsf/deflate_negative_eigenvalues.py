@@ -12,7 +12,7 @@ vec2vec = typ.Callable[[np.ndarray], np.ndarray]
 
 @dataclass
 class DeflatedShiftedOperator:
-    '''A + mu*B + gamma * U @ diag(dd) @ U.T
+    '''A + mu*B + gamma * B @ U @ diag(dd) @ U.T @ B
     U.T @ A @ U = diag(dd)
     U.T @ B @ U = I
     solve_P(x) =approx= (A + mu*B)^-1 @ x
@@ -22,21 +22,21 @@ class DeflatedShiftedOperator:
     mu: float
     solve_P: vec2vec # Approximates v -> (A + mu*B)^-1 @ v
     gamma: float
-    U: np.ndarray
+    BU: np.ndarray # B @ U
     dd: np.ndarray
 
     @cached_property
     def N(me):
-        return me.U.shape[0]
+        return me.BU.shape[0]
 
     @cached_property
     def k(me):
         return len(me.dd)
 
     def __post_init__(me):
-        assert(len(me.U.shape) == 2)
+        assert(len(me.BU.shape) == 2)
         assert(len(me.dd.shape) == 1)
-        assert(me.U.shape == (me.N, me.k))
+        assert(me.BU.shape == (me.N, me.k))
         assert(me.dd.shape == (me.k,))
 
         b = np.random.randn(me.N)
@@ -61,33 +61,27 @@ class DeflatedShiftedOperator:
                            M=spla.LinearOperator((me.N, me.N), matvec=me.solve_P),
                            tol=1e-10)[0]
 
-    # A + mu * B + gamma * U @ diag(dd) @ U.T
+    # A + mu * B + gamma * B @ U @ diag(dd) @ B @ U.T
     @cached_property
-    def diag_Phi(me): # Phi = ((gamma*diag(dd)))^-1 - U.T @ (A + mu*B)^-1 @ U)^-1
+    def diag_Phi(me): # Phi = ((gamma*diag(dd)))^-1 - B @ U.T @ (A + mu*B)^-1 @ B @ U)^-1
         return (me.gamma*me.dd) * (me.dd + me.mu) / ((me.dd + me.mu) + (me.gamma*me.dd))
-        # X = np.zeros((me.V.shape[1], me.U.shape[1]))
-        # for ii in range(me.U.shape[1]):
-        #     X[:,ii] = me.solve_shifted(me.U[:,ii])
-        # return np.linalg.pinv(np.diag(1.0 / (me.gamma*me.dd)) - np.diag(1.0 / (me.dd + me.mu)))
 
-    def apply_shifted_deflated(me, x: np.ndarray) -> np.ndarray: # x -> (A + mu*B + U @ diag(dd) @ U.T) @ x
-        return me.apply_shifted(x) + me.gamma * me.U @ (me.dd * (me.U.T @ x))
-        # return me.apply_shifted(x) + me.U @ (me.C @ (me.V @ x))
+    def apply_shifted_deflated(me, x: np.ndarray) -> np.ndarray: # x -> (A + mu*B + B @ U @ diag(dd) @ U.T @ B) @ x
+        return me.apply_shifted(x) + me.gamma * me.BU @ (me.dd * (me.BU.T @ x))
 
-    def solve_shifted_deflated(me, b: np.ndarray) -> np.ndarray: # b -> (A + mu*B + U @ diag(dd) @ U.T)^-1 @ b
-        return me.solve_shifted(b - me.U @ (me.diag_Phi * (me.U.T @ me.solve_shifted(b))))
-        # return me.solve_shifted(b - me.U @ (me.Phi @ (me.V @ me.solve_shifted(b))))
+    def solve_shifted_deflated(me, b: np.ndarray) -> np.ndarray: # b -> (A + mu*B + B @ U @ diag(dd) @ U.T @ B)^-1 @ b
+        return me.solve_shifted(b - me.BU @ (me.diag_Phi * (me.BU.T @ me.solve_shifted(b))))
 
     def update_mu(me, new_mu: float, new_solve_P: vec2vec) -> 'DeflatedShiftedOperator':
-        return DeflatedShiftedOperator(me.apply_A, me.apply_B, new_mu, new_solve_P, me.gamma, me.U, me.dd)
+        return DeflatedShiftedOperator(me.apply_A, me.apply_B, new_mu, new_solve_P, me.gamma, me.BU, me.dd)
 
     def update_gamma(me, new_gamma: float) -> 'DeflatedShiftedOperator':
-        return DeflatedShiftedOperator(me.apply_A, me.apply_B, me.mu, me.solve_P, new_gamma, me.U, me.dd)
+        return DeflatedShiftedOperator(me.apply_A, me.apply_B, me.mu, me.solve_P, new_gamma, me.BU, me.dd)
 
-    def update_deflation(me, U2: np.ndarray, dd2: np.ndarray) -> 'DeflatedShiftedOperator':
-        new_U = np.hstack([me.U, U2])
+    def update_deflation(me, BU2: np.ndarray, dd2: np.ndarray) -> 'DeflatedShiftedOperator':
+        new_BU = np.hstack([me.BU, BU2])
         new_dd = np.concatenate([me.dd, dd2])
-        return DeflatedShiftedOperator(me.apply_A, me.apply_B, me.mu, me.solve_P, me.gamma, new_U, new_dd)
+        return DeflatedShiftedOperator(me.apply_A, me.apply_B, me.mu, me.solve_P, me.gamma, new_BU, new_dd)
 
 
 N = 35
