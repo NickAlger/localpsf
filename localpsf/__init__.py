@@ -11,6 +11,7 @@ from . import positive_definite_modifications
 from . import stokes_inverse_problem_cylinder
 from . import op_operations
 from . import newtoncg
+from . import newtongmres
 from . import derivatives_at_point
 from . import bilaplacian_regularization
 # from . import path
