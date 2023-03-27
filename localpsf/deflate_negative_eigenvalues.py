@@ -166,7 +166,7 @@ def deflate_negative_eigs_near_sigma(DSO: DeflatedShiftedOperator,
         dd_new, U_new = DSO.get_eigs_near_sigma(target_num_eigs=chunk_size, ncv_factor=ncv_factor,
                                         mode='cayley', maxiter=lanczos_maxiter, tol=tol)
         dd = np.concatenate([dd, dd_new])
-        print('dd_new=', dd_new)
+        # print('dd_new=', dd_new)
         if display:
             print('Updating deflation')
         if np.any(dd_new < 0.0):
@@ -177,21 +177,25 @@ def deflate_negative_eigs_near_sigma(DSO: DeflatedShiftedOperator,
             break
 
     print('sigma=', sigma, ', dd=', dd)
-    dd_plus = dd[dd < 0]
+    dd_minus = dd[dd < 0]
 
-    if len(dd_plus) > 0:
-        ee = (dd_plus + sigma) / (dd_plus - sigma)
-        extremal_ind = np.argmin(np.abs(ee))
-        e = ee[extremal_ind]
-        if e <= 0:
-            e2 = e
-            e1 = -e2
-        else:
-            e1=e
-            e2=-e1
-
-        d_lower = sigma * (e1 + 1.0) / (e1 - 1.0)
-        d_upper = sigma * (e2 + 1.0) / (e2 - 1.0)
+    if len(dd_minus) > 0:
+        d_lower = np.min(dd_minus)
+        d_upper = np.max(dd_minus)
+        # print('dd_minus=', dd_minus)
+        # print('d_lower=', d_lower, ', d_upper=', d_upper)
+        # ee = (dd_minus + sigma) / (dd_minus - sigma)
+        # extremal_ind = np.argmin(np.abs(ee))
+        # e = ee[extremal_ind]
+        # if e <= 0:
+        #     e2 = e
+        #     e1 = -e2
+        # else:
+        #     e1=e
+        #     e2=-e1
+        #
+        # d_lower = sigma * (e1 + 1.0) / (e1 - 1.0)
+        # d_upper = sigma * (e2 + 1.0) / (e2 - 1.0)
     else:
         d_lower = None
         d_upper = None
@@ -255,16 +259,14 @@ def deflate_negative_eigenvalues(apply_A: vec2vec,
     DSO = DeflatedShiftedOperator(apply_A, apply_B, sigma, solve_P, gamma, V0, dd0)
 
     printmaybe('Getting eigs near sigma')
-    DSO, d_lower, d_upper = deflate_negative_eigs_near_sigma(DSO, B_op, threshold, chunk_size,
-                                                             ncv_factor, lanczos_maxiter, tol, display)
-    print('d_lower=', d_lower, ', sigma=', sigma, ', d_upper=', d_upper)
+    DSO, d_lower, _ = deflate_negative_eigs_near_sigma(DSO, B_op, threshold, chunk_size,
+                                                       ncv_factor, lanczos_maxiter, tol, display)
+    print('d_lower=', d_lower, ', sigma=', sigma)
     if d_lower is None:
         band_lower = sigma * sigma_factor
-        band_upper = sigma / sigma_factor
     else:
         band_lower = d_lower
-        band_upper = d_upper
-    print('band_lower=', band_lower, ', sigma=', sigma, ', band_upper=', band_upper)
+    print('band_lower=', band_lower, ', sigma=', sigma)
 
     while -np.abs(max_eig) < band_lower:
         proposed_sigma = band_lower * sigma_factor
@@ -276,17 +278,15 @@ def deflate_negative_eigenvalues(apply_A: vec2vec,
         solve_P = make_OP_preconditioner(sigma)
         iP_op = CountedOperator((N,N), solve_P, display=False, name='invP')
         DSO = DSO.update_sigma(sigma, iP_op.matvec)
-        DSO, d_lower, d_upper = deflate_negative_eigs_near_sigma(DSO, B_op, band_lower, chunk_size,
-                                                                 ncv_factor, lanczos_maxiter, tol, display)
-        print('d_lower=', d_lower, ', sigma=', sigma, ', d_upper=', d_upper)
+        DSO, d_lower, _ = deflate_negative_eigs_near_sigma(DSO, B_op, band_lower, chunk_size,
+                                                           ncv_factor, lanczos_maxiter, tol, display)
+        print('d_lower=', d_lower, ', sigma=', sigma)
         if d_lower is None:
             d_lower = sigma * sigma_factor
-            d_upper = sigma / sigma_factor
 
-        print('d_lower=', d_lower, ', sigma=', sigma, ', d_upper=', d_upper)
+        print('d_lower=', d_lower, ', sigma=', sigma)
         band_lower = np.min([d_lower, sigma * sigma_factor])
-        band_upper = np.max([d_upper, sigma / sigma_factor])
-        print('band_lower=', band_lower, ', sigma=', sigma, ', band_upper=', band_upper)
+        print('band_lower=', band_lower, ', sigma=', sigma)
 
     V = DSO.BU
     dd = gamma * DSO.dd
@@ -319,10 +319,11 @@ dd, V = deflate_negative_eigenvalues(apply_A, apply_B, solve_B, N,
                                      sigma_factor=10.0,
                                      chunk_size=50,
                                      ncv_factor=2,
-                                     lanczos_maxiter=2,
+                                     lanczos_maxiter=3,
                                      tol=1e-7,
                                      display=True,
                                      )
+
 A = np.diag(A_diag)
 B = np.diag(B_diag)
 ee_true, U_true = sla.eigh(A, B)
