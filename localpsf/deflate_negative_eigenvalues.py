@@ -150,6 +150,55 @@ class CountedOperator:
         return spla.aslinearoperator(me)
 
 
+def deflate_negative_eigs_near_sigma(DSO: DeflatedShiftedOperator,
+                                     B_op: CountedOperator,
+                                     threshold: float,
+                                     chunk_size: int,
+                                     ncv_factor: float,
+                                     lanczos_maxiter: int,
+                                     tol: float,
+                                     display: True,
+                                     ) -> typ.Tuple[DeflatedShiftedOperator, float, float]: # DSO, band lower bound, band upper bound
+    assert(threshold < 0.0)
+    sigma = DSO.sigma
+    dd = np.zeros(0)
+    for _ in range(10):
+        dd_new, U_new = DSO.get_eigs_near_sigma(target_num_eigs=chunk_size, ncv_factor=ncv_factor,
+                                        mode='cayley', maxiter=lanczos_maxiter, tol=tol)
+        dd = np.concatenate([dd, dd_new])
+        print('dd_new=', dd_new)
+        if display:
+            print('Updating deflation')
+        if np.any(dd_new < 0.0):
+            DSO = DSO.update_deflation(B_op.matmat(U_new[:, dd_new < 0.0]), dd_new[dd_new < 0.0])
+
+        print('len(dd_new)=', len(dd_new))
+        if len(dd_new) == 0 or np.any(dd >= threshold):
+            break
+
+    print('sigma=', sigma, ', dd=', dd)
+    dd_plus = dd[dd < 0]
+
+    if len(dd_plus) > 0:
+        ee = (dd_plus + sigma) / (dd_plus - sigma)
+        extremal_ind = np.argmin(np.abs(ee))
+        e = ee[extremal_ind]
+        if e <= 0:
+            e2 = e
+            e1 = -e2
+        else:
+            e1=e
+            e2=-e1
+
+        d_lower = sigma * (e1 + 1.0) / (e1 - 1.0)
+        d_upper = sigma * (e2 + 1.0) / (e2 - 1.0)
+    else:
+        d_lower = None
+        d_upper = None
+
+    return DSO, d_lower, d_upper
+
+
 def deflate_negative_eigenvalues(apply_A: vec2vec,
                                  apply_B: vec2vec,
                                  solve_B: vec2vec,
@@ -157,12 +206,11 @@ def deflate_negative_eigenvalues(apply_A: vec2vec,
                                  make_OP_preconditioner: typ.Callable[[float], vec2vec], # Approximates sigma -> (v -> (A - sigma*B)^-1 @ v)
                                  threshold = -0.5,
                                  gamma: float=-1.0, # -1.0: set negative eigs to zero. -2.0: flip negative eigs
-                                 sigma_reduction_factor: float=100.0,
-                                 chunk_size=10,
+                                 sigma_factor: float=8.0,
+                                 chunk_size=20,
                                  tol: float=1e-6,
                                  ncv_factor=None,
                                  lanczos_maxiter=2,
-                                 lanczos_mode='cayley',
                                  display=True,
                                 ) -> typ.Tuple[np.ndarray, np.ndarray]: # (dd, V)
     '''Form low rank update A -> A + V @ diag(dd) @ V.T such that
@@ -176,7 +224,7 @@ def deflate_negative_eigenvalues(apply_A: vec2vec,
     assert(N > 0)
     assert(threshold < 0)
     assert(tol > 0)
-    assert(sigma_reduction_factor > 0)
+    assert(sigma_factor > 0)
     A_op = CountedOperator((N,N), apply_A, display=False, name='A')
     B_op = CountedOperator((N, N), apply_B, display=False, name='B')
     iB_op = CountedOperator((N, N), solve_B, display=False, name='invB')
@@ -198,94 +246,68 @@ def deflate_negative_eigenvalues(apply_A: vec2vec,
                          tol=tol)[0]
     printmaybe('max_eig=', max_eig)
 
-    eig_bounds = (-np.abs(max_eig), threshold)
-    printmaybe('eig_bounds=', eig_bounds)
-    if eig_bounds[0] > eig_bounds[1]:
+    if -1.0 < -np.abs(max_eig):
         return dd0, V0
 
-    # num_shifts = int(np.ceil(np.log(eig_bounds[0] / eig_bounds[1]) / np.log(sigma_range)))
-    # printmaybe('num_shifts=', num_shifts)
-    # sigmas = -np.logspace(np.log10(-eig_bounds[1]), np.log10(-eig_bounds[0]), num_shifts * 2, endpoint=False)[1::2]
-    # printmaybe('sigmas=', sigmas)
+    sigma = -1.0
+    printmaybe('making A-sigma*B preconditioner. sigma=', sigma)
+    solve_P = make_OP_preconditioner(sigma)
+    DSO = DeflatedShiftedOperator(apply_A, apply_B, sigma, solve_P, gamma, V0, dd0)
 
-    safe_factor = 2.0
+    printmaybe('Getting eigs near sigma')
+    DSO, d_lower, d_upper = deflate_negative_eigs_near_sigma(DSO, B_op, threshold, chunk_size,
+                                                             ncv_factor, lanczos_maxiter, tol, display)
+    print('d_lower=', d_lower, ', sigma=', sigma, ', d_upper=', d_upper)
+    if d_lower is None:
+        band_lower = sigma * sigma_factor
+        band_upper = sigma / sigma_factor
+    else:
+        band_lower = d_lower
+        band_upper = d_upper
+    print('band_lower=', band_lower, ', sigma=', sigma, ', band_upper=', band_upper)
 
-    sigma = eig_bounds[0] / safe_factor
+    while -np.abs(max_eig) < band_lower:
+        proposed_sigma = band_lower * sigma_factor
+        print('proposed_sigma=', proposed_sigma)
+        sigma = np.max([-np.abs(max_eig) * 1.05, proposed_sigma])
+        print('sigma=', sigma)
 
-    DSO = None
-    # for sigma in sigmas:
-    while sigma < eig_bounds[1]:
         printmaybe('making A-sigma*B preconditioner. sigma=', sigma)
         solve_P = make_OP_preconditioner(sigma)
         iP_op = CountedOperator((N,N), solve_P, display=False, name='invP')
-        if DSO is None:
-            DSO = DeflatedShiftedOperator(apply_A, apply_B, sigma, solve_P, gamma, V0, dd0)
-        else:
-            DSO = DSO.update_sigma(sigma, iP_op.matvec)
+        DSO = DSO.update_sigma(sigma, iP_op.matvec)
+        DSO, d_lower, d_upper = deflate_negative_eigs_near_sigma(DSO, B_op, band_lower, chunk_size,
+                                                                 ncv_factor, lanczos_maxiter, tol, display)
+        print('d_lower=', d_lower, ', sigma=', sigma, ', d_upper=', d_upper)
+        if d_lower is None:
+            d_lower = sigma * sigma_factor
+            d_upper = sigma / sigma_factor
 
-        printmaybe('Getting eigs near sigma')
-        dd, U = DSO.get_eigs_near_sigma(target_num_eigs=chunk_size, ncv_factor=ncv_factor,
-                                        mode=lanczos_mode, maxiter=lanczos_maxiter, tol=tol)
-        print('iP_op.count=', iP_op.count)
-        while len(dd) > 0:
-            printmaybe('dd=', dd)
-            printmaybe('Updating deflation')
-            # good_inds = dd < threshold
-            good_inds = dd < 0.0
-            if np.any(good_inds):
-                DSO = DSO.update_deflation(B_op.matmat(U[:,good_inds]), dd[good_inds])
+        print('d_lower=', d_lower, ', sigma=', sigma, ', d_upper=', d_upper)
+        band_lower = np.min([d_lower, sigma * sigma_factor])
+        band_upper = np.max([d_upper, sigma / sigma_factor])
+        print('band_lower=', band_lower, ', sigma=', sigma, ', band_upper=', band_upper)
 
-            # if len(dd) == chunk_size and np.all(good_inds):
-            if np.all(dd < threshold) and len(dd) == chunk_size:
-                printmaybe('Getting eigs near sigma')
-                dd, U = DSO.get_eigs_near_sigma(target_num_eigs=chunk_size, ncv_factor=ncv_factor,
-                                                mode=lanczos_mode, maxiter=lanczos_maxiter, tol=tol)
-            else:
-                if len(DSO.dd) > 0:
-                    e_bound = np.max(DSO.dd)
-                    if sigma < e_bound:
-                        sigma = e_bound / safe_factor
-                    else:
-                        sigma = sigma / sigma_reduction_factor
-                else:
-                    sigma = sigma / sigma_reduction_factor
-
-                break
-
-    if DSO is not None:
-        V = DSO.BU
-        dd = gamma * DSO.dd
-    else:
-        V = V0
-        dd = dd0
+    V = DSO.BU
+    dd = gamma * DSO.dd
 
     return dd, V
 
 
 N = 1000
-A = np.random.randn(N,N)
-A = (A + A.T) / 2.0
-ee, P = np.linalg.eigh(A)
-# A = P @ np.diag(ee**3) @ P.T
-apply_A = lambda x: A @ x
+A_diag = np.sort(np.random.randn(N))
+apply_A = lambda x: A_diag * x
 
-B = np.random.randn(N,N)
-B = sla.sqrtm(B @ B.T)
-apply_B = lambda x: B @ x
+B_diag = np.random.randn(N)
+B_diag = np.sqrt(B_diag * B_diag)
+apply_B = lambda x: B_diag * x
+solve_B = lambda x: x / B_diag
 
-invB = np.linalg.inv(B)
-solve_B = lambda x: invB @ x
-
-ee_true, U_true = sla.eigh(A, B)
-
-print('ee_true=', ee_true)
-
-noise = 0.00*np.random.randn(N,N)
-noise = (noise + noise.T) / 2.0
+noise_diag = 0.00*np.random.randn(N)
 
 def make_shifted_solver(shift):
-    inv_P = np.linalg.inv(A + noise - shift*B)
-    return lambda x: inv_P @ x
+    OP_diag = A_diag - shift * B_diag + noise_diag
+    return lambda x: x / OP_diag
 
 sigma = 1e0
 solve_P = make_shifted_solver(sigma)
@@ -294,16 +316,22 @@ gamma = -1.0
 
 dd, V = deflate_negative_eigenvalues(apply_A, apply_B, solve_B, N,
                                      make_shifted_solver,
-                                     sigma_reduction_factor=100.0,
-                                     chunk_size=10,
-                                     ncv_factor=3,
+                                     sigma_factor=10.0,
+                                     chunk_size=50,
+                                     ncv_factor=2,
                                      lanczos_maxiter=2,
-                                     tol=1e-6,
+                                     tol=1e-7,
                                      display=True,
                                      )
+A = np.diag(A_diag)
+B = np.diag(B_diag)
+ee_true, U_true = sla.eigh(A, B)
+# print('ee_true=', ee_true)
+plt.figure()
+plt.plot(ee_true)
+plt.title('ee_true')
 
 A_deflated = A + V @ np.diag(dd) @ V.T
-ee_deflated, U_deflated = sla.eigh(A_deflated, B)
 
 Ray = U_true.T @ A @ U_true
 Ray_deflated = U_true.T @ A_deflated @ U_true
@@ -319,33 +347,33 @@ plt.plot(rr - rr_deflated)
 
 
 ####
-
-DSO = DeflatedShiftedOperator(apply_A, apply_B, sigma, solve_P, gamma, np.zeros((N,0)), np.zeros((0,)))
-
-dd, U = DSO.get_eigs_near_sigma(target_num_eigs=5)
-
-# dd, U = spla.eigsh(spla.LinearOperator((N,N), matvec=apply_A), k=5,
-#                    M=spla.LinearOperator((N,N), matvec=apply_B),
-#                    Minv=spla.LinearOperator((N,N), matvec=solve_B), which='LM')
-
-DSO2 = DSO.update_deflation(B @ U, dd)
-
-dd2, U2 = DSO2.get_eigs_near_sigma(target_num_eigs=5)
-
-DSO3 = DSO2.update_deflation(B @ U2, dd2)
-
-sigma = -0.1
-solve_P = make_shifted_solver(sigma)
-DSO4 = DSO3.update_sigma(sigma, solve_P)
-
-dd4, U4 = DSO4.get_eigs_near_sigma(target_num_eigs=50)
-
-sigma = 1000.0
-solve_P = make_shifted_solver(sigma)
-DSO4 = DSO3.update_sigma(sigma, solve_P)
-
-dd4, U4 = DSO4.get_eigs_near_sigma(target_num_eigs=5)
-print('sigma=', sigma, 'dd4=', dd4)
+#
+# DSO = DeflatedShiftedOperator(apply_A, apply_B, sigma, solve_P, gamma, np.zeros((N,0)), np.zeros((0,)))
+#
+# dd, U = DSO.get_eigs_near_sigma(target_num_eigs=5)
+#
+# # dd, U = spla.eigsh(spla.LinearOperator((N,N), matvec=apply_A), k=5,
+# #                    M=spla.LinearOperator((N,N), matvec=apply_B),
+# #                    Minv=spla.LinearOperator((N,N), matvec=solve_B), which='LM')
+#
+# DSO2 = DSO.update_deflation(B @ U, dd)
+#
+# dd2, U2 = DSO2.get_eigs_near_sigma(target_num_eigs=5)
+#
+# DSO3 = DSO2.update_deflation(B @ U2, dd2)
+#
+# sigma = -0.1
+# solve_P = make_shifted_solver(sigma)
+# DSO4 = DSO3.update_sigma(sigma, solve_P)
+#
+# dd4, U4 = DSO4.get_eigs_near_sigma(target_num_eigs=50)
+#
+# sigma = 1000.0
+# solve_P = make_shifted_solver(sigma)
+# DSO4 = DSO3.update_sigma(sigma, solve_P)
+#
+# dd4, U4 = DSO4.get_eigs_near_sigma(target_num_eigs=5)
+# print('sigma=', sigma, 'dd4=', dd4)
 
 # dd2, U2 = DSO2.get_eigs_near_mu()
 
