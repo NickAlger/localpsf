@@ -139,38 +139,3 @@ def shifted_inverse_interpolation_preconditioner(b: np.ndarray,
         x = c_low * x_low + c_high * x_high
     return x
 
-
-import scipy.sparse.linalg as spla
-
-N = 1000
-diag_A = np.zeros(N)
-diag_A[:int(N / 2)] = np.abs(np.random.randn(int(N / 2)))
-diag_B = np.abs(np.random.randn(N))
-
-lambda_max = np.max(spla.eigsh(spla.LinearOperator((N, N), matvec=lambda x: x * diag_A), 1, which='LM',
-                               M=spla.LinearOperator((N, N), matvec=lambda x: x * diag_B),
-                               Minv=spla.LinearOperator((N, N), matvec=lambda x: x / diag_B))[0])
-
-known_mus = list(np.logspace(np.log10(lambda_max / 1.0e4), np.log10(lambda_max / 2.0), 3))
-known_shifted_solvers = [lambda b, mu_k=mu_k: b / (diag_A + mu_k * diag_B) for mu_k in known_mus]
-
-print('known_mus=', known_mus)
-
-unknown_mus = np.logspace(np.log10(np.min(known_mus)), np.log10(np.max(known_mus)), 15)
-for mu in list(unknown_mus):
-    mu_applier = lambda x: x * (diag_A + mu * diag_B)
-    mu_solver = lambda b: b / (diag_A + mu * diag_B)
-    mu_preconditioner = lambda b: shifted_inverse_interpolation_preconditioner(b, mu, known_mus, known_shifted_solvers,
-                                                                               lambda_max, display=False)
-    X = np.zeros((N, N))
-    for ii in range(N):
-        ei = np.zeros(N)
-        ei[ii] = 1.0
-        X[:, ii] = mu_applier(mu_preconditioner(ei))
-
-    cond = np.max(diag_A + mu * diag_B) / np.min(diag_A + mu * diag_B)
-    B_cond = np.max(diag_A / diag_B + mu) / np.min(diag_A / diag_B + mu)
-    interp_cond = np.linalg.cond(X)
-    print('mu=', mu, ', cond=', cond, ', B_cond=', B_cond, ', interp_cond=', interp_cond)
-
-
