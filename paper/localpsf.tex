@@ -756,13 +756,12 @@ The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, d
 
 
 We use our method to approximate the Newton (or Gauss-Newton) Hessian
-in an inverse problem governed by a PDE which models steady state ice
+in inverse problems governed by PDEs which model steady state ice
 sheet flow~\cite{PetraEtAl12} (Section~\ref{sec:ice}) and transport
 and flow of a contaminant~\cite{PetraStadler11}
-(Section~\ref{sec:adv}). To reconstruct the unknown parameters, we
-formulate an inverse problem governed by the corresponding PDEs. In
-particular this problem is formulated as a nonlinear least squares
-optimization problem, whose cost function consists of a misfit term
+(Section~\ref{sec:adv}). 
+To reconstruct the unknown parameter fields, denoted $q$, the inverse problems are formulated as nonlinear least squares
+optimization problems, whose cost functions consist of a misfit term
 (between the observations and model output) and a bi-Laplacian
 regularization term following~\cite{VillaPetraGhattas21}. The
 regularization is centered at a constant function $q_0(x)$. To
@@ -771,19 +770,19 @@ mitigate boundary effects
 we use a constant coefficient Robin boundary condition as
 in~\cite{Roininen14}. The parameters for the regularization are chosen
 so that the Green's function of the Hessian of the regularization has
-a characteristic length of $0.25$ of the domain radius. For the
+a characteristic length of $0.25$ (NOTE: CHECK THIS FOR BOTH PROBLEMS) of the domain radius. For the
 specific setup, we refer the reader to~\cite[Section
   2.2]{VillaPetraGhattas21}. For both examples, we choose the
 regularization parameter, $\gamma$, that controls the overall strength
 of the regularization using Morozov's discrepancy
 principle~\cite{Vogel02}. The optimal value of $\gamma$ is used for
 %  $\gamma =  7.3 \times 10^3$ for Stokes  Figure~\ref{fig:gamma_sweep}
-all the numerical results except for the studies where study how
+all the numerical results except for the studies where we study how
 changing $\gamma$ impacts the effectiveness of the proposed
 preconditioner.
 
-We solve the inverse problem with an inexact Newton preconditioned
-conjugate gradient (PCG) scheme and a globalizing Armijo line search~\cite{NocedalWright99}. The (discrete) Newton updates,
+We solve the ice sheet inverse problem with an inexact Newton preconditioned
+conjugate gradient (PCG) scheme and a globalizing Armijo line search~\cite{NocedalWright99}. The Newton updates,
 $\bm{\searchdir}_k$, are obtained by solving 
 %
 \begin{equation}
@@ -801,9 +800,19 @@ $\bm{H}_\text{gn}$ for the first five iterations, and $\bm{H}$ for all
 subsequent iterations. The Newton iterations are terminated when
 $||\bm{g}_k||/||\bm{g}_0|| < 10^{-8}$. Systems~\eqref{eq:newton_system} are solved inexactly using an inner PCG
 iteration, which terminates when the norm of the linear system residual is less than $\min \left(0.5,
-\sqrt{||\bm{g}_k||}\right)||\bm{g}_k||$.
+\sqrt{||\bm{g}_k||}\right)||\bm{g}_k||$. The advection-diffusion inverse problem is linear, so Newton's method converges in one iteration. In this case the Newton linear system, \eqref{eq:newton_system}, is solved using PCG with a fixed tolerance which is specified in Section \ref{sec:adv}.
 
-We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations of the data misfit Gauss-Newton Hessian (the term in $\bm{H}_\text{gn}$ that arises from the data misfit) using 1, 5, and 25 batches. These approximations are denoted by PSF (1), PSF (5), and PSF (25), respectively. The resulting H-matrices, which may be indefinite due to approximation error, are modified to be symmetric positive definite via the procedure described in Appendix~\ref{sec:make_spd}, with $l=2$. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $\bm{H}$ more often has negative values in its integral kernel, especially when one is away from the optimal basal sliding parameter. Our results show that our preconditioners are also good preconditioners for $\bm{H}$. The H-matrix approximation of the data misfit Gauss-Newton Hessian is added to an H-matrix approximation of the Hessian of the regularization term to form an H-matrix approximation of $\bm{H}_\text{gn}$.
+We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations, $\mathbf{A}_H$, of the data misfit Gauss-Newton Hessian (the term in $\bm{H}_\text{gn}$ that arises from the data misfit). The 
+%number of impulse response batches used to build these 
+approximations are indicated by ``PSF ($\nbatch$)'', where $\nbatch$ is the number of impulse response batches used to build the approximation. The Hessian of the regularization term is a combination of
+stiffness and mass matrices, which are sparse. Therefore, we form
+H-matrix representations of these matrices and combine them into a H-matrix approximation of the regularization term in the Hessian, $\mathbf{R}_H$, using
+standard sparse H-matrix techniques. H-matrix approximations of the Gauss-Newton Hessian, 
+$$\bm{H}_\text{gn}\approx \widetilde{\mathbf{H}}:=\mathbf{A}_H + \mathbf{R}_H,$$
+are formed by adding $\bm{A}_H$ to $\mathbf{R}_H$ using fast H-matrix arithmetic. The H-matrix $\widetilde{\mathbf{H}}$ may be indefinite due to approximation error, so we modify it to be symmetric positive definite via a shift and invert deflation procedure described in Appendix~\ref{sec:make_spd}. We factor $\bm{\preconditioner}$,
+using fast H-matrix methods, then use the factorization as a
+preconditioner. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $\bm{H}$ more often has negative values in its integral kernel. Our results show that $\widetilde{\mathbf{H}}$ is a good preconditioner for both $\bm{H}_\text{gn}$ and $\bm{H}$. 
+%The H-matrix approximation of the data misfit Gauss-Newton Hessian is added to an H-matrix approximation of the Hessian of the regularization term to form an H-matrix approximation of $\bm{H}_\text{gn}$.
 %
 %Straightforward calculation shows that the discretized Hessian of the regularization term is given by
 %$
@@ -811,13 +820,7 @@ We use the framework described in this paper to generate Hessian preconditioners
 %$
 %where $\bm{K}$ is a finite element stiffness matrix with appropriate boundary conditions, and $\bm{M}$ is the finite element mass matrix. These matrices are sparse, so we form H-matrix representations of these matrices and combine them using standard sparse H-matrix techniques.
 %
-We note that the Hessian of the regularization is a combination of
-stiffness and mass matrices, which are sparse. Therefore, we form
-H-matrix representations of these matrices and combine them using
-standard sparse H-matrix techniques.  We factor the overall
-Gauss-Newton Hessian approximation, denoted $\bm{\preconditioner}$,
-using fast H-matrix methods, then use the factorization as a
-preconditioner.
+
 
 
 \subsection{Example 1: Inversion for the basal sliding coefficient in an ice sheet flow problem}
@@ -1194,13 +1197,13 @@ Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss
 		\caption{}
 		\label{fig:condition_number}
 	\end{subfigure}
-	\caption{Left (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_k = \lambda_k \bm{\preconditioner} \bm{u}_k$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), or the regularization Hessian (REG). Right (\ref{fig:condition_number}): condition number for $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$ for these different preconditioners, and no preconditioner (NONE). All operators are evaluated at the $\bm{\basalfriction}$ that solves the inverse problem for $\gamma=7.3 \times 10^3$, as determined by the Morozov discrepancy principle. COND(H) LABELS!}
+	\caption{Left (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \genericvec_k = \lambda_k \bm{\preconditioner} \genericvec_k$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), or the regularization Hessian (REG). Right (\ref{fig:condition_number}): condition number for $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$ for these different preconditioners, and no preconditioner (NONE). All operators are evaluated at the $\bm{\basalfriction}$ that solves the inverse problem for $\gamma=7.3 \times 10^3$, as determined by the Morozov discrepancy principle. COND(H) LABELS!}
 	\label{fig:stokes_spectrum}
 \end{figure}
 
 In Figure \ref{fig:generalized_eigenvalues} we show the generalized eigenvalues for the generalized eigenvalue problem
 $
-	\bm{H} \bm{u} = \lambda \bm{\preconditioner} \bm{u}.
+	\bm{H} \genericvec = \lambda \bm{\preconditioner} \genericvec.
 $
 Here $\bm{H}$ is the Hessian evaluated at the reconstructed parameter $\bm{\basalfriction}$ for $\gamma$ chosen to satisfy the Morozov discrepancy principle. The matrix $\bm{\preconditioner}$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations constructed at that $\bm{\basalfriction}$, or the regularization Hessian. The PSF preconditioners cluster the eigenvalues of the Hessian near one, with more batches yielding better clustering. The regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. In Figure \ref{fig:condition_number} we show the condition numbers of $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$. The PSF preconditioners yield the the smallest condition numbers, with more batches yielding smaller condition numbers. Regularization preconditioning and no preconditioning yield larger condition numbers. The condition numbers are similar for both $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$, demonstrating that the preconditioner built based on $\bm{H}_\text{gn}$ is a good preconditioner for $\bm{H}$.
 
@@ -1209,57 +1212,56 @@ Here $\bm{H}$ is the Hessian evaluated at the reconstructed parameter $\bm{\basa
 \label{sec:adv}
 
 Here we consider a time-dependent advection-diffusion equation for
-which we seek to infer an unknown initial contaminant field from
-pointwise measurements of its concentration. The problem description
-below closely follows the one in~\cite{PetraStadler11}. This PDE
-models diffusive transport in a domain $\D \subset \R^d$, which is
-depicted in Figure~\ref{fig:adv_inversion1}.  The domain
-boundaries $\partial \D$ include the outer boundaries as well as the
+which we seek to infer the unknown spatially varying initial condition, $\ipar$, from observations of the state  
+at a final time. This PDE
+models diffusive transport in a domain $\advdomain \subset \R^d$, which is
+depicted in Figure~\ref{fig:adv_inversion1}. In this case, the state, $\concentration(x,t)$, could be interpreted as the concentration of a contaminant. The problem description
+below closely follows the one in~\cite{PetraStadler11}. The domain
+boundaries $\partial \advdomain$ include the outer boundaries as well as the
 internal boundaries of the rectangles, which represent buildings.  The
 parameter-to-observable map $\iFF$ in this case maps an initial
-condition $\ipar \in L^2(\D)$ to observations of the concentration
-field $u(\vec{x}, t)$ through solution of the advection-diffusion
+condition $\ipar \in L^2(\advdomain)$ to observations of the concentration at a final time, $\concentration(x, T)$,  through solution of the advection-diffusion
 equation given by
 \begin{equation}\label{eq:ad}
   \begin{aligned}
-    u_t - \kappa\Delta u + \vec{v}\cdot\nabla u &= 0 & \quad&\text{in
-    }\D\times (0,T), \\
-    u(\cdot, 0) &= \ipar  &&\text{in } \D , \\
-    \kappa\nabla u\cdot \vec{n} &= 0 &&\text{on } \partial\D \times (0,T).
+    \concentration_t - \kappa\Delta \concentration + v\cdot\nabla \concentration &= 0 & \quad&\text{in
+    }\advdomain\times (0,T), \\
+    \concentration(\cdot, 0) &= \ipar  &&\text{in } \advdomain , \\
+    \kappa\nabla \concentration\cdot \nu &= 0 &&\text{on } \partial \advdomain \times (0,T).
   \end{aligned}
 \end{equation}
-Here, $\kappa > 0$ is a diffusivity coefficient, and $T > 0$ is the
-final time of observations.  The velocity field $\vec{v}$, shown in
+Here, $\kappa > 0$ is a diffusivity coefficient, $\nu$ is the boundary unit normal vector, and $T > 0$ is the
+final time.  The velocity field $v:\advdomain \rightarrow \mathbb{R}^d$, shown in
 Figure~\ref{fig:adv_inversion1}, is computed by solving the
 steady-state Navier-Stokes equations for a two dimensional flow with
 Reynolds number 50 and boundary conditions as in
 Figure~\ref{fig:adv_inversion} (left); see \cite{PetraStadler11} for
-details.  The time evolution of the state variable $u$ from a given
+details.  The time evolution of the state variable $\concentration$ from a given
 initial condition $\ipar$ is illustrated in
 Figure~\ref{fig:adv_inversion1}.
 
 %INTRODUCE EQUATIONS: REWRITE HERE vvvvvvv
 
-%The parameter-to-observable map $\iFF \,\ipar := \obsop\, u(\ipar)$ maps an initial condition $\ipar \in L^2(\D)$ to pointwise spatiotemporal observations of the concentration field $u({\vec x},t)$ through solution of the advection-diffusion equation given by
+%The parameter-to-observable map $\iFF \,\ipar := \obsop\, u(\ipar)$ maps an initial condition $\ipar \in L^2(\advdomain)$ to pointwise spatiotemporal observations of the concentration field $u({\vec x},t)$ through solution of the advection-diffusion equation given by
 %
 %$$
 %\begin{split}
-%u_t - \kappa\Delta u + {\vec v} \cdot \nabla u &= 0     & \quad \text{in } \D\times(0,T),\\
-%u(\cdot, 0) &= \ipar & \quad \text{in } \D,\\
-%\kappa \nabla u\cdot {\vec{n}} &= 0     & \quad \text{on } \partial\D \times (0,T).
+%u_t - \kappa\Delta u + {\vec v} \cdot \nabla u &= 0     & \quad \text{in } \advdomain\times(0,T),\\
+%u(\cdot, 0) &= \ipar & \quad \text{in } \advdomain,\\
+%\kappa \nabla u\cdot {\vec{n}} &= 0     & \quad \text{on } \partial \advdomain \times (0,T).
 %\end{split}
 %$$
 %
-%Here, $\D \subset \R^d$ ($d \in \{2, 3\}$) is a bounded domain, $\kappa > 0$ is the diffusion coefficient and $T > 0$ is the final
+%Here, $\advdomain \subset \R^d$ ($d \in \{2, 3\}$) is a bounded domain, $\kappa > 0$ is the diffusion coefficient and $T > 0$ is the final
 %time. The velocity field
 %$\vec{v}$ is computed by solving the following steady-state
 %Navier-Stokes equation with the side walls driving the flow:
 %
 %$$
 %\begin{aligned}
-%- \frac{1}{\operatorname{Re}} \Delta {\vec v} + \nabla q + {\vec v} \cdot \nabla {\vec v} &= 0 &\quad&\text{ in }\D,\\
-%\nabla \cdot {\vec v} &= 0 &&\text{ in }\D,\\
-%{\vec v} &= {\vec g} &&\text{ on } \partial\D.
+%- \frac{1}{\operatorname{Re}} \Delta {\vec v} + \nabla q + {\vec v} \cdot \nabla {\vec v} &= 0 &\quad&\text{ in }\advdomain,\\
+%\nabla \cdot {\vec v} &= 0 &&\text{ in }\advdomain,\\
+%{\vec v} &= {\vec g} &&\text{ on } \partial \advdomain.
 %\end{aligned}
 %$$
 %
@@ -1396,7 +1398,7 @@ Figure~\ref{fig:adv_inversion1}.
 			axis x line*=bottom,
 			axis y line*=left,
 			legend style={at={(0.95,1)},anchor=north east},
-			title={Generalized eigenvalues, $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$}
+			title={Generalized eigenvalues, $\bm{H} \genericvec_{k}=\lambda_{k} \bm{\preconditioner} \genericvec_{k}$}
 			]
 			\addlegendentry{REG}
 			\addplot[dotted, line width=0.5mm] table[x=k, y=reg] {generalizedEigenvalues.dat};

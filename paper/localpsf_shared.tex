@@ -117,7 +117,7 @@
 \newcommand{\constcoeff}{\alpha}
 \newcommand{\colcluster}{\mathtt{c}}
 \newcommand{\rowcluster}{\mathtt{r}}
-\newcommand{\icedomain}{U}
+\newcommand{\icedomain}{\mathcal{D}}
 \newcommand{\basalfriction}{{q}}
 \newcommand{\normalvec}{\nu}
 \newcommand{\searchdir}{{\widehat{\basalfriction}}}
@@ -141,6 +141,10 @@
 
 \newcommand*{\vertbar}{\rule[-1ex]{0.5pt}{2.5ex}}
 \newcommand*{\horzbar}{\rule[.5ex]{2.5ex}{0.5pt}}
+
+\newcommand{\genericvec}{\bm{x}}
+\newcommand{\concentration}{c} % NOTE: CHECK for collisions!!!
+\newcommand{\advdomain}{\Omega}
 
 \usepackage{amsopn}
 \DeclareMathOperator{\diag}{diag}
@@ -175,7 +179,7 @@
 \newcommand{\iFF}{\mathcal{F}}
 \newcommand{\D}{\mathcal{D}}
 \newcommand{\R}{\mathbb{R}}
-\newcommand{\ipar}{m}
+\newcommand{\ipar}{\basalfriction} % make parameters consistent across problems
 
 %%% Local Variables: 
 %%% mode:latex
