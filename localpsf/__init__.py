@@ -14,7 +14,7 @@ from . import newtoncg
 from . import newtongmres
 from . import derivatives_at_point
 from . import bilaplacian_regularization
-from . import deflate_negative_eigenvalues
+# from . import deflate_negative_eigenvalues # moved to hlibpro
 # from . import path
 
 from pathlib import Path as __Path
