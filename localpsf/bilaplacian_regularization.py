@@ -12,6 +12,8 @@ import hlibpro_python_wrapper as hpro
 vec2vec_numpy = typ.Callable[[np.ndarray], np.ndarray]
 vec2vec_petsc = typ.Callable[[dl.Vector], dl.Vector]
 
+_RTOL = 1e-10
+
 @dataclass(frozen=True)
 class BiLaplacianCovarianceScipy:
     # ==== SET UP PRIOR DISTRIBUTION ====
@@ -24,107 +26,248 @@ class BiLaplacianCovarianceScipy:
     # maximal value
     # d - dimension of problem
     # A^(-p) - operator, A laplacian-like
-    gamma: float
+    gamma0: float
     correlation_length: float
     K: sps.csr_matrix # stiffness matrix
     M: sps.csr_matrix # mass matrix
+    mass_lumps: np.ndarray
 
     def __post_init__(me):
-        RTOL = 1e-10
-        assert(np.linalg.norm(me.K - me.K.T) < RTOL * np.linalg.norm(me.K))
-        assert (np.linalg.norm(me.M - me.M.T) < RTOL * np.linalg.norm(me.M))
+        assert(me.gamma0 > 0.0)
+        assert(me.correlation_length > 0.0)
+        assert(me.K.shape == (me.N, me.N))
+        assert(me.M.shape == (me.N, me.N))
+        assert(me.mass_lumps.shape == (me.N,))
+        u = np.random.randn(me.N)
+        v = np.random.randn(me.N)
+        t1 = np.dot(me.K @ u, v)
+        t2 = np.dot(u, me.K @ v)
+        assert(np.abs(t2-t1) <= _RTOL * (np.abs(t1)+np.abs(t2)))
+        t1 = np.dot(me.M @ u, v)
+        t2 = np.dot(u, me.M @ v)
+        assert (np.abs(t2 - t1) <= _RTOL * (np.abs(t1) + np.abs(t2)))
         x = np.random.randn(me.N)
         x2 = me.solve_M(me.M @ x)
-        assert(np.linalg.norm(x2 - x) < RTOL * np.linalg.norm(x))
-        x3 = me.solve_covariance(me.apply_covariance(x))
-        assert(np.linalg.norm(x3 - x) < RTOL * np.linalg.norm(x))
+        assert(np.linalg.norm(x2 - x) < _RTOL * np.linalg.norm(x))
+        ggg = np.random.rand()
+        x3 = me.solve_C(me.apply_C(x, ggg), ggg)
+        assert(np.linalg.norm(x3 - x) < _RTOL * np.linalg.norm(x))
+        y1 = me.apply_sqrtCL_left_factor(me.apply_sqrtCL_right_factor(x, ggg), ggg)
+        y2 = me.apply_CL(x, ggg)
+        assert(np.linalg.norm(y2 - y1) < _RTOL * np.linalg.norm(y2))
+        z1 = me.solve_sqrtCL_right_factor(me.solve_sqrtCL_left_factor(x, ggg), ggg)
+        z2 = me.solve_CL(x, ggg)
+        assert (np.linalg.norm(z2 - z1) < _RTOL * np.linalg.norm(z2))
 
-    @cached_property
+    @property
     def shape(me) -> typ.Tuple[int, int]:
         return me.M.shape
 
-    @cached_property
+    @property
     def N(me) -> int:
         return me.shape[1]
 
-    @cached_property
-    def delta(me) -> float:
-        return 4. * me.gamma / (me.correlation_length ** 2)
+    def delta(me, gamma: float) -> float:
+        assert(gamma > 0)
+        return 4. * gamma / (me.correlation_length ** 2)
 
     @cached_property
-    def A(me) -> sps.csr_matrix:
-        return me.gamma * me.K + me.delta * me.M
+    def delta0(me) -> float:
+        return me.delta(me.gamma0)
+
+    @cached_property # lumped mass matrix
+    def ML(me) -> sps.csr_matrix:
+        return sps.diags(me.mass_lumps, 0).tocsr()
+
+    @cached_property  # lumped mass matrix
+    def invML(me) -> sps.csr_matrix:
+        return sps.diags(1.0 / me.mass_lumps, 0).tocsr()
+
+    @cached_property
+    def A0(me) -> sps.csr_matrix:
+        return me.gamma0 * me.K + me.delta0 * me.M
+
+    def A(me, gamma: float) -> sps.csr_matrix:
+        assert(gamma > 0)
+        return (gamma / me.gamma0) * me.A0
+        # return gamma * me.K + me.delta(gamma) * me.M
+
+    def apply_A(me, x: np.ndarray, gamma: float) -> np.ndarray:
+        assert(x.shape == (me.N,))
+        assert (gamma > 0)
+        return gamma * (me.K @ x) + me.delta(gamma) * (me.M @ x)
+
+    @cached_property
+    def AL0(me) -> sps.csr_matrix:
+        return me.gamma0 * me.K + me.delta0 * me.ML
+
+    def AL(me, gamma: float) -> sps.csr_matrix: # A with lumped mass matrix
+        assert (gamma > 0)
+        return (gamma / me.gamma0) * me.AL0
+        # return gamma * me.K + me.delta(gamma) * me.ML
+
+    def apply_AL(me, x: np.ndarray, gamma: float) -> np.ndarray:
+        assert(x.shape == (me.N,))
+        assert (gamma > 0)
+        return gamma * (me.K @ x) + me.delta(gamma) * (me.ML @ x)
 
     @cached_property
     def solve_M(me) -> vec2vec_numpy:
         return spla.factorized(me.M)
 
+    def apply_ML(me, x: np.ndarray) -> np.ndarray:
+        assert (x.shape == (me.N,))
+        return x * me.mass_lumps
+
+    def solve_ML(me, x: np.ndarray) -> np.ndarray:
+        assert (x.shape == (me.N,))
+        return x / me.mass_lumps
+
     @cached_property
-    def solve_A(me) -> vec2vec_numpy:
-        return spla.factorized(me.A)
+    def sqrt_mass_lumps(me):
+        return np.sqrt(me.mass_lumps)
 
-    def apply_covariance(me, x: np.ndarray) -> np.ndarray:
-        return me.solve_A(me.M @ me.solve_A(x))
+    def apply_sqrtML(me, x: np.ndarray) -> np.ndarray:
+        assert (x.shape == (me.N,))
+        return x * me.sqrt_mass_lumps
 
-    def solve_covariance(me, x: np.ndarray) -> np.ndarray:
-        return me.A @ me.solve_M(me.A @ x)
+    def solve_sqrtML(me, x: np.ndarray) -> np.ndarray:
+        assert (x.shape == (me.N,))
+        return x / me.sqrt_mass_lumps
 
-    def make_K_hmatrix(me, bct) -> hpro.HMatrix:
-        return hpro.build_hmatrix_from_scipy_sparse_matrix(me.K, bct)
+    @cached_property
+    def solve_A0(me) -> vec2vec_numpy: # shifted Bilaplacian
+        return spla.factorized(me.A0)
 
-    def make_M_hmatrix(me, bct) -> hpro.HMatrix:
-        return hpro.build_hmatrix_from_scipy_sparse_matrix(me.M, bct)
+    def solve_A(me, x: np.ndarray, gamma: float) -> np.ndarray:
+        assert (x.shape == (me.N,))
+        assert (gamma > 0)
+        return (me.gamma0 / gamma) * me.solve_A0(x)
 
-    def make_precision_hmatrix(me, bct, rtol=1e-8, atol=1e-14, force_spd=True) -> hpro.HMatrix:
-        K_hmatrix = me.make_K_hmatrix(bct)
-        M_hmatrix = me.make_M_hmatrix(bct)
+    @cached_property
+    def solve_AL0(me) -> vec2vec_numpy: # lumped mass shifted Bilaplacian
+        return spla.factorized(me.AL0)
+
+    def solve_AL(me, x: np.ndarray, gamma: float) -> np.ndarray: # lumped mass shifted Bilaplacian
+        assert (x.shape == (me.N,))
+        assert (gamma > 0)
+        return (me.gamma0 / gamma) * me.solve_AL0(x)
+
+    def apply_C(me, x: np.ndarray, gamma: float) -> np.ndarray: # covariance matrix
+        assert (x.shape == (me.N,))
+        assert (gamma > 0)
+        return me.solve_A(me.M @ me.solve_A(x, gamma), gamma)
+
+    def apply_CL(me, x: np.ndarray, gamma: float) -> np.ndarray: # lumped mass covariance matrix
+        assert (x.shape == (me.N,))
+        assert (gamma > 0)
+        return me.solve_AL(me.mass_lumps * me.solve_AL(x, gamma), gamma)
+
+    def solve_C(me, x: np.ndarray, gamma: float) -> np.ndarray:
+        assert(x.shape == (me.N,))
+        assert(gamma > 0)
+        return me.apply_A(me.solve_M(me.apply_A(x, gamma)), gamma)
+        # return (gamma / me.gamma0)**2 * (me.A0 @ me.solve_M(me.A0 @ x))
+
+    def solve_CL(me, x: np.ndarray, gamma: float) -> np.ndarray:
+        assert (x.shape == (me.N,))
+        assert (gamma > 0)
+        return me.apply_AL(me.solve_ML(me.apply_AL(x, gamma)), gamma)
+        # return (gamma / me.gamma0)**2 * (me.AL0 @ me.solve_ML(me.AL0 @ x))
+
+    @cached_property
+    def invCL0(me) -> sps.csr_matrix:
+        return me.AL0.T @ (me.invML @ me.AL0)
+
+    def invCL(me, gamma: float) -> sps.csr_matrix:
+        assert (gamma > 0)
+        return (gamma / me.gamma0)**2 * me.invCL0
+
+    def invC_array(me, gamma: float) -> np.ndarray:
+        assert (gamma > 0)
+        print('Warning: building dense inverse covariance matrix. May be very expensive.')
+        A0_array = me.A0.toarray()
+        M_array = me.M.toarray()
+        return (gamma / me.gamma0)**2 * A0_array.T @ (np.linalg.inv(M_array) @ A0_array)
+
+    def make_invC_hmatrix(me, bct: hpro.BlockClusterTree, gamma: float,
+                          rtol: float=1e-8, atol: float=1e-14, force_spd: bool=False) -> hpro.HMatrix:
+        assert (gamma > 0)
+        K_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(me.K, bct)
+        M_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(me.M, bct)
         iM_hmatrix = M_hmatrix.inv(rtol=rtol, overwrite=False)
         K_iM_K_hmatrix = hpro.h_mul(K_hmatrix, hpro.h_mul(iM_hmatrix, K_hmatrix, rtol=rtol, atol=atol),
                                     rtol=rtol, atol=atol)
         if force_spd:
-            K_iM_K_hmatrix = hpro.rational_positive_definite_approximation_low_rank_method(me, cutoff=0.0, overwrite=True)
+            K_iM_K_hmatrix = hpro.rational_positive_definite_approximation_low_rank_method(
+                K_iM_K_hmatrix, cutoff=0.0, overwrite=True)
 
-        tmp = hpro.h_add(me.K, K_iM_K_hmatrix, alpha=2.0*me.gamma*me.delta, beta=me.gamma**2,
+        delta_local = me.delta(gamma)
+        tmp = hpro.h_add(K_hmatrix, K_iM_K_hmatrix, alpha=2.0 * gamma * delta_local, beta=gamma ** 2,
                          rtol=rtol, atol=atol, overwrite_B=True)
-        invC_hmatrix = hpro.h_add(me.M, tmp, alpha=me.delta**2, beta=1.0,
+        invC_hmatrix = hpro.h_add(M_hmatrix, tmp, alpha=delta_local ** 2, beta=1.0,
                                   rtol=rtol, atol=atol, overwrite_B=True)
 
         x = np.random.randn(me.N)
-        y = me.solve_covariance(x)
+        y = me.solve_C(x, gamma)
         y2 = invC_hmatrix.matvec(x)
         relerr_invC_hmatrix = np.linalg.norm(y2 - y) / np.linalg.norm(y)
         print('rtol=', rtol, ', relerr_invC_hmatrix=', relerr_invC_hmatrix)
 
-        return invC_hmatrix # gamma^2 K invM K + 2 gamma delta K + delta^2 M = (gamma K + delta M) invM (gamma K + delta M)
+        return invC_hmatrix  # gamma^2 K invM K + 2 gamma delta K + delta^2 M = (gamma K + delta M) invM (gamma K + delta M)
 
-    def update_gamma(me, new_gamma: float) -> 'BiLaplacianCovarianceScipy':
-        assert(new_gamma >= 0.0)
-        return BiLaplacianCovarianceScipy(new_gamma, me.correlation_length, me.K, me.M)
+    def make_invCL_hmatrix(me, bct: hpro.BlockClusterTree, gamma: float) -> hpro.HMatrix:
+        assert (gamma > 0)
+        invCL_hmatrix = hpro.build_hmatrix_from_scipy_sparse_matrix(me.invCL(gamma), bct)
 
-    def update_correlation_length(me, new_correlation_length):
-        assert(new_correlation_length > 0.0)
-        return BiLaplacianCovarianceScipy(me.gamma, new_correlation_length, me.K, me.M)
+        x = np.random.randn(me.N)
+        y = me.solve_CL(x, gamma)
+        y2 = invCL_hmatrix.matvec(x)
+        relerr_invCL_hmatrix = np.linalg.norm(y2 - y) / np.linalg.norm(y)
+        print('relerr_invCL_hmatrix=', relerr_invCL_hmatrix)
 
-    def lump_mass_matrix(me, mass_lumping_type: str) -> 'BiLaplacianCovarianceScipy':
-        ML = lump_mass(me.M, mass_lumping_type)
-        return BiLaplacianCovarianceScipy(me.gamma, me.correlation_length, me.K, ML)
+        return invCL_hmatrix
+
+    def apply_sqrtCL_left_factor(me, x: np.ndarray, gamma: float) -> np.ndarray:
+        assert (x.shape == (me.N,))
+        assert (gamma > 0)
+        return me.solve_AL(me.apply_sqrtML(x), gamma)
+
+    def apply_sqrtCL_right_factor(me, x: np.ndarray, gamma: float) -> np.ndarray:
+        assert (x.shape == (me.N,))
+        assert (gamma > 0)
+        return me.apply_sqrtML(me.solve_AL(x, gamma))
+
+    def solve_sqrtCL_left_factor(me, x: np.ndarray, gamma: float) -> np.ndarray:
+        assert (x.shape == (me.N,))
+        assert (gamma > 0)
+        return me.solve_sqrtML(me.apply_AL(x, gamma))
+
+    def solve_sqrtCL_right_factor(me, x: np.ndarray, gamma: float) -> np.ndarray:
+        assert (x.shape == (me.N,))
+        assert (gamma > 0)
+        return me.apply_AL(me.solve_sqrtML(x), gamma)
+
+    def draw_sample_lumped(me, gamma: float) -> np.ndarray:
+        assert(gamma > 0)
+        return me.apply_sqrtCL_left_factor(np.random.randn(me.N), gamma)
 
 
-def lump_mass(M0: sps.csr_matrix, mass_lumping_type: str) -> sps.csr_matrix:
-    if mass_lumping_type.lower() in {'consistent', 'rowsum'}:
+def get_mass_lumps(M0: sps.csr_matrix, mass_lumping_method: str='rowsum') -> np.ndarray:
+    if mass_lumping_method.lower() in {'consistent', 'rowsum'}:
         mass_lumps = M0 @ np.ones(M0.shape[1])
-        M = sps.diags(mass_lumps, 0).tocsr()
-    elif mass_lumping_type.lower() == {'diagonal', 'diag'}:
-        M = sps.diags(M0.diagonal(), 0).tocsr()
+    elif mass_lumping_method.lower() in {'diagonal', 'diag'}:
+        mass_lumps = M0.diagonal()
     else:
-        raise RuntimeError('mass lumping type ' + mass_lumping_type + ' not recognized')
-    return M
+        raise RuntimeError('mass lumping method ' + mass_lumping_method + ' not recognized')
+    return mass_lumps
+
 
 def make_bilaplacian_covariance_scipy(
         gamma: float,
         correlation_length : float,
         Vh: dl.FunctionSpace,
-        mass_lumping_type: str=None,
+        mass_lumping_method: str='rowsum',
         robin_bc: bool=True) -> BiLaplacianCovarianceScipy:
     stiffness_form = dl.inner(dl.grad(dl.TrialFunction(Vh)), dl.grad(dl.TestFunction(Vh))) * dl.dx
     robin_form = dl.inner(dl.TrialFunction(Vh), dl.TestFunction(Vh)) * dl.ds
@@ -135,14 +278,13 @@ def make_bilaplacian_covariance_scipy(
     if robin_bc:
         # Robin BC matrix
         B0 = csr_fenics2scipy(dl.assemble(robin_form))
-        K = K + B0 * gamma * 2. / (1.42 * correlation_length)
+        K = K + B0 * 2. / (1.42 * correlation_length)
 
     # Mass matrix
     M = csr_fenics2scipy(dl.assemble(mass_form))
-    if mass_lumping_type is not None:
-        M = lump_mass(M, mass_lumping_type)
+    mass_lumps = get_mass_lumps(M, mass_lumping_method)
 
-    return BiLaplacianCovarianceScipy(gamma, correlation_length, K, M)
+    return BiLaplacianCovarianceScipy(gamma, correlation_length, K, M, mass_lumps)
 
 
 class BiLaplacianRegularization:
