@@ -248,10 +248,6 @@ class BiLaplacianCovarianceScipy:
         assert (gamma > 0)
         return me.apply_AL(me.solve_sqrtML(x), gamma)
 
-    def draw_sample_lumped(me, gamma: float) -> np.ndarray:
-        assert(gamma > 0)
-        return me.apply_sqrtCL_left_factor(np.random.randn(me.N), gamma)
-
 
 def get_mass_lumps(M0: sps.csr_matrix, mass_lumping_method: str='rowsum') -> np.ndarray:
     if mass_lumping_method.lower() in {'consistent', 'rowsum'}:
@@ -285,6 +281,81 @@ def make_bilaplacian_covariance_scipy(
     mass_lumps = get_mass_lumps(M, mass_lumping_method)
 
     return BiLaplacianCovarianceScipy(gamma, correlation_length, K, M, mass_lumps)
+
+
+@dataclass
+class BilaplacianRegularizationScipy:
+    Cov: BiLaplacianCovarianceScipy # covariance operator
+    mu: np.ndarray # mean
+    m: np.ndarray # current parameter value
+    gamma: float # regularization parameter
+    lumped_mass: bool=True
+
+    def __post__init__(me):
+        assert(me.gamma > 0)
+        assert(me.Cov.shape == (me.N, me.N))
+        assert(me.mu.shape == (me.N,))
+        assert(me.m.shape == (me.N,))
+
+    @cached_property
+    def N(me):
+        return me.Cov.N
+
+    def draw_sample(me) -> np.ndarray:
+        if me.lumped_mass:
+            return me.mu + me.Cov.apply_sqrtCL_left_factor(np.random.randn(me.N), me.gamma)
+        else:
+            raise NotImplementedError
+
+    def update_m(me, new_m: np.ndarray) -> None:
+        assert(new_m.shape == (me.N,))
+        me.m[:] = new_m
+
+    def update_gamma(me, new_gamma: float) -> None:
+        assert(new_gamma > 0)
+        me.gamma = new_gamma
+
+    def cost(me) -> float:
+        p = me.m - me.mu
+        if me.lumped_mass:
+            return 0.5 * np.dot(p, me.Cov.solve_CL(p, me.gamma))
+        else:
+            return 0.5 * np.dot(p, me.Cov.solve_C(p, me.gamma))
+
+    def grad(me) -> np.ndarray:
+        p = me.m - me.mu
+        if me.lumped_mass:
+            return me.Cov.solve_CL(p, me.gamma)
+        else:
+            return me.Cov.solve_C(p, me.gamma)
+
+    def apply_hess(me, x: np.ndarray) -> np.ndarray:
+        assert(x.shape == (me.N,))
+        if me.lumped_mass:
+            return me.Cov.solve_CL(x, me.gamma)
+        else:
+            return me.Cov.solve_C(x, me.gamma)
+
+    def solve_hess(me, x: np.ndarray) -> np.ndarray:
+        assert(x.shape == (me.N,))
+        if me.lumped_mass:
+            return me.Cov.apply_CL(x, me.gamma)
+        else:
+            return me.Cov.apply_C(x, me.gamma)
+
+    def apply_hess_linop(me) -> spla.LinearOperator:
+        return spla.LinearOperator((me.N, me.N), matvec=me.apply_hessian)
+
+    def solve_hess_linop(me) -> spla.LinearOperator:
+        return spla.LinearOperator((me.N, me.N), matvec=me.solve_hessian)
+
+    def make_hess_hmatrix(me, bct: hpro.BlockClusterTree, **kwargs) -> hpro.HMatrix:
+        if me.lumped_mass:
+            return me.Cov.make_invCL_hmatrix(bct, me.gamma, **kwargs)
+        else:
+            return me.Cov.make_invC_hmatrix(bct, me.gamma, **kwargs)
+
+
 
 
 class BiLaplacianRegularization:
