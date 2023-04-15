@@ -1,4 +1,5 @@
 import numpy as np
+import typing as typ
 import dolfin as dl
 import ufl
 from collections.abc import Callable
@@ -15,6 +16,15 @@ def transpose_of_fenics_matrix(A):
     AT.transpose()
     return dl.Matrix(dl.PETScMatrix(AT))
 
+def numpy2petsc(u_numpy: np.ndarray, Vh: dl.FunctionSpace) -> dl.Vector:
+    assert(u_numpy.shape == (Vh.dim(),))
+    u_petsc = dl.Function(Vh).vector()
+    u_petsc[:] = u_numpy.copy()
+    return u_petsc
+
+def petsc2numpy(u_petsc: dl.Vector) -> np.ndarray:
+    return u_petsc[:]
+
 class StokesDerivativesAtPoint:
     def __init__(me,
                  misfit_form  : ufl.Form,
@@ -23,16 +33,12 @@ class StokesDerivativesAtPoint:
                  m : dl.Function, # Parameter
                  u : dl.Function, # State
                  p : dl.Function, # Adjoint
-                 input_vector_transformation  : Callable[[Any], dl.PETScVector] = lambda x: x,
-                 output_vector_transformation : Callable[[dl.PETScVector], Any] = lambda x: x,
                  solver_type='mumps'):
         me.misfit_form = misfit_form
         me.bcs = bcs
         me.m = m # Parameter
         me.u = u # State
         me.p = p # Adjoint
-        me.input_vector_transformation = input_vector_transformation
-        me.output_vector_transformation = output_vector_transformation
         me.solver_type = solver_type
 
         me.Mh = me.m.function_space()
@@ -120,8 +126,11 @@ class StokesDerivativesAtPoint:
         me.coeff_matrix_T = transpose_of_fenics_matrix(me.coeff_matrix)
         me.adjoint_solver = dl.PETScLUSolver(dl.as_backend_type(me.coeff_matrix_T), me.solver_type)
 
-    def update_m(me, new_m):
-        me.m.vector()[:] = me.input_vector_transformation(new_m)
+    def get_parameter(me) -> np.ndarray:
+        return petsc2numpy(me.m.vector())
+
+    def update_parameter(me, new_m: np.ndarray) -> None:
+        me.m.vector()[:] = numpy2petsc(new_m, me.Mh)
         me.build_linearized_forward_solver()
         me.build_adjoint_solver()
         me.u_is_current = False
@@ -130,8 +139,8 @@ class StokesDerivativesAtPoint:
         me.dp_dm_z_is_current = False
         me.dp_dm_z_GN_is_current = False
 
-    def update_z(me, new_z):
-        me.z.vector()[:] = me.input_vector_transformation(new_z)
+    def update_z(me, new_z: np.ndarray) -> None:
+        me.z.vector()[:] = numpy2petsc(new_z, me.Mh)
         me.du_dm_z_is_current = False
         me.dp_dm_z_is_current = False
         me.dp_dm_z_GN_is_current = False
@@ -176,27 +185,27 @@ class StokesDerivativesAtPoint:
             me.adjoint_solver.solve(me.dp_dm_z_GN.vector(), GN_incremental_adjoint_rhs_vector)
             me.dp_dm_z_GN_is_current = True
 
-    def misfit(me):
+    def misfit(me) -> float:
         me.update_forward()
         return dl.assemble(me.misfit_form)
 
-    def gradient(me):
+    def gradient(me) -> np.ndarray:
         me.update_forward()
         me.update_adjoint()
-        return me.output_vector_transformation(dl.assemble(me.misfit_gradient_form))
+        return petsc2numpy(dl.assemble(me.misfit_gradient_form))
 
-    def apply_hessian(me, z_vec):
+    def apply_hessian(me, z_vec: np.ndarray) -> np.ndarray:
         me.update_z(z_vec)
         me.update_forward()
         me.update_adjoint()
         me.update_incremental_forward()
         me.update_incremental_adjoint()
-        return me.output_vector_transformation(dl.assemble(me.misfit_hessian_action_form))
+        return petsc2numpy(dl.assemble(me.misfit_hessian_action_form))
 
-    def apply_gauss_newton_hessian(me, z_vec):
+    def apply_gauss_newton_hessian(me, z_vec: np.ndarray) -> np.ndarray:
         me.update_z(z_vec)
         me.update_forward()
         me.update_adjoint()
         me.update_incremental_forward()
         me.update_gauss_newton_incremental_adjoint()
-        return me.output_vector_transformation(dl.assemble(me.GN_misfit_hessian_action_form))
+        return petsc2numpy(dl.assemble(me.GN_misfit_hessian_action_form))

@@ -4,7 +4,7 @@ from nalger_helper_functions import csr_fenics2scipy
 
 
 class MassMatrixHelper:
-    def __init__(me, V, solver_type='lu', lumping_type='diagonal'):
+    def __init__(me, V, solver_type='lu', lumping_type='simple'):
         me.M_fenics = dl.assemble(dl.TrialFunction(V) * dl.TestFunction(V) * dl.dx)
 
         me.diagonal_mass_lumps_fenics = dl.Vector()

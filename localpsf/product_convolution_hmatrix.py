@@ -1,5 +1,6 @@
 import numpy as np
 import dolfin as dl
+import typing as typ
 
 from .product_convolution_kernel import ProductConvolutionKernel
 
@@ -7,10 +8,30 @@ from nalger_helper_functions import *
 import hlibpro_python_wrapper as hpro
 
 
+def make_hmatrix_from_kernel_lumped_mass( Phi_pc : ProductConvolutionKernel,
+                                          mass_lumps_in: np.ndarray,
+                                          mass_lumps_out: np.ndarray,
+                                          bct: hpro.BlockClusterTree,
+                                          hmatrix_tol: float=1e-7
+                                        ) -> typ.Tuple[hpro.HMatrix, hpro.HMatrix]:
+    assert(hmatrix_tol > 0.0)
+    assert(mass_lumps_out.shape == (Phi_pc.shape[0],))
+    assert(mass_lumps_in.shape == (Phi_pc.shape[1],))
+    print('Building A kernel hmatrix')
+    kernel_hmatrix = Phi_pc.build_hmatrix(bct, tol=hmatrix_tol)
+
+    print('Computing A_hmatrix = M_out_hmatrix * A_kernel_hmatrix * M_in_hmatrix')
+    A_hmatrix = kernel_hmatrix.copy()
+    A_hmatrix.mul_diag_left(mass_lumps_out)
+    A_hmatrix.mul_diag_right(mass_lumps_in)
+
+    return A_hmatrix, kernel_hmatrix
+
+
 def make_hmatrix_from_kernel( Phi_pc : ProductConvolutionKernel,
-                              hmatrix_tol=1e-5,
+                              hmatrix_tol: float=1e-5,
                               bct_admissibility_eta=2.0,
-                              cluster_size_cutoff=50):
+                              cluster_size_cutoff=50) -> typ.Tuple[hpro.HMatrix, dict]:
     print('Making row and column cluster trees')
     dof_coords_in = Phi_pc.V_in.tabulate_dof_coordinates()
     dof_coords_out = Phi_pc.V_out.tabulate_dof_coordinates()

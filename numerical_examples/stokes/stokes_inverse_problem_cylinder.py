@@ -554,7 +554,7 @@ class StokesInverseProblemCylinder:
 
     @property
     def gamma(me):
-        return me.REGOP.gamma
+        return me.REGOP.alpha
 
     def reset_m(me):
         me.set_optimization_variable(me.m0_Vh2_numpy)

@@ -283,77 +283,78 @@ def make_bilaplacian_covariance_scipy(
     return BiLaplacianCovarianceScipy(gamma, correlation_length, K, M, mass_lumps)
 
 
-@dataclass
+@dataclass(frozen=True)
 class BilaplacianRegularizationScipy:
-    Cov: BiLaplacianCovarianceScipy # covariance operator
+    '''cost(m, a_reg) = -0.5 a_reg (m - mu).T C0^-1 (m - mu))'''
+    Cov: BiLaplacianCovarianceScipy
     mu: np.ndarray # mean
-    m: np.ndarray # current parameter value
-    gamma: float # regularization parameter
     lumped_mass: bool=True
 
     def __post__init__(me):
-        assert(me.gamma > 0)
         assert(me.Cov.shape == (me.N, me.N))
         assert(me.mu.shape == (me.N,))
-        assert(me.m.shape == (me.N,))
+
+    def gamma(me, a_reg: float) -> float:
+        assert(a_reg > 0.0)
+        return np.sqrt(a_reg)
+
+    def a_reg(me, gamma: float) -> float:
+        assert(gamma > 0.0)
+        return gamma**2
 
     @cached_property
     def N(me):
-        return me.Cov.N
+        return len(me.mu)
 
-    def draw_sample(me) -> np.ndarray:
+    def draw_sample(me, gamma: float) -> np.ndarray:
+        assert (gamma > 0.0)
         if me.lumped_mass:
-            return me.mu + me.Cov.apply_sqrtCL_left_factor(np.random.randn(me.N), me.gamma)
+            return me.mu + me.Cov.apply_sqrtCL_left_factor(np.random.randn(me.N), gamma)
         else:
             raise NotImplementedError
 
-    def update_m(me, new_m: np.ndarray) -> None:
-        assert(new_m.shape == (me.N,))
-        me.m[:] = new_m
-
-    def update_gamma(me, new_gamma: float) -> None:
-        assert(new_gamma > 0)
-        me.gamma = new_gamma
-
-    def cost(me) -> float:
-        p = me.m - me.mu
+    def cost(me, m: np.ndarray, a_reg: float) -> float:
+        assert(m.shape == (me.N,))
+        assert(a_reg > 0.0)
+        p = m - me.mu
         if me.lumped_mass:
-            return 0.5 * np.dot(p, me.Cov.solve_CL(p, me.gamma))
+            return 0.5 * np.dot(p, me.Cov.solve_CL(p, me.gamma(a_reg)))
         else:
-            return 0.5 * np.dot(p, me.Cov.solve_C(p, me.gamma))
+            return 0.5 * np.dot(p, me.Cov.solve_C(p, me.gamma(a_reg)))
 
-    def grad(me) -> np.ndarray:
-        p = me.m - me.mu
+    def gradient(me, m: np.ndarray, a_reg: float) -> np.ndarray:
+        assert (m.shape == (me.N,))
+        assert (a_reg > 0.0)
+        p = m - me.mu
         if me.lumped_mass:
-            return me.Cov.solve_CL(p, me.gamma)
+            return me.Cov.solve_CL(p, me.gamma(a_reg))
         else:
-            return me.Cov.solve_C(p, me.gamma)
+            return me.Cov.solve_C(p, me.gamma(a_reg))
 
-    def apply_hess(me, x: np.ndarray) -> np.ndarray:
+    def apply_hessian(me, x: np.ndarray, m: np.ndarray, a_reg: float) -> np.ndarray:
         assert(x.shape == (me.N,))
+        assert(m.shape == (me.N,))
+        assert (a_reg > 0.0)
         if me.lumped_mass:
-            return me.Cov.solve_CL(x, me.gamma)
+            return me.Cov.solve_CL(x, me.gamma(a_reg))
         else:
-            return me.Cov.solve_C(x, me.gamma)
+            return me.Cov.solve_C(x, me.gamma(a_reg))
 
-    def solve_hess(me, x: np.ndarray) -> np.ndarray:
+    def solve_hessian(me, x: np.ndarray, m: np.ndarray, a_reg: float) -> np.ndarray:
         assert(x.shape == (me.N,))
+        assert (m.shape == (me.N,))
+        assert (a_reg > 0.0)
         if me.lumped_mass:
-            return me.Cov.apply_CL(x, me.gamma)
+            return me.Cov.apply_CL(x, me.gamma(a_reg))
         else:
-            return me.Cov.apply_C(x, me.gamma)
+            return me.Cov.apply_C(x, me.gamma(a_reg))
 
-    def apply_hess_linop(me) -> spla.LinearOperator:
-        return spla.LinearOperator((me.N, me.N), matvec=me.apply_hessian)
-
-    def solve_hess_linop(me) -> spla.LinearOperator:
-        return spla.LinearOperator((me.N, me.N), matvec=me.solve_hessian)
-
-    def make_hess_hmatrix(me, bct: hpro.BlockClusterTree, **kwargs) -> hpro.HMatrix:
+    def make_hess_hmatrix(me, bct: hpro.BlockClusterTree, a_reg: float, **kwargs) -> hpro.HMatrix:
+        assert (a_reg > 0.0)
         if me.lumped_mass:
-            return me.Cov.make_invCL_hmatrix(bct, me.gamma, **kwargs)
+            return me.Cov.make_invCL_hmatrix(bct, me.gamma(a_reg), **kwargs)
         else:
-            return me.Cov.make_invC_hmatrix(bct, me.gamma, **kwargs)
+            return me.Cov.make_invC_hmatrix(bct, me.gamma(a_reg), **kwargs)
 
 
 
