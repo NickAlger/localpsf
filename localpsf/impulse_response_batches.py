@@ -19,140 +19,36 @@ import hlibpro_python_wrapper as hpro
 @dataclass
 class ImpulseResponseBatchesSimplified:
     apply_A: typ.Callable[[np.ndarray], np.ndarray]     # ndof_in -> ndof_out
-    apply_At: typ.Callable[[np.ndarray], np.ndarray]    # ndof_out -> ndof_in
 
     mass_lumps_in: np.ndarray   # shape=(ndof_in,)
     mass_lumps_out: np.ndarray  # shape=(ndof_out,)
+
     dof_coords_in: np.ndarray   # shape=(ndof_in, gdim_in)
-    dof_coords_out: np.ndarray  # shape=(ndof_out, gdim_out)
 
     vertex2dof_out: np.ndarray # shape=(ndof_out,), dtype=int, u_dof[vertex2dof_out] = u_vertex
+    dof2vertex_out: np.ndarray # shape=(ndof_out,), dtype=int
 
     vol: np.ndarray     # shape=(ndof_in,)
     mu: np.ndarray      # shape=(ndof_in, gdim_out)
     Sigma: np.ndarray   # shape=(ndof_in, gdim_out, gdim_out)
-    bad_inds: np.ndarray    # shape=(ndof_in,), dtype=bool
 
-    num_initial_batches: int = 5
-    tau: float = 3.0
-    num_neighbors: int = 10
-    max_scale_discrepancy: float = 1e5
-
-    max_candidate_points: int
+    candidate_inds: typ.List[int]
     cpp_object: hpro.hpro_cpp.ImpulseResponseBatches
 
     def __post_init__(me):
         assert(me.mass_lumps_in.shape == (me.ndof_in,))
         assert(me.mass_lumps_out.shape == (me.ndof_out,))
         assert(me.dof_coords_in.shape == (me.ndof_in, me.gdim_in))
-        assert(me.dof_coords_out.shape == (me.ndof_out, me.gdim_out))
         assert(me.vertex2dof_out.shape == (me.ndof_out,))
         assert(me.vertex2dof_out.dtype == int)
+        assert(np.all(me.vertex2dof_out[me.dof2vertex_out] == np.arange(me.ndof_out)))
+        assert(np.all(me.dof2vertex_out[me.vertex2dof_out] == np.arange(me.ndof_out)))
         assert(np.all(np.sort(me.vertex2dof_out) == np.arange(me.ndof_out)))
         assert(me.vol.shape == (me.ndof_in,))
         assert(me.mu.shape == (me.ndof_in, me.gdim_out))
-        assert(me.bad_vols.shape == (me.ndof_in,))
-        assert(me.bad_vols.dtype == bool)
-        assert(me.bad_Sigmas.shape == (me.ndof_in,))
-        assert(me.bad_Sigmas.dtype == bool)
         assert(me.Sigma.shape == (me.ndof_in, me.gdim_out, me.gdim_out))
-        assert(me.num_neighbors > 0)
-        assert(me.tau > 0.0)
-        assert(me.max_scale_discrepancy >= 1.0)
 
-        if me.max_candidate_points is None:
-            me.max_candidate_points = me.ndof_in
-
-        assert(me.max_candidate_points > 0)
-
-
-    @cached_property
-    def ndof_out(me) -> int:
-        return me.dof_coords_out.shape[0]
-
-    @cached_property
-    def ndof_in(me)-> int:
-        return me.dof_coords_in.shape[0]
-
-    @cached_property
-    def gdim_in(me) -> int:
-        return me.dof_coords_in.shape[0]
-
-    @cached_property
-    def gdim_out(me) -> int:
-        return me.dof_coords_out.shape[0]
-
-    @cached_property
-    def dof2vertex_out(me) -> np.ndarray:
-        d2v_out = np.argsort(me.vertex2dof_out).reshape(-1)
-        assert(np.all(d2v_out[me.vertex2dof_out] == np.arange(me.ndof_out)))
-        assert(np.all(me.vertex2dof_out[d2v_out] == np.arange(me.ndof_out)))
-        return d2v_out
-
-    def __init__(me,
-
-                 ):
-        me.V_in = V_in
-        me.V_out = V_out
-        me.apply_A = apply_A
-        me.apply_At = apply_At
-        me.solve_M_in_moments = solve_M_in_moments
-        me.solve_M_in_impulses = solve_M_in_impulses
-        me.solve_M_out_impulses = solve_M_out_impulses
-        me.max_candidate_points = max_candidate_points
-        me.max_scale_discrepancy = max_scale_discrepancy
-
-        print('Computing impulse response moments')
-        me.vol, me.mu, me.Sigma0, me.bad_inds = impulse_response_moments(me.V_in, me.V_out,
-                                                                         me.apply_At, me.solve_M_in_moments,
-                                                                         max_scale_discrepancy=max_scale_discrepancy)
-
-        me.vol[me.bad_inds] = 0.0
-
-        print('Preparing sample point batch stuff')
-        me.dof_coords_in = me.V_in.tabulate_dof_coordinates()
-        me.dof_coords_out = me.V_out.tabulate_dof_coordinates()
-
-        N_out, d_out = me.dof_coords_out.shape
-
-        dof_coords_out_kdtree = KDTree(me.dof_coords_out)
-        closest_distances, _ = dof_coords_out_kdtree.query(me.dof_coords_out, 2)
-        sigma_mins = closest_distances[:,1].reshape((N_out,1)) # shape=(N,1)
-
-        me.vertex2dof_out = dl.vertex_to_dof_map(me.V_out)
-        me.dof2vertex_out = dl.dof_to_vertex_map(me.V_out)
-
-        eee0, PP = np.linalg.eigh(me.Sigma0) # eee0.shape=(N,d), PP.shape=(N,d,d)
-        eee = np.max([np.ones((1,d_out))*sigma_mins**2, eee0], axis=0)
-        me.Sigma = np.einsum('nij,nj,nkj->nik', PP, eee, PP)
-
-        mesh_vertex_vol   = [me.vol[k]       for k in me.vertex2dof_out]
-        mesh_vertex_mu    = [me.mu[k,:]      for k in me.vertex2dof_out]
-        mesh_vertex_Sigma = [me.Sigma[k,:,:] for k in me.vertex2dof_out]
-
-        print('Preparing c++ object')
-        me.mesh_out = me.V_out.mesh()
-        me.mesh_vertices = np.array(me.mesh_out.coordinates().T, order='F')
-        me.mesh_cells = np.array(me.mesh_out.cells().T, order='F')
-
-        me.cpp_object = hpro.hpro_cpp.ImpulseResponseBatches( me.mesh_vertices,
-                                                              me.mesh_cells,
-                                                              mesh_vertex_vol,
-                                                              mesh_vertex_mu,
-                                                              mesh_vertex_Sigma,
-                                                              num_neighbors,
-                                                              tau )
-
-        me.candidate_inds = np.argwhere(np.logical_not(me.bad_inds)).reshape(-1)
-
-        if me.max_candidate_points is not None:
-            me.candidate_inds = np.random.permutation(len(me.candidate_inds))[:max_candidate_points]
-
-        print('Building initial sample point batches')
-        for ii in tqdm(range(num_initial_batches)):
-            me.add_one_sample_point_batch()
-
-    def add_one_sample_point_batch(me):
+    def add_one_sample_point_batch(me) -> typ.List[int]:
         qq = np.array(me.dof_coords_in[me.candidate_inds, :].T, order='F')
         if me.num_sample_points > 0:
             dd = me.cpp_object.kdtree.query(qq,1)[1][0]
@@ -162,19 +58,17 @@ class ImpulseResponseBatchesSimplified:
 
         if len(candidate_inds_ordered_by_distance) < 1:
             print('no points left to choose')
-            return np.array([])
+            return []
 
         new_inds = choose_one_sample_point_batch(me.mu, me.Sigma, me.tau,
                                                  candidate_inds_ordered_by_distance, randomize=False)
 
-        new_points = me.dof_coords_in[new_inds, :]
-        new_vol = me.vol[new_inds]
+        dirac_comb_dual_vector = np.zeros(me.ndof_in)
+        dirac_comb_dual_vector[new_inds] = 1.0 / me.vol[new_inds]
 
-        phi = get_one_dirac_comb_response(new_points, me.V_in, me.V_out, me.apply_A,
-                                          me.solve_M_in_impulses, me.solve_M_out_impulses,
-                                          scale_factors=1./new_vol)
+        phi = me.apply_A(dirac_comb_dual_vector / me.mass_lumps_in) / me.mass_lumps_out
 
-        phi_vertex = phi.vector()[me.vertex2dof_out].copy()
+        phi_vertex = phi[me.vertex2dof_out].copy()
 
         me.cpp_object.add_batch(me.dof2vertex_out[new_inds],
                                 phi_vertex,
@@ -184,9 +78,10 @@ class ImpulseResponseBatchesSimplified:
 
         return new_inds
 
-    def visualize_impulse_response_batch(me, b):
+    def visualize_impulse_response_batch(me, b: int, V_out: dl.FunctionSpace):
+        assert(me.ndof_out == V_out.dim())
         if (0 <= b) and (b < me.num_batches):
-            phi = dl.Function(me.V_out)
+            phi = dl.Function(V_out)
             phi.vector()[me.vertex2dof_out] = me.psi_vertex_batches[b]
 
             start = me.batch2point_start[b]
@@ -210,6 +105,22 @@ class ImpulseResponseBatchesSimplified:
             plt.title('Impulse response batch '+str(b))
         else:
             print('bad batch number. num_batches=', me.num_batches, ', b=', b)
+
+    @cached_property
+    def ndof_out(me) -> int:
+        return len(me.mass_lumps_out)
+
+    @cached_property
+    def ndof_in(me)-> int:
+        return me.dof_coords_in.shape[0]
+
+    @cached_property
+    def gdim_in(me) -> int:
+        return me.dof_coords_in.shape[0]
+
+    @cached_property
+    def gdim_out(me) -> int:
+        return me.mu.shape[1]
 
     @property
     def mesh_vertex_vol(me):
@@ -280,8 +191,78 @@ class ImpulseResponseBatchesSimplified:
         return me.cpp_object.num_batches()
 
 
-def make_impulse_response_batches_simplified() -> ImpulseResponseBatchesSimplified:
-    pass
+def make_impulse_response_batches_simplified(
+        apply_A: typ.Callable[[np.ndarray], np.ndarray], # ndof_in -> ndof_out
+        vol: np.ndarray, # shape=(ndof_in,)
+        mu: np.ndarray, # shape=(ndof_in, gdim_out)
+        Sigma: np.ndarray, # shape=(ndof_in, gdim_out, gdim_out)
+        bad_inds: np.ndarray, # shape=(ndof_in,), dtype=bool
+        dof_coords_in: np.ndarray, # shape=(ndof_in, gdim_in)
+        mass_lumps_in: np.ndarray, # shape=(ndof_in,)
+        mass_lumps_out: np.ndarray, # shape=(ndof_out,)
+        vertex2dof_out: np.ndarray, # shape=(ndof_out,), dtype=int
+        dof2vertex_out: np.ndarray, # shape=(ndof_out,), dtype=int
+        mesh_vertices: np.ndarray, # shape=(ndof_in, gdim_in)
+        mesh_cells: np.ndarray, # triangle/tetrahedra vertex indices. shape=(ndof_in, gdim_in+1), dtype=int
+        num_initial_batches: int = 5,
+        tau: float = 3.0,
+        num_neighbors: int = 10,
+        max_candidate_points: int = None
+) -> ImpulseResponseBatchesSimplified:
+    ndof_in = len(vol)
+    ndof_out = len(mass_lumps_out)
+    gdim_out = mu.shape[1]
+    gdim_in = dof_coords_in.shape[1]
+    assert(vol.shape == (ndof_in,))
+    assert(mu.shape == (ndof_in, gdim_out))
+    assert(Sigma.shape == (ndof_in, gdim_out, gdim_out))
+    assert(bad_inds.shape == (ndof_in,))
+    assert(bad_inds.dtype == bool)
+    assert(dof_coords_in.shape == (ndof_in, gdim_in))
+    assert(mass_lumps_in.shape == (ndof_in,))
+    assert(mass_lumps_out.shape == (ndof_out,))
+    assert(vertex2dof_out.shape == (ndof_out,))
+    assert(vertex2dof_out.dtype == int)
+    assert(dof2vertex_out.shape == (ndof_out,))
+    assert(dof2vertex_out.dtype == int)
+    assert(mesh_vertices.shape == (ndof_in, gdim_in))
+    assert(mesh_cells.shape == (ndof_in, gdim_in+1))
+    assert(mesh_cells.dtype == int)
+    assert(num_initial_batches > 0)
+    assert(tau > 0.0)
+    assert(num_neighbors > 0)
+    assert(max_candidate_points > 0)
+
+    # Modify bad moments
+    vol = vol.copy()
+    vol[bad_inds] = 0.0
+    Sigma[bad_inds,:,:] = np.eye(gdim_out).reshape((1, gdim_out, gdim_out))
+
+    # Get mesh-vertex-ordered moments
+    mesh_vertex_vol = [vol[k] for k in vertex2dof_out]
+    mesh_vertex_mu = [mu[k, :] for k in vertex2dof_out]
+    mesh_vertex_Sigma = [Sigma[k, :, :] for k in vertex2dof_out]
+
+    print('Preparing c++ object')
+    cpp_object = hpro.hpro_cpp.ImpulseResponseBatches(
+        mesh_vertices, mesh_cells,
+        mesh_vertex_vol, mesh_vertex_mu, mesh_vertex_Sigma,
+        num_neighbors, tau)
+
+    candidate_inds = list(np.argwhere(np.logical_not(bad_inds)).reshape(-1))
+
+    if max_candidate_points is not None:
+        candidate_inds = list(np.random.permutation(len(candidate_inds))[:max_candidate_points])
+
+    IRBS = ImpulseResponseBatchesSimplified(
+        apply_A, mass_lumps_in, mass_lumps_out, dof_coords_in,
+        vertex2dof_out, dof2vertex_out, vol, mu, Sigma, candidate_inds, cpp_object)
+
+    print('Building initial sample point batches')
+    for _ in tqdm(range(num_initial_batches)):
+        IRBS.add_one_sample_point_batch()
+
+    return IRBS
 
 
 class ImpulseResponseBatches:

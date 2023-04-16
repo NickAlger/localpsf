@@ -1,5 +1,6 @@
 import numpy as np
 
+from .impulse_response_moments import impulse_response_moments_simplified
 from .impulse_response_batches import ImpulseResponseBatches
 from .mass_matrix import MassMatrixHelper
 
@@ -60,6 +61,15 @@ class ProductConvolutionKernelSimplified:
             me.apply_M_out_impulses = me.MMH_out.apply_M_fenics
             me.solve_M_out_impulses = me.MMH_out.solve_M_fenics
 
+        print('Computing impulse response moments')
+        me.vol, me.mu, me.Sigma0, me.bad_inds = impulse_response_moments_simplified(
+            apply_At, dof_coords_out, mass_lumps_in: np.ndarray, # shape=(ndof_in,)
+        stable_division_rtol: float=1.0e-10,
+        display=False)
+
+        me.mesh_out = me.V_out.mesh()
+        me.mesh_vertices = np.array(me.mesh_out.coordinates().T, order='F')
+        me.mesh_cells = np.array(me.mesh_out.cells().T, order='F')
 
         ####    COMPUTE IMPULSE RESPONSE BATCHES    ####
 
