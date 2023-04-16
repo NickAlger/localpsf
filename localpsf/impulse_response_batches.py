@@ -1,5 +1,6 @@
 import numpy as np
 import typing as typ
+import scipy.sparse as sps
 from dataclasses import dataclass
 from functools import cached_property
 import dolfin as dl
@@ -7,7 +8,8 @@ import matplotlib.pyplot as plt
 from scipy.spatial import KDTree
 from tqdm.auto import tqdm
 
-from .impulse_response_moments import impulse_response_moments
+from .smoothing_matrix import make_smoothing_matrix
+from .impulse_response_moments import impulse_response_moments, impulse_response_moments_simplified
 from .sample_point_batches import choose_one_sample_point_batch
 
 from nalger_helper_functions import make_mass_matrix, dlfct2array, plot_ellipse
@@ -29,16 +31,15 @@ class ImpulseResponseBatchesSimplified:
     vol: np.ndarray     # shape=(ndof_in,)
     mu: np.ndarray      # shape=(ndof_in, gdim_out)
     Sigma: np.ndarray   # shape=(ndof_in, gdim_out, gdim_out)
-    bad_vols: np.ndarray    # shape=(ndof_in,), dtype=bool
-    bad_Sigmas: np.ndarray  # shape=(ndof_in,), dtype=bool
+    bad_inds: np.ndarray    # shape=(ndof_in,), dtype=bool
 
     num_initial_batches: int = 5
     tau: float = 3.0
     num_neighbors: int = 10
     max_scale_discrepancy: float = 1e5
 
-    max_candidate_points = None
-    cpp_object: hpro.hpro_cpp.ImpulseResponseBatches = None
+    max_candidate_points: int
+    cpp_object: hpro.hpro_cpp.ImpulseResponseBatches
 
     def __post_init__(me):
         assert(me.mass_lumps_in.shape == (me.ndof_in,))
@@ -278,6 +279,9 @@ class ImpulseResponseBatchesSimplified:
     def num_batches(me):
         return me.cpp_object.num_batches()
 
+
+def make_impulse_response_batches_simplified() -> ImpulseResponseBatchesSimplified:
+    pass
 
 
 class ImpulseResponseBatches:

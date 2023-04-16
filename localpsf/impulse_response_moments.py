@@ -5,49 +5,6 @@ import scipy.sparse as sps
 from scipy.spatial import KDTree
 
 
-def make_smoothing_matrix(dof_coords: np.ndarray, # shape=(ndof, gdim)
-                          mass_lumps: np.ndarray, # shape=(ndof,)
-                          kernel_width_in_gridpoints: float=1.5, # width of Gaussian kernel, measured in units of distance to the nearest neighbor
-                          num_neighbors: int=30,
-                          workers=1, # Number of workers to use for parallel processing. If -1 is given all CPU threads are used.
-                          display=False,
-                          ) -> sps.csr_matrix:
-    ndof, gdim = dof_coords.shape
-    assert(mass_lumps.shape == (ndof,))
-    assert(kernel_width_in_gridpoints > 0.0)
-    assert(num_neighbors >= 1)
-
-    def printmaybe(*args, **kwargs):
-        if display:
-            print(*args, **kwargs)
-
-    printmaybe('making smoothing matrix, kernel_width_in_gridpoints=', kernel_width_in_gridpoints)
-
-    printmaybe('building dof_coords kdtree')
-    kdtree = KDTree(dof_coords)
-
-    printmaybe('finding', num_neighbors, ' nearest neighbors to each out dof')
-    distances, inds = kdtree.query(dof_coords, num_neighbors + 1, workers=workers) # num_neighbors+1 to include self
-    nearest_gridpoint_distances = distances[:, 1]
-    lengthscales = kernel_width_in_gridpoints * nearest_gridpoint_distances.reshape((ndof, 1))
-
-    gauss = np.exp(-0.5 * (distances / lengthscales)**2 ) # shape=(ndof, num_neighbors + 1)
-    # gauss = gauss0 / np.sum(gauss0, axis=1).reshape((-1,1))
-
-    row_inds = np.outer(np.arange(ndof), np.ones(num_neighbors+1)).reshape(-1) # e.g., [0,0,0,0,1,1,1,1,2,2,2,2...]
-    col_inds = inds.reshape(-1)
-    data = gauss.reshape(-1)
-
-    gauss_matrix0 = sps.csr_matrix((data, (row_inds, col_inds)), shape=(ndof, ndof)) # Rows of G are un-normalized gaussian functions evaluated at gridpoints
-    normalization_constants = gauss_matrix0 @ mass_lumps
-    gauss_matrix = sps.diags(1.0/normalization_constants, 0, shape=(ndof,ndof)).tocsr() @ gauss_matrix0 # normalize rows
-
-    mass_matrix = sps.diags(mass_lumps, 0, shape=(ndof, ndof)).tocsr()
-    smoothing_matrix = gauss_matrix @ mass_matrix
-
-    return smoothing_matrix
-
-
 def impulse_response_moments_simplified(
         apply_At: typ.Callable[[np.ndarray], np.ndarray],  # V_out -> V_in
         dof_coords_out: np.ndarray, # shape=(ndof_out, gdim_out)
@@ -101,25 +58,24 @@ def impulse_response_moments_simplified(
     return vol, mu, Sigma
 
 
-def post_process_moments(
-        vol0: np.ndarray, # shape=(ndof_in,)
-        mu0: np.ndarray, # shape=(ndof_in, gdim_out)
-        Sigma0: np.ndarray, # shape=(ndof_in, gdim_out, gdim_out)
+def find_bad_moments(
+        vol: np.ndarray, # shape=(ndof_in,)
+        mu: np.ndarray, # shape=(ndof_in, gdim_out)
+        Sigma: np.ndarray, # shape=(ndof_in, gdim_out, gdim_out)
         dof_coords_in: np.ndarray, # shape=(ndof_in, gdim_in)
         dof_coords_out: np.ndarray, # shape=(ndof_out, gdim_out)
         min_vol_rtol: float=1e-5,
-        max_aspect_ratio: float=10.0, # maximum aspect ratio of an ellipsoid
-        num_nearest_neighbors: int=10,
+        max_aspect_ratio: float=20.0, # maximum aspect ratio of an ellipsoid
         display: bool=False,
-        ) -> typ.Tuple[np.ndarray, # Sigma, shape=(ndof_in, gdim_out, gdim_out)
-                       np.ndarray]: # bad_Sigma, shape=(ndof_in,), dtype=bool
+        ) -> typ.Tuple[np.ndarray, # bad_vols, shape=(ndof_in,), dtype=bool
+                       np.ndarray, # tiny_Sigmas, shape=(ndof_in,), dtype=bool
+                       np.ndarray]: # bad_aspect_Sigma, shape=(ndof_in,), dtype=bool
     assert(0.0 <= min_vol_rtol)
     assert(1.0 < min_vol_rtol)
     assert(max_aspect_ratio >= 1.0)
     ndof_in, gdim_in = dof_coords_out.shape
     ndof_out, gdim_out = dof_coords_out.shape
-    assert(Sigma0.shape == (ndof_in, gdim_out, gdim_out))
-    assert(num_nearest_neighbors > 0)
+    assert(Sigma.shape == (ndof_in, gdim_out, gdim_out))
 
     def printmaybe(*args, **kwargs):
         if display:
@@ -127,24 +83,24 @@ def post_process_moments(
 
     printmaybe('postprocessing impulse response moments')
     printmaybe('finding small volumes. min_vol_rtol=', min_vol_rtol)
-    if np.all(vol0  <= 0.0):
-        raise RuntimeError('All impulse response volumes are negative!')
-    min_vol = np.max(vol0) * min_vol_rtol
-    bad_vols = (vol0 < min_vol)
-    vol = vol0.copy()
-    vol[bad_vols] = min_vol
+    if np.all(vol  <= 0.0):
+        printmaybe('All impulse response volumes are negative!')
+        bad_vols = (vol  <= 0.0)
+    else:
+        min_vol = np.max(vol) * min_vol_rtol
+        bad_vols = (vol < min_vol)
     printmaybe('min_vol_rtol=', min_vol_rtol, ', num_bad_vols / ndof_in=', np.sum(bad_vols), ' / ', ndof_in)
 
     printmaybe('building dof_coords_out_kdtree')
     dof_coords_out_kdtree = KDTree(dof_coords_out)
 
     printmaybe('finding nearest neighbors to each out dof')
-    closest_distances_out, closest_inds_out = dof_coords_out_kdtree.query(dof_coords_out, num_nearest_neighbors+1)
+    closest_distances_out, closest_inds_out = dof_coords_out_kdtree.query(dof_coords_out, 2)
     hh_out = closest_distances_out[:, 1].reshape((ndof_out, 1))
     min_length = np.min(hh_out)
 
     printmaybe('computing eigenvalue decompositions of all ellipsoid covariances')
-    eee0, PP = np.linalg.eigh(Sigma0)  # eee0.shape=(N,d), PP.shape=(N,d,d)
+    eee0, PP = np.linalg.eigh(Sigma)  # eee0.shape=(N,d), PP.shape=(N,d,d)
 
     printmaybe('finding ellipsoids that have tiny or negative primary axis lengths')
     tiny_Sigmas = np.any(eee0 <= 0.5*min_length**2, axis=1)
@@ -155,26 +111,7 @@ def post_process_moments(
     bad_aspect_Sigmas = squared_aspect_ratios > max_aspect_ratio**2
     printmaybe('num_bad_aspect_Sigmas / ndof_in =', np.sum(bad_aspect_Sigmas), ' / ', ndof_in)
 
-    bad_Sigma = np.any(eee0 < sigma_mins, axis=1).reshape(-1)
-    if display:
-        print('num_bad_Sigma / ndof_in')
-
-    printmaybe('building dof_coords_in_kdtree')
-    dof_coords_in_kdtree = KDTree(dof_coords_out)
-
-
-
-
-
-
-
-    eee0, PP = np.linalg.eigh(Sigma0)  # eee0.shape=(N,d), PP.shape=(N,d,d)
-    bad_Sigma = np.any(eee0 < sigma_mins, axis=1).reshape(-1)
-    if display:
-        print('num_bad_Sigma / ndof_in')
-
-    eee = np.max([np.ones((1, d_out)) * sigma_mins ** 2, eee0], axis=0)
-    me.Sigma = np.einsum('nij,nj,nkj->nik', PP, eee, PP)
+    return bad_vols, tiny_Sigmas, bad_aspect_Sigmas
 
 
 def impulse_response_moments(V_in, V_out, apply_At, solve_M_in,
