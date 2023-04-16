@@ -4,6 +4,8 @@ import typing as typ
 import scipy.sparse as sps
 from scipy.spatial import KDTree
 
+from .assertion_helpers import *
+
 
 def impulse_response_moments_simplified(
         apply_At: typ.Callable[[np.ndarray], np.ndarray],  # V_out -> V_in
@@ -16,10 +18,10 @@ def impulse_response_moments_simplified(
                        np.ndarray]: # covariance, shape=(ndof_in, gdim_out, gdim_out), dtype=float
     '''Computes spatially varying impulse response volume, mean, and covariance for A : V_in -> V_out
     '''
-    assert(0.0 <= stable_division_rtol)
-    assert(stable_division_rtol < 1.0)
+    assert_le(0.0, stable_division_rtol)
+    assert_lt(stable_division_rtol, 1.0)
     ndof_in = len(mass_lumps_in)
-    assert(mass_lumps_in.shape == (ndof_in,))
+    assert_equal(mass_lumps_in.shape, (ndof_in,))
     gdim_out, ndof_out = dof_coords_out.shape
 
     def printmaybe(*args, **kwargs):
@@ -29,7 +31,7 @@ def impulse_response_moments_simplified(
     printmaybe('getting spatially varying volume')
     constant_fct = np.ones(ndof_out)
     vol = apply_At(constant_fct) / mass_lumps_in
-    assert(vol.shape == (ndof_in,))
+    assert_equal(vol.shape, (ndof_in,))
 
     min_abs_vol = np.max(np.abs(vol)) * stable_division_rtol
     unstable_vols = (np.abs(vol) < min_abs_vol)
@@ -42,7 +44,7 @@ def impulse_response_moments_simplified(
     for k in range(gdim_out):
         linear_fct = dof_coords_out[k,:]
         mu_k_base = (apply_At(linear_fct) / mass_lumps_in)
-        assert(mu_k_base.shape == (ndof_in,))
+        assert_equal(mu_k_base.shape, (ndof_in,))
         mu[:, k] = mu_k_base / rvol
 
     printmaybe('getting spatially varying covariance')
@@ -51,7 +53,7 @@ def impulse_response_moments_simplified(
         for j in range(k + 1):
             quadratic_fct = dof_coords_out[k,:] * dof_coords_out[j,:]
             Sigma_kj_base = apply_At(quadratic_fct) / mass_lumps_in
-            assert(Sigma_kj_base.shape == (ndof_in,))
+            assert_equal(Sigma_kj_base.shape, (ndof_in,))
             Sigma[:,k,j] = Sigma_kj_base / rvol - mu[:,k]*mu[:,j]
             Sigma[:,j,k] = Sigma[:,k,j]
 
@@ -70,12 +72,12 @@ def find_bad_moments(
         ) -> typ.Tuple[np.ndarray, # bad_vols, shape=(ndof_in,), dtype=bool
                        np.ndarray, # tiny_Sigmas, shape=(ndof_in,), dtype=bool
                        np.ndarray]: # bad_aspect_Sigma, shape=(ndof_in,), dtype=bool
-    assert(0.0 <= min_vol_rtol)
-    assert(1.0 < min_vol_rtol)
-    assert(max_aspect_ratio >= 1.0)
+    assert_le(0.0, min_vol_rtol)
+    assert_lt(1.0, min_vol_rtol)
+    assert_ge(max_aspect_ratio, 1.0)
     ndof_in, gdim_in = dof_coords_out.shape
     ndof_out, gdim_out = dof_coords_out.shape
-    assert(Sigma.shape == (ndof_in, gdim_out, gdim_out))
+    assert_equal(Sigma.shape, (ndof_in, gdim_out, gdim_out))
 
     def printmaybe(*args, **kwargs):
         if display:

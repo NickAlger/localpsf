@@ -3,6 +3,7 @@ import typing as typ
 import scipy.sparse as sps
 from scipy.spatial import KDTree
 
+from .assertion_helpers import *
 
 
 def make_smoothing_matrix(dof_coords: np.ndarray,  # shape=(ndof, gdim)
@@ -38,8 +39,8 @@ def make_smoothing_matrix(dof_coords: np.ndarray,  # shape=(ndof, gdim)
     Outputs pictures noise with progressively more smoothing
     '''
     ndof, gdim = dof_coords.shape
-    assert(mass_lumps.shape == (ndof,))
-    assert(num_dofs_in_stdev >= 1)
+    assert_equal(mass_lumps.shape, (ndof,))
+    assert_ge(num_dofs_in_stdev, 1)
 
     num_dofs_in_neighborhood = num_dofs_in_stdev * 5 # could do this more rigorously
 

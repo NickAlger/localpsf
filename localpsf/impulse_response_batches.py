@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial import KDTree
 from tqdm.auto import tqdm
 
+from .assertion_helpers import *
 from .smoothing_matrix import make_smoothing_matrix
 from .impulse_response_moments import impulse_response_moments, impulse_response_moments_simplified
 from .sample_point_batches import choose_one_sample_point_batch
@@ -36,17 +37,17 @@ class ImpulseResponseBatchesSimplified:
     cpp_object: hpro.hpro_cpp.ImpulseResponseBatches
 
     def __post_init__(me):
-        assert(me.mass_lumps_in.shape == (me.ndof_in,))
-        assert(me.mass_lumps_out.shape == (me.ndof_out,))
-        assert(me.dof_coords_in.shape == (me.ndof_in, me.gdim_in))
-        assert(me.vertex2dof_out.shape == (me.ndof_out,))
-        assert(me.vertex2dof_out.dtype == int)
-        assert(np.all(me.vertex2dof_out[me.dof2vertex_out] == np.arange(me.ndof_out)))
-        assert(np.all(me.dof2vertex_out[me.vertex2dof_out] == np.arange(me.ndof_out)))
-        assert(np.all(np.sort(me.vertex2dof_out) == np.arange(me.ndof_out)))
-        assert(me.vol.shape == (me.ndof_in,))
-        assert(me.mu.shape == (me.ndof_in, me.gdim_out))
-        assert(me.Sigma.shape == (me.ndof_in, me.gdim_out, me.gdim_out))
+        assert_equal(me.mass_lumps_in.shape, (me.ndof_in,))
+        assert_equal(me.mass_lumps_out.shape, (me.ndof_out,))
+        assert_equal(me.dof_coords_in.shape, (me.ndof_in, me.gdim_in))
+        assert_equal(me.vertex2dof_out.shape, (me.ndof_out,))
+        assert_equal(me.vertex2dof_out.dtype, int)
+        assert_equal(np.all(me.vertex2dof_out[me.dof2vertex_out], np.arange(me.ndof_out)))
+        assert_equal(np.all(me.dof2vertex_out[me.vertex2dof_out], np.arange(me.ndof_out)))
+        assert_equal(np.all(np.sort(me.vertex2dof_out), np.arange(me.ndof_out)))
+        assert_equal(me.vol.shape, (me.ndof_in,))
+        assert_equal(me.mu.shape, (me.ndof_in, me.gdim_out))
+        assert_equal(me.Sigma.shape, (me.ndof_in, me.gdim_out, me.gdim_out))
 
     def add_one_sample_point_batch(me) -> typ.List[int]:
         qq = np.array(me.dof_coords_in[me.candidate_inds, :].T, order='F')
@@ -79,7 +80,7 @@ class ImpulseResponseBatchesSimplified:
         return new_inds
 
     def visualize_impulse_response_batch(me, b: int, V_out: dl.FunctionSpace):
-        assert(me.ndof_out == V_out.dim())
+        assert_equal(me.ndof_out, V_out.dim())
         if (0 <= b) and (b < me.num_batches):
             phi = dl.Function(V_out)
             phi.vector()[me.vertex2dof_out] = me.psi_vertex_batches[b]
@@ -213,25 +214,25 @@ def make_impulse_response_batches_simplified(
     ndof_out = len(mass_lumps_out)
     gdim_out = mu.shape[1]
     gdim_in = dof_coords_in.shape[1]
-    assert(vol.shape == (ndof_in,))
-    assert(mu.shape == (ndof_in, gdim_out))
-    assert(Sigma.shape == (ndof_in, gdim_out, gdim_out))
-    assert(bad_inds.shape == (ndof_in,))
-    assert(bad_inds.dtype == bool)
-    assert(dof_coords_in.shape == (ndof_in, gdim_in))
-    assert(mass_lumps_in.shape == (ndof_in,))
-    assert(mass_lumps_out.shape == (ndof_out,))
-    assert(vertex2dof_out.shape == (ndof_out,))
-    assert(vertex2dof_out.dtype == int)
-    assert(dof2vertex_out.shape == (ndof_out,))
-    assert(dof2vertex_out.dtype == int)
-    assert(mesh_vertices.shape == (ndof_in, gdim_in))
-    assert(mesh_cells.shape == (ndof_in, gdim_in+1))
-    assert(mesh_cells.dtype == int)
-    assert(num_initial_batches > 0)
-    assert(tau > 0.0)
-    assert(num_neighbors > 0)
-    assert(max_candidate_points > 0)
+    assert_equal(vol.shape, (ndof_in,))
+    assert_equal(mu.shape, (ndof_in, gdim_out))
+    assert_equal(Sigma.shape, (ndof_in, gdim_out, gdim_out))
+    assert_equal(bad_inds.shape, (ndof_in,))
+    assert_equal(bad_inds.dtype, bool)
+    assert_equal(dof_coords_in.shape, (ndof_in, gdim_in))
+    assert_equal(mass_lumps_in.shape, (ndof_in,))
+    assert_equal(mass_lumps_out.shape, (ndof_out,))
+    assert_equal(vertex2dof_out.shape, (ndof_out,))
+    assert_equal(vertex2dof_out.dtype, int)
+    assert_equal(dof2vertex_out.shape, (ndof_out,))
+    assert_equal(dof2vertex_out.dtype, int)
+    assert_equal(mesh_vertices.shape, (ndof_in, gdim_in))
+    assert_equal(mesh_cells.shape, (ndof_in, gdim_in+1))
+    assert_equal(mesh_cells.dtype, int)
+    assert_gt(num_initial_batches, 0)
+    assert_gt(tau, 0.0)
+    assert_gt(num_neighbors, 0)
+    assert_gt(max_candidate_points, 0)
 
     # Modify bad moments
     vol = vol.copy()
