@@ -6,12 +6,14 @@ from scipy.spatial import KDTree
 
 
 def make_smoothing_matrix(dof_coords: np.ndarray, # shape=(ndof, gdim)
+                          mass_lumps: np.ndarray, # shape=(ndof,)
                           kernel_width_in_gridpoints: float=1.5, # width of Gaussian kernel, measured in units of distance to the nearest neighbor
                           num_neighbors: int=30,
                           workers=1, # Number of workers to use for parallel processing. If -1 is given all CPU threads are used.
                           display=False,
                           ) -> sps.csr_matrix:
     ndof, gdim = dof_coords.shape
+    assert(mass_lumps.shape == (ndof,))
     assert(kernel_width_in_gridpoints > 0.0)
     assert(num_neighbors >= 1)
 
@@ -29,14 +31,20 @@ def make_smoothing_matrix(dof_coords: np.ndarray, # shape=(ndof, gdim)
     nearest_gridpoint_distances = distances[:, 1]
     lengthscales = kernel_width_in_gridpoints * nearest_gridpoint_distances.reshape((ndof, 1))
 
-    gauss0 = np.exp(-0.5 * (distances / lengthscales)**2 ) # shape=(ndof, num_neighbors + 1)
-    gauss = gauss0 / np.sum(gauss0, axis=1).reshape((-1,1))
+    gauss = np.exp(-0.5 * (distances / lengthscales)**2 ) # shape=(ndof, num_neighbors + 1)
+    # gauss = gauss0 / np.sum(gauss0, axis=1).reshape((-1,1))
 
     row_inds = np.outer(np.arange(ndof), np.ones(num_neighbors+1)).reshape(-1) # e.g., [0,0,0,0,1,1,1,1,2,2,2,2...]
     col_inds = inds.reshape(-1)
     data = gauss.reshape(-1)
 
-    smoothing_matrix = sps.csr_matrix((data, (row_inds, col_inds)), shape=(ndof, ndof))
+    gauss_matrix0 = sps.csr_matrix((data, (row_inds, col_inds)), shape=(ndof, ndof)) # Rows of G are un-normalized gaussian functions evaluated at gridpoints
+    normalization_constants = gauss_matrix0 @ mass_lumps
+    gauss_matrix = sps.diags(1.0/normalization_constants, 0, shape=(ndof,ndof)).tocsr() @ gauss_matrix0 # normalize rows
+
+    mass_matrix = sps.diags(mass_lumps, 0, shape=(ndof, ndof)).tocsr()
+    smoothing_matrix = gauss_matrix @ mass_matrix
+
     return smoothing_matrix
 
 
@@ -44,7 +52,7 @@ def impulse_response_moments_simplified(
         apply_At: typ.Callable[[np.ndarray], np.ndarray],  # V_out -> V_in
         dof_coords_out: np.ndarray, # shape=(ndof_out, gdim_out)
         mass_lumps_in: np.ndarray, # shape=(ndof_in,)
-        stable_division_rtol: float=1.0e-8,
+        stable_division_rtol: float=1.0e-10,
         display=False,
         ) -> typ.Tuple[np.ndarray, # vol, shape=(ndof_in,), dtype=float
                        np.ndarray, # mean, shape=(ndof_in, gdim_out), dtype=float
