@@ -2,6 +2,8 @@ import numpy as np
 import dolfin as dl
 import typing as typ
 
+from assertion_helpers import *
+from .impulse_response_batches import
 from .product_convolution_kernel import ProductConvolutionKernel
 
 from nalger_helper_functions import *
@@ -14,9 +16,9 @@ def make_hmatrix_from_kernel_lumped_mass( Phi_pc : ProductConvolutionKernel,
                                           bct: hpro.BlockClusterTree,
                                           hmatrix_tol: float=1e-7
                                         ) -> typ.Tuple[hpro.HMatrix, hpro.HMatrix]:
-    assert(hmatrix_tol > 0.0)
-    assert(mass_lumps_out.shape == (Phi_pc.shape[0],))
-    assert(mass_lumps_in.shape == (Phi_pc.shape[1],))
+    assert_gt(hmatrix_tol, 0.0)
+    assert_equal(mass_lumps_out.shape, (Phi_pc.shape[0],))
+    assert_equal(mass_lumps_in.shape, (Phi_pc.shape[1],))
     print('Building A kernel hmatrix')
     kernel_hmatrix = Phi_pc.build_hmatrix(bct, tol=hmatrix_tol)
 
