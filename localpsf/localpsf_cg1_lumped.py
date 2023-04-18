@@ -683,7 +683,10 @@ class PSFObjectFenicsWrapper:
 
         return fig
 
-    def construct_hmatrices(me, bct: hpro.BlockClusterTree, hmatrix_rtol: float=1e-7) -> typ.Tuple[hpro.HMatrix, hpro.HMatrix]:
+    def construct_hmatrices(me,
+                            bct: hpro.BlockClusterTree,
+                            hmatrix_rtol: float=1e-7
+                            ) -> typ.Tuple[hpro.HMatrix, hpro.HMatrix]: # hmatrix, kernel_hmatrix
         return me.psf_object.construct_hmatrices(bct, hmatrix_rtol)
 
     @cached_property
