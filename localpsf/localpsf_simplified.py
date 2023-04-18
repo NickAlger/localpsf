@@ -10,6 +10,7 @@ from tqdm.auto import tqdm
 
 from assertion_helpers import *
 from .sample_point_batches import choose_one_sample_point_batch
+from .smoothing_matrix import make_smoothing_matrix
 
 import hlibpro_python_wrapper as hpro
 from nalger_helper_functions import make_mass_matrix, dlfct2array, plot_ellipse
@@ -286,19 +287,10 @@ def make_impulse_response_batches_simplified(
     assert_gt(num_neighbors, 0)
     assert_gt(max_candidate_points, 0)
 
-    # Modify bad moments
-    modified_vol = IM.vol.copy()
-    modified_vol[bad_inds] = 0.0
-
-    modified_mu = IM.mu.copy()
-
-    modified_Sigma = IM.Sigma.copy()
-    modified_Sigma[bad_inds,:,:] = np.eye(V_out.gdim).reshape((1, V_out.gdim, V_out.gdim))
-
     print('Preparing c++ object')
     cpp_object = hpro.hpro_cpp.ImpulseResponseBatches(
         V_in.vertices, V_in.cells,
-        modified_vol, modified_mu, modified_Sigma,
+        IM.vol, IM.mu, IM.Sigma,
         num_neighbors, tau)
 
     candidate_inds = list(np.argwhere(np.logical_not(bad_inds)).reshape(-1))
@@ -349,7 +341,7 @@ def visualize_impulse_response_batch(
 
 
 @dataclass(frozen=True)
-class ProductConvolutionKernel:
+class PSFKernel:
     IRB: ImpulseResponseBatches
     cpp_object: hpro.hpro_cpp.ProductConvolutionKernelRBFColsOnly
 
@@ -426,22 +418,31 @@ class ProductConvolutionKernel:
         return (me.V_out.ndof, me.V_in.ndof)
 
 
-def make_product_convolution_kernel(col_batches: ImpulseResponseBatches) -> ProductConvolutionKernel:
+def make_product_convolution_kernel(col_batches: ImpulseResponseBatches) -> PSFKernel:
     cpp_object = hpro.hpro_cpp.ProductConvolutionKernelRBFColsOnly(
         col_batches.cpp_object, col_batches.V_in.vertices, col_batches.V_out.vertices)
-    return ProductConvolutionKernel(col_batches, cpp_object)
+    return PSFKernel(col_batches, cpp_object)
+
+
+def apply_sandwiched_operator(x: np.ndarray,
+                              apply_B: typ.Callable[[np.ndarray], np.ndarray],
+                              A: sps.csr_matrix, C: sps.csr_matrix) -> np.ndarray:
+    return A @ apply_B(C @ x)
 
 
 @dataclass(frozen=True)
 class PSFObject:
-    product_convolution_kernel: ProductConvolutionKernel
+    psf_kernel: PSFKernel
     unmodified_impulse_moments: ImpulseMoments
     bad_vols: np.ndarray
     tiny_Sigmas: np.ndarray
     bad_aspect_Sigmas: np.ndarray
 
-    apply_modified_operator: typ.Callable[[np.ndarray], np.ndarray] # smoothed operator
-    apply_modified_operator_transpose: typ.Callable[[np.ndarray], np.ndarray] # smoothed operator
+    smoothing_matrix_in: sps.csr_matrix
+    smoothing_matrix_out: sps.csr_matrix
+
+    apply_operator: typ.Callable[[np.ndarray], np.ndarray]  # smoothed operator
+    apply_operator_transpose: typ.Callable[[np.ndarray], np.ndarray]  # smoothed operator
 
     def __post_init__(me):
         assert_equal(me.unmodified_impulse_moments.ndof_in, me.V_in.ndof)
@@ -453,9 +454,15 @@ class PSFObject:
         assert_equal(me.tiny_Sigmas.dtype, bool)
         assert_equal(me.bad_aspect_Sigmas.dtype, bool)
 
+    def apply_smoothed_operator(me, u: np.ndarray) -> np.ndarray:
+        return me.smoothing_matrix_out.T @ me.apply_operator(me.smoothing_matrix_in @ u)
+
+    def apply_smoothed_operator_transpose(me, u: np.ndarray) -> np.ndarray:
+        return me.smoothing_matrix_in.T @ me.apply_operator_transpose(me.smoothing_matrix_out @ u)
+
     @cached_property
     def impulse_response_batches(me) -> ImpulseResponseBatches:
-        return me.product_convolution_kernel.IRB
+        return me.psf_kernel.IRB
 
     @cached_property
     def V_in(me) -> CG1Space:
@@ -465,7 +472,6 @@ class PSFObject:
     def V_out(me) -> CG1Space:
         return me.impulse_response_batches.V_out
 
-
     def add_batch(me, num_batches: int=1, recompute: bool=True):
         for _ in range(num_batches):
             me.impulse_response_batches.add_one_sample_point_batch()
@@ -473,70 +479,132 @@ class PSFObject:
         if recompute:
             me.compute_hmatrices()
 
-    def compute_hmatrices(me):
-        me.hmatrix, me.kernel_hmatrix, me.product_convolution_kernel = compute_psf_hmatrices_simplified(
-            me.impulse_response_batches, me.dof_coords_in, me.dof_coords_out,
-            me.mass_lumps_in, me.mass_lumps_out, me.bct, me.hmatrix_rtol)
+    def compute_hmatrices(me, bct: hpro.BlockClusterTree, hmatrix_rtol: float=1e-7):
+        assert_gt(hmatrix_rtol, 0.0)
+        assert_lt(hmatrix_rtol, 1.0)
+        assert_gt(me.impulse_response_batches.num_batches, 0)
+
+        print('Building kernel hmatrix')
+        kernel_hmatrix = me.psf_kernel.build_hmatrix(bct, tol=hmatrix_rtol)
+
+        print('Computing hmatrix = diag(mass_lumps_out) @ kernel_hmatrix * diag(mass_lumps_in)')
+        hmatrix = kernel_hmatrix.copy()
+        hmatrix.mul_diag_left(me.V_out.mass_lumps)
+        hmatrix.mul_diag_right(me.V_in.mass_lumps)
+
+        return hmatrix, kernel_hmatrix
+
 
 def make_psf(
         apply_operator: typ.Callable[[np.ndarray], np.ndarray],
-        dof_coords_in: np.ndarray,
-        dof_coords_out: np.ndarray,
-        mass_lumps_in: np.ndarray,
-        mass_lumps_out: np.ndarray,
-        vertex2dof_out: np.ndarray,
-        dof2vertex_out: np.ndarray,
-        mesh_vertices: np.ndarray,
-        mesh_cells: np.ndarray,
-        hmatrix_tol: float = 1e-7,
+        apply_operator_transpose: typ.Callable[[np.ndarray], np.ndarray],
+        V_in: CG1Space,
+        V_out: CG1Space,
+        min_vol_rtol: float=1e-5,
+        max_aspect_ratio: float=20.0,
+        smoother_num_dofs_in_stdev: int=5,
         num_initial_batches: int = 5,
         tau: float = 3.0,
         num_neighbors: int = 10,
         max_candidate_points: int = None,
-) -> typ.Tuple[hpro.HMatrix, hpro.HMatrix, PSFObject]:
-    assert_gt(hmatrix_tol, 0.0)
+        display: bool=False,
+) -> PSFObject:
+    assert_ge(num_initial_batches, 0)
+    assert_gt(min_vol_rtol, 0.0)
+    assert_gt(smoother_num_dofs_in_stdev, 1)
+    assert_gt(tau, 0.0)
+    assert_gt(num_neighbors, 0)
 
-    impulse_response_batches = make_impulse_response_batches_simplified(
-        apply_operator,
-        vol, mu, Sigma,
-        bad_inds,
-        dof_coords_in,
-        mass_lumps_in, mass_lumps_out,
-        vertex2dof_out: np.ndarray, # shape=(ndof_out,), dtype=int
-        dof2vertex_out: np.ndarray, # shape=(ndof_out,), dtype=int
-        mesh_vertices: np.ndarray, # shape=(ndof_in, gdim_in)
-        mesh_cells: np.ndarray, # triangle/tetrahedra vertex indices. shape=(ndof_in, gdim_in+1), dtype=int
+    if max_candidate_points is None:
+        max_candidate_points = V_in.ndof
+    else:
+        assert_gt(max_candidate_points, 0)
+    max_candidate_points = np.min([max_candidate_points, V_in.ndof])
+
+    S_in: sps.csr_matrix = make_smoothing_matrix(
+        V_in.vertices, V_in.mass_lumps,
+        smoother_num_dofs_in_stdev=smoother_num_dofs_in_stdev,
+        display=display)
+
+    S_out: sps.csr_matrix = make_smoothing_matrix(
+        V_out.vertices, V_out.mass_lumps,
+        smoother_num_dofs_in_stdev=smoother_num_dofs_in_stdev,
+        display=display)
+
+    apply_A_smooth = lambda u: S_out.T @ (apply_operator(S_in @ u))
+    apply_AT_smooth = lambda u: S_in.T @ (apply_operator_transpose(S_out @ u))
+
+    IM: ImpulseMoments = compute_impulse_response_moments(
+        apply_AT_smooth, V_in, V_out, display=display)
+
+    bad_vols, tiny_Sigmas, bad_aspect_Sigmas = find_bad_moments(
+        IM, V_in, V_out, min_vol_rtol=min_vol_rtol,
+        max_aspect_ratio=max_aspect_ratio, display=display)
+
+    # Modify bad moments
+    modified_vol = IM.vol.copy()
+    modified_vol[bad_vols] = 0.0
+
+    modified_mu = IM.mu.copy()
+
+    bad_Sigmas = np.logical_and(tiny_Sigmas, bad_aspect_Sigmas)
+    modified_Sigma = IM.Sigma.copy()
+    modified_Sigma[bad_Sigmas,:,:] = np.eye(V_out.gdim).reshape((1, V_out.gdim, V_out.gdim))
+
+    bad_inds = np.logical_and(bad_vols, bad_Sigmas)
+
+    modified_IM = ImpulseMoments(modified_vol, modified_mu, modified_Sigma)
+
+    col_batches: ImpulseResponseBatches = make_impulse_response_batches_simplified(
+        apply_A_smooth, modified_IM, bad_inds, V_in, V_out,
+        num_initial_batches=num_initial_batches, tau=tau,
+        num_neighbors=num_neighbors, max_candidate_points=max_candidate_points)
+
+    psf_kernel: PSFKernel = make_product_convolution_kernel(col_batches)
+
+    psf_object = PSFObject(
+        psf_kernel, IM, bad_vols, tiny_Sigmas, bad_aspect_Sigmas,
+        S_in, S_out, apply_operator, apply_operator_transpose)
+
+    return psf_object
+
+
+def mesh_vertices_and_cells_in_CG1_dof_order(V: dl.FunctionSpace) -> typ.Tuple[np.ndarray, np.ndarray]:
+    mesh = V.mesh()
+    dof_coords = V.tabulate_dof_coordinates()
+    vertex2dof = dl.vertex_to_dof_map(V)
+    dof2vertex = dl.dof_to_vertex_map(V)
+
+    vertices_bad_order = mesh.coordinates()
+    cells_bad_order = mesh.cells()
+
+    vertices_good_order = vertices_bad_order[dof2vertex, :]
+
+    assert_lt(np.linalg.norm(dof_coords - vertices_good_order),
+              1e-10 * np.linalg.norm(dof_coords))
+
+    cells_good_order = vertex2dof[cells_bad_order]
+
+    vv1 = vertices_good_order[cells_good_order,:]
+    vv2 = vertices_bad_order[cells_bad_order, :]
+
+    assert_lt(np.linalg.norm(vv2 - vv1), 1e-10 * np.linalg.norm(vv2))
+
+    return vertices_good_order, cells_good_order
+
+
+def make_psf_fenics(
+        apply_operator: typ.Callable[[np.ndarray], np.ndarray],
+        apply_operator_transpose: typ.Callable[[np.ndarray], np.ndarray],
+        V_in: CG1Space,
+        V_out: CG1Space,
+        min_vol_rtol: float=1e-5,
+        max_aspect_ratio: float=20.0,
+        smoother_num_dofs_in_stdev: int=5,
         num_initial_batches: int = 5,
         tau: float = 3.0,
         num_neighbors: int = 10,
-        max_candidate_points: int = None
-
-
-def compute_psf_hmatrices_simplified(
-        impulse_response_batches: ImpulseResponseBatchesSimplified,
-        dof_coords_in: np.ndarray,
-        dof_coords_out: np.ndarray,
-        mass_lumps_in: np.ndarray,
-        mass_lumps_out: np.ndarray,
-        bct: hpro.BlockClusterTree,
-        hmatrix_rtol: float
-) -> typ.Tuple[hpro.HMatrix, # hmatrix
-               hpro.HMatrix, # kernel hmatrix
-               ProductConvolutionKernelSimplified]:
-    ndof_in, gdim_in = dof_coords_in.shape
-    ndof_out, gdim_out = dof_coords_out.shape
-    assert_equal(mass_lumps_in.shape, (ndof_in,))
-    assert_equal(mass_lumps_out.shape, (ndof_out,))
-
-    product_convolution_kernel = make_product_convolution_kernel_simplified(
-        impulse_response_batches, dof_coords_out, dof_coords_in)
-
-    print('Building kernel hmatrix')
-    kernel_hmatrix = product_convolution_kernel.build_hmatrix(bct, tol=hmatrix_rtol)
-
-    print('Computing hmatrix = diag(mass_lumps_out) @ kernel_hmatrix * diag(mass_lumps_in)')
-    hmatrix = kernel_hmatrix.copy()
-    hmatrix.mul_diag_left(mass_lumps_out)
-    hmatrix.mul_diag_right(mass_lumps_in)
-
-    return hmatrix, kernel_hmatrix, product_convolution_kernel
+        max_candidate_points: int = None,
+        display: bool=False,
+) -> PSFObject:
+    pass
