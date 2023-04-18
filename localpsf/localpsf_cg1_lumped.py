@@ -478,7 +478,8 @@ def make_psf(
         V_out: CG1Space,
         min_vol_rtol: float=1e-5,
         max_aspect_ratio: float=20.0,
-        smoothing_width_factor: float=0.5,
+        smoothing_width_in: float=0.5,
+        smoothing_width_out: float=0.5,
         num_initial_batches: int = 5,
         tau: float = 3.0,
         num_neighbors: int = 10,
@@ -496,18 +497,20 @@ def make_psf(
         assert_gt(max_candidate_points, 0)
     max_candidate_points = np.min([max_candidate_points, V_in.ndof])
 
-    if smoothing_width_factor <= 0.0:
+    if smoothing_width_in <= 0.0:
         S_in = sps.eye(V_in.ndof).tocsr()
-        S_out = sps.eye(V_out.ndof).tocsr()
     else:
         S_in: sps.csr_matrix = make_smoothing_matrix(
             V_in.vertices, V_in.mass_lumps,
-            width_factor=smoothing_width_factor,
+            width_factor=smoothing_width_in,
             display=display)
 
+    if smoothing_width_out <= 0.0:
+        S_out = sps.eye(V_out.ndof).tocsr()
+    else:
         S_out: sps.csr_matrix = make_smoothing_matrix(
             V_out.vertices, V_out.mass_lumps,
-            width_factor=smoothing_width_factor,
+            width_factor=smoothing_width_out,
             display=display)
 
     apply_A_smooth = lambda u: S_out.T @ (apply_operator(S_in @ u))
@@ -707,7 +710,8 @@ def make_psf_fenics(
         mass_lumps_out: np.ndarray,
         min_vol_rtol: float=1e-5,
         max_aspect_ratio: float=20.0,
-        smoothing_width_factor: float=0.5,
+        smoothing_width_in: float=0.5,
+        smoothing_width_out: float=0.5,
         num_initial_batches: int = 5,
         tau: float = 3.0,
         num_neighbors: int = 10,
@@ -723,7 +727,8 @@ def make_psf_fenics(
     psf_object = make_psf(
         apply_operator, apply_operator_transpose, V_in_CG1, V_out_CG1,
         min_vol_rtol=min_vol_rtol, max_aspect_ratio=max_aspect_ratio,
-        smoothing_width_factor=smoothing_width_factor,
+        smoothing_width_in=smoothing_width_in,
+        smoothing_width_out=smoothing_width_out,
         num_initial_batches=num_initial_batches, tau=tau,num_neighbors=num_neighbors,
         max_candidate_points=max_candidate_points, display=display)
     return PSFObjectFenicsWrapper(psf_object, V_in, V_out)
