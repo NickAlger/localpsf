@@ -478,8 +478,8 @@ def make_psf(
         V_out: CG1Space,
         min_vol_rtol: float=1e-5,
         max_aspect_ratio: float=20.0,
-        smoothing_width_in: float=0.5,
-        smoothing_width_out: float=0.5,
+        smoothing_width_in: float=0.67,
+        smoothing_width_out: float=0.67,
         num_initial_batches: int = 5,
         tau: float = 3.0,
         num_neighbors: int = 10,
@@ -503,6 +503,7 @@ def make_psf(
         S_in: sps.csr_matrix = make_smoothing_matrix(
             V_in.vertices, V_in.mass_lumps,
             width_factor=smoothing_width_in,
+            kdtree=V_in.kdtree,
             display=display)
 
     if smoothing_width_out <= 0.0:
@@ -511,6 +512,7 @@ def make_psf(
         S_out: sps.csr_matrix = make_smoothing_matrix(
             V_out.vertices, V_out.mass_lumps,
             width_factor=smoothing_width_out,
+            kdtree=V_out.kdtree,
             display=display)
 
     apply_A_smooth = lambda u: S_out.T @ (apply_operator(S_in @ u))
@@ -710,8 +712,8 @@ def make_psf_fenics(
         mass_lumps_out: np.ndarray,
         min_vol_rtol: float=1e-5,
         max_aspect_ratio: float=20.0,
-        smoothing_width_in: float=0.5,
-        smoothing_width_out: float=0.5,
+        smoothing_width_in: float=0.67,
+        smoothing_width_out: float=0.67,
         num_initial_batches: int = 5,
         tau: float = 3.0,
         num_neighbors: int = 10,
