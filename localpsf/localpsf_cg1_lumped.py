@@ -472,7 +472,7 @@ def make_psf(
 ) -> PSFObject:
     assert_ge(num_initial_batches, 0)
     assert_gt(min_vol_rtol, 0.0)
-    assert_gt(smoother_num_dofs_in_stdev, 1)
+    assert_ge(smoother_num_dofs_in_stdev, 1)
     assert_gt(tau, 0.0)
     assert_gt(num_neighbors, 0)
 
