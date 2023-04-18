@@ -2,8 +2,8 @@ import numpy as np
 import dolfin as dl
 import typing as typ
 
-from assertion_helpers import *
-from .impulse_response_batches import
+from .assertion_helpers import *
+# from .impulse_response_batches import
 from .product_convolution_kernel import ProductConvolutionKernel
 
 from nalger_helper_functions import *

@@ -9,7 +9,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 
-from assertion_helpers import *
+from .assertion_helpers import *
 from .sample_point_batches import choose_one_sample_point_batch
 from .smoothing_matrix import make_smoothing_matrix
 
@@ -26,8 +26,8 @@ class CG1Space:
     def __post_init__(me):
         assert_equal(me.vertices.shape, (me.ndof, me.gdim))
         assert_equal(me.vertices.dtype, float)
-        assert_equal(me.cells.shape, (me.ndof, me.gdim+1))
-        assert_equal(me.cells.dtype, int)
+        assert_equal(me.cells.shape[1], me.gdim+1)
+        # assert_equal(me.cells.dtype, int) # int32?
         assert_equal(me.mass_lumps.shape, (me.ndof,))
         assert_equal(me.mass_lumps.dtype, float)
         assert(np.all(me.mass_lumps > 0.0))
@@ -93,12 +93,12 @@ def compute_impulse_response_moments(
     unstable_vols = (np.abs(vol) < min_abs_vol)
     rvol = vol.copy()
     rvol[unstable_vols] = min_abs_vol
-    printmaybe('stable_division_rtol=', stable_division_rtol, ', num_unstable / ndof_in=', np.sum(unstable_vols), ' / ', ndof_in)
+    printmaybe('stable_division_rtol=', stable_division_rtol, ', num_unstable / ndof_in=', np.sum(unstable_vols), ' / ', V_in.ndof)
 
     printmaybe('getting spatially varying mean')
     mu = np.zeros((V_in.ndof, V_out.gdim))
     for k in range(V_out.gdim):
-        linear_fct = V_out.vertices[k,:]
+        linear_fct = V_out.vertices[:,k].copy()
         mu_k_base = (apply_At(linear_fct) / V_in.mass_lumps)
         assert_equal(mu_k_base.shape, (V_in.ndof,))
         mu[:, k] = mu_k_base / rvol
@@ -107,7 +107,7 @@ def compute_impulse_response_moments(
     Sigma = np.zeros((V_in.ndof, V_out.gdim, V_out.gdim))
     for k in range(V_out.gdim):
         for j in range(k + 1):
-            quadratic_fct = V_out.vertices[k,:] * V_out.vertices[j,:]
+            quadratic_fct = (V_out.vertices[:,k] * V_out.vertices[:,j]).copy()
             Sigma_kj_base = apply_At(quadratic_fct) / V_in.mass_lumps
             assert_equal(Sigma_kj_base.shape, (V_in.ndof,))
             Sigma[:,k,j] = Sigma_kj_base / rvol - mu[:,k]*mu[:,j]
@@ -133,7 +133,6 @@ def find_bad_moments(
     assert_equal(IM.ndof_in, V_in.ndof)
     assert_equal(IM.gdim_out, V_out.gdim)
     assert_le(0.0, min_vol_rtol)
-    assert_lt(1.0, min_vol_rtol)
     assert_ge(max_aspect_ratio, 1.0)
 
     def printmaybe(*args, **kwargs):
@@ -208,7 +207,7 @@ class ImpulseResponseBatches:
 
         new_candidate_inds = list(np.setdiff1d(me.candidate_inds, new_inds))
         me.candidate_inds.clear()
-        me.candidate_inds += new_candidate_inds
+        me.candidate_inds.extend(new_candidate_inds)
 
         return new_inds
 
@@ -282,7 +281,7 @@ def make_impulse_response_batches_simplified(
 ) -> ImpulseResponseBatches:
     assert_equal(IM.ndof_in, V_in.ndof)
     assert_equal(IM.gdim_out, V_out.gdim)
-    assert_equal(bad_inds.shape, V_in.ndof)
+    assert_equal(bad_inds.shape, (V_in.ndof,))
     assert_equal(bad_inds.dtype, bool)
     assert_gt(tau, 0.0)
     assert_gt(num_neighbors, 0)
@@ -290,8 +289,9 @@ def make_impulse_response_batches_simplified(
 
     print('Preparing c++ object')
     cpp_object = hpro.hpro_cpp.ImpulseResponseBatches(
-        V_in.vertices, V_in.cells,
-        IM.vol, IM.mu, IM.Sigma,
+        np.array(V_in.vertices.T, order='F'),
+        np.array(V_in.cells.T, order='F'),
+        list(IM.vol), list(IM.mu), list(IM.Sigma),
         num_neighbors, tau)
 
     candidate_inds = list(np.argwhere(np.logical_not(bad_inds)).reshape(-1))
@@ -347,7 +347,7 @@ class PSFKernel:
 
     @cached_property
     def col_coords(me) -> np.ndarray:
-        return np.ndarray(me.cpp_object.col_coords)
+        return np.array(me.cpp_object.col_coords)
 
     @property
     def mean_shift(me):
@@ -388,7 +388,9 @@ class PSFKernel:
 
 def make_product_convolution_kernel(col_batches: ImpulseResponseBatches) -> PSFKernel:
     cpp_object = hpro.hpro_cpp.ProductConvolutionKernelRBFColsOnly(
-        col_batches.cpp_object, col_batches.V_in.vertices, col_batches.V_out.vertices)
+        col_batches.cpp_object,
+        list(col_batches.V_in.vertices),
+        list(col_batches.V_out.vertices))
     return PSFKernel(col_batches, cpp_object)
 
 
@@ -537,12 +539,12 @@ def mesh_vertices_and_cells_in_CG1_dof_order(V: dl.FunctionSpace) -> typ.Tuple[n
     vertices_bad_order = mesh.coordinates()
     cells_bad_order = mesh.cells()
 
-    vertices_good_order = vertices_bad_order[dof2vertex, :]
+    vertices_good_order = vertices_bad_order[dof2vertex, :].copy()
 
     assert_lt(np.linalg.norm(dof_coords - vertices_good_order),
               1e-10 * np.linalg.norm(dof_coords))
 
-    cells_good_order = vertex2dof[cells_bad_order]
+    cells_good_order = vertex2dof[cells_bad_order].copy()
 
     vv1 = vertices_good_order[cells_good_order,:]
     vv2 = vertices_bad_order[cells_bad_order, :]

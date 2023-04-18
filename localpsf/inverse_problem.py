@@ -3,6 +3,7 @@ import typing as typ
 from dataclasses import dataclass
 from functools import cached_property
 
+from .assertion_helpers import *
 
 @dataclass
 class InverseProblem:
@@ -25,19 +26,19 @@ class InverseProblem:
 
     @cached_property
     def N(me):
-        return len(me.get_optimization_variable())
+        return len(me.misfit.get_parameter())
 
     def get_optimization_variable(me) -> np.ndarray:
         m: np.ndarray = me.misfit.get_parameter()
-        assert(m.shape == (me.N,))
+        assert_equal(m.shape, (me.N,))
         return m
 
     def set_optimization_variable(me, new_m: np.ndarray) -> None:
-        assert(new_m.shape == (me.N,))
+        assert_equal(new_m.shape, (me.N,))
         me.misfit.update_parameter(new_m)
 
     def update_regularization_parameter(me, new_a_reg) -> None:
-        assert(new_a_reg > 0.0)
+        assert_gt(new_a_reg, 0.0)
         me.regularization_parameter = new_a_reg
 
     def cost_triple(me) -> typ.Tuple[float, float, float]:
@@ -48,27 +49,27 @@ class InverseProblem:
 
     def gradient_triple(me) -> typ.Tuple[np.ndarray, np.ndarray, np.ndarray]:
         gd = me.misfit.gradient()
-        assert(gd.shape == (me.N,))
+        assert_equal(gd.shape, (me.N,))
         gr = me.regularization.gradient(me.get_optimization_variable(), me.regularization_parameter)
-        assert (gr.shape == (me.N,))
+        assert_equal(gr.shape, (me.N,))
         g = gd + gr
         return g, gd, gr
 
     def apply_hessian_triple(me, p: np.ndarray) -> typ.Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        assert(p.shape == (me.N,))
+        assert_equal(p.shape, (me.N,))
         Hd_p = me.misfit.apply_hessian(p)
-        assert(Hd_p.shape == (me.N,))
+        assert_equal(Hd_p.shape, (me.N,))
         Hr_p = me.regularization.apply_hessian(p, me.get_optimization_variable(), me.regularization_parameter)
-        assert(Hr_p.shape == (me.N,))
+        assert_equal(Hr_p.shape, (me.N,))
         H_p = Hd_p + Hr_p
         return H_p, Hd_p, Hr_p
 
     def apply_gauss_newton_hessian_triple(me, p: np.ndarray) -> typ.Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        assert(p.shape == (me.N,))
+        assert_equal(p.shape, (me.N,))
         Hdgn_p = me.misfit.apply_gauss_newton_hessian(p)
-        assert(Hdgn_p.shape == (me.N,))
+        assert_equal(Hdgn_p.shape, (me.N,))
         Hr_p = me.regularization.apply_hessian(p, me.get_optimization_variable(), me.regularization_parameter)
-        assert(Hr_p.shape == (me.N,))
+        assert_equal(Hr_p.shape, (me.N,))
         Hgn_p = Hdgn_p + Hr_p
         return Hgn_p, Hdgn_p, Hr_p
 

@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from functools import cached_property
 
 from .assertion_helpers import *
-from .impulse_response_moments import impulse_response_moments_simplified
-from .impulse_response_batches import ImpulseResponseBatches, ImpulseResponseBatchesSimplified
+# from .impulse_response_moments import impulse_response_moments_simplified
+from .impulse_response_batches import ImpulseResponseBatches
 from .mass_matrix import MassMatrixHelper
 
 import hlibpro_python_wrapper as hpro

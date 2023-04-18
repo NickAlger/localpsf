@@ -193,7 +193,7 @@ def make_bilaplacian_covariance(
         Vh: dl.FunctionSpace,
         mass_lumps: np.ndarray,
         robin_bc: bool=True) -> BiLaplacianCovariance:
-    assert_equal(mass_lumps.shape, Vh.dim())
+    assert_equal(mass_lumps.shape, (Vh.dim(),))
     stiffness_form = dl.inner(dl.grad(dl.TrialFunction(Vh)), dl.grad(dl.TestFunction(Vh))) * dl.dx
     robin_form = dl.inner(dl.TrialFunction(Vh), dl.TestFunction(Vh)) * dl.ds
 

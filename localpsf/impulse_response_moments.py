@@ -4,7 +4,6 @@ import typing as typ
 import scipy.sparse as sps
 from scipy.spatial import KDTree
 
-from .assertion_helpers import *
 
 
 def impulse_response_moments(V_in, V_out, apply_At, solve_M_in,

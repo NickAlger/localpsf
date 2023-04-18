@@ -8,9 +8,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial import KDTree
 from tqdm.auto import tqdm
 
-from .assertion_helpers import *
-from .smoothing_matrix import make_smoothing_matrix
-from .impulse_response_moments import impulse_response_moments, impulse_response_moments_simplified
+from .impulse_response_moments import impulse_response_moments
 from .sample_point_batches import choose_one_sample_point_batch
 
 from nalger_helper_functions import make_mass_matrix, dlfct2array, plot_ellipse
