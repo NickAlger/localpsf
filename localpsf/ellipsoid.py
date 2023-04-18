@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.linalg as sla
 from numba import jit
 
 from .brent_minimize import brent_minimize
@@ -21,6 +22,12 @@ def ellipsoids_intersect(Sigma_a, Sigma_b, mu_a, mu_b, tau):
 @jit(nopython=True)
 def ellipsoids_intersect_helper(Sigma_a, Sigma_b, mu_a, mu_b):
     lambdas, Phi = geigh_numpy(Sigma_a, Sigma_b)
+    # try:
+    #     lambdas, Phi = sla.eigh(Sigma_a, Sigma_b)
+    # except:
+    #     print('Sigma_a=', Sigma_a)
+    #     print('Sigma_b=', Sigma_b)
+    #     raise RuntimeError
     v_squared = np.dot(Phi.T, mu_a - mu_b) ** 2
     return lambdas, Phi, v_squared
 

@@ -2,6 +2,7 @@ import numpy as np
 import dolfin as dl
 import typing as typ
 import scipy.sparse as sps
+import scipy.linalg as sla
 from scipy.spatial import KDTree
 from dataclasses import dataclass
 from functools import cached_property
@@ -72,7 +73,7 @@ def compute_impulse_response_moments(
         apply_At: typ.Callable[[np.ndarray], np.ndarray],  # V_out -> V_in
         V_in: CG1Space,
         V_out: CG1Space,
-        stable_division_rtol: float=1.0e-10,
+        stable_division_rtol: float=1.0e-8,
         display=False,
         ) -> ImpulseMoments:
     '''Computes spatially varying impulse response volume, mean, and covariance for A : V_in -> V_out
@@ -129,6 +130,7 @@ def find_bad_moments(
         display: bool=False,
         ) -> typ.Tuple[np.ndarray, # bad_vols, shape=(ndof_in,), dtype=bool
                        np.ndarray, # tiny_Sigmas, shape=(ndof_in,), dtype=bool
+                       np.ndarray, # huge_Sigmas, shape=(ndof_in,), dtype=bool
                        np.ndarray]: # bad_aspect_Sigma, shape=(ndof_in,), dtype=bool
     assert_equal(IM.ndof_in, V_in.ndof)
     assert_equal(IM.gdim_out, V_out.gdim)
@@ -154,19 +156,27 @@ def find_bad_moments(
     hh_out = closest_distances_out[:, 1].reshape((V_out.ndof, 1))
     min_length = np.min(hh_out)
 
+    domain_min = np.min(V_out.vertices, axis=0)
+    domain_max = np.max(V_out.vertices, axis=0)
+    max_length = np.linalg.norm(domain_max - domain_min)
+
     printmaybe('computing eigenvalue decompositions of all ellipsoid covariances')
     eee0, PP = np.linalg.eigh(IM.Sigma)  # eee0.shape=(N,d), PP.shape=(N,d,d)
 
     printmaybe('finding ellipsoids that have tiny or negative primary axis lengths')
-    tiny_Sigmas = np.any(eee0 <= 0.5*min_length**2, axis=1)
+    tiny_Sigmas = np.any(eee0 <= (0.5*min_length)**2, axis=1)
     printmaybe('num_tiny_Sigmas / ndof_in =', np.sum(tiny_Sigmas), ' / ', V_in.ndof)
+
+    printmaybe('finding ellipsoids that have primary axis lengths much larger than the domain')
+    huge_Sigmas = np.any(eee0 > (2.0 * max_length) ** 2, axis=1)
+    printmaybe('num_huge_Sigmas / ndof_in =', np.sum(huge_Sigmas), ' / ', V_in.ndof)
 
     printmaybe('finding ellipsoids that have aspect ratios greater than ', max_aspect_ratio)
     squared_aspect_ratios = np.max(np.abs(eee0), axis=1) / np.min(np.abs(eee0), axis=1)
     bad_aspect_Sigmas = squared_aspect_ratios > max_aspect_ratio**2
     printmaybe('num_bad_aspect_Sigmas / ndof_in =', np.sum(bad_aspect_Sigmas), ' / ', V_in.ndof)
 
-    return bad_vols, tiny_Sigmas, bad_aspect_Sigmas
+    return bad_vols, tiny_Sigmas, huge_Sigmas, bad_aspect_Sigmas
 
 
 @dataclass(frozen=True)
@@ -297,7 +307,9 @@ def make_impulse_response_batches_simplified(
     candidate_inds = list(np.argwhere(np.logical_not(bad_inds)).reshape(-1))
 
     if max_candidate_points is not None:
-        candidate_inds = list(np.random.permutation(len(candidate_inds))[:max_candidate_points])
+        randperm = np.random.permutation(len(candidate_inds))
+        shuffled_candidate_inds = np.array(candidate_inds)[randperm]
+        candidate_inds = list(shuffled_candidate_inds[:max_candidate_points])
 
     IRB = ImpulseResponseBatches(apply_A, IM, V_in, V_out, candidate_inds, cpp_object)
 
@@ -400,6 +412,7 @@ class PSFObject:
     unmodified_impulse_moments: ImpulseMoments
     bad_vols: np.ndarray
     tiny_Sigmas: np.ndarray
+    huge_Sigmas: np.ndarray
     bad_aspect_Sigmas: np.ndarray
 
     smoothing_matrix_in: sps.csr_matrix
@@ -413,9 +426,11 @@ class PSFObject:
         assert_equal(me.unmodified_impulse_moments.gdim_out, me.V_out.gdim)
         assert_equal(me.bad_vols.shape, (me.V_in.ndof,))
         assert_equal(me.tiny_Sigmas.shape, (me.V_in.ndof,))
+        assert_equal(me.tiny_Sigmas.shape, (me.V_in.ndof,))
         assert_equal(me.bad_aspect_Sigmas.shape, (me.V_in.ndof,))
         assert_equal(me.bad_vols.dtype, bool)
         assert_equal(me.tiny_Sigmas.dtype, bool)
+        assert_equal(me.huge_Sigmas.dtype, bool)
         assert_equal(me.bad_aspect_Sigmas.dtype, bool)
 
     def apply_smoothed_operator(me, u: np.ndarray) -> np.ndarray:
@@ -463,7 +478,7 @@ def make_psf(
         V_out: CG1Space,
         min_vol_rtol: float=1e-5,
         max_aspect_ratio: float=20.0,
-        smoother_num_dofs_in_stdev: int=5,
+        smoothing_width_factor: float=0.5,
         num_initial_batches: int = 5,
         tau: float = 3.0,
         num_neighbors: int = 10,
@@ -472,7 +487,6 @@ def make_psf(
 ) -> PSFObject:
     assert_ge(num_initial_batches, 0)
     assert_gt(min_vol_rtol, 0.0)
-    assert_ge(smoother_num_dofs_in_stdev, 1)
     assert_gt(tau, 0.0)
     assert_gt(num_neighbors, 0)
 
@@ -482,15 +496,19 @@ def make_psf(
         assert_gt(max_candidate_points, 0)
     max_candidate_points = np.min([max_candidate_points, V_in.ndof])
 
-    S_in: sps.csr_matrix = make_smoothing_matrix(
-        V_in.vertices, V_in.mass_lumps,
-        num_dofs_in_stdev=smoother_num_dofs_in_stdev,
-        display=display)
+    if smoothing_width_factor <= 0.0:
+        S_in = sps.eye(V_in.ndof).tocsr()
+        S_out = sps.eye(V_out.ndof).tocsr()
+    else:
+        S_in: sps.csr_matrix = make_smoothing_matrix(
+            V_in.vertices, V_in.mass_lumps,
+            width_factor=smoothing_width_factor,
+            display=display)
 
-    S_out: sps.csr_matrix = make_smoothing_matrix(
-        V_out.vertices, V_out.mass_lumps,
-        num_dofs_in_stdev=smoother_num_dofs_in_stdev,
-        display=display)
+        S_out: sps.csr_matrix = make_smoothing_matrix(
+            V_out.vertices, V_out.mass_lumps,
+            width_factor=smoothing_width_factor,
+            display=display)
 
     apply_A_smooth = lambda u: S_out.T @ (apply_operator(S_in @ u))
     apply_AT_smooth = lambda u: S_in.T @ (apply_operator_transpose(S_out @ u))
@@ -498,7 +516,7 @@ def make_psf(
     IM: ImpulseMoments = compute_impulse_response_moments(
         apply_AT_smooth, V_in, V_out, display=display)
 
-    bad_vols, tiny_Sigmas, bad_aspect_Sigmas = find_bad_moments(
+    bad_vols, tiny_Sigmas, huge_Sigmas, bad_aspect_Sigmas = find_bad_moments(
         IM, V_in, V_out, min_vol_rtol=min_vol_rtol,
         max_aspect_ratio=max_aspect_ratio, display=display)
 
@@ -508,11 +526,11 @@ def make_psf(
 
     modified_mu = IM.mu.copy()
 
-    bad_Sigmas = np.logical_and(tiny_Sigmas, bad_aspect_Sigmas)
+    bad_Sigmas = np.logical_or(np.logical_or(tiny_Sigmas, huge_Sigmas), bad_aspect_Sigmas)
     modified_Sigma = IM.Sigma.copy()
     modified_Sigma[bad_Sigmas,:,:] = np.eye(V_out.gdim).reshape((1, V_out.gdim, V_out.gdim))
 
-    bad_inds = np.logical_and(bad_vols, bad_Sigmas)
+    bad_inds = np.logical_or(bad_vols, bad_Sigmas)
 
     modified_IM = ImpulseMoments(modified_vol, modified_mu, modified_Sigma)
 
@@ -524,7 +542,7 @@ def make_psf(
     psf_kernel: PSFKernel = make_product_convolution_kernel(col_batches)
 
     psf_object = PSFObject(
-        psf_kernel, IM, bad_vols, tiny_Sigmas, bad_aspect_Sigmas,
+        psf_kernel, IM, bad_vols, tiny_Sigmas, huge_Sigmas, bad_aspect_Sigmas,
         S_in, S_out, apply_operator, apply_operator_transpose)
 
     return psf_object
@@ -689,7 +707,7 @@ def make_psf_fenics(
         mass_lumps_out: np.ndarray,
         min_vol_rtol: float=1e-5,
         max_aspect_ratio: float=20.0,
-        smoother_num_dofs_in_stdev: int=5,
+        smoothing_width_factor: float=0.5,
         num_initial_batches: int = 5,
         tau: float = 3.0,
         num_neighbors: int = 10,
@@ -705,7 +723,7 @@ def make_psf_fenics(
     psf_object = make_psf(
         apply_operator, apply_operator_transpose, V_in_CG1, V_out_CG1,
         min_vol_rtol=min_vol_rtol, max_aspect_ratio=max_aspect_ratio,
-        smoother_num_dofs_in_stdev=smoother_num_dofs_in_stdev,
+        smoothing_width_factor=smoothing_width_factor,
         num_initial_batches=num_initial_batches, tau=tau,num_neighbors=num_neighbors,
         max_candidate_points=max_candidate_points, display=display)
     return PSFObjectFenicsWrapper(psf_object, V_in, V_out)

@@ -8,7 +8,8 @@ from .assertion_helpers import *
 
 def make_smoothing_matrix(dof_coords: np.ndarray,  # shape=(ndof, gdim)
                           mass_lumps: np.ndarray,  # shape=(ndof,)
-                          num_dofs_in_stdev: int=5,  # Gaussian width chosen so this many gidpoints are in one standard deviation
+                          num_inner_dofs: int=5,  # Gaussian stdev chosen so this many gidpoints are within distance stdev*width_factor
+                          width_factor: float=0.5,
                           workers=1,  # Number of workers to use for parallel processing. If -1 is given all CPU threads are used.
                           display=False,
                           ) -> sps.csr_matrix:
@@ -40,25 +41,25 @@ def make_smoothing_matrix(dof_coords: np.ndarray,  # shape=(ndof, gdim)
     '''
     ndof, gdim = dof_coords.shape
     assert_equal(mass_lumps.shape, (ndof,))
-    assert_ge(num_dofs_in_stdev, 1)
+    assert_ge(num_inner_dofs, 1)
 
-    num_dofs_in_neighborhood = num_dofs_in_stdev * 5 # could do this more rigorously
+    num_dofs_in_neighborhood = num_inner_dofs * 5 # could do this more rigorously
 
     def printmaybe(*args, **kwargs):
         if display:
             print(*args, **kwargs)
 
     printmaybe('making smoothing matrix')
-    printmaybe('lengthscales chosen so that number of dofs within one standard deviation=', num_dofs_in_stdev)
+    printmaybe('Gaussian: ', num_inner_dofs, ' gidpoints are within distance stdev / ', width_factor)
 
     printmaybe('building dof_coords kdtree')
     kdtree = KDTree(dof_coords)
 
     printmaybe('finding', num_dofs_in_neighborhood, ' nearest neighbors to each out dof')
     distances, inds = kdtree.query(dof_coords, num_dofs_in_neighborhood + 1, workers=workers) # +1 to include self
-    lengthscales = distances[:, num_dofs_in_stdev + 1]
+    lengthscales = distances[:, num_inner_dofs + 1]
 
-    gauss = np.exp(-0.5 * (distances / lengthscales.reshape((-1,1)))**2 ) # shape=(ndof, num_neighbors + 1)
+    gauss = np.exp(-0.5 * (distances / (width_factor*lengthscales).reshape((-1,1)))**2 ) # shape=(ndof, num_neighbors + 1)
 
     row_inds = np.outer(np.arange(ndof), np.ones(num_dofs_in_neighborhood + 1)).reshape(-1) # e.g., [0,0,0,0,1,1,1,1,2,2,2,2...]
     col_inds = inds.reshape(-1)

@@ -98,9 +98,11 @@ def choose_one_sample_point_batch(mu, Sigma, num_standard_deviations_tau, candid
                 break
         if p_is_acceptable:
             X_inds_perm.append(p_ind)
-            P_inds_perm_far_enough = points_which_are_not_in_ellipsoid_numba(Sigma_perm[p_ind, :, :], mu_perm[p_ind, :],
-                                                                             mu_perm[np.array(P_inds_perm), :], num_standard_deviations_tau)
-            P_inds_perm = list(np.array(P_inds_perm)[P_inds_perm_far_enough])
+            if P_inds_perm:
+                P_inds_perm_far_enough = points_which_are_not_in_ellipsoid_numba(
+                    Sigma_perm[p_ind, :, :], mu_perm[p_ind, :],
+                    mu_perm[np.array(P_inds_perm), :], num_standard_deviations_tau)
+                P_inds_perm = list(np.array(P_inds_perm)[P_inds_perm_far_enough])
 
     X_inds = list(candidate_inds[perm_inds[np.array(X_inds_perm)]])
     return X_inds
