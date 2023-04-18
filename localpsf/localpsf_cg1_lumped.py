@@ -5,6 +5,7 @@ import scipy.sparse as sps
 from scipy.spatial import KDTree
 from dataclasses import dataclass
 from functools import cached_property
+import matplotlib
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 
@@ -307,39 +308,6 @@ def make_impulse_response_batches_simplified(
     return IRB
 
 
-def visualize_impulse_response_batch(
-        IRB: ImpulseResponseBatches,
-        b: int,
-        V_out_fenics: dl.FunctionSpace
-) -> None:
-    assert_equal(IRB.V_out.ndof, V_out_fenics.dim())
-    if (0 <= b) and (b < IRB.num_batches):
-        phi = dl.Function(V_out_fenics)
-        phi.vector()[:] = IRB.psi_batches[b]
-
-        start = IRB.batch2point_start[b]
-        stop = IRB.batch2point_stop[b]
-        pp = IRB.sample_points[start:stop, :]
-        mu_batch = IRB.sample_mu[start:stop, :]
-        Sigma_batch = IRB.sample_Sigma[start:stop, :, :]
-
-        plt.figure()
-
-        cm = dl.plot(phi)
-        plt.colorbar(cm)
-
-        plt.scatter(pp[:, 0], pp[:, 1], c='r', s=2)
-        plt.scatter(mu_batch[:, 0], mu_batch[:, 1], c='k', s=2)
-
-        for k in range(mu_batch.shape[0]):
-            plot_ellipse(mu_batch[k, :], Sigma_batch[k, :, :], n_std_tau=IRB.tau,
-                         facecolor='none', edgecolor='k', linewidth=1)
-
-        plt.title('Impulse response batch '+str(b))
-    else:
-        print('bad batch number. num_batches=', IRB.num_batches, ', b=', b)
-
-
 @dataclass(frozen=True)
 class PSFKernel:
     IRB: ImpulseResponseBatches
@@ -349,7 +317,7 @@ class PSFKernel:
         assert_equal(me.col_coords.shape, (me.V_in.ndof, me.V_in.gdim))
         assert_equal(me.row_coords.shape, (me.V_out.ndof, me.V_out.gdim))
 
-    def __call__(me, yy, xx):
+    def __call__(me, yy: np.ndarray, xx: np.ndarray):
         if len(xx.shape) == 1 and len(yy.shape) == 1:
             return me.cpp_object.eval_integral_kernel(yy, xx)
         else:
@@ -361,7 +329,7 @@ class PSFKernel:
         xx = np.array(me.col_coords[jj, :].T, order='F')
         return me.__call__(yy, xx)
 
-    def build_hmatrix(me, bct, tol=1e-6):
+    def build_hmatrix(me, bct: hpro.BlockClusterTree, tol: float=1e-6):
         hmatrix_cpp_object = hpro.hpro_cpp.build_hmatrix_from_coefffn( me.cpp_object, bct.cpp_object, tol )
         return hpro.HMatrix(hmatrix_cpp_object, bct)
 
@@ -424,12 +392,6 @@ def make_product_convolution_kernel(col_batches: ImpulseResponseBatches) -> PSFK
     return PSFKernel(col_batches, cpp_object)
 
 
-def apply_sandwiched_operator(x: np.ndarray,
-                              apply_B: typ.Callable[[np.ndarray], np.ndarray],
-                              A: sps.csr_matrix, C: sps.csr_matrix) -> np.ndarray:
-    return A @ apply_B(C @ x)
-
-
 @dataclass(frozen=True)
 class PSFObject:
     psf_kernel: PSFKernel
@@ -476,10 +438,7 @@ class PSFObject:
         for _ in range(num_batches):
             me.impulse_response_batches.add_one_sample_point_batch()
 
-        if recompute:
-            me.compute_hmatrices()
-
-    def compute_hmatrices(me, bct: hpro.BlockClusterTree, hmatrix_rtol: float=1e-7):
+    def construct_hmatrices(me, bct: hpro.BlockClusterTree, hmatrix_rtol: float=1e-7) -> typ.Tuple[hpro.HMatrix, hpro.HMatrix]:
         assert_gt(hmatrix_rtol, 0.0)
         assert_lt(hmatrix_rtol, 1.0)
         assert_gt(me.impulse_response_batches.num_batches, 0)
@@ -523,12 +482,12 @@ def make_psf(
 
     S_in: sps.csr_matrix = make_smoothing_matrix(
         V_in.vertices, V_in.mass_lumps,
-        smoother_num_dofs_in_stdev=smoother_num_dofs_in_stdev,
+        num_dofs_in_stdev=smoother_num_dofs_in_stdev,
         display=display)
 
     S_out: sps.csr_matrix = make_smoothing_matrix(
         V_out.vertices, V_out.mass_lumps,
-        smoother_num_dofs_in_stdev=smoother_num_dofs_in_stdev,
+        num_dofs_in_stdev=smoother_num_dofs_in_stdev,
         display=display)
 
     apply_A_smooth = lambda u: S_out.T @ (apply_operator(S_in @ u))
@@ -593,11 +552,139 @@ def mesh_vertices_and_cells_in_CG1_dof_order(V: dl.FunctionSpace) -> typ.Tuple[n
     return vertices_good_order, cells_good_order
 
 
+@dataclass(frozen=True)
+class PSFObjectFenicsWrapper:
+    psf_object: PSFObject
+    V_in_fenics: dl.FunctionSpace
+    V_out_fenics: dl.FunctionSpace
+
+    def __post_init__(me):
+        in_verts, in_cells = mesh_vertices_and_cells_in_CG1_dof_order(me.V_in_fenics)
+        out_verts, out_cells = mesh_vertices_and_cells_in_CG1_dof_order(me.V_out_fenics)
+        assert_le(np.linalg.norm(me.psf_object.V_in.vertices - in_verts), 1e-10 * np.linalg.norm(in_verts))
+        assert_le(np.linalg.norm(me.psf_object.V_out.vertices - out_verts), 1e-10 * np.linalg.norm(out_verts))
+        assert_le(np.linalg.norm(me.psf_object.V_in.cells - in_cells), 1e-10 * np.linalg.norm(in_cells))
+        assert_le(np.linalg.norm(me.psf_object.V_out.cells - out_cells), 1e-10 * np.linalg.norm(out_cells))
+
+    @property
+    def num_batches(me):
+        return me.psf_object.impulse_response_batches.num_batches
+
+    @cached_property
+    def ndof_in(me):
+        return me.psf_object.V_in.ndof
+
+    @cached_property
+    def ndof_out(me):
+        return me.psf_object.V_out.ndof
+
+    @cached_property
+    def gdim_in(me):
+        return me.psf_object.V_in.gdim
+
+    @cached_property
+    def gdim_out(me):
+        return me.psf_object.V_out.gdim
+
+    def add_impulse_response_batch(me):
+        me.psf_object.impulse_response_batches.add_one_sample_point_batch()
+
+    def impulse_response_batch(me, b: int) -> dl.Function:
+        assert_le(0, b)
+        assert_lt(b, me.num_batches)
+        phi = dl.Function(me.V_out_fenics)
+        phi.vector()[:] = me.psf_object.impulse_response_batches.psi_batches[b]
+        return phi
+
+    def vol(me) -> dl.Function:
+        f = dl.Function(me.V_in_fenics)
+        f.vector()[:] = me.psf_object.unmodified_impulse_moments.vol
+        return f
+
+    def mu(me, ii: int) -> dl.Function:
+        assert_le(0, ii)
+        assert_lt(ii, me.gdim_in)
+        f = dl.Function(me.V_in_fenics)
+        f.vector()[:] = me.psf_object.unmodified_impulse_moments.mu[:, ii].copy()
+        return f
+
+    def Sigma(me, ii: int, jj: int) -> dl.Function:
+        assert_ge(ii, 0)
+        assert_lt(ii, me.gdim_in)
+        assert_ge(jj, 0)
+        assert_lt(jj, me.gdim_in)
+        f = dl.Function(me.V_in_fenics)
+        f.vector()[:] = me.psf_object.unmodified_impulse_moments.Sigma[:, ii, jj].copy()
+        return f
+
+    def bad_vols(me) -> dl.Function:
+        f = dl.Function(me.V_in_fenics)
+        f.vector()[:] = np.array(me.psf_object.bad_vols, dtype=float)
+        return f
+
+    def tiny_Sigmas(me) -> dl.Function:
+        f = dl.Function(me.V_in_fenics)
+        f.vector()[:] = np.array(me.psf_object.tiny_Sigmas, dtype=float)
+        return f
+
+    def bad_aspect_Sigmas(me) -> dl.Function:
+        f = dl.Function(me.V_in_fenics)
+        f.vector()[:] = np.array(me.psf_object.bad_aspect_Sigmas, dtype=float)
+        return f
+
+    def visualize_impulse_response_batch(me, b: int) -> matplotlib.figure.Figure:
+        IRB = me.psf_object.impulse_response_batches
+        fig = plt.figure()
+
+        phi = me.impulse_response_batch(b)
+
+        start = IRB.batch2point_start[b]
+        stop = IRB.batch2point_stop[b]
+        pp = IRB.sample_points[start:stop, :]
+        mu_batch = IRB.sample_mu[start:stop, :]
+        Sigma_batch = IRB.sample_Sigma[start:stop, :, :]
+
+        cm = dl.plot(phi)
+        plt.colorbar(cm)
+
+        plt.scatter(pp[:, 0], pp[:, 1], c='r', s=2)
+        plt.scatter(mu_batch[:, 0], mu_batch[:, 1], c='k', s=2)
+
+        for k in range(mu_batch.shape[0]):
+            plot_ellipse(mu_batch[k, :], Sigma_batch[k, :, :], n_std_tau=IRB.tau,
+                         facecolor='none', edgecolor='k', linewidth=1)
+
+        plt.title('Impulse response batch '+str(b))
+
+        return fig
+
+    def construct_hmatrices(me, bct: hpro.BlockClusterTree, hmatrix_rtol: float=1e-7) -> typ.Tuple[hpro.HMatrix, hpro.HMatrix]:
+        return me.psf_object.construct_hmatrices(bct, hmatrix_rtol)
+
+    @cached_property
+    def apply_operator(me) -> typ.Callable[[np.ndarray], np.ndarray]:
+        return me.psf_object.apply_operator
+
+    @cached_property
+    def apply_operator_transpose(me) -> typ.Callable[[np.ndarray], np.ndarray]:
+        return me.psf_object.apply_operator_transpose
+
+    @cached_property
+    def apply_smoothed_operator(me) -> typ.Callable[[np.ndarray], np.ndarray]:
+        return me.psf_object.apply_smoothed_operator
+
+    @cached_property
+    def apply_smoothed_operator_transpose(me) -> typ.Callable[[np.ndarray], np.ndarray]:
+        return me.psf_object.apply_smoothed_operator_transpose
+
+
 def make_psf_fenics(
         apply_operator: typ.Callable[[np.ndarray], np.ndarray],
         apply_operator_transpose: typ.Callable[[np.ndarray], np.ndarray],
-        V_in: CG1Space,
-        V_out: CG1Space,
+        V_in: dl.FunctionSpace,
+        V_out: dl.FunctionSpace,
+        mass_lumps_in: np.ndarray,
+        mass_lumps_out: np.ndarray,
         min_vol_rtol: float=1e-5,
         max_aspect_ratio: float=20.0,
         smoother_num_dofs_in_stdev: int=5,
@@ -606,5 +693,18 @@ def make_psf_fenics(
         num_neighbors: int = 10,
         max_candidate_points: int = None,
         display: bool=False,
-) -> PSFObject:
-    pass
+) -> PSFObjectFenicsWrapper:
+    assert_equal(mass_lumps_in.shape, (V_in.dim(),))
+    assert_equal(mass_lumps_out.shape, (V_out.dim(),))
+    verts_in, cells_in = mesh_vertices_and_cells_in_CG1_dof_order(V_in)
+    verts_out, cells_out = mesh_vertices_and_cells_in_CG1_dof_order(V_out)
+    V_in_CG1 = CG1Space(verts_in, cells_in, mass_lumps_in)
+    V_out_CG1 = CG1Space(verts_out, cells_out, mass_lumps_out)
+    psf_object = make_psf(
+        apply_operator, apply_operator_transpose, V_in_CG1, V_out_CG1,
+        min_vol_rtol=min_vol_rtol, max_aspect_ratio=max_aspect_ratio,
+        smoother_num_dofs_in_stdev=smoother_num_dofs_in_stdev,
+        num_initial_batches=num_initial_batches, tau=tau,num_neighbors=num_neighbors,
+        max_candidate_points=max_candidate_points, display=display)
+    return PSFObjectFenicsWrapper(psf_object, V_in, V_out)
+

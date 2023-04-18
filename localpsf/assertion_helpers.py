@@ -1,7 +1,3 @@
-import numpy as np
-import typing as typ
-
-
 def assert_equal(a, b):
     if not (a == b):
         raise RuntimeError(str(a) + ' =/= ' + str(b))

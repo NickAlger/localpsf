@@ -14,6 +14,7 @@ from . import newtoncg
 from . import newtongmres
 from . import derivatives_at_point
 from . import bilaplacian_regularization
+from . import localpsf_cg1_lumped
 # from . import deflate_negative_eigenvalues # moved to hlibpro
 # from . import path
 
