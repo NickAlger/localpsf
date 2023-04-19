@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from functools import cached_property
 
 from .assertion_helpers import *
+import hlibpro_python_wrapper as hpro
 
 @dataclass
 class InverseProblemObjective:
@@ -112,3 +113,16 @@ class InverseProblemObjective:
 
     def apply_gauss_newton_hessian(me, p: np.ndarray) -> np.ndarray:
         return me.apply_gauss_newton_hessian_triple(p)[0]
+
+
+@dataclass
+class InverseProblemHessianPreconditioner:
+    IP: InverseProblemObjective
+    bct: hpro.BlockClusterTree
+    shifted_inverse_interpolator: hpro.HMatrixShiftedInverseInterpolator
+    min_regularization_parameter: float
+    max_regularization_parameter: float
+
+    def __post_init__(me):
+        assert_gt(me.min_regularization_parameter, 0)
+        assert_gt(me.max_regularization_parameter, me.min_regularization_parameter)
