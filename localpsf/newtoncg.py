@@ -215,6 +215,7 @@ def newtoncg_ls(get_optimization_variable:     Callable[[],                     
                 max_backtracking_iter=10, #Maximum number of backtracking iterations
                 gdm_tol=1e-18, # we converge when (g,dm) <= gdm_tolerance
                 forcing_sequence_power = 0.5, # p in min(0.5, ||g||^p)||g||
+                gradnorm_ini = None,
                 ):
     info = NCGInfo()
 
@@ -263,7 +264,8 @@ def newtoncg_ls(get_optimization_variable:     Callable[[],                     
         info.gradnorm[-1] = gradnorm
 
         if it == 0:
-            gradnorm_ini = gradnorm
+            if gradnorm_ini is None:
+                gradnorm_ini = gradnorm
             tol = max(atol, gradnorm_ini * rtol)
 
         if (gradnorm < tol) and (it > 0):

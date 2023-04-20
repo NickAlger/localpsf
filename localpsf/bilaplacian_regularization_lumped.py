@@ -257,7 +257,4 @@ class BilaplacianRegularization:
         assert_gt(a_reg, 0.0)
         return me.Cov.apply_C(x, me.gamma(a_reg))
 
-    def make_hess_hmatrix(me, bct: hpro.BlockClusterTree, a_reg: float, **kwargs) -> hpro.HMatrix:
-        assert_gt(a_reg, 0.0)
-        return me.Cov.make_invC_hmatrix(bct, me.gamma(a_reg), **kwargs)
 

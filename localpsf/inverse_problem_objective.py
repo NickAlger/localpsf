@@ -1,25 +1,22 @@
 import numpy as np
+import dolfin as dl
 import typing as typ
 import scipy.sparse as sps
 from dataclasses import dataclass
 from functools import cached_property
 
 from .assertion_helpers import *
+from .bilaplacian_regularization_lumped import BilaplacianRegularization
+from .localpsf_cg1_lumped import PSFObjectFenicsWrapper, make_psf_fenics
 import hlibpro_python_wrapper as hpro
 
 @dataclass
 class InverseProblemObjective:
     misfit: typ.Any
-    regularization: typ.Any
+    regularization: BilaplacianRegularization
     regularization_parameter: float
 
     def __post_init__(me):
-        f1: typ.Callable[[np.ndarray, float], float]                    = me.regularization.cost # Jr(m) = cost(m, a_reg)
-        f2: typ.Callable[[np.ndarray, float], np.ndarray]               = me.regularization.gradient # gr(m) = gradient(m, a_reg)
-        f3: typ.Callable[[np.ndarray, np.ndarray, float], np.ndarray]   = me.regularization.apply_hessian # Hr(m)p = apply_hessian(p, m, a_reg)
-        f4: typ.Callable[[np.ndarray, np.ndarray, float], np.ndarray]   = me.regularization.solve_hessian  # invHr(m)p = solve_hessian(p, m, a_reg)
-        f5: typ.Callable[[hpro.BlockClusterTree, float], hpro.HMatrix]  = me.regularization.make_hess_hmatrix
-
         f6: typ.Callable[[], np.ndarray]            = me.misfit.get_parameter # m = get_parameter()
         f7: typ.Callable[[np.ndarray], None]        = me.misfit.update_parameter # update_parameter(new_m)
         f8: typ.Callable[[], float]                 = me.misfit.misfit # Jd(m) = misfit()
@@ -122,27 +119,33 @@ class InverseProblemObjective:
     def apply_gauss_newton_hessian(me, p: np.ndarray) -> np.ndarray:
         return me.apply_gauss_newton_hessian_triple(p)[0]
 
-    def make_regularization_hessian_hmatrix(me, bct: hpro.BlockClusterTree):
-        return me.regularization.make_hess_hmatrix(bct, me.regularization_parameter)
-
 
 @dataclass
 class InverseProblemPSFHessianPreconditioner:
     IP: InverseProblemObjective
+    Vh: dl.FunctionSpace
+    mass_lumps: np.ndarray
     bct: hpro.BlockClusterTree
     areg_min: float # minimum range limit for regularization parameter
     areg_max: float # maximum range limit for regularization parameter
 
-    Hd_hmatrix_options: typ.Dict[str, typ.Any]
-    shifted_inverse_interpolator_options: typ.Dict[str, typ.Any]
+    use_regularization_preconditioning_initially: bool=False
+    psf_options: typ.Dict[str, typ.Any] = None
+    Hd_hmatrix_options: typ.Dict[str, typ.Any] = None
+    shifted_inverse_interpolator_options: typ.Dict[str, typ.Any] = None
 
-    HR_hmatrix: hpro.HMatrix=None
+    psf_object: PSFObjectFenicsWrapper=None
+    Hd_kernel_hmatrix: hpro.HMatrix = None
+    Hd_hmatrix_nonsym: hpro.HMatrix = None
     Hd_hmatrix: hpro.HMatrix=None
     shifted_inverse_interpolator: hpro.HMatrixShiftedInverseInterpolator=None
 
     def __post_init__(me):
         assert_gt(me.areg_min, 0.0)
-        assert_gt(me.areg_max, me.areg_min)
+        assert_ge(me.areg_max, me.areg_min)
+        me.psf_options = dict() if me.psf_options is None else me.psf_options
+        me.Hd_hmatrix_options = dict() if me.Hd_hmatrix_options is None else me.Hd_hmatrix_options
+        me.shifted_inverse_interpolator_options = dict() if me.shifted_inverse_interpolator_options is None else me.shifted_inverse_interpolator_options
 
     @cached_property
     def N(me) -> int:
@@ -150,21 +153,32 @@ class InverseProblemPSFHessianPreconditioner:
 
     def solve_hessian_preconditioner(me, b: np.ndarray, display=False) -> np.ndarray:
         if me.shifted_inverse_interpolator is None:
-            return me.IP.regularization.solve_regularization_hessian(b)
+            if me.use_regularization_preconditioning_initially:
+                return me.IP.solve_regularization_hessian(b)
+            else:
+                return b
         else:
             return me.shifted_inverse_interpolator.solve_shifted_deflated_preconditioner(
                 b, me.IP.regularization_parameter, display=display)
 
-    def build_HR_hmatrix(me) -> hpro.HMatrix:
-        hpro.build_hmatrix_from_scipy_sparse_matrix(me.IP.regularization, me.bct)
+    @cached_property
+    def HR0_hmatrix(me) -> hpro.HMatrix:
+        return me.IP.regularization.Cov.make_invC_hmatrix(me.bct, 1.0) # areg0=gamma0=1.0
 
     def build_hessian_preconditioner(me):
-        if me.HR_hmatrix is None:
-            me.HR_hmatrix = me.build_HR_hmatrix()
+        me.psf_object = make_psf_fenics(
+            me.IP.apply_misfit_gauss_newton_hessian,
+            me.IP.apply_misfit_gauss_newton_hessian,
+            me.Vh, me.Vh, me.mass_lumps, me.mass_lumps, **me.psf_options)
 
-        me.Hd_hmatrix = me.build_Hd_hmatrix()
+        print('Building hmatrix')
+        me.Hd_hmatrix_nonsym, me.Hdkernel_hmatrix = me.psf_object.construct_hmatrices(me.bct, **me.Hd_hmatrix_options)
+
+        me.Hd_hmatrix = me.Hd_hmatrix_nonsym.sym()
 
         me.shifted_inverse_interpolator = hpro.deflate_negative_eigs_then_make_shifted_hmatrix_inverse_interpolator(
-            me.Hd_hmatrix, me.HR_hmatrix, me.areg_min, me.areg_max, **me.shifted_inverse_interpolator_options)
+            me.Hd_hmatrix, me.HR0_hmatrix,
+            me.areg_min, me.areg_max,
+            **me.shifted_inverse_interpolator_options)
 
 
