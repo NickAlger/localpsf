@@ -8,6 +8,7 @@ from functools import cached_property
 from .assertion_helpers import *
 from .bilaplacian_regularization_lumped import BilaplacianRegularization
 from .localpsf_cg1_lumped import PSFObjectFenicsWrapper, make_psf_fenics
+from .newtoncg import newtoncg_ls
 import hlibpro_python_wrapper as hpro
 
 @dataclass
@@ -182,3 +183,134 @@ class InverseProblemPSFHessianPreconditioner:
             **me.shifted_inverse_interpolator_options)
 
 
+def nonlinear_morozov_psf(
+        IP: InverseProblemObjective,
+        noise_datanorm: float,
+        Vh: dl.FunctionSpace,
+        mass_lumps: np.ndarray,
+        bct: hpro.BlockClusterTree,
+        morozov_rtol: float = 1e-2,
+        morozov_factor: float = 5.0,
+        psf_build_iter: int = 3,
+        newton_rtol: float = 1e-6,
+        shifted_inverse_options: typ.Dict[str, typ.Any] = None,
+        psf_options: typ.Dict[str, typ.Any] = None,
+        Hd_hmatrix_options: typ.Dict[str, typ.Any] = None,
+) -> typ.Tuple[float, hpro.HMatrixShiftedInverseInterpolator, PSFObjectFenicsWrapper]:
+    shifted_inverse_options = dict() if shifted_inverse_options is None else shifted_inverse_options
+    psf_options = dict() if psf_options is None else psf_options
+    Hd_hmatrix_options = dict() if Hd_hmatrix_options is None else Hd_hmatrix_options
+
+    gradnorm_ini = np.linalg.norm(IP.gradient())
+
+    if psf_build_iter is None:
+        preconditioner_build_iters = tuple([])
+    else:
+        preconditioner_build_iters = (psf_build_iter,)
+
+    HR_hmatrix: hpro.HMatrix = IP.regularization.Cov.make_invC_hmatrix(bct, 1.0) # areg0=gamma0=1.0
+
+    psf_object: PSFObjectFenicsWrapper = None
+    HSII: hpro.HMatrixShiftedInverseInterpolator = None
+    def build_hessian_preconditioner() -> None:
+        global psf_object, HSII
+        print('building psf object')
+        psf_object = make_psf_fenics(
+            IP.apply_misfit_gauss_newton_hessian,
+            IP.apply_misfit_gauss_newton_hessian,
+            Vh, Vh, mass_lumps, mass_lumps, **psf_options)
+
+        print('Building hmatrix')
+        Hd_hmatrix_nonsym, Hdkernel_hmatrix = psf_object.construct_hmatrices(bct, **Hd_hmatrix_options)
+        Hd_hmatrix = Hd_hmatrix_nonsym.sym()
+
+        HSII = hpro.HMatrixShiftedInverseInterpolator(Hd_hmatrix, HR_hmatrix)
+
+    def solve_hessian_preconditioner(b: np.ndarray) -> np.ndarray:
+        if HSII is not None:
+            return HSII.solve_shifted_deflated_preconditioner(
+                b, IP.regularization_parameter,
+                auto_insert_mu=True, auto_deflation=True)
+        else:
+            return b
+
+    def ncg_solve() -> None:
+        print('solving optimization problem with a_reg=', IP.regularization_parameter)
+        newtoncg_ls(
+            IP.get_optimization_variable,
+            IP.set_optimization_variable,
+            IP.cost_triple,
+            IP.gradient,
+            IP.apply_hessian,
+            IP.apply_gauss_newton_hessian,
+            build_hessian_preconditioner,
+            lambda X, Y: None,
+            solve_hessian_preconditioner,
+            preconditioner_build_iters=preconditioner_build_iters,
+            rtol=newton_rtol,
+            forcing_sequence_power=1.0,
+            gradnorm_ini=gradnorm_ini)
+
+    morozov_aregs = list()
+    morozov_discrepancies = list()
+
+    def get_morozov_discrepancy():
+        ncg_solve()
+        misfit_datanorm = np.sqrt(2.0 * IP.misfit_cost())
+        print('areg=', IP.regularization_parameter,
+              ', noise_datanorm=', noise_datanorm,
+              ', misfit_datanorm=', misfit_datanorm)
+        morozov_aregs.append(IP.regularization_parameter)
+        morozov_discrepancies.append(misfit_datanorm)
+        return misfit_datanorm
+
+    print('Initial guess.')
+    misfit_datanorm = get_morozov_discrepancy()
+    if np.abs(misfit_datanorm - noise_datanorm) <= morozov_rtol * np.abs(noise_datanorm):
+        return IP.regularization_parameter, HSII, psf_object
+
+    preconditioner_build_iters = tuple([])
+
+    if noise_datanorm < misfit_datanorm:
+        print('initial a_reg too big. decreasing via geometric search')
+        while noise_datanorm < misfit_datanorm:
+            bracket_max = IP.regularization_parameter
+            misfit_max = misfit_datanorm
+            IP.update_regularization_parameter(bracket_max / morozov_factor)
+            misfit_datanorm = get_morozov_discrepancy()
+        bracket_min = IP.regularization_parameter
+        misfit_min = misfit_datanorm
+    else:
+        print('initial a_reg too small. increasing via geometric search')
+        while noise_datanorm >= misfit_datanorm:
+            bracket_min = IP.regularization_parameter
+            misfit_min = misfit_datanorm
+            IP.update_regularization_parameter(bracket_min * morozov_factor)
+            misfit_datanorm = get_morozov_discrepancy()
+        bracket_max = IP.regularization_parameter
+        misfit_max = misfit_datanorm
+
+    if np.abs(misfit_min - noise_datanorm) <= morozov_rtol * np.abs(noise_datanorm):
+        return bracket_min, HSII, psf_object
+
+    if np.abs(misfit_max - noise_datanorm) <= morozov_rtol * np.abs(noise_datanorm):
+        return bracket_max, HSII, psf_object
+
+    print('Bracketing search.')
+    bracket_mid = np.exp(0.5*(np.log(bracket_min) + np.log(bracket_min)))
+    IP.update_regularization_parameter(bracket_mid)
+    misfit_mid = get_morozov_discrepancy()
+    print('(bracket_min, bracket_mid, bracket_max)=', (bracket_min, bracket_mid, bracket_max))
+    print('(misfit_min, misfit_mid, misfit_max)=', (misfit_min, misfit_mid, misfit_max))
+    while np.abs(misfit_mid - noise_datanorm) > morozov_rtol * np.abs(noise_datanorm):
+        if misfit_mid < noise_datanorm:
+            misfit_min = misfit_mid
+        else:
+            misfit_max = misfit_mid
+        bracket_mid = np.exp(0.5 * (np.log(bracket_min) + np.log(bracket_min)))
+        IP.update_regularization_parameter(bracket_mid)
+        misfit_mid = get_morozov_discrepancy()
+        print('(bracket_min, bracket_mid, bracket_max)=', (bracket_min, bracket_mid, bracket_max))
+        print('(misfit_min, misfit_mid, misfit_max)=', (misfit_min, misfit_mid, misfit_max))
+
+    return misfit_mid
