@@ -166,12 +166,14 @@ def nonlinear_morozov_psf(
     print('(misfit_min, misfit_mid, misfit_max)=', (misfit_min, misfit_mid, misfit_max))
     while np.abs(misfit_mid - noise_datanorm) > morozov_rtol * np.abs(noise_datanorm):
         if misfit_mid < noise_datanorm:
+            bracket_min = bracket_mid
             misfit_min = misfit_mid
         else:
+            bracket_max = bracket_mid
             misfit_max = misfit_mid
         bracket_mid = np.exp(solve_linear_1d(np.log(noise_datanorm),
-                                             (np.log(bracket_min), np.log(misfit_min)),
-                                             (np.log(bracket_max), np.log(misfit_max))))
+                                             np.log(bracket_min), np.log(misfit_min),
+                                             np.log(bracket_max), np.log(misfit_max)))
         print('bracket_mid=', bracket_mid)
         IP.update_regularization_parameter(bracket_mid)
         misfit_mid = get_morozov_discrepancy()

@@ -15,10 +15,12 @@ from . import newtongmres
 from . import derivatives_at_point
 from . import bilaplacian_regularization
 from . import localpsf_cg1_lumped
+from . import stokes_mesh
+from .filesystem_helpers import localpsf_root
 # from . import deflate_negative_eigenvalues # moved to hlibpro
 # from . import path
 
-from pathlib import Path as __Path
-localpsf_root = __Path(__file__).parent.parent
+# from pathlib import Path as __Path
+# localpsf_root = __Path(__file__).parent.parent
 # def get_project_root():
 #     return __Path(__file__).parent.parent
