@@ -715,7 +715,7 @@ def make_psf_fenics(
         mass_lumps_out: np.ndarray,
         min_vol_rtol: float=1e-5,
         max_aspect_ratio: float=20.0,
-        smoothing_width_in: float=1.0,
+        smoothing_width_in: float=0.0,
         smoothing_width_out: float=0.0,
         num_initial_batches: int = 5,
         tau: float = 3.0,
