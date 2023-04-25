@@ -5,6 +5,7 @@ import scipy.sparse as sps
 from dataclasses import dataclass
 from functools import cached_property
 from collections import namedtuple
+import matplotlib.pyplot as plt
 
 from .assertion_helpers import *
 from .bilaplacian_regularization_lumped import BilaplacianRegularization
@@ -19,7 +20,6 @@ class InverseProblemObjective:
     regularization_parameter: float
 
     def __post_init__(me):
-        f5: typ.Callable[[], np.ndarray]            = me.misfit.forget_results  # forget state, adjoint, and incrementals
         f6: typ.Callable[[], np.ndarray]            = me.misfit.get_parameter # m = get_parameter()
         f7: typ.Callable[[np.ndarray], None]        = me.misfit.update_parameter # update_parameter(new_m)
         f8: typ.Callable[[], float]                 = me.misfit.misfit # Jd(m) = misfit()
@@ -121,6 +121,115 @@ class InverseProblemObjective:
 
     def apply_gauss_newton_hessian(me, p: np.ndarray) -> np.ndarray:
         return me.apply_gauss_newton_hessian_triple(p)[0]
+
+
+def finite_difference_check(
+        IP: InverseProblemObjective,
+        m0: np.ndarray,
+        dm: np.ndarray,
+        make_plots: bool=True
+) -> typ.Tuple[np.ndarray,  # ss
+               np.ndarray,  # errs_grad_d
+               np.ndarray,  # errs_hess_d
+               np.ndarray,  # errs_grad_r
+               np.ndarray,  # errs_hess_r
+               np.ndarray,  # errs_grad
+               np.ndarray]: # errs_hess
+    assert_equal(m0.shape, (IP.N,))
+    assert_equal(dm.shape, (IP.N,))
+
+    old_m = IP.get_optimization_variable().copy()
+
+    IP.set_optimization_variable(m0)
+    J0, J0_d, J0_r = IP.cost_triple()
+    g0, g0_d, g0_r = IP.gradient_triple()
+    H0dm, H0dm_d, H0dm_r = IP.apply_hessian_triple(dm)
+
+    # ss = [1e-6]
+    ss = [1e0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12]
+    errs_grad_d = []
+    errs_hess_d = []
+    errs_grad_r = []
+    errs_hess_r = []
+    errs_grad = []
+    errs_hess = []
+    for s in ss:
+        m1 = m0 + s * dm
+
+        IP.set_optimization_variable(m1)
+        J1, J1_d, J1_r = IP.cost_triple()
+        g1, g1_d, g1_r = IP.gradient_triple()
+
+        dJ_diff_d = (J1_d - J0_d) / s
+        dJ_d = np.dot(g0_d, dm)
+        err_grad_d = np.abs(dJ_diff_d - dJ_d) / np.abs(dJ_diff_d)
+        errs_grad_d.append(err_grad_d)
+
+        dJ_diff_r = (J1_r - J0_r) / s
+        dJ_r = np.dot(g0_r, dm)
+        err_grad_r = np.abs(dJ_diff_r - dJ_r) / np.abs(dJ_diff_r)
+        errs_grad_r.append(err_grad_r)
+
+        dJ_diff = (J1 - J0) / s
+        dJ = np.dot(g0, dm)
+        err_grad = np.abs(dJ_diff - dJ) / np.abs(dJ_diff)
+        errs_grad.append(err_grad)
+
+        # Hessian
+
+        dg_diff_d = (g1_d - g0_d) / s
+        err_hess_d = np.linalg.norm(dg_diff_d - H0dm_d) / np.linalg.norm(dg_diff_d)
+        errs_hess_d.append(err_hess_d)
+
+        dg_diff_r = (g1_r - g0_r) / s
+        err_hess_r = np.linalg.norm(dg_diff_r - H0dm_r) / np.linalg.norm(dg_diff_r)
+        errs_hess_r.append(err_hess_r)
+
+        dg_diff = (g1 - g0) / s
+        err_hess = np.linalg.norm(dg_diff - H0dm) / np.linalg.norm(dg_diff)
+        errs_hess.append(err_hess)
+
+        print('s=', s)
+        print('err_grad_d=', err_grad_d, ', err_grad_r=', err_grad_r, ', err_grad=', err_grad)
+        print('err_hess_d=', err_hess_d, ', err_hess_r=', err_hess_r, ', err_hess=', err_hess)
+
+    ss = np.array(ss)
+    errs_grad_d = np.array(errs_grad_d)
+    errs_hess_d = np.array(errs_hess_d)
+    errs_grad_r = np.array(errs_grad_r)
+    errs_hess_r = np.array(errs_hess_r)
+    errs_grad = np.array(errs_grad)
+    errs_hess = np.array(errs_hess)
+
+    if make_plots:
+        plt.figure()
+        plt.loglog(ss, errs_grad_d)
+        plt.loglog(ss, errs_hess_d)
+        plt.title('finite difference check for misfit')
+        plt.xlabel('step size s')
+        plt.ylabel('error')
+        plt.legend(['misfit gradient', 'misfit hessian'])
+
+        plt.figure()
+        plt.loglog(ss, errs_grad_r)
+        plt.loglog(ss, errs_hess_r)
+        plt.title('finite difference check for regularization')
+        plt.xlabel('step size s')
+        plt.ylabel('error')
+        plt.legend(['regularization gradient', 'regularization hessian'])
+
+        plt.figure()
+        plt.loglog(ss, errs_grad)
+        plt.loglog(ss, errs_hess)
+        plt.title('finite difference check for overall cost')
+        plt.xlabel('step size s')
+        plt.ylabel('error')
+        plt.legend(['gradient', 'hessian'])
+
+    IP.set_optimization_variable(old_m)
+
+    return ss, errs_grad_d, errs_hess_d, errs_grad_r, errs_hess_r, errs_grad, errs_hess
+
 
 ######## OLD BELOW HERE ########
 

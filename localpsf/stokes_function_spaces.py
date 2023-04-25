@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from functools import cached_property
 import warnings
 
+from .assertion_helpers import *
+
 
 @dataclass(frozen=True)
 class StokesFunctionSpaces:
@@ -79,19 +81,19 @@ class StokesFunctionSpaces:
         return me.Vh3_to_Wh_numpy(me.Vh2_to_Vh3_numpy(v_Vh2_numpy))
 
     def numpy2petsc_Vh2(me, v_numpy: np.ndarray) -> dl.Vector:
-        assert(v_numpy.shape == (me.Vh2.dim()))
+        assert_equal(v_numpy.shape, (me.Vh2.dim(),))
         v_petsc = dl.Function(me.Vh2).vector()
         v_petsc[:] = v_numpy.copy()
         return v_petsc
 
     def numpy2petsc_Vh3(me, v_numpy: np.ndarray) -> dl.Vector:
-        assert(v_numpy.shape == (me.Vh3.dim()))
+        assert_equal(v_numpy.shape, (me.Vh3.dim(),))
         v_petsc = dl.Function(me.Vh3).vector()
         v_petsc[:] = v_numpy.copy()
         return v_petsc
 
     def numpy2petsc_Wh(me, v_numpy: np.ndarray) -> dl.Vector:
-        assert(v_numpy.shape == (me.Wh.dim()))
+        assert_equal(v_numpy.shape, (me.Wh.dim(),))
         v_petsc = dl.Function(me.Wh).vector()
         v_petsc[:] = v_numpy.copy()
         return v_petsc

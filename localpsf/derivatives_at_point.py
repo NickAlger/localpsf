@@ -27,7 +27,7 @@ def numpy2petsc(u_numpy: np.ndarray, Vh: dl.FunctionSpace) -> dl.Vector:
 def petsc2numpy(u_petsc: dl.Vector) -> np.ndarray:
     return u_petsc[:]
 
-class StokesDerivativesAtPoint:
+class DerivativesAtPoint:
     def __init__(me,
                  misfit_form  : ufl.Form,
                  forward_form : ufl.Form,

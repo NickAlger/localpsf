@@ -1,5 +1,7 @@
 import numpy as np
+import typing as typ
 import dolfin as dl
+import ufl
 
 #### WORK IN PROGRESS DO NOT USE
 
