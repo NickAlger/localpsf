@@ -190,7 +190,7 @@ def nonlinear_morozov_psf(
         Vh: dl.FunctionSpace,
         mass_lumps: np.ndarray,
         bct: hpro.BlockClusterTree,
-        morozov_rtol: float = 1e-2,
+        morozov_rtol: float = 1e-3,
         morozov_factor: float = 5.0,
         psf_build_iter: int = 3,
         newton_rtol: float = 1e-6,
@@ -345,6 +345,7 @@ def nonlinear_morozov_psf(
         bracket_mid = np.exp(solve_linear_1d(np.log(noise_datanorm),
                                              (np.log(bracket_min), np.log(misfit_min)),
                                              (np.log(bracket_max), np.log(misfit_max))))
+        print('bracket_mid=', bracket_mid)
         IP.update_regularization_parameter(bracket_mid)
         misfit_mid = get_morozov_discrepancy()
         print('(bracket_min, bracket_mid, bracket_max)=', (bracket_min, bracket_mid, bracket_max))
