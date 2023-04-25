@@ -17,7 +17,7 @@ def nonlinear_morozov_psf(
         Vh: dl.FunctionSpace,
         mass_lumps: np.ndarray,
         bct: hpro.BlockClusterTree,
-        morozov_rtol: float = 1e-4,
+        morozov_rtol: float = 1e-3,
         morozov_factor: float = 10.0,
         psf_build_iter: int = 3,
         newton_rtol: float = 1e-6,
