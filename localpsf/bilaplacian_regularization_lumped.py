@@ -229,9 +229,9 @@ class BilaplacianRegularization:
     def N(me):
         return len(me.mu)
 
-    def draw_sample(me, gamma: float) -> np.ndarray:
-        assert_gt(gamma, 0.0)
-        return me.mu + me.Cov.apply_sqrtC_left_factor(np.random.randn(me.N), gamma)
+    def draw_sample(me, a_reg: float) -> np.ndarray:
+        assert_gt(a_reg, 0.0)
+        return me.mu + me.Cov.apply_sqrtC_left_factor(np.random.randn(me.N), me.gamma(a_reg))
 
     def cost(me, m: np.ndarray, a_reg: float) -> float:
         assert_equal(m.shape, (me.N,))

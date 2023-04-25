@@ -145,6 +145,10 @@ def finite_difference_check(
     g0, g0_d, g0_r = IP.gradient_triple()
     H0dm, H0dm_d, H0dm_r = IP.apply_hessian_triple(dm)
 
+    dJ_d = np.dot(g0_d, dm)
+    dJ_r = np.dot(g0_r, dm)
+    dJ = np.dot(g0, dm)
+
     # ss = [1e-6]
     ss = [1e0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12]
     errs_grad_d = []
@@ -161,17 +165,14 @@ def finite_difference_check(
         g1, g1_d, g1_r = IP.gradient_triple()
 
         dJ_diff_d = (J1_d - J0_d) / s
-        dJ_d = np.dot(g0_d, dm)
         err_grad_d = np.abs(dJ_diff_d - dJ_d) / np.abs(dJ_diff_d)
         errs_grad_d.append(err_grad_d)
 
         dJ_diff_r = (J1_r - J0_r) / s
-        dJ_r = np.dot(g0_r, dm)
         err_grad_r = np.abs(dJ_diff_r - dJ_r) / np.abs(dJ_diff_r)
         errs_grad_r.append(err_grad_r)
 
         dJ_diff = (J1 - J0) / s
-        dJ = np.dot(g0, dm)
         err_grad = np.abs(dJ_diff - dJ) / np.abs(dJ_diff)
         errs_grad.append(err_grad)
 
