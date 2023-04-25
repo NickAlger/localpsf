@@ -19,6 +19,7 @@ class InverseProblemObjective:
     regularization_parameter: float
 
     def __post_init__(me):
+        f5: typ.Callable[[], np.ndarray]            = me.misfit.forget_results  # forget state, adjoint, and incrementals
         f6: typ.Callable[[], np.ndarray]            = me.misfit.get_parameter # m = get_parameter()
         f7: typ.Callable[[np.ndarray], None]        = me.misfit.update_parameter # update_parameter(new_m)
         f8: typ.Callable[[], float]                 = me.misfit.misfit # Jd(m) = misfit()

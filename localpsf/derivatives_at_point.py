@@ -137,15 +137,23 @@ class StokesDerivativesAtPoint:
     def get_parameter(me) -> np.ndarray:
         return me.output_vector_transformation(petsc2numpy(me.m.vector()))
 
-    def update_parameter(me, new_m: np.ndarray) -> None:
-        me.m.vector()[:] = numpy2petsc(me.input_vector_transformation(new_m), me.Mh)
-        me.build_linearized_forward_solver()
-        me.build_adjoint_solver()
+    def forget_results(me) -> None:
         me.u_is_current = False
         me.p_is_current = False
         me.du_dm_z_is_current = False
         me.dp_dm_z_is_current = False
         me.dp_dm_z_GN_is_current = False
+
+    def update_parameter(me, new_m: np.ndarray) -> None:
+        me.m.vector()[:] = numpy2petsc(me.input_vector_transformation(new_m), me.Mh)
+        me.build_linearized_forward_solver()
+        me.build_adjoint_solver()
+        me.forget_results()
+        # me.u_is_current = False
+        # me.p_is_current = False
+        # me.du_dm_z_is_current = False
+        # me.dp_dm_z_is_current = False
+        # me.dp_dm_z_GN_is_current = False
 
     def update_z(me, new_z: np.ndarray) -> None:
         me.z.vector()[:] = numpy2petsc(me.input_vector_transformation(new_z), me.Mh)
