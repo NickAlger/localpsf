@@ -102,22 +102,46 @@ class LinearStokesInverseProblemUnregularized:
         return me.uobs.vector()[:] - me.utrue.vector()[:]
 
     def misfit_datanorm(me) -> float:
-        return np.sqrt(2.0 * me.derivatives.misfit())
+        norm1 = np.sqrt(2.0 * me.derivatives.misfit())
+        norm2 = me.dataspace_norm(me.u.vector()[:])
+        assert_le(np.abs(norm1 - norm2), 1e-8*(np.abs(norm1) + np.abs(norm2)))
+        return norm1
 
-    def noise_datanorm(me) -> float:
-        noise_Zh = dl.Function(me.function_spaces.Zh)
-        noise_Zh.vector()[:] = me.noise_Zh_numpy()
-        noise_velocity, noise_pressure = dl.split(noise_Zh)
+    def dataspace_inner_product(me, p_Zh_numpy: np.ndarray, q_Zh_numpy: np.ndarray) -> float:
+        p_Zh = dl.Function(me.function_spaces.Zh)
+        p_Zh.vector()[:] = p_Zh_numpy
+        q_Zh = dl.Function(me.function_spaces.Zh)
+        q_Zh.vector()[:] = q_Zh_numpy
+        p_velocity, p_pressure = dl.split(p_Zh)
+        q_velocity, q_pressure = dl.split(q_Zh)
 
         normal = dl.FacetNormal(me.meshes.ice_mesh_3d)
         ds = dl.Measure("ds", domain=me.meshes.ice_mesh_3d, subdomain_data=me.meshes.boundary_markers)
         ds_top = ds(2)
 
-        noise_datanorm_form = dl.inner(fenics_tangent(noise_velocity, normal),
-                                       fenics_tangent(noise_velocity, normal)) * ds_top
+        dataspace_inner_product_form = dl.inner(fenics_tangent(p_velocity, normal),
+                                                fenics_tangent(q_velocity, normal)) * ds_top
 
-        noise_datanorm = np.sqrt(dl.assemble(noise_datanorm_form))
-        return noise_datanorm
+        return dl.assemble(dataspace_inner_product_form)
+
+    def dataspace_norm(me, p_Zh_numpy: np.ndarray) -> float:
+        return np.sqrt(me.dataspace_inner_product(p_Zh_numpy, p_Zh_numpy))
+
+    def noise_datanorm(me) -> float:
+        return me.dataspace_norm(me.noise_Zh_numpy())
+        # noise_Zh = dl.Function(me.function_spaces.Zh)
+        # noise_Zh.vector()[:] = me.noise_Zh_numpy()
+        # noise_velocity, noise_pressure = dl.split(noise_Zh)
+        #
+        # normal = dl.FacetNormal(me.meshes.ice_mesh_3d)
+        # ds = dl.Measure("ds", domain=me.meshes.ice_mesh_3d, subdomain_data=me.meshes.boundary_markers)
+        # ds_top = ds(2)
+        #
+        # noise_datanorm_form = dl.inner(fenics_tangent(noise_velocity, normal),
+        #                                fenics_tangent(noise_velocity, normal)) * ds_top
+        #
+        # noise_datanorm = np.sqrt(dl.assemble(noise_datanorm_form))
+        # return noise_datanorm
 
 
 def fenics_tangent(vector_field, normal):
@@ -274,3 +298,41 @@ def load_stokes_parameter(
         raise RuntimeError('BAD mtrue_type')
 
     return m_Vh2
+
+
+def check_stokes_gauss_newton_hessian(
+        UIP: LinearStokesInverseProblemUnregularized,
+        m0_Vh2: np.ndarray,
+        dm1_Vh2: np.ndarray,
+        dm2_Vh2: np.ndarray,
+) -> float:
+    old_m = UIP.derivatives.get_parameter()
+    N = len(old_m)
+    assert_equal(m0_Vh2.shape, (N,))
+    assert_equal(dm1_Vh2.shape, (N,))
+    assert_equal(dm2_Vh2.shape, (N,))
+
+    UIP.derivatives.update_parameter(m0_Vh2)
+    UIP.derivatives.update_forward()
+
+    UIP.derivatives.update_z(dm1_Vh2)
+    UIP.derivatives.update_incremental_forward()
+    du_dm_1 = dl.Function(UIP.function_spaces.Zh)
+    du_dm_1.vector()[:] = UIP.derivatives.du_dm_z.vector()[:].copy()
+
+    UIP.derivatives.update_z(dm2_Vh2)
+    UIP.derivatives.update_incremental_forward()
+    du_dm_2 = dl.Function(UIP.function_spaces.Zh)
+    du_dm_2.vector()[:] = UIP.derivatives.du_dm_z.vector()[:].copy()
+
+    C1 = UIP.dataspace_inner_product(du_dm_1.vector(), du_dm_2.vector())
+
+    Hgn_1 = UIP.derivatives.apply_gauss_newton_hessian(dm1_Vh2)
+    C2 = np.dot(dm2_Vh2, Hgn_1)
+
+    gauss_newton_error = np.abs(C1 - C2) / np.abs(C1)
+    print('gauss_newton_error=', gauss_newton_error)
+
+    UIP.derivatives.update_parameter(old_m)
+
+    return gauss_newton_error

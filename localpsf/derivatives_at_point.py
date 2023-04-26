@@ -225,3 +225,5 @@ class DerivativesAtPoint:
         me.update_incremental_forward()
         me.update_gauss_newton_incremental_adjoint()
         return me.output_vector_transformation(petsc2numpy(dl.assemble(me.GN_misfit_hessian_action_form)))
+
+
