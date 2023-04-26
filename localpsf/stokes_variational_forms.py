@@ -346,3 +346,5 @@ class LinearStokesUniverse:
     objective: InverseProblemObjective
     mass_lumps: np.ndarray
     bct: hpro.BlockClusterTree
+    m0_Vh2_numpy: np.ndarray
+    m0_gradnorm: float
