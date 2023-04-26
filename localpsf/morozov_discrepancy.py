@@ -17,6 +17,7 @@ def nonlinear_morozov_psf(
         Vh: dl.FunctionSpace,
         mass_lumps: np.ndarray,
         bct: hpro.BlockClusterTree,
+        gradnorm_ini: float=None,
         morozov_rtol: float = 1e-3,
         morozov_factor: float = 10.0,
         psf_build_iter: int = 3,
@@ -37,7 +38,7 @@ def nonlinear_morozov_psf(
     Hd_hmatrix_options = dict() if Hd_hmatrix_options is None else Hd_hmatrix_options
     deflation_options = dict() if deflation_options is None else deflation_options
 
-    gradnorm_ini = np.linalg.norm(IP.gradient())
+    gradnorm_ini = np.linalg.norm(IP.gradient()) if gradnorm_ini is None else gradnorm_ini
 
     preconditioner_build_iters_L: typ.List[typ.Tuple[int, ...]] = [tuple([])]
     if psf_build_iter is not None:

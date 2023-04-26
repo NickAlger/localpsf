@@ -14,6 +14,7 @@ from .bilaplacian_regularization_lumped import BilaplacianRegularization, make_b
 from .inverse_problem_objective import InverseProblemObjective
 
 from nalger_helper_functions import load_image_into_fenics
+import hlibpro_python_wrapper as hpro
 
 
 @dataclass(frozen=True)
@@ -93,10 +94,11 @@ class LinearStokesInverseProblemUnregularized:
     def pressure_obs(me) -> dl.Function:
         return me.uobs.sub(1)
 
-    def update_noise(me, noise_level: float):
-        utrue_vec = me.utrue.vector()[:]
-        noise_vec = noise_level * np.random.randn(me.function_spaces.Zh.dim()) * np.abs(utrue_vec)
-        me.uobs.vector()[:] = utrue_vec + noise_vec
+    def generate_multiplicative_noise(me, noise_level: float) -> np.ndarray:
+        return noise_level * np.random.randn(me.function_spaces.Zh.dim()) * np.abs(me.utrue.vector()[:])
+
+    def update_noise(me, noise_vec: np.ndarray) -> None:
+        me.uobs.vector()[:] = me.utrue.vector()[:] + noise_vec
 
     def noise_Zh_numpy(me) -> np.ndarray:
         return me.uobs.vector()[:] - me.utrue.vector()[:]
@@ -336,3 +338,11 @@ def check_stokes_gauss_newton_hessian(
     UIP.derivatives.update_parameter(old_m)
 
     return gauss_newton_error
+
+
+@dataclass(frozen=True)
+class LinearStokesUniverse:
+    unregularized_inverse_problem: LinearStokesInverseProblemUnregularized
+    objective: InverseProblemObjective
+    mass_lumps: np.ndarray
+    bct: hpro.BlockClusterTree
