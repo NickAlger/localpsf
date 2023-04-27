@@ -261,7 +261,7 @@ class PSFHessianPreconditioner:
 
         me.psf_options = dict() if me.psf_options is None else me.psf_options
         me.Hd_hmatrix_options = dict() if me.Hd_hmatrix_options is None else me.Hd_hmatrix_options
-        me.shifted_inverse_interpolator_options = dict() if me.shifted_inverse_interpolator_options is None else me.shifted_inverse_interpolator_options
+        me.shifted_inverse_options = dict() if me.shifted_inverse_options is None else me.shifted_inverse_options
         me.deflation_options = dict() if me.deflation_options is None else me.deflation_options
 
         if me.HR_hmatrix is None:
@@ -290,13 +290,15 @@ class PSFHessianPreconditioner:
             me.shifted_inverse_interpolator.insert_new_mu(areg)
 
     def build_hessian_preconditioner(me, use_psf_now: bool=True) -> None:
-        print('building psf object')
+        if me.display:
+            print('building psf object')
         me.psf_object = make_psf_fenics(
             me.IP.apply_misfit_gauss_newton_hessian,
             me.IP.apply_misfit_gauss_newton_hessian,
             me.Vh, me.Vh, me.mass_lumps, me.mass_lumps, **me.psf_options)
 
-        print('Building hmatrix')
+        if me.display:
+            print('Building hmatrix')
         me.Hd_hmatrix_nonsym, me.Hdkernel_hmatrix = me.psf_object.construct_hmatrices(
             me.bct, **me.Hd_hmatrix_options)
         me.Hd_hmatrix = me.Hd_hmatrix_nonsym.sym()
