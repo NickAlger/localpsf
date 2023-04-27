@@ -232,8 +232,6 @@ def finite_difference_check(
     return ss, errs_grad_d, errs_hess_d, errs_grad_r, errs_hess_r, errs_grad, errs_hess
 
 
-######## OLD BELOW HERE ########
-
 @dataclass
 class PSFHessianPreconditioner:
     IP: InverseProblemObjective
