@@ -235,62 +235,79 @@ def finite_difference_check(
 ######## OLD BELOW HERE ########
 
 @dataclass
-class InverseProblemPSFHessianPreconditioner:
+class PSFHessianPreconditioner:
     IP: InverseProblemObjective
     Vh: dl.FunctionSpace
     mass_lumps: np.ndarray
     bct: hpro.BlockClusterTree
-    areg_min: float # minimum range limit for regularization parameter
-    areg_max: float # maximum range limit for regularization parameter
 
-    use_regularization_preconditioning_initially: bool=False
+    current_preconditioning_type: str='none' # current_preconditioning_type in {'none', 'reg', 'psf'}
     psf_options: typ.Dict[str, typ.Any] = None
     Hd_hmatrix_options: typ.Dict[str, typ.Any] = None
-    shifted_inverse_interpolator_options: typ.Dict[str, typ.Any] = None
+    shifted_inverse_options: typ.Dict[str, typ.Any] = None
+    deflation_options: typ.Dict[str, typ.Any] = None
+    display: bool = False
+    refactor_distance: float = 5.0
+    deflation_factor = 0.1 # Deflate until negative eigenvalues of regularization preconditioned Hessian are less than this in magnitude
 
-    psf_object: PSFObjectFenicsWrapper=None
+    psf_object: PSFObjectFenicsWrapper = None
     Hd_kernel_hmatrix: hpro.HMatrix = None
     Hd_hmatrix_nonsym: hpro.HMatrix = None
     Hd_hmatrix: hpro.HMatrix=None
+    HR_hmatrix: hpro.HMatrix=None
     shifted_inverse_interpolator: hpro.HMatrixShiftedInverseInterpolator=None
 
     def __post_init__(me):
-        assert_gt(me.areg_min, 0.0)
-        assert_ge(me.areg_max, me.areg_min)
+        assert_equal(me.mass_lumps.shape, (me.IP.N,))
+        assert(np.all(me.mass_lumps > 0.0))
+
         me.psf_options = dict() if me.psf_options is None else me.psf_options
         me.Hd_hmatrix_options = dict() if me.Hd_hmatrix_options is None else me.Hd_hmatrix_options
         me.shifted_inverse_interpolator_options = dict() if me.shifted_inverse_interpolator_options is None else me.shifted_inverse_interpolator_options
+        me.deflation_options = dict() if me.deflation_options is None else me.deflation_options
 
-    @cached_property
-    def N(me) -> int:
-        return me.IP.N
+        if me.HR_hmatrix is None:
+            me.HR_hmatrix = me.IP.regularization.Cov.make_invC_hmatrix(me.bct, 1.0)
 
-    def solve_hessian_preconditioner(me, b: np.ndarray, display=False) -> np.ndarray:
-        if me.shifted_inverse_interpolator is None:
-            if me.use_regularization_preconditioning_initially:
-                return me.IP.solve_regularization_hessian(b)
-            else:
-                return b
-        else:
+    def solve_hessian_preconditioner(me, b: np.ndarray) -> np.ndarray:
+        if me.current_preconditioning_type.lower() == 'reg':
+            return me.IP.solve_regularization_hessian(b)
+        elif me.current_preconditioning_type.lower() == 'psf':
+            me.update_deflation()
+            me.update_factorizations()
             return me.shifted_inverse_interpolator.solve_shifted_deflated_preconditioner(
-                b, me.IP.regularization_parameter, display=display)
+                b, me.IP.regularization_parameter, display=me.display)
+        else:
+            return b
 
-    @cached_property
-    def HR0_hmatrix(me) -> hpro.HMatrix:
-        return me.IP.regularization.Cov.make_invC_hmatrix(me.bct, 1.0) # areg0=gamma0=1.0
+    def update_deflation(me) -> None:
+        deflation_threshold = -me.IP.regularization_parameter * me.deflation_factor
+        if deflation_threshold > me.shifted_inverse_interpolator.spectrum_lower_bound:
+            me.shifted_inverse_interpolator.deflate_more(deflation_threshold, **me.deflation_options)
 
-    def build_hessian_preconditioner(me):
+    def update_factorizations(me):
+        areg = me.IP.regularization_parameter
+        nearest_mu_factor = me.shifted_inverse_interpolator.nearest_mu_factor(areg)
+        if nearest_mu_factor > me.refactor_distance:
+            me.shifted_inverse_interpolator.insert_new_mu(areg)
+
+    def build_hessian_preconditioner(me, use_psf_now: bool=True) -> None:
+        print('building psf object')
         me.psf_object = make_psf_fenics(
             me.IP.apply_misfit_gauss_newton_hessian,
             me.IP.apply_misfit_gauss_newton_hessian,
             me.Vh, me.Vh, me.mass_lumps, me.mass_lumps, **me.psf_options)
 
         print('Building hmatrix')
-        me.Hd_hmatrix_nonsym, me.Hdkernel_hmatrix = me.psf_object.construct_hmatrices(me.bct, **me.Hd_hmatrix_options)
-
+        me.Hd_hmatrix_nonsym, me.Hdkernel_hmatrix = me.psf_object.construct_hmatrices(
+            me.bct, **me.Hd_hmatrix_options)
         me.Hd_hmatrix = me.Hd_hmatrix_nonsym.sym()
 
-        me.shifted_inverse_interpolator = hpro.deflate_negative_eigs_then_make_shifted_hmatrix_inverse_interpolator(
-            me.Hd_hmatrix, me.HR0_hmatrix,
-            me.areg_min, me.areg_max,
-            **me.shifted_inverse_interpolator_options)
+        me.shifted_inverse_interpolator = hpro.HMatrixShiftedInverseInterpolator(
+            me.Hd_hmatrix, me.HR_hmatrix, **me.shifted_inverse_options)
+        me.shifted_inverse_interpolator.insert_new_mu(me.IP.regularization_parameter)
+        me.update_deflation()
+
+        if use_psf_now:
+            me.current_preconditioning_type = 'psf'
+
