@@ -2,6 +2,7 @@ import numpy as np
 import typing as typ
 from dataclasses import dataclass
 from functools import cached_property
+import matplotlib.pyplot as plt
 import dolfin as dl
 import ufl
 
@@ -11,7 +12,7 @@ from .stokes_mesh import StokesMeshes, make_stokes_meshes
 from .stokes_function_spaces import StokesFunctionSpaces, make_stokes_function_spaces
 from .derivatives_at_point import DerivativesAtPoint
 from .bilaplacian_regularization_lumped import BilaplacianRegularization, make_bilaplacian_covariance
-from .inverse_problem_objective import InverseProblemObjective, PSFHessianPreconditioner
+from .inverse_problem_objective import InverseProblemObjective, PSFHessianPreconditioner, finite_difference_check
 from .newtoncg import newtoncg_ls, NCGInfo
 from .morozov_discrepancy import compute_morozov_regularization_parameter
 
@@ -163,7 +164,7 @@ def stokes_inverse_problem_unregularized(
         true_parameter_options: typ.Dict[str, typ.Any]=None,
         initial_guess_options: typ.Dict[str, typ.Any]=None,
         noise_level: float=5e-2,
-):
+) -> LinearStokesInverseProblemUnregularized:
     meshes = make_stokes_meshes(mesh_type=mesh_type)
     function_spaces = make_stokes_function_spaces(
         meshes.ice_mesh_3d, meshes.basal_mesh_3d, meshes.basal_mesh_2d)
@@ -333,15 +334,12 @@ class StokesUniverse:
     unregularized_inverse_problem: LinearStokesInverseProblemUnregularized
     objective: InverseProblemObjective
     psf_preconditioner: PSFHessianPreconditioner
-
-    @cached_property
-    def regularization_parameter_initial_guess(me) -> float:
-        return 10.0 * (me.unregularized_inverse_problem.meshes.Radius ** 2)  # Simple dimensional scaling
+    areg_ini: float
+    gradnorm_ini: float
 
     def solve_inverse_problem(
             me,
             areg: float,
-            gradnorm_ini: float = None,
             newton_rtol: float = 1e-6,
             num_gn_iter: int = 5,
             forcing_sequence_power=0.5,
@@ -359,7 +357,7 @@ class StokesUniverse:
             print('newton_rtol', newton_rtol)
             print('num_gn_iter=', num_gn_iter)
             print('preconditioner_build_iters=', preconditioner_build_iters)
-            print('gradnorm_ini=', gradnorm_ini)
+            print('gradnorm_ini=', me.gradnorm_ini)
             print('----------------------------------------------------------')
         return newtoncg_ls(
             me.objective.get_optimization_variable,
@@ -375,14 +373,13 @@ class StokesUniverse:
             rtol=newton_rtol,
             forcing_sequence_power=forcing_sequence_power,
             num_gn_iter=num_gn_iter,
-            gradnorm_ini=gradnorm_ini,
+            gradnorm_ini=me.gradnorm_ini,
             callback=callback)
 
     def compute_morozov_areg(
             me,
             areg_initial_guess: float,
             display: bool=False,
-            gradnorm_ini: float=None,
             psf_build_iter: int=3,
             num_gn_first: int=5,
             num_gn_rest: int=2,
@@ -390,15 +387,13 @@ class StokesUniverse:
             morozov_factor: float = 10.0,
             newton_rtol: float=1e-6,
             forcing_sequence_power: float=1.0, # Factorizing the forward matrix is so expensive, it is worth it to do more CG iters per Newton iteration
-            ncg_callback: typ.Callable=None
+            ncg_callback: typ.Callable=None,
     ) -> typ.Tuple[float, np.ndarray, np.ndarray]:
         noise_datanorm = me.unregularized_inverse_problem.noise_datanorm()
 
         def printmaybe(*args, **kwargs):
             if display:
                 print(*args, **kwargs)
-
-        gradnorm_ini = np.linalg.norm(me.objective.gradient(areg_initial_guess)) if gradnorm_ini is None else gradnorm_ini
 
         is_first_solve_L = [True] # Put in list to make it persistent
         def compute_morozov_discrepancy(areg: float) -> float:
@@ -412,7 +407,6 @@ class StokesUniverse:
 
             me.solve_inverse_problem(
                 areg,
-                gradnorm_ini=gradnorm_ini,
                 newton_rtol=newton_rtol,
                 num_gn_iter=num_gn_iter,
                 forcing_sequence_power=forcing_sequence_power,
@@ -437,7 +431,9 @@ def make_stokes_universe(
     linear_stokes_inverse_problem_unregularized_options: typ.Dict[str, typ.Any]=None,
     relative_prior_correlation_length: float = 0.25,
     m0_constant_value: float = 1.5 * 7.,
-    display: bool = False
+    display: bool = False,
+    run_finite_difference_checks: bool = False,
+    check_gauss_newton_hessian: bool = False
 ) -> StokesUniverse:
 
     def printmaybe(*args, **kwargs):
@@ -483,4 +479,73 @@ def make_stokes_universe(
     psf_preconditioner = PSFHessianPreconditioner(
         IP.apply_misfit_gauss_newton_hessian, Vh2, mass_lumps_Vh2, HR_hmatrix, display=True)
 
-    return StokesUniverse(UIP, IP, psf_preconditioner)
+    areg_ini = 10.0 * (UIP.meshes.Radius ** 2)  # Simple dimensional scaling
+    gradnorm_ini = np.linalg.norm(IP.gradient(areg_ini))
+
+    mt = UIP.mtrue_Vh2().vector()[:]
+    def random_smooth_function_zero_center() -> dl.Function:
+        f = REG.Cov.apply_sqrtC_left_factor(np.random.randn(Vh2.dim()), 1.0)
+        f = (f - np.min(f)) / (np.max(f) - np.min(f))
+        f = f * (np.max(mt) - np.min(mt))
+        f = f - 0.5*(np.max(f) + np.min(f))
+        f_func = dl.Function(Vh2)
+        f_func.vector()[:] = f
+        return f_func
+
+    def random_smooth_function_shifted() -> dl.Function:
+        f = random_smooth_function_zero_center().vector()[:]
+        f = f + 0.5*(np.max(mt) + np.min(mt))
+        f_func = dl.Function(Vh2)
+        f_func.vector()[:] = f
+        return f_func
+
+    if run_finite_difference_checks:
+        m0_func = random_smooth_function_shifted()
+        dm_func = random_smooth_function_zero_center()
+
+        print('Running finite difference check of Stokes objective. areg_ini=', areg_ini)
+
+        plt.figure()
+        cm = dl.plot(m0_func)
+        plt.colorbar(cm)
+        plt.title('finite difference m0')
+
+        plt.figure()
+        cm = dl.plot(dm_func)
+        plt.colorbar(cm)
+        plt.title('finite difference dm')
+
+        finite_difference_check(IP,
+                                m0_func.vector()[:],
+                                dm_func.vector()[:],
+                                areg=areg_ini)
+
+    if check_gauss_newton_hessian:
+        m0_func = random_smooth_function_shifted()
+        dm1_func = random_smooth_function_zero_center()
+        dm2_func = random_smooth_function_zero_center()
+
+        print('Checking correctness of Stokes Gauss-Newton Hessian')
+        print('goal: (u(dm1), u(dm2)_datanorm = dm1.T @ Hdgn @ dm2')
+
+        plt.figure()
+        cm = dl.plot(m0_func)
+        plt.colorbar(cm)
+        plt.title('Gauss-Newton check m0')
+
+        plt.figure()
+        cm = dl.plot(dm1_func)
+        plt.colorbar(cm)
+        plt.title('Gauss-Newton check dm1')
+
+        plt.figure()
+        cm = dl.plot(dm2_func)
+        plt.colorbar(cm)
+        plt.title('Gauss-Newton check dm2')
+
+        check_stokes_gauss_newton_hessian(UIP,
+                                          m0_func.vector()[:],
+                                          dm1_func.vector()[:],
+                                          dm2_func.vector()[:])
+
+    return StokesUniverse(UIP, IP, psf_preconditioner, areg_ini, gradnorm_ini)
