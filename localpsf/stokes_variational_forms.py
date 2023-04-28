@@ -11,9 +11,11 @@ from .stokes_mesh import StokesMeshes, make_stokes_meshes
 from .stokes_function_spaces import StokesFunctionSpaces, make_stokes_function_spaces
 from .derivatives_at_point import DerivativesAtPoint
 from .bilaplacian_regularization_lumped import BilaplacianRegularization, make_bilaplacian_covariance
-from .inverse_problem_objective import InverseProblemObjective
+from .inverse_problem_objective import InverseProblemObjective, PSFHessianPreconditioner
+from .newtoncg import newtoncg_ls, NCGInfo
+from .morozov_discrepancy import compute_morozov_regularization_parameter
 
-from nalger_helper_functions import load_image_into_fenics
+from nalger_helper_functions import load_image_into_fenics, csr_fenics2scipy
 import hlibpro_python_wrapper as hpro
 
 
@@ -150,7 +152,7 @@ def fenics_tangent(vector_field, normal):
     return vector_field - dl.outer(normal, normal) * vector_field
 
 
-def linear_stokes_inverse_problem_unregularized(
+def stokes_inverse_problem_unregularized(
         mesh_type: str='fine', # mesh_type in {'coarse', 'medium', 'fine'}
         solver_type: str ='mumps', # solver_type in {'default', 'petsc', 'umfpack', 'superlu', 'mumps'}
         outflow_constant: float=1.0e6,
@@ -208,20 +210,6 @@ def linear_stokes_inverse_problem_unregularized(
     div_constraint_transpose = dl.inner(-dl.div(adjoint_velocity), pressure) * dl.dx
 
     forward_form_ff = energy_gradient + div_constraint + div_constraint_transpose  # A(u,v) + B(u,z) + B(v,p)
-
-    # dummy_u1 = dl.Function(function_spaces.Zh)
-    # dummy_u2 = dl.Function(function_spaces.Zh)
-    #
-    # dummy_velocity1, dummy_pressure1 = dl.split(dummy_u1)
-    # dummy_velocity2, dummy_pressure2 = dl.split(dummy_u2)
-    #
-    # data_inner_product_form = dl.inner(Tang(dummy_velocity1, normal),
-    #                                    Tang(dummy_velocity2, normal)) * ds_top
-    #
-    # def data_inner_product(u_petsc, v_petsc):
-    #     dummy_u1.vector()[:] = u_petsc[:]
-    #     dummy_u2.vector()[:] = v_petsc[:]
-    #     return dl.assemble(data_inner_product_form)
 
     true_velocity, true_pressure = dl.split(utrue)
     observed_velocity, observed_pressure = dl.split(uobs)
@@ -341,10 +329,158 @@ def check_stokes_gauss_newton_hessian(
 
 
 @dataclass(frozen=True)
-class LinearStokesUniverse:
+class StokesUniverse:
     unregularized_inverse_problem: LinearStokesInverseProblemUnregularized
     objective: InverseProblemObjective
-    mass_lumps: np.ndarray
-    bct: hpro.BlockClusterTree
-    m0_Vh2_numpy: np.ndarray
-    m0_gradnorm: float
+    psf_preconditioner: PSFHessianPreconditioner
+
+    @cached_property
+    def regularization_parameter_initial_guess(me) -> float:
+        return 10.0 * (me.unregularized_inverse_problem.meshes.Radius ** 2)  # Simple dimensional scaling
+
+    def solve_inverse_problem(
+            me,
+            areg: float,
+            gradnorm_ini: float = None,
+            newton_rtol: float = 1e-6,
+            num_gn_iter: int = 5,
+            forcing_sequence_power=0.5,
+            preconditioner_build_iters: typ.Tuple[int] = (3,),
+            display: bool = False,
+            callback: typ.Callable[[np.ndarray], typ.Any]=None,
+    ) -> NCGInfo:
+        assert_gt(areg, 0.0)
+        assert_gt(newton_rtol, 0.0)
+        if display:
+            print()
+            print('----------------------------------------------------------')
+            print('Solving deterministic Stokes inverse problem via Newton-CG')
+            print('areg=', areg)
+            print('newton_rtol', newton_rtol)
+            print('num_gn_iter=', num_gn_iter)
+            print('preconditioner_build_iters=', preconditioner_build_iters)
+            print('gradnorm_ini=', gradnorm_ini)
+            print('----------------------------------------------------------')
+        return newtoncg_ls(
+            me.objective.get_optimization_variable,
+            me.objective.set_optimization_variable,
+            lambda : me.objective.cost_triple(areg),
+            lambda : me.objective.gradient(areg),
+            lambda x: me.objective.apply_hessian(x, areg),
+            lambda x: me.objective.apply_gauss_newton_hessian(x, areg),
+            me.psf_preconditioner.build_hessian_preconditioner,
+            lambda X, Y: None,
+            lambda b: me.psf_preconditioner.solve_hessian_preconditioner(b, areg),
+            preconditioner_build_iters=preconditioner_build_iters,
+            rtol=newton_rtol,
+            forcing_sequence_power=forcing_sequence_power,
+            num_gn_iter=num_gn_iter,
+            gradnorm_ini=gradnorm_ini,
+            callback=callback)
+
+    def compute_morozov_areg(
+            me,
+            areg_initial_guess: float,
+            display: bool=False,
+            gradnorm_ini: float=None,
+            psf_build_iter: int=3,
+            num_gn_first: int=5,
+            num_gn_rest: int=2,
+            morozov_rtol: float = 1e-3,
+            morozov_factor: float = 10.0,
+            newton_rtol: float=1e-6,
+            forcing_sequence_power: float=1.0, # Factorizing the forward matrix is so expensive, it is worth it to do more CG iters per Newton iteration
+            ncg_callback: typ.Callable=None
+    ) -> typ.Tuple[float, np.ndarray, np.ndarray]:
+        noise_datanorm = me.unregularized_inverse_problem.noise_datanorm()
+
+        def printmaybe(*args, **kwargs):
+            if display:
+                print(*args, **kwargs)
+
+        gradnorm_ini = np.linalg.norm(me.objective.gradient(areg_initial_guess)) if gradnorm_ini is None else gradnorm_ini
+
+        is_first_solve_L = [True] # Put in list to make it persistent
+        def compute_morozov_discrepancy(areg: float) -> float:
+            if is_first_solve_L[0]:
+                preconditioner_build_iters = (psf_build_iter,)
+                num_gn_iter = num_gn_first
+                is_first_solve_L[0] = False
+            else:
+                preconditioner_build_iters = tuple()
+                num_gn_iter = num_gn_rest
+
+            me.solve_inverse_problem(
+                areg,
+                gradnorm_ini=gradnorm_ini,
+                newton_rtol=newton_rtol,
+                num_gn_iter=num_gn_iter,
+                forcing_sequence_power=forcing_sequence_power,
+                preconditioner_build_iters=preconditioner_build_iters,
+                display=display,
+                callback=ncg_callback
+            )
+            Jd = me.objective.cost_triple(areg)[1]
+            misfit_datanorm = np.sqrt(2.0 * Jd)
+            printmaybe(
+                'areg=', areg,
+                ', noise_datanorm=', noise_datanorm,
+                ', misfit_datanorm=', misfit_datanorm)
+            return misfit_datanorm
+
+        return compute_morozov_regularization_parameter(
+            areg_initial_guess, compute_morozov_discrepancy, noise_datanorm,
+            morozov_rtol=morozov_rtol, morozov_factor=morozov_factor, display=display)
+
+
+def make_stokes_universe(
+    linear_stokes_inverse_problem_unregularized_options: typ.Dict[str, typ.Any]=None,
+    relative_prior_correlation_length: float = 0.25,
+    m0_constant_value: float = 1.5 * 7.,
+    display: bool = False
+) -> StokesUniverse:
+
+    def printmaybe(*args, **kwargs):
+        if display:
+            print(*args, **kwargs)
+
+    linear_stokes_inverse_problem_unregularized_options2 = dict()
+    if linear_stokes_inverse_problem_unregularized_options is not None:
+        linear_stokes_inverse_problem_unregularized_options2.update(
+            linear_stokes_inverse_problem_unregularized_options2)
+
+    UIP = stokes_inverse_problem_unregularized(
+        **linear_stokes_inverse_problem_unregularized_options2)
+
+    prior_correlation_length = relative_prior_correlation_length * (2.0 * UIP.meshes.Radius)
+    printmaybe('prior_correlation_length=', prior_correlation_length)
+
+    Vh2 = UIP.function_spaces.Vh2
+
+    # mass_matrix_Vh2 = csr_fenics2scipy(dl.assemble(dl.TrialFunction(Vh2)*dl.TestFunction(Vh2)*dl.dx))
+    mass_lumps_Vh2 = dl.assemble(dl.Constant(1.0)*dl.TestFunction(Vh2)*dl.dx)[:]
+
+    areg0 = 10.0*(UIP.meshes.Radius**2) # initial guess
+    m_prior_mean_Vh2 = dl.Function(Vh2)
+    m_prior_mean_Vh2.vector()[:] = m0_constant_value * np.ones(Vh2.dim())
+
+    PriorCov = make_bilaplacian_covariance(
+        np.sqrt(areg0), prior_correlation_length, Vh2, mass_lumps_Vh2)
+
+    REG = BilaplacianRegularization(PriorCov, m_prior_mean_Vh2.vector()[:])
+
+    IP = InverseProblemObjective(UIP.derivatives, REG)
+
+    print('Making row and column cluster trees')
+    dof_coords = Vh2.tabulate_dof_coordinates()
+    ct = hpro.build_cluster_tree_from_pointcloud(dof_coords, cluster_size_cutoff=50)
+
+    print('Making block cluster trees')
+    bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
+
+    HR_hmatrix = REG.Cov.make_invC_hmatrix(bct, 1.0)
+
+    psf_preconditioner = PSFHessianPreconditioner(
+        IP.apply_misfit_gauss_newton_hessian, Vh2, mass_lumps_Vh2, HR_hmatrix, display=True)
+
+    return StokesUniverse(UIP, IP, psf_preconditioner)

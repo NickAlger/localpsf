@@ -3,6 +3,8 @@ import dolfin as dl
 import typing as typ
 from scipy.optimize import root_scalar
 from typing import Callable
+from dataclasses import dataclass
+from functools import cached_property
 
 from .assertion_helpers import *
 from .newtoncg import newtoncg_ls
@@ -228,115 +230,55 @@ def logarithmic_bracket_search(
     return x_mid, y_mid
 
 
-def nonlinear_morozov(
+# persistent_object_type = typ.TypeVar('persistent_object_type')
+#
+# @dataclass
+# class PersistentObject(typ.Generic[persistent_object_type]):
+#     data: persistent_object_type
+
+
+def compute_morozov_regularization_parameter(
         regularization_parameter_initial_guess: float,
-        #
-        get_optimization_variable:      typ.Callable[[], np.ndarray],
-        set_optimization_variable:      typ.Callable[[np.ndarray], None],
-        #
-        set_regularization_parameter:   typ.Callable[[float], None],
-        #
-        cost_triple:                    typ.Callable[[], typ.Tuple[float, float, float]], # J, Jd, Jr
-        gradient:                       typ.Callable[[], np.ndarray], # Gradient at current point
-        apply_hessian:                  typ.Callable[[np.ndarray], np.ndarray], # p -> H@p
-        apply_gauss_newton_hessian:     typ.Callable[[np.ndarray], np.ndarray], # p -> Hgn @ p
-        #
-        build_hessian_preconditioner:   typ.Callable[[], None],
-        solve_hessian_preconditioner:   typ.Callable[[np.ndarray], np.ndarray],
-        #
+        compute_morozov_discrepancy: typ.Callable[[float], float],
         noise_datanorm: float,
-        gradnorm_ini: float=None,
         morozov_rtol: float = 1e-3,
         morozov_factor: float = 10.0,
-        psf_build_iter: int = 3,
-        newton_rtol: float = 1e-6,
-        num_gn_first: int = 5,
-        num_gn_rest: int = 2,
         display: bool=False,
 ) -> typ.Tuple[float,       # optimal morozov regularization parmaeter
                np.ndarray,  # all regularization parameters
                np.ndarray]: # all morozov discrepancies
-    gradnorm_ini = np.linalg.norm(gradient()) if gradnorm_ini is None else gradnorm_ini
-
     def printmaybe(*args, **kwargs):
         if display:
             print(*args, **kwargs)
 
-    areg_L = [regularization_parameter_initial_guess]
-
-    def get_areg() -> float:
-        return areg_L[0]
-
-    def set_areg(new_areg: float) -> None:
-        areg_L[0] = new_areg
-        set_regularization_parameter(new_areg)
-
-    preconditioner_build_iters_L: typ.List[typ.Tuple[int, ...]] = [tuple([])]
-    if psf_build_iter is not None:
-        preconditioner_build_iters_L[0] = (psf_build_iter,)
-
-    num_gn_iter_L: typ.List[int] = [num_gn_first]
-
-    def ncg_solve() -> None:
-        num_gn_iter = num_gn_iter_L[0]
-        preconditioner_build_iters = preconditioner_build_iters_L[0]
-        printmaybe('preconditioner_build_iters=', preconditioner_build_iters)
-        printmaybe('solving optimization problem with a_reg=', get_areg())
-        newtoncg_ls(
-            get_optimization_variable,
-            set_optimization_variable,
-            cost_triple,
-            gradient,
-            apply_hessian,
-            apply_gauss_newton_hessian,
-            build_hessian_preconditioner,
-            lambda X, Y: None,
-            solve_hessian_preconditioner,
-            preconditioner_build_iters=preconditioner_build_iters,
-            rtol=newton_rtol,
-            forcing_sequence_power=1.0,
-            num_gn_iter=num_gn_iter,
-            gradnorm_ini=gradnorm_ini)
+    areg = regularization_parameter_initial_guess
 
     morozov_aregs: typ.List[float] = list()
     morozov_discrepancies: typ.List[float] = list()
 
-    def compute_morozov_discrepancy() -> float: # misfit_datanorm
-        ncg_solve()
-        Jd = cost_triple()[1]
-        misfit_datanorm = np.sqrt(2.0 * Jd)
-        areg = get_areg()
-        printmaybe(
-            'areg=', areg,
-            ', noise_datanorm=', noise_datanorm,
-            ', misfit_datanorm=', misfit_datanorm)
-        morozov_aregs.append(areg)
+    def f(a: float) -> float:
+        misfit_datanorm = compute_morozov_discrepancy(a)
+        morozov_aregs.append(a)
         morozov_discrepancies.append(misfit_datanorm)
         return misfit_datanorm
 
-    print('Initial Guess.')
-    areg = get_areg()
-    misfit_datanorm = compute_morozov_discrepancy()
+    printmaybe('Initial Guess.')
+    misfit_datanorm = f(areg)
     if np.abs(misfit_datanorm - noise_datanorm) <= morozov_rtol * np.abs(noise_datanorm):
-        return get_areg(), np.array(morozov_aregs), np.array(morozov_discrepancies)
-
-    num_gn_iter_L[0] = num_gn_rest
-    preconditioner_build_iters_L[0] = tuple([])
-
-    def f(x: float) -> float:
-        set_areg(x)
-        return compute_morozov_discrepancy()
+        return areg, np.array(morozov_aregs), np.array(morozov_discrepancies)
 
     if noise_datanorm < misfit_datanorm:
         printmaybe('Initial a_reg too big. decreasing via geometric search')
         bracket_min, misfit_min, bracket_max, misfit_max = downward_geometric_search(
-            noise_datanorm, f, areg, y0=misfit_datanorm, scaling_factor=morozov_factor, display=display)
+            noise_datanorm, f, areg,
+            y0=misfit_datanorm, scaling_factor=morozov_factor, display=display)
         areg = bracket_min
         misfit_datanorm = misfit_min
     else:
         printmaybe('Initial a_reg too small. increasing via geometric search')
         bracket_min, misfit_min, bracket_max, misfit_max = upward_geometric_search(
-            noise_datanorm, f, areg, y0=misfit_datanorm, scaling_factor=morozov_factor, display=display)
+            noise_datanorm, f, areg,
+            y0=misfit_datanorm, scaling_factor=morozov_factor, display=display)
         areg = bracket_max
         misfit_datanorm = misfit_max
 
@@ -354,20 +296,20 @@ def nonlinear_morozov(
 
 ######## OLD BELOW HERE ########
 
-def compute_morozov_regularization_parameter(solve_inverse_problem : Callable,
-                                             compute_morozov_discrepancy : Callable,
-                                             noise_level,
-                                             a_reg_min=1e-5, a_reg_max=1e0,
-                                             rtol=1e-2):
-    def f(log_a_reg):
-        u = solve_inverse_problem(np.exp(log_a_reg))
-        discrepancy = compute_morozov_discrepancy(u)
-        print('a_reg=', np.exp(log_a_reg), ', morozov discrepancy=', discrepancy, ', noise level=', noise_level)
-        log_residual = np.log(discrepancy) - np.log(noise_level)
-        return log_residual
-
-    print('Computing regularization parameter via Morozov discrepancy principle')
-    sol = root_scalar(f, bracket=[np.log(a_reg_min), np.log(a_reg_max)], rtol=rtol)
-    a_reg_morozov = np.exp(sol.root)
-    print('a_reg_morozov=', a_reg_morozov)
-    return a_reg_morozov
+# def compute_morozov_regularization_parameter(solve_inverse_problem : Callable,
+#                                              compute_morozov_discrepancy : Callable,
+#                                              noise_level,
+#                                              a_reg_min=1e-5, a_reg_max=1e0,
+#                                              rtol=1e-2):
+#     def f(log_a_reg):
+#         u = solve_inverse_problem(np.exp(log_a_reg))
+#         discrepancy = compute_morozov_discrepancy(u)
+#         print('a_reg=', np.exp(log_a_reg), ', morozov discrepancy=', discrepancy, ', noise level=', noise_level)
+#         log_residual = np.log(discrepancy) - np.log(noise_level)
+#         return log_residual
+#
+#     print('Computing regularization parameter via Morozov discrepancy principle')
+#     sol = root_scalar(f, bracket=[np.log(a_reg_min), np.log(a_reg_max)], rtol=rtol)
+#     a_reg_morozov = np.exp(sol.root)
+#     print('a_reg_morozov=', a_reg_morozov)
+#     return a_reg_morozov
