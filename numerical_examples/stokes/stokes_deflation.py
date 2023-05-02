@@ -80,14 +80,12 @@ dl.File(save_dir_str + "/ice_mountain_mesh_base2D.xml") << SU.unregularized_inve
 plt.figure()
 dl.plot(SU.unregularized_inverse_problem.meshes.basal_mesh_2d)
 plt.title('2D Basal Mesh')
-plt.show()
 plt.savefig(save_dir_str + '/2d_basal_mesh.png', dpi=fig_dpi, bbox_inches='tight')
 
 plt.figure()
 cm = dl.plot(SU.unregularized_inverse_problem.mtrue_Vh2(), cmap='gray')
 plt.colorbar(cm)
 plt.title('True parameter')
-plt.show()
 plt.savefig(save_dir_str + '/true_parameter.png', dpi=fig_dpi, bbox_inches='tight')
 
 m0_Vh2 = dl.Function(SU.unregularized_inverse_problem.function_spaces.Vh2)
@@ -97,7 +95,6 @@ plt.figure()
 cm = dl.plot(m0_Vh2, cmap='gray')
 plt.colorbar(cm)
 plt.title('Parameter initial guess')
-plt.show()
 plt.savefig(save_dir_str + '/parameter_initial_guess.png', dpi=fig_dpi, bbox_inches='tight')
 
 dl.File(save_dir_str + "/mtrue_Vh2.pvd") << SU.unregularized_inverse_problem.mtrue_Vh2()
@@ -138,7 +135,6 @@ for noise_level in all_noise_levels:
     plt.xlabel('regularization parameter')
     plt.ylabel('Morozov discrepancy')
     plt.title('noise_level=' + str(noise_level))
-    plt.show()
     plt.savefig(save_dir_str + '/morozov_'+str(noise_level)+'.png', dpi=fig_dpi, bbox_inches='tight')
 
 plt.figure()
@@ -146,7 +142,6 @@ plt.loglog(all_noise_levels, all_areg_morozov)
 plt.xlabel('noise level')
 plt.ylabel('Morozov regularization parameter')
 plt.title('Morozov regularization parameter vs. noise level')
-plt.show()
 plt.savefig(save_dir_str + '/morozov_vs_noise.png', dpi=fig_dpi, bbox_inches='tight')
 
 np.savetxt(save_dir_str + "/all_noise_vecs", np.array(all_noise_vecs))
@@ -278,7 +273,6 @@ for ii in range(len(all_noise_levels)):
     cm = dl.plot(mstar, cmap='gray')
     plt.colorbar(cm)
     plt.title('Optimal m, noise level=' + str(noise_level))
-    plt.show()
     plt.savefig(save_dir_str + '/mstar_'+str(noise_level)+'.png', dpi=fig_dpi, bbox_inches='tight')
 
     H_dense = build_dense_matrix_from_matvecs(
@@ -339,7 +333,6 @@ for ii in range(len(all_noise_levels)):
         plt.legend(legend)
     plt.ylabel('generalized eigenvalue')
     plt.title('generalized Hessian eigenvalues, noise level=' + str(noise_level))
-    plt.show()
     plt.savefig(save_dir_str + '/preconditioned_spectrum_noise'+str(noise_level)+'.png', dpi=fig_dpi, bbox_inches='tight')
 
     print('noise_level=', noise_level)
@@ -388,7 +381,6 @@ for ii in range(len(all_noise_levels)):
     plt.xlabel('Iteration')
     plt.ylabel('Relative error')
     plt.title('PCG convergence, noise level=' + str(noise_level))
-    plt.show()
     plt.savefig(save_dir_str + '/pcg_noise' + str(noise_level) + '.png', dpi=fig_dpi, bbox_inches='tight')
 
 
