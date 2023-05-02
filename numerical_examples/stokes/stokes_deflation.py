@@ -10,6 +10,9 @@ from localpsf.stokes_variational_forms import make_stokes_universe
 
 ######################    OPTIONS    ######################
 
+random_seed = 0
+np.random.seed(random_seed)
+
 all_noise_levels = list(np.logspace(np.log10(1e-2), np.log10(2.5e-1), 5)[::-1])
 print('all_noise_levels=', all_noise_levels)
 
@@ -55,8 +58,9 @@ options_string += '\n' + 'run_finite_difference_checks=' + str(run_finite_differ
 options_string += '\n' + 'check_gauss_newton_hessian=' + str(check_gauss_newton_hessian)
 options_string += '\n' + 'all_num_batches=' + str(all_num_batches)
 options_string += '\n' + 'fig_dpi=' + str(fig_dpi)
+options_string += '\n' + 'random_seed=' + str(random_seed)
 
-with open("options_used.txt", 'a') as fout:
+with open(save_dir_str + "/options_used.txt", 'a') as fout:
    fout.write(options_string)
 
 ######################    SET UP STOKES INVERSE PROBLEM    ######################
@@ -176,7 +180,7 @@ ncg_info_psf = SU.solve_inverse_problem(
     newton_rtol=newton_rtol,
     display=True)
 
-with open("ncg_convergence_psf.txt", 'a') as fout:
+with open(save_dir_str + "/ncg_convergence_psf.txt", 'a') as fout:
    fout.write(ncg_info_psf.string())
 
 
@@ -193,7 +197,7 @@ ncg_info_none = SU.solve_inverse_problem(
     newton_rtol=newton_rtol,
     display=True)
 
-with open("ncg_convergence_none.txt", 'a') as fout:
+with open(save_dir_str + "/ncg_convergence_none.txt", 'a') as fout:
    fout.write(ncg_info_none.string())
 
 
@@ -210,7 +214,7 @@ ncg_info_reg = SU.solve_inverse_problem(
     newton_rtol=newton_rtol,
     display=True)
 
-with open("ncg_convergence_reg.txt", 'a') as fout:
+with open(save_dir_str + "/ncg_convergence_reg.txt", 'a') as fout:
    fout.write(ncg_info_reg.string())
 
 
