@@ -110,7 +110,10 @@ class NCGInfo:
                 nhp += nk
         return nhp
 
-    def print(me):
+    def print(me) -> None:
+        print(me.string())
+
+    def string(me) -> str:
         ps = '\n'
         ps += '====================== Begin Newton CG convergence information ======================\n'
         ps += 'Preconditioned inexact Newton-CG with line search\n'
@@ -186,7 +189,7 @@ class NCGInfo:
         ps += 'cumulative Hessian vector products (excluding preconditioner builds) : ' + str(me.cumulative_hessian_matvecs) + '\n'
 
         ps += '======================= End Newton CG convergence information =======================\n'
-        print(ps)
+        return ps
 
 
 def newtoncg_ls(get_optimization_variable:     Callable[[],                                     vector_type],
