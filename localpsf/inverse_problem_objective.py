@@ -276,7 +276,7 @@ class PSFHessianPreconditioner:
             me.update_deflation(areg)
             me.update_factorizations(areg)
             return me.shifted_inverse_interpolator.solve_shifted_deflated_preconditioner(
-                b, areg, display=me.display)
+                b, areg)
         else:
             return b
 
