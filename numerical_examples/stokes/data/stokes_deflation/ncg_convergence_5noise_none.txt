@@ -1,0 +1,49 @@
+======================= End Newton CG convergence information =======================
+
+using Hessian
+it= 8 , preconditioner_build_iters= () , num_gn_iter= 5 , using_gauss_newton= False
+
+====================== Begin Newton CG convergence information ======================
+Preconditioned inexact Newton-CG with line search
+Hp=-g
+u <- u + alpha * p
+u: parameter, J: cost, g: gradient, H: Hessian, alpha=step size, p=search direction
+
+it=0    : u=u0         -> J -> g -> build precond (optional) -> cgsolve Hp=-g
+it=1    : linesearch u -> J -> g -> build precond (optional) -> cgsolve Hp=-g
+...
+it=last : linesearch u -> J -> g -> Done.
+
+it:      Newton iteration number
+nCG:     number of CG iterations in Newton iteration
+nJ:      number of cost function evaluations in Newton iteration
+nG:      number of gradient evaluations in Newton iteration
+nHp:     number of Hessian-vector products in Newton iteration
+GN:      True (T) if Gauss-Newton Hessian is used, False (F) if Hessian is used
+BP:      True (T) if we built or rebuilt the preconditioner, False (F) otherwise.
+cost:    cost, J = Jd + Jr
+misfit:  misfit cost, Jd
+reg:     regularization cost, Jr
+(g,p):   inner product between gradient, g, and Newton search direction, p
+||g||L2: l2 norm of gradient
+alpha:   step size
+tolcg:   relative tolerance for Hp=-g CG solve (unpreconditioned residual decrease)
+
+it nCG nJ nG nHp GN BP         cost  misfit     reg    (g,p) ||g||L2   alpha   tolcg
+ 0   1  1  1   1  T  F 2.090596e+08 2.1e+08 0.0e+00 -3.1e+08 1.9e+07    ---- 5.0e-01
+ 1   2  1  1   2  T  F 4.905232e+07 4.5e+07 3.8e+06 -7.4e+07 6.1e+06 1.0e+00 5.0e-01
+ 2   3  1  1   3  T  F 1.244993e+07 9.9e+06 2.5e+06 -1.3e+07 2.6e+06 1.0e+00 3.7e-01
+ 3  11  1  1  11  T  F 5.953699e+06 3.5e+06 2.5e+06 -3.9e+06 9.2e+05 1.0e+00 2.2e-01
+ 4  30  1  1  30  T  F 3.995003e+06 1.7e+06 2.3e+06 -3.5e+05 1.4e+05 1.0e+00 8.4e-02
+ 5  34  1  1  34  F  F 3.820967e+06 1.6e+06 2.3e+06 -9.0e+02 1.0e+04 1.0e+00 2.3e-02
+ 6  61  1  1  61  F  F 3.820518e+06 1.6e+06 2.3e+06 -7.1e-01 2.3e+02 1.0e+00 3.5e-03
+ 7  84  1  1  84  F  F 3.820517e+06 1.6e+06 2.3e+06 -5.7e-06 7.3e-01 1.0e+00 1.9e-04
+ 8   0  1  1   0  F  F 3.820517e+06 1.6e+06 2.3e+06     ---- 3.0e-02 1.0e+00    ----
+
+converged : True
+reason    : Norm of the gradient less than tolerance
+cumulative CG iterations : 226
+cumulative cost evaluations : 9
+cumulative gradient evaluations : 9
+cumulative Hessian vector products (excluding preconditioner builds) : 226
+======================= End Newton CG convergence information =======================
