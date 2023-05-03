@@ -422,5 +422,5 @@ np.savetxt(save_dir_str + "/all_cond_none", np.array(all_cond_none))
 np.savetxt(save_dir_str + "/all_cond_reg", np.array(all_cond_reg))
 
 for jj, nb in enumerate(all_num_batches):
-    np.savetxt(save_dir_str + "/all_cond_psf" + str(nb), np.array(all_cond_psf[:,jj,:]))
+    np.savetxt(save_dir_str + "/all_cond_psf" + str(nb), np.array(all_cond_psf[:,jj]))
 
