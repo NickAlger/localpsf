@@ -40,6 +40,7 @@ run_finite_difference_checks = False
 check_gauss_newton_hessian = False
 
 recompute_morozov_aregs = False
+recompute_ncg_convergence_comparison = False
 
 all_num_batches = [1, 5, 25] # number of batches used for spectral comparisons
 
@@ -62,9 +63,10 @@ options_string += '\n' + 'all_num_batches=' + str(all_num_batches)
 options_string += '\n' + 'fig_dpi=' + str(fig_dpi)
 options_string += '\n' + 'random_seed=' + str(random_seed)
 options_string += '\n' + 'recompute_morozov_aregs=' + str(recompute_morozov_aregs)
+options_string += '\n' + 'recompute_ncg_convergence_comparison=' + str(recompute_ncg_convergence_comparison)
 
-with open(save_dir_str + "/options_used.txt", 'a') as fout:
-   fout.write(options_string)
+with open(save_dir_str + "/options_used.txt", 'w') as fout:
+    fout.write(options_string)
 
 ######################    SET UP STOKES INVERSE PROBLEM    ######################
 
@@ -156,73 +158,69 @@ else:
     all_noise_levels2 = list(np.loadtxt(save_dir_str + "/all_noise_levels"))
     all_areg_morozov = list(np.loadtxt(save_dir_str + "/all_areg_morozov"))
 
-    assert(np.linalg.norm(all_noise_levels2 - all_noise_levels) < 1e-10 * np.linalg.norm(all_noise_levels))
+    assert(np.linalg.norm(np.array(all_noise_levels2) - np.array(all_noise_levels))
+           <= 1e-10 * np.linalg.norm(np.array(all_noise_levels)))
 
 
 ######################    SOLVE INVERSE PROBLEM WITH DIFFERENT PRECONDITIONERS    ######################
 
-noise_level = all_noise_levels[primary_ind]
-noise_vec = all_noise_vecs[primary_ind]
-areg_morozov = all_areg_morozov[primary_ind]
+if recompute_ncg_convergence_comparison:
+    noise_level = all_noise_levels[primary_ind]
+    noise_vec = all_noise_vecs[primary_ind]
+    areg_morozov = all_areg_morozov[primary_ind]
 
-SU.unregularized_inverse_problem.update_noise(noise_vec)
+    SU.unregularized_inverse_problem.update_noise(noise_vec)
 
-print('Solving inverse problem for noise_level=', noise_level, ', areg_morozov=', areg_morozov)
+    print('Solving inverse problem for noise_level=', noise_level, ', areg_morozov=', areg_morozov)
 
-psf_options = shared_psf_options.copy()
-psf_options['num_initial_batches'] = num_batches_ncg_table
+    psf_options = shared_psf_options.copy()
+    psf_options['num_initial_batches'] = num_batches_ncg_table
 
-SU.objective.set_optimization_variable(SU.objective.regularization.mu)
-SU.psf_preconditioner.current_preconditioning_type = 'none'
-SU.psf_preconditioner.psf_options = psf_options
+    SU.objective.set_optimization_variable(SU.objective.regularization.mu)
+    SU.psf_preconditioner.current_preconditioning_type = 'none'
+    SU.psf_preconditioner.psf_options = psf_options
 
+    # PSF preconditioning
+    ncg_info_psf = SU.solve_inverse_problem(
+        areg_morozov,
+        forcing_sequence_power=forcing_sequence_power,
+        preconditioner_build_iters=psf_preconditioner_build_iters,
+        num_gn_iter=num_gn_iter,
+        newton_rtol=newton_rtol,
+        display=True)
 
-# PSF preconditioning
+    with open(save_dir_str + "/ncg_convergence_psf.txt", 'w') as fout:
+        fout.write(ncg_info_psf.string())
 
-ncg_info_psf = SU.solve_inverse_problem(
-    areg_morozov,
-    forcing_sequence_power=forcing_sequence_power,
-    preconditioner_build_iters=psf_preconditioner_build_iters,
-    num_gn_iter=num_gn_iter,
-    newton_rtol=newton_rtol,
-    display=True)
+    # No preconditioning
+    SU.objective.set_optimization_variable(SU.objective.regularization.mu)
+    SU.psf_preconditioner.current_preconditioning_type = 'none'
 
-with open(save_dir_str + "/ncg_convergence_psf.txt", 'a') as fout:
-   fout.write(ncg_info_psf.string())
+    ncg_info_none = SU.solve_inverse_problem(
+        areg_morozov,
+        forcing_sequence_power=forcing_sequence_power,
+        preconditioner_build_iters=tuple(),
+        num_gn_iter=num_gn_iter,
+        newton_rtol=newton_rtol,
+        display=True)
 
+    with open(save_dir_str + "/ncg_convergence_none.txt", 'w') as fout:
+        fout.write(ncg_info_none.string())
 
-# No preconditioning
+    # Regularization preconditioning
+    SU.objective.set_optimization_variable(SU.objective.regularization.mu)
+    SU.psf_preconditioner.current_preconditioning_type = 'reg'
 
-SU.objective.set_optimization_variable(SU.objective.regularization.mu)
-SU.psf_preconditioner.current_preconditioning_type = 'none'
+    ncg_info_reg = SU.solve_inverse_problem(
+        areg_morozov,
+        forcing_sequence_power=forcing_sequence_power,
+        preconditioner_build_iters=tuple(),
+        num_gn_iter=num_gn_iter,
+        newton_rtol=newton_rtol,
+        display=True)
 
-ncg_info_none = SU.solve_inverse_problem(
-    areg_morozov,
-    forcing_sequence_power=forcing_sequence_power,
-    preconditioner_build_iters=tuple(),
-    num_gn_iter=num_gn_iter,
-    newton_rtol=newton_rtol,
-    display=True)
-
-with open(save_dir_str + "/ncg_convergence_none.txt", 'a') as fout:
-   fout.write(ncg_info_none.string())
-
-
-# Regularization preconditioning
-
-SU.objective.set_optimization_variable(SU.objective.regularization.mu)
-SU.psf_preconditioner.current_preconditioning_type = 'reg'
-
-ncg_info_reg = SU.solve_inverse_problem(
-    areg_morozov,
-    forcing_sequence_power=forcing_sequence_power,
-    preconditioner_build_iters=tuple(),
-    num_gn_iter=num_gn_iter,
-    newton_rtol=newton_rtol,
-    display=True)
-
-with open(save_dir_str + "/ncg_convergence_reg.txt", 'a') as fout:
-   fout.write(ncg_info_reg.string())
+    with open(save_dir_str + "/ncg_convergence_reg.txt", 'w') as fout:
+        fout.write(ncg_info_reg.string())
 
 
 ######################    SPECTRAL PLOTS, PCG CONVERGENCE, CONDITION NUMBERS    ######################
