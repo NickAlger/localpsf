@@ -39,8 +39,8 @@ num_gn_iter = 5
 run_finite_difference_checks = False
 check_gauss_newton_hessian = False
 
-recompute_morozov_aregs = False
-recompute_ncg_convergence_comparison = False
+recompute_morozov_aregs = True
+recompute_ncg_convergence_comparison = True
 
 all_num_batches = [1, 5, 25] # number of batches used for spectral comparisons
 
@@ -225,6 +225,8 @@ if recompute_ncg_convergence_comparison:
 
 ######################    SPECTRAL PLOTS, PCG CONVERGENCE, CONDITION NUMBERS    ######################
 
+print('Computing spectral plots, PCG convergence, condition numbers')
+
 num_noises = len(all_noise_levels)
 num_psfs = len(all_num_batches)
 
@@ -375,7 +377,7 @@ for ii in range(len(all_noise_levels)):
     _, _, _, errs_reg = custom_cg(H_dense, b, M=np.linalg.inv(HR_dense), x_true=x_true, tol=1e-12)
     all_errs_none.append(errs_none)
     all_errs_reg.append(errs_reg)
-    all_errs_psf.append()
+    all_errs_psf.append([])
     for jj in range(len(all_num_batches)):
         _, _, _, errs_psf = custom_cg(H_dense, b, M=all_inv_Hpsf_dense[jj], x_true=x_true, tol=1e-12)
         all_errs_psf[-1].append(errs_psf)
