@@ -39,6 +39,8 @@ num_gn_iter = 5
 run_finite_difference_checks = False
 check_gauss_newton_hessian = False
 
+recompute_morozov_aregs = False
+
 all_num_batches = [1, 5, 25] # number of batches used for spectral comparisons
 
 fig_dpi = 200
@@ -59,6 +61,7 @@ options_string += '\n' + 'check_gauss_newton_hessian=' + str(check_gauss_newton_
 options_string += '\n' + 'all_num_batches=' + str(all_num_batches)
 options_string += '\n' + 'fig_dpi=' + str(fig_dpi)
 options_string += '\n' + 'random_seed=' + str(random_seed)
+options_string += '\n' + 'recompute_morozov_aregs=' + str(recompute_morozov_aregs)
 
 with open(save_dir_str + "/options_used.txt", 'a') as fout:
    fout.write(options_string)
@@ -106,47 +109,54 @@ dl.File(save_dir_str + "/true_pressure.pvd") << SU.unregularized_inverse_problem
 
 ######################    COMPUTE MOROZOV REGULARIZATION PARAMETER FOR DIFFERENT NOISE LEVELS    ######################
 
-all_noise_vecs = []
-all_areg_morozov = []
-for noise_level in all_noise_levels:
-    noise_vec = SU.unregularized_inverse_problem.generate_multiplicative_noise(noise_level)
-    SU.unregularized_inverse_problem.update_noise(noise_vec)
-    all_noise_vecs.append(noise_vec)
+if recompute_morozov_aregs:
+    all_noise_vecs = []
+    all_areg_morozov = []
+    for noise_level in all_noise_levels:
+        noise_vec = SU.unregularized_inverse_problem.generate_multiplicative_noise(noise_level)
+        SU.unregularized_inverse_problem.update_noise(noise_vec)
+        all_noise_vecs.append(noise_vec)
 
-    noise_datanorm = SU.unregularized_inverse_problem.noise_datanorm()
-    print('noise_level=', noise_level, 'noise_datanorm=', noise_datanorm)
+        noise_datanorm = SU.unregularized_inverse_problem.noise_datanorm()
+        print('noise_level=', noise_level, 'noise_datanorm=', noise_datanorm)
 
-    if all_areg_morozov:
-        areg0 = all_areg_morozov[-1]
-    else:
-        areg0 = SU.areg_ini
+        if all_areg_morozov:
+            areg0 = all_areg_morozov[-1]
+        else:
+            areg0 = SU.areg_ini
 
-    areg_morozov, seen_aregs, seen_discrepancies = SU.compute_morozov_areg(
-        areg0, display=True)
+        areg_morozov, seen_aregs, seen_discrepancies = SU.compute_morozov_areg(
+            areg0, display=True)
 
-    all_areg_morozov.append(areg_morozov)
+        all_areg_morozov.append(areg_morozov)
 
-    print('noise_level=', noise_level, ', areg_morozov=', areg_morozov)
-    inds = np.argsort(seen_aregs)
+        print('noise_level=', noise_level, ', areg_morozov=', areg_morozov)
+        inds = np.argsort(seen_aregs)
+
+        plt.figure()
+        plt.loglog(seen_aregs[inds], seen_discrepancies[inds])
+        plt.loglog(areg_morozov, noise_datanorm, '*r')
+        plt.xlabel('regularization parameter')
+        plt.ylabel('Morozov discrepancy')
+        plt.title('noise_level=' + str(noise_level))
+        plt.savefig(save_dir_str + '/morozov_'+str(noise_level)+'.png', dpi=fig_dpi, bbox_inches='tight')
 
     plt.figure()
-    plt.loglog(seen_aregs[inds], seen_discrepancies[inds])
-    plt.loglog(areg_morozov, noise_datanorm, '*r')
-    plt.xlabel('regularization parameter')
-    plt.ylabel('Morozov discrepancy')
-    plt.title('noise_level=' + str(noise_level))
-    plt.savefig(save_dir_str + '/morozov_'+str(noise_level)+'.png', dpi=fig_dpi, bbox_inches='tight')
+    plt.loglog(all_noise_levels, all_areg_morozov)
+    plt.xlabel('noise level')
+    plt.ylabel('Morozov regularization parameter')
+    plt.title('Morozov regularization parameter vs. noise level')
+    plt.savefig(save_dir_str + '/morozov_vs_noise.png', dpi=fig_dpi, bbox_inches='tight')
 
-plt.figure()
-plt.loglog(all_noise_levels, all_areg_morozov)
-plt.xlabel('noise level')
-plt.ylabel('Morozov regularization parameter')
-plt.title('Morozov regularization parameter vs. noise level')
-plt.savefig(save_dir_str + '/morozov_vs_noise.png', dpi=fig_dpi, bbox_inches='tight')
+    np.savetxt(save_dir_str + "/all_noise_vecs", np.array(all_noise_vecs))
+    np.savetxt(save_dir_str + "/all_noise_levels", np.array(all_noise_levels))
+    np.savetxt(save_dir_str + "/all_areg_morozov", np.array(all_areg_morozov))
+else:
+    all_noise_vecs = list(np.loadtxt(save_dir_str + "/all_noise_vecs"))
+    all_noise_levels2 = list(np.loadtxt(save_dir_str + "/all_noise_levels"))
+    all_areg_morozov = list(np.loadtxt(save_dir_str + "/all_areg_morozov"))
 
-np.savetxt(save_dir_str + "/all_noise_vecs", np.array(all_noise_vecs))
-np.savetxt(save_dir_str + "/all_noise_levels", np.array(all_noise_levels))
-np.savetxt(save_dir_str + "/all_areg_morozov", np.array(all_areg_morozov))
+    assert(np.linalg.norm(all_noise_levels2 - all_noise_levels) < 1e-10 * np.linalg.norm(all_noise_levels))
 
 
 ######################    SOLVE INVERSE PROBLEM WITH DIFFERENT PRECONDITIONERS    ######################
@@ -155,7 +165,9 @@ noise_level = all_noise_levels[primary_ind]
 noise_vec = all_noise_vecs[primary_ind]
 areg_morozov = all_areg_morozov[primary_ind]
 
-print('Solving inverse problem for primary noise level')
+SU.unregularized_inverse_problem.update_noise(noise_vec)
+
+print('Solving inverse problem for noise_level=', noise_level, ', areg_morozov=', areg_morozov)
 
 psf_options = shared_psf_options.copy()
 psf_options['num_initial_batches'] = num_batches_ncg_table
@@ -220,21 +232,21 @@ num_psfs = len(all_num_batches)
 
 all_mstar = []
 
-all_ee_none     = np.zeros(num_noises, N)
-all_ee_reg      = np.zeros(num_noises, N)
-all_ee_psf      = np.zeros(num_noises, num_psfs, N)
+all_ee_none     = np.zeros((num_noises, N))
+all_ee_reg      = np.zeros((num_noises, N))
+all_ee_psf      = np.zeros((num_noises, num_psfs, N))
 
-all_ee_none_gn  = np.zeros(num_noises, N)
-all_ee_reg_gn   = np.zeros(num_noises, N)
-all_ee_psf_gn   = np.zeros(num_noises, num_psfs, N)
+all_ee_none_gn  = np.zeros((num_noises, N))
+all_ee_reg_gn   = np.zeros((num_noises, N))
+all_ee_psf_gn   = np.zeros((num_noises, num_psfs, N))
 
 all_cond_none   = np.zeros(num_noises)
 all_cond_reg    = np.zeros(num_noises)
-all_cond_psf    = np.zeros(num_noises, num_psfs)
+all_cond_psf    = np.zeros((num_noises, num_psfs))
 
 all_cond_none_gn    = np.zeros(num_noises)
 all_cond_reg_gn     = np.zeros(num_noises)
-all_cond_psf_gn     = np.zeros(num_noises, num_psfs)
+all_cond_psf_gn     = np.zeros((num_noises, num_psfs))
 
 all_errs_none = []
 all_errs_reg = []
