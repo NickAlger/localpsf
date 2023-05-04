@@ -1155,18 +1155,19 @@ Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss
 			\begingroup
 			\setlength{\tabcolsep}{4pt}
 			\renewcommand{\arraystretch}{1.25}
-			\begin{tabular}{c| c c}
-				& $\kappa(\bm{\preconditioner}^{-1} \bm{H})$ &	$\kappa(\bm{\preconditioner}^{-1} \bm{H}_{\text{gn}})$ \\
-				\hline 
-				REG        & 7.02e+3 & 7.02e+3 \\
-				NONE       & 8.71e+2 & 9.22e+2 \\
-				PSF $(1)$  & 1.75e+1 & 1.76e+1 \\
-				PSF $(5)$  & 1.39e+1 & 1.39e+1 \\
-				PSF $(25)$ & 1.03e+1 & 1.06e+1
+			\begin{tabular}{c| c c c c c}
+				noise    & \multicolumn{5}{c}{COND$(\bm{\preconditioner}^{-1} \bm{H})$ } \\ \cline{2-6}
+				level    & REG     &	NONE  & PSF $(1)$ & PSF $(5)$ & PSF $(25)$ \\ \hline 
+				$25\%$   & 1.68e+3 & 2.16e+3  & 1.37e+0   & 1.30e+0   & 1.21e+0    \\ 
+				$11\%$   & 9.19e+3 & 9.08e+2  & 1.85e+0   & 1.49e+0   & 1.27e+0    \\   
+				$5.0\%$  & 3.66e+4 & 4.67e+2  & 3.46e+0   & 2.62e+0   & 1.91e+0    \\ 
+				$2.2\%$  & 1.41e+5 & 8.25e+2  & 1.16e+1   & 4.99e+0   & 3.20e+0    \\  
+				$1.0\%$  & 6.06e+5 & 1.70e+3  & 3.44e+1   & 5.38e+1   & 7.06e+0    \\   
 			\end{tabular}
 			\endgroup
 		\end{center}
-	\caption{Condition number for $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$ for for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), no preconditioner (NONE) and regularization (REG). All operators are evaluated at the $\bm{\basalfriction}$ that solves the inverse problem for $\gamma=7.3 \times 10^3$, as determined by the Morozov discrepancy principle. \todo{COND(H) LABELS!}}
+	\caption{Condition number for $\bm{\preconditioner}^{-1} \bm{H}$ for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), no preconditioner (NONE) and regularization (REG). All operators are evaluated at the $\bm{\basalfriction}$ that solves the inverse problem for 
+	the regularization value $\gamma$ as determined by noise level by means of the Morozov discrepancy principle.}
 	\label{fig:condition_number}
 \end{figure}
 
