@@ -23,7 +23,8 @@ dl.set_log_active(False)
 from scipy.spatial import KDTree
 import scipy.sparse.linalg as spla
 import scipy.linalg as sla
-from localpsf.bilaplacian_regularization import BiLaplacianRegularization
+# from localpsf.bilaplacian_regularization import BiLaplacianRegularization
+from localpsf.bilaplacian_regularization_lumped import BilaplacianRegularization, BiLaplacianCovariance, make_bilaplacian_covariance
 from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
 import nalger_helper_functions as nhf
 
@@ -228,32 +229,63 @@ def checkerboard_function(nx, ny, Vh, smoothing_time=2e-4):
 
 ####
 
-dt = 0.1
-t_init = 0.
-obs_coords = Vh.tabulate_dof_coordinates()  # observe everywhere
-print("Number of observation points: {0}".format(obs_coords.shape[0]))
+def adv_parameter_to_observable_map(
+        m_vec: np.ndarray,
+        Vh: dl.FunctionSpace,
+        problem: TimeDependentAD,
+        misfit: SpaceTimePointwiseStateObservation,
+) -> np.ndarray:
+    assert (m_vec.shape == (Vh.dim(),))
+    m_petsc = dl.Function(Vh).vector()
+    m_petsc[:] = m_vec
+    u_star = problem.generate_vector(STATE)
+    x = [u_star, m_petsc, None]
+    problem.solveFwd(x[STATE], x)
+    new_obs_hippy = misfit.d.copy()
+    new_obs_hippy.zero()
+    misfit.observe(x, new_obs_hippy)
+    new_obs = np.array([di[:].copy() for di in new_obs_hippy.data])
+    return new_obs
 
 
-@dataclass
-class AdvInverseProblemUnregularized:
+@dataclass(frozen=True)
+class AdvUniverse:
     mesh_and_function_space: AdvMeshAndFunctionSpace
+    wind_object: AdvWind
     problem: TimeDependentAD
     misfit: SpaceTimePointwiseStateObservation
+    regularization: BilaplacianRegularization
     true_initial_condition: np.ndarray
     obs: np.ndarray
     true_obs: np.ndarray
+
+    def __post_init__(me):
+        assert(me.obs.shape == (me.num_obs_times, me.num_obs_locations))
+        assert(me.true_obs.shape == (me.num_obs_times, me.num_obs_locations))
+        assert(me.true_initial_condition.shape == (me.N,))
+        assert(me.regularization.N == me.N)
+
+    @cached_property
+    def H(me) -> ReducedHessian:
+        return ReducedHessian(me.problem, misfit_only=True)
 
     @cached_property
     def N(me) -> int:
         return me.mesh_and_function_space.Vh.dim()
 
+    @cached_property
+    def num_obs_locations(me) -> int:
+        return me.true_obs.shape[1]
+
+    @cached_property
+    def num_obs_times(me) -> int:
+        return me.true_obs.shape[0]
+
     def noise(me) -> np.ndarray:
         return me.obs - me.true_obs
 
-    def update_noise(me, new_noise: np.ndarray) -> None:
-        me.obs[:] = me.true_obs + new_noise
-
     def misfit_cost(me, m_vec: np.ndarray) -> float:
+        assert (m_vec.shape == (me.N,))
         [u, m, p] = me.problem.generate_vector()
         m[:] = m_vec.copy()
         me.problem.solveFwd(u, [u, m, p])
@@ -262,6 +294,7 @@ class AdvInverseProblemUnregularized:
         return misfit_cost
 
     def misfit_gradient(me, m_vec: np.ndarray) -> np.ndarray:
+        assert(m_vec.shape == (me.N,))
         [u, m, p] = me.problem.generate_vector()
         m[:] = m_vec.copy()
         me.problem.solveFwd(u, [u, m, p])
@@ -271,6 +304,7 @@ class AdvInverseProblemUnregularized:
         return mg[:].copy()
 
     def apply_misfit_hessian(me, x: np.ndarray) -> np.ndarray:
+        assert(x.shape == (me.N,))
         x_petsc = dl.Function(me.mesh_and_function_space.Vh).vector()
         x_petsc[:] = x.copy()
         y_petsc = dl.Function(me.mesh_and_function_space.Vh).vector()
@@ -288,155 +322,109 @@ class AdvInverseProblemUnregularized:
         ek[k] = 1.0
         return me.apply_misfit_hessian(ek / me.mesh_and_function_space.mass_lumps) / me.mesh_and_function_space.mass_lumps
 
+    def cost(me, m_vec: np.ndarray, areg: float) -> float:
+        assert(m_vec.shape == (me.N,))
+        assert(areg >= 0.0)
+        Jr = me.regularization.cost(m_vec, areg)
+        Jd = me.misfit_cost(m_vec)
+        J = Jd + Jr
+        return J
 
-    def __init__(me, kappa, t_final, gamma):
-        print('AdvectionDiffusionMisfitStuff: kappa=', kappa, ', t_final=', t_final)
-        me.kappa = kappa
-        me.t_final = t_final
-        me._gamma = gamma
+    def gradient(me, m_vec: np.ndarray, areg: float) -> np.ndarray:
+        assert(m_vec.shape == (me.N,))
+        assert(areg >= 0.0)
+        gr = me.regularization.gradient(m_vec, areg)
+        gd = me.misfit_gradient(m_vec)
+        g = gd + gr
+        assert(g.shape == (me.N,))
+        return g
 
-        me.REG = BiLaplacianRegularization(me._gamma, prior_correlation_length,
-                                           dl.Function(Vh), prior_mean_func)
+    def apply_hessian(me, x: np.ndarray, areg: float) -> np.ndarray:
+        assert(x.shape == (me.N,))
+        assert(areg >= 0.0)
+        HR_x = me.regularization.apply_hessian(x, areg)
+        Hd_x = me.apply_misfit_hessian(x)
+        H_x = Hd_x + HR_x
+        assert(H_x.shape == (me.N,))
+        return H_x
 
-        me.simulation_times = np.arange(t_init, me.t_final + .5 * dt, dt)
-        me.observation_times = np.array([me.t_final])
+    def noise_norm(me) -> float:
+        return np.linalg.norm(me.noise())
 
-        me.misfit = SpaceTimePointwiseStateObservation(Vh,
-                                                       me.observation_times,
-                                                       obs_coords)
+    def parameter_to_observable_map(me, m_vec: np.ndarray) -> np.ndarray:
+        assert(m_vec.shape == (me.N,))
+        new_obs = adv_parameter_to_observable_map(
+            m_vec,
+            me.mesh_and_function_space.Vh,
+            me.problem,
+            me.misfit)
+        assert(new_obs.shape == (me.num_obs_times, me.num_obs_locations))
+        return new_obs
 
-        fake_gamma = 1.0
-        fake_delta = 1.0
+    def compute_discrepancy_norm(me, m_vec: np.ndarray) -> float:
+        new_obs = me.parameter_to_observable_map(m_vec)
+        discrepancy = new_obs - me.obs
+        return np.linalg.norm(discrepancy)
 
-        fake_prior = BiLaplacianPrior(Vh, fake_gamma, fake_delta, robin_bc=True)
 
-        me.problem = TimeDependentAD(mesh, [Vh, Vh, Vh], fake_prior,
-                                     me.misfit, me.simulation_times,
-                                     wind_velocity, True, kappa=me.kappa)
+def make_adv_universe(
+        noise_level: float,
+        kappa: float,
+        reynolds_number: float=1e2,
+        num_mesh_refinements=2,
+        t_init = 0.0,
+        t_final: float=0.5,
+        dt: float=0.1,
+        prior_correlation_length: float=0.25,
+        num_checkers_x: int=6,
+        num_checkers_y: int=6,
+) -> AdvUniverse:
+    mesh_and_function_space = make_adv_mesh_and_function_space(num_refinements=num_mesh_refinements)
 
-        me.utrue = me.problem.generate_vector(STATE)
-        x = [me.utrue, true_initial_condition, None]
-        me.problem.solveFwd(x[STATE], x)
-        me.misfit.observe(x, me.misfit.d)
+    mesh = mesh_and_function_space.mesh
+    Vh = mesh_and_function_space.Vh
 
-        me.true_obs_numpy = me.misfit.d.data[0][:].copy()
+    Cov = make_bilaplacian_covariance(
+        1.0, prior_correlation_length, mesh_and_function_space.Vh,
+        mesh_and_function_space.mass_lumps)
 
-        MAX = me.misfit.d.norm("linf", "linf")
-        noise_std_dev = rel_noise * MAX
-        parRandom.normal_perturb(noise_std_dev, me.misfit.d)
-        me.misfit.noise_variance = noise_std_dev * noise_std_dev
+    mu = np.zeros(mesh_and_function_space.Vh.dim())
 
-        me.obs_numpy = me.misfit.d.data[0][:].copy()
+    regularization = BilaplacianRegularization(Cov, mu)
 
-        me.noise_numpy = me.true_obs_numpy - me.obs_numpy
-        me.noise_norm = np.linalg.norm(me.noise_numpy)
-        print('noise_norm=', me.noise_norm)
+    simulation_times = np.arange(t_init, t_final + .5 * dt, dt)
+    observation_times = np.array([t_final])
 
-        uf_petsc = dl.Function(Vh).vector()
-        x[0].retrieve(uf_petsc, t_final)
+    obs_coords = mesh_and_function_space.dof_coords
 
-        me.utrue_final = dl.Function(Vh)
-        me.utrue_final.vector()[:] = uf_petsc
+    misfit = SpaceTimePointwiseStateObservation(
+        mesh_and_function_space.Vh, observation_times, obs_coords)
 
-        me.H = ReducedHessian(me.problem, misfit_only=True)
+    wind_object = make_adv_wind(mesh, reynolds_number=reynolds_number)
 
-        me.apply_Hr = me.REG.apply_hessian_petsc
-        me.solve_Hr = me.REG.solve_hessian_petsc
+    fake_gamma = 1.0
+    fake_delta = 1.0
+    fake_prior = BiLaplacianPrior(mesh_and_function_space.Vh, fake_gamma, fake_delta, robin_bc=True)
 
-    @property
-    def gamma(me):
-        return me._gamma
+    problem = TimeDependentAD(
+        mesh, [Vh, Vh, Vh], fake_prior, misfit,
+        simulation_times, wind_object.velocity, True, kappa=kappa)
 
-    def update_gamma(me, new_gamma):
-        me._gamma = gamma
-        me.REG.update_gamma(new_gamma)
+    ic_func = checkerboard_function(num_checkers_x, num_checkers_y, Vh)
+    true_initial_condition = ic_func.vector()[:].copy()
 
-    def eval_misfit_objective(me, m_petsc):
-        [u, m, p] = me.problem.generate_vector()
-        m[:] = m_petsc
-        me.problem.solveFwd(u, [u, m, p])
-        me.problem.solveAdj(p, [u, m, p])
-        total_cost, reg_cost, misfit_cost = me.problem.cost([u, m, p])
-        return misfit_cost
+    true_obs = adv_parameter_to_observable_map(
+        true_initial_condition, Vh, problem, misfit)
 
-    def eval_misfit_gradient(me, m_petsc, return_gradnorm=False):
-        [u, m, p] = me.problem.generate_vector()
-        m[:] = m_petsc
-        me.problem.solveFwd(u, [u, m, p])
-        me.problem.solveAdj(p, [u, m, p])
-        mg = me.problem.generate_vector(PARAMETER)
-        grad_norm = me.problem.evalGradientParameter([u, m, p], mg, misfit_only=True)
-        if return_gradnorm:
-            return mg, grad_norm
-        else:
-            return mg
+    noise = noise_level * np.random.randn(true_obs.shape) * np.abs(true_obs)
+    obs = true_obs + noise
 
-    def apply_Hd(me, x_petsc):
-        y_petsc = dl.Function(Vh).vector()
-        me.H.mult(x_petsc, y_petsc)
-        return y_petsc
+    return AdvUniverse(
+        mesh_and_function_space, wind_object, problem, misfit, regularization,
+        true_initial_condition,obs, true_obs)
 
-    def apply_Hd_numpy(me, x_numpy):
-        x_petsc = dl.Function(Vh).vector()
-        x_petsc[:] = x_numpy
-        return me.apply_Hd(x_petsc)[:]
 
-    def eval_regularization_objective(me, m_petsc):
-        me.REG.parameter.vector()[:] = m_petsc
-        return me.REG.cost()
 
-    def eval_objective(me, m_petsc):
-        return me.eval_misfit_objective(m_petsc) + me.eval_regularization_objective(m_petsc)
-
-    def eval_regularization_gradient(me, m_petsc):
-        me.REG.parameter.vector()[:] = m_petsc
-        return me.REG.gradient_petsc()
-
-    def eval_gradient(me, m_petsc):
-        return me.eval_misfit_gradient(m_petsc) + me.eval_regularization_gradient(m_petsc)
-
-    def eval_gradient_numpy(me, m_numpy):
-        m_petsc = dl.Function(Vh).vector()
-        m_petsc[:] = m_numpy
-        return me.eval_gradient(m_petsc)[:]
-
-    def apply_H(me, x_petsc):
-        return me.apply_Hd(x_petsc) + me.apply_Hr(x_petsc)
-
-    def apply_H_numpy(me, x_numpy):
-        x_petsc = dl.Function(Vh).vector()
-        x_petsc[:] = x_numpy
-        return me.apply_H(x_petsc)[:]
-
-    def apply_Hr_numpy(me, x_numpy):
-        x_petsc = dl.Function(Vh).vector()
-        x_petsc[:] = x_numpy
-        return me.apply_Hr(x_petsc)[:]
-
-    def solve_Hr_numpy(me, x_numpy):
-        x_petsc = dl.Function(Vh).vector()
-        x_petsc[:] = x_numpy
-        return me.solve_Hr(x_petsc)[:]
-
-    def get_impulse_response(me, k: int, lumped_mass=False
-                             ) -> np.ndarray:  # impulse response at kth dof location
-        ek = np.zeros(Vh.dim())
-        ek[k] = 1.0
-        if lumped_mass:
-            return solve_ML_numpy(me.apply_Hd_numpy(solve_ML_numpy(ek)))
-        else:
-            return solve_M_numpy(me.apply_Hd_numpy(solve_M_numpy(ek)))
-
-    def compute_morozov_discrepancy(me, m_star_numpy):
-        m_star = dl.Function(Vh).vector()
-        m_star[:] = m_star_numpy
-        u_star = me.problem.generate_vector(STATE)
-        x = [u_star, m_star, None]
-        me.problem.solveFwd(x[STATE], x)
-        new_obs = me.misfit.d.copy()
-        new_obs.zero()
-        me.misfit.observe(x, new_obs)
-        return np.linalg.norm(new_obs.data[0][:] - me.obs_numpy)
 
 
 ADP = AdvectionDiffusionProblem(kappa, t_final, gamma)
