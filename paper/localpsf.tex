@@ -981,30 +981,32 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 %incremental forward and one incremental adjoint Stokes PDE of the form
 %\eqref{Stokeseqn}, but with different right hand sides.
 \begin{figure}
-	\begin{subfigure}{0.24\textwidth}
-		\includegraphics[scale=0.1]{m1_psf.png}
+	\begin{subfigure}{0.18\textwidth}
+		\includegraphics[scale=0.075]{mstar_0.25noise_cropped.png}
 		%		\caption{}
 		%		\label{fig:newtoniter1}
 	\end{subfigure}
-	\begin{subfigure}{0.24\textwidth}
-		\includegraphics[scale=0.1]{m3_psf.png}
+	\begin{subfigure}{0.18\textwidth}
+		\includegraphics[scale=0.075]{mstar_0.12noise_cropped.png}
 		%		\caption{}
 		%		\label{fig:newtoniter2}
 	\end{subfigure}
-	\begin{subfigure}{0.24\textwidth}
-		\includegraphics[scale=0.1]{m4_psf.png}
+	\begin{subfigure}{0.18\textwidth}
+		\includegraphics[scale=0.075]{mstar_0.05noise_cropped.png}
 		%		\caption{}
 		%		\label{fig:newtoniter3}
 	\end{subfigure}
-	\begin{subfigure}{0.24\textwidth}
-		\includegraphics[scale=0.1]{m6_psf.png}
+	\begin{subfigure}{0.18\textwidth}
+		\includegraphics[scale=0.075]{mstar_0.02noise_cropped.png}
 		%		\caption{}
 		%		\label{fig:newtoniter4}
 	\end{subfigure}
-	%\begin{subfigure}{0.05\textwidth}
-	%	\includegraphics[scale=0.1]{mColorBar.png}
-	%\end{subfigure}
-	\caption{The log basal sliding parameter after $1$ (left), $3$ (second from left), and $4$ (third from left) Newton iterations, and the final Newton iterate (right). The PSF (5) preconditioner is constructed between Newton iterations 3 and 4.}
+	\begin{subfigure}{0.18\textwidth}
+	\includegraphics[scale=0.075]{mstar_0.01noise_cropped.png}
+	%		\caption{}
+	%		\label{fig:newtoniter4}
+    \end{subfigure}
+	\caption{The log basal sliding parameter computed from the PDE-constrained optimization problem with noise levels: $25\%$ (left), $11\%$ (second from left), $5.0\%$ (third from left), $2.2\%$ (fourth from left), and $1.0\%$ (right). The PSF (5) preconditioner is constructed between Newton iterations 3 and 4. \todo{remove reference to newon iterates figure as this figure has a new significance}}
 	\label{fig:newton_iterates} 
 \end{figure} 
 
