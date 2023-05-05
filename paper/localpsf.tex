@@ -799,9 +799,9 @@ inverse problem cost function, respectively.
 To ensure positive definiteness of the Hessian we use
 $\bm{H}_\text{gn}$ for the first five iterations, and $\bm{H}$ for all
 subsequent iterations. The Newton iterations are terminated when
-$||\bm{g}_k||/||\bm{g}_0|| < 10^{-8}$. Systems~\eqref{eq:newton_system} are solved inexactly using an inner PCG
+$\|\bm{g}_k\|/\|\bm{g}_0\| < 10^{-8}$. Systems~\eqref{eq:newton_system} are solved inexactly using an inner PCG
 iteration, which terminates when the norm of the linear system residual is less than $\min \left(0.5,
-\sqrt{||\bm{g}_k||}\right)||\bm{g}_k||$. The advection-diffusion inverse problem is linear, so Newton's method converges in one iteration. In this case the Newton linear system,~\eqref{eq:newton_system}, is solved using PCG with a fixed tolerance which is specified in Section~\ref{sec:adv}.
+\sqrt{\|\bm{g}_k\|}\right)\|\bm{g}_k\|$. The advection-diffusion inverse problem is linear, so Newton's method converges in one iteration. In this case the Newton linear system,~\eqref{eq:newton_system}, is solved using PCG with a fixed tolerance which is specified in Section~\ref{sec:adv}.
 
 We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations, $\mathbf{A}_H$, of the data misfit Gauss-Newton Hessian (the term in $\bm{H}_\text{gn}$ that arises from the data misfit). The 
 %number of impulse response batches used to build these 
@@ -926,6 +926,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 	\begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.243]{mtrue_withColorBar.png}
 		\caption{$\basalfriction_\text{true}$.}
+		\label{fig:true_beta}
 	\end{subfigure}
 	\begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.243]{trueVelocity2_glyphs.png}
@@ -956,7 +957,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 %\end{equation}
 %The first term in the objective function is
 %\begin{equation*}
-%	J_d(\basalfriction) := \frac{1}{2}\int_{\Gamma_{t}}||\observations_\text{obs} - \tangentop\velocity||_{2}^{2}\,dS.
+%	J_d(\basalfriction) := \frac{1}{2}\int_{\Gamma_{t}}\|\observations_\text{obs} - \tangentop\velocity\|_{2}^{2}\,dS.
 %\end{equation*}
 %We call this term the data misfit, because it measures the difference between the observed data and the predicted data based on a candidate parameter $\basalfriction$. Here $\velocity = \velocity(\basalfriction)$ denotes the velocity field solving $\ref{Stokeseqn}$ for the given parameter $\basalfriction$. The second term,
 %\begin{equation*}
@@ -970,7 +971,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 %Recall that $\Omega$ is the 2D flattened version of the basal surface $\Gamma_b$. Here $\regrhs$ is a generic forcing term, and $\regrobincoeff=\sqrt{\delta \gamma}/1.42$ is a Robin boundary condition coefficient~\cite{Roininen14}, and these quantities are different from $\bodyforce$ and $\stokesrobincoeff$ in the Stokes equation,~\eqref{Stokeseqn}.
 %In all results except one, $\gamma$ is chosen so that the Morozov discrepancy principle is satisfied, i.e.,
 %\begin{equation*}
-%	\int_{\Gamma_{t}}||\observations_\text{obs} - \tangentop\velocity||_{2}^{2}\,dS = \int_{\Gamma_{t}}||\xi||_{2}^{2}\,dS.
+%	\int_{\Gamma_{t}}\|\observations_\text{obs} - \tangentop\velocity\|_{2}^{2}\,dS = \int_{\Gamma_{t}}\|\xi\|_{2}^{2}\,dS.
 %\end{equation*}
 %The value of $\gamma$ satisfying the Morozov discrepancy principle is $\gamma=7.3 \times 10^3$. The exception is Figure~\ref{fig:gamma_sweep}, where we vary $\gamma$ to study how changing $\gamma$ impacts the effectiveness of our preconditioner. The constant $\delta$ is chosen so that the correlation length of functions drawn from the normal distribution with covariance $\mathcal{K}^{-2}$, given by $L=\sqrt{\gamma/\delta}$, is $1/10$th the radius of the domain. 
 %%, which is halfway between the maximum and minimum values of $\basalfriction_\text{true}$.
@@ -1006,7 +1007,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 	%		\caption{}
 	%		\label{fig:newtoniter4}
     \end{subfigure}
-	\caption{The log basal sliding parameter computed from the PDE-constrained optimization problem with noise levels: $25\%$ (left), $11\%$ (second from left), $5.0\%$ (third from left), $2.2\%$ (fourth from left), and $1.0\%$ (right). The PSF (5) preconditioner is constructed between Newton iterations 3 and 4. \todo{remove reference to newon iterates figure as this figure has a new significance}}
+	\caption{The log basal sliding parameter, with colorscale as in Figure~\ref{fig:true_beta}, computed from the PDE-constrained optimization problem with noise levels: $25\%$ (left), $11\%$ (second from left), $5.0\%$ (middle), $2.2\%$ (second from right), and $1.0\%$ (right). \todo{remove reference to newon iterates figure as this figure has a new significance}}
 	\label{fig:newton_iterates} 
 \end{figure} 
 
@@ -1020,9 +1021,9 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 				&  \multicolumn{3}{|c|}{PSF (5)} & \multicolumn{3}{|c|}{REG} & \multicolumn{3}{|c}{NONE} \\
 				\hline
 				Iter & 
-				\#CG & \#Stokes & $||\bm{g}||$ & 
-				\#CG & \#Stokes & $||\bm{g}||$ & 
-				\#CG & \#Stokes & $||\bm{g}||$ \\
+				\#CG & \#Stokes & $\|\bm{g}\|$ & 
+				\#CG & \#Stokes & $\|\bm{g}\|$ & 
+				\#CG & \#Stokes & $\|\bm{g}\|$ \\
 				0 &
 				1 & 4 & 2.0e+7 &
 				1 & 4 & 2.0e+7 &
@@ -1068,7 +1069,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 			\endgroup
 		\end{center}
 	}
-	\caption{Convergence history for solving the Stokes inverse problem using preconditioned inexact Newton PCG. Preconditioners shown are our method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $||\bm{g}||$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. In the PSF (5) portion of row 3, we write $6+22$ to indicate that 6 Stokes solves were used during the standard course of the iteration, and 22 Stokes solves were used to build the PSF (5) preconditioner.}
+	\caption{Convergence history for solving the Stokes inverse problem using preconditioned inexact Newton PCG. Preconditioners shown are our method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $\|\bm{g}\|$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. In the PSF (5) portion of row 3, we write $6+22$ to indicate that 6 Stokes solves were used during the standard course of the iteration, and 22 Stokes solves were used to build the PSF (5) preconditioner.}
 	\label{tab:newton_convergence_table}
 \end{table}
 
@@ -1089,7 +1090,7 @@ Table~\ref{tab:newton_convergence_table} shows the performance of our preconditi
 		xtick={0, 200, 400, 600},
 		title={CG convergence},
 		xlabel={$k$, CG iteration},
-		ylabel={$||\bm{x}_k-\bm{x}_{\text{true}}||/||\bm{x}_{\text{true}}||$},
+		ylabel={$\|\bm{x}_k-\bm{x}_{\text{true}}\|/\|\bm{x}_{\text{true}}\|$},
 		legend style={at={(1.1,1)},anchor=north east},
 		%legend pos=north east,
 		legend style={font=\small}
@@ -1123,7 +1124,7 @@ Table~\ref{tab:newton_convergence_table} shows the performance of our preconditi
 		xtick={0, 300, 600, 900, 1200},
 		%legend pos=north east,
 		legend style={font=\small},
-		ylabel near ticks, %ylabel shift={-6pt},
+		ylabel near ticks, ylabel shift={-6pt},
 		axis x line*=bottom,
 		axis y line*=right,
 		%legend style={at={(0.95,1)},anchor=north east},
@@ -1144,7 +1145,7 @@ Table~\ref{tab:newton_convergence_table} shows the performance of our preconditi
 	\label{fig:generalized_eigenvalues}
     \end{subfigure}
 	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard normal distribution. The reference solution $\bm{x}_{\text{true}}$ is determined by solving $\bm{H} \bm{x} = \bm{b}$ to an accuracy of ? using method ? (\todo{include details about $\bm{x}_{\text{true}}$ here}). 
-	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle. Results in these figures are shown for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.
+	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle when using $5\%$ noise. Results in these figures are shown for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.
 	Right (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \genericvec_k = \lambda_k \bm{\preconditioner} \genericvec_k$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), or the regularization Hessian (REG).}
 	\label{fig:krylov_convergence}
 \end{figure} 
@@ -1169,7 +1170,7 @@ Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss
 			\endgroup
 		\end{center}
 	\caption{Condition number for $\bm{\preconditioner}^{-1} \bm{H}$ for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), no preconditioner (NONE) and regularization (REG). All operators are evaluated at the $\bm{\basalfriction}$ that solves the inverse problem for 
-	the regularization value $\gamma$ as determined by noise level by means of the Morozov discrepancy principle.}
+	the regularization value $\gamma$ as determined by the respective noise level and the Morozov discrepancy principle.}
 	\label{fig:condition_number}
 \end{figure}
 
@@ -1294,7 +1295,7 @@ Figure~\ref{fig:adv_inversion1}.
 		axis y line*=left,
 		xtick={0, 200, 400, 600},
 		xlabel={CG iteration},
-		ylabel={$||\bm{b}-\bm{H} \bm{x}_k||/||\bm{b}||$},
+		ylabel={$\|\bm{b}-\bm{H} \bm{x}_k\|/\|\bm{b}\|$},
 		title={CG convergence},
 		legend style={at={(1.1,1)},anchor=north east},
 		%legend pos=north east,
@@ -1329,7 +1330,7 @@ Figure~\ref{fig:adv_inversion1}.
 		%ylabel near ticks, ylabel shift={-6pt},
 		%legend pos=north east,
 		title={Regularization robustness}
-		%title={CG iterations to achieve $||H x-b||/||b||<10^{-6}$}
+		%title={CG iterations to achieve $\|H x-b\|/\|b\|<10^{-6}$}
 		]
 		%\addlegendentry{None}
 		\addplot[dash dot, line width=0.5mm] table[x=gamma, y=none] {CGitsvsGamma.dat};
@@ -1347,8 +1348,8 @@ Figure~\ref{fig:adv_inversion1}.
 		\label{fig:adv_kappa_sweep}
 	\end{subfigure}
 	\caption{Left (\ref{fig:adv_cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard normal distribution. BLAH BLAH BLAH
-		%		The y-axis is $||b-Hx_k||/||b||$, where $x_k$ is the $k$th PCG iterate. 
-		Here we use $\gamma=9999 \times 10^9$, which is determined by the Morozov discrepancy principle. Right (\ref{fig:adv_kappa_sweep}) shows the number of PCG iterations required to achieve $||\bm{b}-\bm{H} \bm{x}_k||/||\bm{b}|| < 10^{-6}$, where $\bm{x}_k$ is the $k$th PCG iterate, for a range of different $\kappa$. Results in these figures are shown for our preconditioner with 5, 15, and 30 batches (PSF (5), PSF (15), and PSF(30), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.}
+		%		The y-axis is $\|b-Hx_k\|/\|b\|$, where $x_k$ is the $k$th PCG iterate. 
+		Here we use $\gamma=9999 \times 10^9$, which is determined by the Morozov discrepancy principle. Right (\ref{fig:adv_kappa_sweep}) shows the number of PCG iterations required to achieve $\|\bm{b}-\bm{H} \bm{x}_k\|/\|\bm{b}\| < 10^{-6}$, where $\bm{x}_k$ is the $k$th PCG iterate, for a range of different $\kappa$. Results in these figures are shown for our preconditioner with 5, 15, and 30 batches (PSF (5), PSF (15), and PSF(30), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.}
 	\label{fig:adv_krylov_convergence}
 \end{figure} 
 
