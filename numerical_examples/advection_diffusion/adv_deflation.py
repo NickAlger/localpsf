@@ -33,33 +33,6 @@ from localpsf.product_convolution_kernel import ProductConvolutionKernel
 from localpsf.product_convolution_hmatrix import make_hmatrix_from_kernel
 
 
-###############################    OPTIONS    ###############################
-
-num_refinements = 2
-# kappa=5.e-5 # marginally too small
-# kappa=1e-3 # standard for hippylib. Quite smoothing
-# kappa = 3.e-4 # Good value
-# kappa = 1.e-4 # pretty small but still good
-# kappa = 2.e-3 # big but good
-kappa = 5e-4
-# kappa = 1.e-2
-
-t_final        = 0.5 #1.0
-dt             = .1 #0.05
-
-gamma = 1.
-# delta = 8.
-# gamma = 0.25
-# gamma = 0.1
-# delta = 8.
-prior_correlation_length = 0.25
-
-num_checkers_x = 6
-num_checkers_y = 6
-
-rel_noise=0.01
-
-
 ###############################    MESH AND FINITE ELEMENT SPACES    ###############################
 
 @dataclass(frozen=True)
@@ -270,8 +243,12 @@ class AdvUniverse:
         return ReducedHessian(me.problem, misfit_only=True)
 
     @cached_property
+    def Vh(me) -> dl.FunctionSpace:
+        return me.mesh_and_function_space.Vh
+
+    @cached_property
     def N(me) -> int:
-        return me.mesh_and_function_space.Vh.dim()
+        return me.Vh.dim()
 
     @cached_property
     def num_obs_locations(me) -> int:
@@ -281,6 +258,7 @@ class AdvUniverse:
     def num_obs_times(me) -> int:
         return me.true_obs.shape[0]
 
+    @cached_property
     def noise(me) -> np.ndarray:
         return me.obs - me.true_obs
 
@@ -342,14 +320,14 @@ class AdvUniverse:
     def apply_hessian(me, x: np.ndarray, areg: float) -> np.ndarray:
         assert(x.shape == (me.N,))
         assert(areg >= 0.0)
-        HR_x = me.regularization.apply_hessian(x, areg)
+        HR_x = me.regularization.apply_hessian(x, me.regularization.mu, areg)
         Hd_x = me.apply_misfit_hessian(x)
         H_x = Hd_x + HR_x
         assert(H_x.shape == (me.N,))
         return H_x
 
     def noise_norm(me) -> float:
-        return np.linalg.norm(me.noise())
+        return np.linalg.norm(me.noise)
 
     def parameter_to_observable_map(me, m_vec: np.ndarray) -> np.ndarray:
         assert(m_vec.shape == (me.N,))
@@ -368,8 +346,8 @@ class AdvUniverse:
 
 
 def make_adv_universe(
-        noise_level: float,
-        kappa: float,
+        noise_level: float, # 0.05, i.e., 5% noise, is typical
+        kappa: float, # 1e-3 is default for hippylib
         reynolds_number: float=1e2,
         num_mesh_refinements=2,
         t_init = 0.0,
@@ -400,6 +378,8 @@ def make_adv_universe(
     misfit = SpaceTimePointwiseStateObservation(
         mesh_and_function_space.Vh, observation_times, obs_coords)
 
+    misfit.noise_variance = 1.0 # Use our own noise, not hippylib's
+
     wind_object = make_adv_wind(mesh, reynolds_number=reynolds_number)
 
     fake_gamma = 1.0
@@ -416,7 +396,7 @@ def make_adv_universe(
     true_obs = adv_parameter_to_observable_map(
         true_initial_condition, Vh, problem, misfit)
 
-    noise = noise_level * np.random.randn(true_obs.shape) * np.abs(true_obs)
+    noise = noise_level * np.random.randn(*true_obs.shape) * np.abs(true_obs)
     obs = true_obs + noise
 
     return AdvUniverse(
@@ -424,45 +404,61 @@ def make_adv_universe(
         true_initial_condition,obs, true_obs)
 
 
+import scipy.sparse.linalg as spla
 
+ADV = make_adv_universe(0.05, 2e-3)
+m0 = np.zeros(ADV.N)
+areg = 1e0
+g0 = ADV.gradient(m0, areg)
 
-
-ADP = AdvectionDiffusionProblem(kappa, t_final, gamma)
-
-cmap = 'gray'  # 'binary_r' #'gist_gray' #'binary' # 'afmhot'
-
-plt.figure(figsize=(5, 5))
-cm = dl.plot(ADP.utrue_final, cmap=cmap)
-plt.axis('off')
-cm.set_clim(0.0, 1.0)
-# cm.extend = 'both'
-plt.colorbar(cm, fraction=0.046, pad=0.04)
-plt.gca().set_aspect('equal')
-plt.show()
-
-plt.set_cmap('viridis')
-
-plt.figure(figsize=(5, 5))
-p = np.array([0.25, 0.75])
-impulse_response0 = dl.Function(Vh)
-impulse_response0.vector()[:] = ADP.get_impulse_response(find_nearest_dof(p))
-cm = dl.plot(impulse_response0)
+p = np.random.rand(2)
+phi = dl.Function(ADV.Vh)
+phi.vector()[:] = ADV.get_misfit_hessian_impulse_response(p)
+plt.figure()
+cm = dl.plot(phi)
 plt.colorbar(cm)
-plt.title('impulse response near ' + str(p))
+plt.plot(p[0], p[1], '*r')
+plt.title('Impulse response')
 
+H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg))
 
-ic_func = checkerboard_function(num_checkers_x, num_checkers_y, Vh)
-true_initial_condition = ic_func.vector()
-
-utrue_initial = dl.Function(Vh)
-utrue_initial.vector()[:] = true_initial_condition
-
-cmap = 'gray' #'binary_r' #'gist_gray' #'binary' # 'afmhot'
-
-plt.figure(figsize=(5,5))
-cm = dl.plot(utrue_initial, cmap=cmap)
-plt.axis('off')
-plt.colorbar(cm,fraction=0.046, pad=0.04)
-plt.gca().set_aspect('equal')
-plt.show()
-
+#
+# ADP = AdvectionDiffusionProblem(kappa, t_final, gamma)
+#
+# cmap = 'gray'  # 'binary_r' #'gist_gray' #'binary' # 'afmhot'
+#
+# plt.figure(figsize=(5, 5))
+# cm = dl.plot(ADP.utrue_final, cmap=cmap)
+# plt.axis('off')
+# cm.set_clim(0.0, 1.0)
+# # cm.extend = 'both'
+# plt.colorbar(cm, fraction=0.046, pad=0.04)
+# plt.gca().set_aspect('equal')
+# plt.show()
+#
+# plt.set_cmap('viridis')
+#
+# plt.figure(figsize=(5, 5))
+# p = np.array([0.25, 0.75])
+# impulse_response0 = dl.Function(Vh)
+# impulse_response0.vector()[:] = ADP.get_impulse_response(find_nearest_dof(p))
+# cm = dl.plot(impulse_response0)
+# plt.colorbar(cm)
+# plt.title('impulse response near ' + str(p))
+#
+#
+# ic_func = checkerboard_function(num_checkers_x, num_checkers_y, Vh)
+# true_initial_condition = ic_func.vector()
+#
+# utrue_initial = dl.Function(Vh)
+# utrue_initial.vector()[:] = true_initial_condition
+#
+# cmap = 'gray' #'binary_r' #'gist_gray' #'binary' # 'afmhot'
+#
+# plt.figure(figsize=(5,5))
+# cm = dl.plot(utrue_initial, cmap=cmap)
+# plt.axis('off')
+# plt.colorbar(cm,fraction=0.046, pad=0.04)
+# plt.gca().set_aspect('equal')
+# plt.show()
+#
