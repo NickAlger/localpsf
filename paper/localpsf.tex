@@ -875,13 +875,13 @@ preconditioner. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $
 For this example, we consider a sheet of ice flowing down a mountain (see Figure~\ref{fig:ice_mountain_mesh}). Given observations of the tangential component of the ice velocity on the top surface of the ice, we invert for the logarithm of the unknown spatially varying basal sliding Robin coefficient field, which governs the resistance to sliding along the base of the ice sheet. %The inverse problem considered here is synthetic, but in practice surface velocity observations are available from satellites.
 %
 %
-\begin{figure}
-	\begin{center} 
-	\includegraphics[scale=0.23]{meshHeight_view2_edges.png}
-	\end{center}
-	\caption{Bird's eye view of the ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography). The radius of the domain is $10^4$ meters, the maximum height of the mountain is $2.1 \times 10^3$ meters, and the average thickness of the ice sheet is 250 meters.}
-	\label{fig:ice_mountain_mesh}
-\end{figure} 
+%\begin{figure}
+%	\begin{center} 
+%	\includegraphics[scale=0.23]{meshHeight_view2_edges.png}
+%	\end{center}
+%	\caption{Bird's eye view of the ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography). The radius of the domain is $10^4$ meters, the maximum height of the mountain is $2.1 \times 10^3$ meters, and the average thickness of the ice sheet is 250 meters.}
+%	\label{fig:ice_mountain_mesh}
+%\end{figure} 
 %
 %
 The domain that is filled with ice is denoted by
@@ -905,6 +905,8 @@ equations,
 	\stress(v, p)\normalvec+\stokesrobincoeff \velocity &=0\,\,\,\,\,\,\text{ on }\Gamma_{l}.\label{Stokeseqn:5}	
 	\end{align}
 \end{subequations}
+%
+%
 The solution to these equations is the pair $(\velocity, \pressure)$, where $\velocity$ is the ice flow velocity field, and $\pressure$ is the pressure field. Here, $\basalfriction$ is the unknown logarithmic
 basal sliding field (note that large $\basalfriction$ corresponds to high resistance to sliding) which is defined on the $2$D surface $\Gamma_b$. The quantity $\bodyforce$ is the body force density due to gravity, $\stokesrobincoeff=10^6$ is a Robin boundary condition constant,  $\normalvec$ is the outward normal and $\tangentop$ is the tangential projection operator that restricts a vector field to its tangential component along the boundary. 
 We employ Glen's flow law~\cite{Glen1955}, $\stress(v, p)= 2\eta
@@ -923,6 +925,14 @@ coefficient field and the true velocity field, which is obtained by
 solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 
 \begin{figure}
+	\begin{center} 
+    \begin{subfigure}{0.99\textwidth}
+    \begin{center} 
+	\includegraphics[scale=0.23]{meshHeight_view2_edges.png}
+	\end{center}
+	\caption{Ice sheet model geometry}
+	\label{fig:ice_mountain_mesh}
+    \end{subfigure} \\
 	\begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.243]{mtrue_withColorBar.png}
 		\caption{$\basalfriction_\text{true}$.}
@@ -932,7 +942,10 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 		\includegraphics[scale=0.243]{trueVelocity2_glyphs.png}
 		\caption{$\velocity_\text{true}$.}
 	\end{subfigure}
-	\caption{True parameter, $\basalfriction_\text{true}$, (left) and true velocity $\velocity_\text{true}$ (right). In the right plot, arrows indicate the direction of $\velocity_\text{true}$ and color indicates the magnitude of $\velocity_\text{true}$.}
+    \end{center}
+	\caption{
+		Top: bird's eye view of the ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography). The radius of the domain is $10^4$ meters, the maximum height of the mountain is $2.1 \times 10^3$ meters, and the average thickness of the ice sheet is 250 meters.		
+		True parameter, $\basalfriction_\text{true}$, (bottom left) and true velocity $\velocity_\text{true}$ (bottom right). In the bottom right plot, arrows indicate the direction of $\velocity_\text{true}$ and color indicates the magnitude of $\velocity_\text{true}$.}
 	\label{fig:true_beta_u}
 \end{figure} 
 
@@ -1025,51 +1038,51 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 				\#CG & \#Stokes & $\|\bm{g}\|$ & 
 				\#CG & \#Stokes & $\|\bm{g}\|$ \\
 				0 &
-				1 & 4 & 2.0e+7 &
-				1 & 4 & 2.0e+7 &
-				1 & 4 & 2.0e+7 \\
+				1 & 4 & 1.9e+7 &
+				3 & 8 & 1.9e+7 &
+				1 & 4 & 1.9e+7 \\
 				1 &
-				2 & 6 & 5.8e+6 &
-				2 & 6 & 7.9e+6 &
-				2 & 6 & 5.8e+6 \\
+				2 & 6  & 6.1e+6 &
+				8 & 18 & 8.4e+6 &
+				2 & 6  & 6.1e+6 \\
 				2 &
-				4 & 10 & 2.4e+6 &
-				5 & 12 & 3.9e+6 &
-				4 & 10 & 2.4e+6 \\
+				3 & 8 & 2.6e+6 &
+				16 & 34 & 4.1e+6 &
+				3 & 8 & 2.6e+6 \\
 				3 &
-				2 & 6+22 & 5.8e+5 &
-				13 & 28 & 1.6e+6 &
-				13 & 28 & 5.8e+5 \\
+				1 & 4+22 & 9.2e+5 &
+				34 & 70 & 1.7e+6 &
+				11 & 24 & 9.2e+5 \\
 				4 &
-				5 & 12 & 5.6e+4 &
-				42 & 86 & 4.8e+5 &
-				33 & 68 & 9.1e+4 \\
+				2 & 6 & 1.5e+5 &
+				54 & 110 & 5.0e+5 &
+				30 & 62 & 1.4e+5 \\
 				5 &
-				10 & 22 & 3.5e+3 &
-				84 & 170 & 7.7e+4 &
-				57 & 116 & 6.2e+3 \\
+				4 & 10 & 7.1e+3 &
+				79 & 160 & 8.0e+4 &
+				34 & 70 & 1.4e+4 \\
 				6 &
-				14 & 30 & 2.7e+1 &
-				125 & 252 & 5.0e+3 &
-				76 & 154 & 1.1e+2 \\
+				5 & 12 & 6.0e+1 &
+				112 & 226 & 5.2e+3 &
+				61 & 124 & 2.3e+2 \\
 				7 &
-				0 & 2 & 4.1e-2 &
-				194 & 390 & 7.9e+1 &
-				117 & 236 & 2.3e-1 \\
+				0 & 2 & 8.9e-2 &
+				162 & 326 & 8.0e+1 &
+				84 & 170 & 7.3e-1 \\
 				8 & 
 				--- & --- & --- &
 				0 & 2 & 1.6e-1 &
-				0 & 2 & 4.1e-2 \\
+				0 & 2 & 3.0e-2 \\
 				\hline
 				Total & 
-				38 & 114 & --- &
-				466 & 950 & --- &
-				303 & 624 & --- \\
+				18 & 74 & --- &
+				468 & 954 & --- &
+				226 & 470 & --- \\
 			\end{tabular}
 			\endgroup
 		\end{center}
 	}
-	\caption{Convergence history for solving the Stokes inverse problem using preconditioned inexact Newton PCG. Preconditioners shown are our method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $\|\bm{g}\|$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. In the PSF (5) portion of row 3, we write $6+22$ to indicate that 6 Stokes solves were used during the standard course of the iteration, and 22 Stokes solves were used to build the PSF (5) preconditioner.}
+	\caption{Convergence history for solving the Stokes inverse problem using preconditioned inexact Newton PCG. Preconditioners shown are our method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $\|\bm{g}\|$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. Under PSF (5) and in row Iter 3, we write $4+22$ to indicate that $4$ Stokes solves were used during the standard course of the iteration, and $22$ Stokes solves were used to build the PSF (5) preconditioner.}
 	\label{tab:newton_convergence_table}
 \end{table}
 
