@@ -207,6 +207,7 @@ def adv_parameter_to_observable_map(
         Vh: dl.FunctionSpace,
         problem: TimeDependentAD,
         misfit: SpaceTimePointwiseStateObservation,
+        set_obs: bool=False
 ) -> np.ndarray:
     assert (m_vec.shape == (Vh.dim(),))
     m_petsc = dl.Function(Vh).vector()
@@ -218,6 +219,8 @@ def adv_parameter_to_observable_map(
     new_obs_hippy.zero()
     misfit.observe(x, new_obs_hippy)
     new_obs = np.array([di[:].copy() for di in new_obs_hippy.data])
+    if set_obs:
+        misfit.observe(x, misfit.d)
     return new_obs
 
 
@@ -394,7 +397,7 @@ def make_adv_universe(
     true_initial_condition = ic_func.vector()[:].copy()
 
     true_obs = adv_parameter_to_observable_map(
-        true_initial_condition, Vh, problem, misfit)
+        true_initial_condition, Vh, problem, misfit, set_obs=True)
 
     noise = noise_level * np.random.randn(*true_obs.shape) * np.abs(true_obs)
     obs = true_obs + noise
@@ -407,9 +410,6 @@ def make_adv_universe(
 import scipy.sparse.linalg as spla
 
 ADV = make_adv_universe(0.05, 2e-3)
-m0 = np.zeros(ADV.N)
-areg = 1e0
-g0 = ADV.gradient(m0, areg)
 
 p = np.random.rand(2)
 phi = dl.Function(ADV.Vh)
@@ -420,7 +420,21 @@ plt.colorbar(cm)
 plt.plot(p[0], p[1], '*r')
 plt.title('Impulse response')
 
+m0 = np.zeros(ADV.N) # np.random.randn(ADV.N) # np.zeros(ADV.N)
+areg = 1e-4
+
+J0 = ADV.cost(m0, areg)
+print('J0=', J0)
+g0 = ADV.gradient(m0, areg)
+
 H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg))
+result = nhf.custom_cg(H_linop, -g0, display=True, maxiter=1000, tol=1e-4)
+
+plt.figure()
+mstar = dl.Function(ADV.Vh)
+mstar.vector()[:] = m0 + result[0]
+cm = dl.plot(mstar)
+plt.colorbar(cm)
 
 #
 # ADP = AdvectionDiffusionProblem(kappa, t_final, gamma)
