@@ -26,6 +26,7 @@ import scipy.linalg as sla
 # from localpsf.bilaplacian_regularization import BiLaplacianRegularization
 from localpsf.bilaplacian_regularization_lumped import BilaplacianRegularization, BiLaplacianCovariance, make_bilaplacian_covariance
 from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
+from localpsf.inverse_problem_objective import PSFHessianPreconditioner
 import nalger_helper_functions as nhf
 
 import hlibpro_python_wrapper as hpro
@@ -435,6 +436,93 @@ mstar = dl.Function(ADV.Vh)
 mstar.vector()[:] = m0 + result[0]
 cm = dl.plot(mstar)
 plt.colorbar(cm)
+
+#
+
+print('Making row and column cluster trees')
+ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords, cluster_size_cutoff=50)
+
+print('Making block cluster trees')
+bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
+
+HR_hmatrix = ADV.regularization.Cov.make_invC_hmatrix(bct, 1.0)
+
+psf_preconditioner = PSFHessianPreconditioner(
+    ADV.apply_misfit_hessian, ADV.Vh, ADV.mesh_and_function_space.mass_lumps,
+    HR_hmatrix, display=True)
+
+psf_preconditioner.build_hessian_preconditioner()
+
+psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg)
+psf_preconditioner.update_deflation(areg)
+
+areg = 1e-5
+P_linop = spla.LinearOperator(
+    (ADV.N, ADV.N),
+    matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg))
+H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg))
+result2 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 73 iter
+
+plt.figure()
+mstar2 = dl.Function(ADV.Vh)
+mstar2.vector()[:] = m0 + result2[0]
+cm = dl.plot(mstar2)
+plt.colorbar(cm)
+
+#
+
+psf_preconditioner.current_preconditioning_type = 'reg'
+result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 932 iter
+
+#
+
+psf_preconditioner.current_preconditioning_type = 'none'
+result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 388 iter
+
+#
+
+predicted_obs = ADV.parameter_to_observable_map(mstar2.vector()[:])
+
+discrepancy = np.linalg.norm(predicted_obs - ADV.obs)
+noise_discrepancy = np.linalg.norm(ADV.noise)
+
+print('discrepancy=', discrepancy)
+print('noise_discrepancy=', noise_discrepancy)
+
+
+# more (25) batches
+
+psf_preconditioner.psf_options['num_initial_batches'] = 25
+
+psf_preconditioner.build_hessian_preconditioner()
+
+psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg)
+psf_preconditioner.update_deflation(areg)
+
+areg = 2e-6
+P_linop = spla.LinearOperator(
+    (ADV.N, ADV.N),
+    matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg))
+H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg))
+result = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 23 iter
+
+
+mstar = dl.Function(ADV.Vh)
+mstar.vector()[:] = m0 + result[0]
+# plt.figure()
+# cm = dl.plot(mstar)
+# plt.colorbar(cm)
+
+predicted_obs = ADV.parameter_to_observable_map(mstar.vector()[:])
+
+discrepancy = np.linalg.norm(predicted_obs - ADV.obs)
+noise_discrepancy = np.linalg.norm(ADV.noise)
+
+print('areg=', areg)
+print('discrepancy=', discrepancy)
+print('noise_discrepancy=', noise_discrepancy)
+
+#
 
 #
 # ADP = AdvectionDiffusionProblem(kappa, t_final, gamma)
