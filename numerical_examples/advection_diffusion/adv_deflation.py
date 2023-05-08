@@ -203,25 +203,32 @@ def checkerboard_function(nx, ny, Vh, smoothing_time=2e-4):
 
 ####
 
+def adv_parameter_to_triple(
+        m_vec: np.ndarray,
+        Vh: dl.FunctionSpace,
+        problem: TimeDependentAD
+) -> typ.List[dl.Function]:
+    assert (m_vec.shape == (Vh.dim(),))
+    m_petsc = dl.Function(Vh).vector()
+    m_petsc[:] = m_vec
+    u_star = problem.generate_vector(0)
+    x = [u_star, m_petsc, None]
+    problem.solveFwd(x[0], x)
+    return x
+
 def adv_parameter_to_observable_map(
         m_vec: np.ndarray,
         Vh: dl.FunctionSpace,
         problem: TimeDependentAD,
         misfit: SpaceTimePointwiseStateObservation,
-        set_obs: bool=False
 ) -> np.ndarray:
     assert (m_vec.shape == (Vh.dim(),))
-    m_petsc = dl.Function(Vh).vector()
-    m_petsc[:] = m_vec
-    u_star = problem.generate_vector(STATE)
-    x = [u_star, m_petsc, None]
-    problem.solveFwd(x[STATE], x)
+    x = adv_parameter_to_triple(m_vec, Vh, problem)
+    problem.solveFwd(x[0], x)
     new_obs_hippy = misfit.d.copy()
     new_obs_hippy.zero()
     misfit.observe(x, new_obs_hippy)
     new_obs = np.array([di[:].copy() for di in new_obs_hippy.data])
-    if set_obs:
-        misfit.observe(x, misfit.d)
     return new_obs
 
 
@@ -397,20 +404,37 @@ def make_adv_universe(
     ic_func = checkerboard_function(num_checkers_x, num_checkers_y, Vh)
     true_initial_condition = ic_func.vector()[:].copy()
 
-    true_obs = adv_parameter_to_observable_map(
-        true_initial_condition, Vh, problem, misfit, set_obs=True)
+    x_true = adv_parameter_to_triple(true_initial_condition, Vh, problem)
+    problem.solveFwd(x_true[0], x_true)
+    true_obs_hippy = misfit.d.copy()
+    true_obs_hippy.zero()
+    misfit.observe(x_true, true_obs_hippy)
+    true_obs = np.array([di[:].copy() for di in true_obs_hippy.data])
 
-    noise = noise_level * np.random.randn(*true_obs.shape) * np.abs(true_obs)
-    obs = true_obs + noise
+    u_true_vec = np.array(x_true[0].data)
+    u_noise_vec = noise_level * np.random.randn(*u_true_vec.shape) * np.abs(u_true_vec)
+
+    x = [x_true[0].copy(), x_true[1].copy(), None]
+    for ii in range(len(x[0].data)):
+        x[0].data[ii][:] = u_true_vec[ii,:] + u_noise_vec[ii,:]
+    misfit.observe(x, misfit.d)
+
+    obs_hippy = misfit.d.copy()
+    obs_hippy.zero()
+    misfit.observe(x, obs_hippy)
+    obs = np.array([di[:].copy() for di in obs_hippy.data])
 
     return AdvUniverse(
         mesh_and_function_space, wind_object, problem, misfit, regularization,
-        true_initial_condition,obs, true_obs)
+        true_initial_condition, obs, true_obs)
 
 
 import scipy.sparse.linalg as spla
 
-ADV = make_adv_universe(0.05, 2e-3)
+noise_level=0.05
+kappa=1e-3
+
+ADV = make_adv_universe(noise_level, kappa)
 
 p = np.random.rand(2)
 phi = dl.Function(ADV.Vh)
@@ -456,7 +480,7 @@ psf_preconditioner.build_hessian_preconditioner()
 psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg)
 psf_preconditioner.update_deflation(areg)
 
-areg = 1e-5
+areg = 1e-4
 P_linop = spla.LinearOperator(
     (ADV.N, ADV.N),
     matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg))
@@ -499,7 +523,7 @@ psf_preconditioner.build_hessian_preconditioner()
 psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg)
 psf_preconditioner.update_deflation(areg)
 
-areg = 2e-6
+areg = 1e-5
 P_linop = spla.LinearOperator(
     (ADV.N, ADV.N),
     matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg))
@@ -509,9 +533,9 @@ result = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=
 
 mstar = dl.Function(ADV.Vh)
 mstar.vector()[:] = m0 + result[0]
-# plt.figure()
-# cm = dl.plot(mstar)
-# plt.colorbar(cm)
+plt.figure()
+cm = dl.plot(mstar)
+plt.colorbar(cm)
 
 predicted_obs = ADV.parameter_to_observable_map(mstar.vector()[:])
 
@@ -523,6 +547,13 @@ print('discrepancy=', discrepancy)
 print('noise_discrepancy=', noise_discrepancy)
 
 #
+
+plt.figure()
+obs_func = dl.Function(ADV.Vh)
+obs_func.vector()[:] = ADV.obs.reshape(-1)
+cm = dl.plot(obs_func)
+plt.colorbar(cm)
+plt.title('obs')
 
 #
 # ADP = AdvectionDiffusionProblem(kappa, t_final, gamma)
