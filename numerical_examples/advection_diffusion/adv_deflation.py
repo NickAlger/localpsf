@@ -367,6 +367,7 @@ def make_adv_universe(
         prior_correlation_length: float=0.25,
         num_checkers_x: int=6,
         num_checkers_y: int=6,
+        smoothing_time: float=1e-4,
 ) -> AdvUniverse:
     mesh_and_function_space = make_adv_mesh_and_function_space(num_refinements=num_mesh_refinements)
 
@@ -401,7 +402,7 @@ def make_adv_universe(
         mesh, [Vh, Vh, Vh], fake_prior, misfit,
         simulation_times, wind_object.velocity, True, kappa=kappa)
 
-    ic_func = checkerboard_function(num_checkers_x, num_checkers_y, Vh)
+    ic_func = checkerboard_function(num_checkers_x, num_checkers_y, Vh, smoothing_time=smoothing_time)
     true_initial_condition = ic_func.vector()[:].copy()
 
     x_true = adv_parameter_to_triple(true_initial_condition, Vh, problem)
@@ -437,6 +438,27 @@ t_final = 1.0 # 0.5
 
 ADV = make_adv_universe(noise_level, kappa, t_final)
 
+#
+
+plt.figure()
+obs_func = dl.Function(ADV.Vh)
+obs_func.vector()[:] = ADV.obs.reshape(-1)
+cm = dl.plot(obs_func, cmap='gray')
+plt.colorbar(cm)
+plt.title('obs')
+
+#
+
+
+plt.figure()
+true_ic_func = dl.Function(ADV.Vh)
+true_ic_func.vector()[:] = ADV.true_initial_condition.reshape(-1)
+cm = dl.plot(true_ic_func, cmap='gray')
+plt.colorbar(cm)
+plt.title('true initial condition')
+
+#
+
 p = np.random.rand(2)
 phi = dl.Function(ADV.Vh)
 phi.vector()[:] = ADV.get_misfit_hessian_impulse_response(p)
@@ -446,21 +468,32 @@ plt.colorbar(cm)
 plt.plot(p[0], p[1], '*r')
 plt.title('Impulse response')
 
+#
+
 m0 = np.zeros(ADV.N) # np.random.randn(ADV.N) # np.zeros(ADV.N)
-areg = 1e-4
+areg = 2e-5
 
 J0 = ADV.cost(m0, areg)
 print('J0=', J0)
 g0 = ADV.gradient(m0, areg)
 
 H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg))
-result = nhf.custom_cg(H_linop, -g0, display=True, maxiter=1000, tol=1e-4)
+result = nhf.custom_cg(H_linop, -g0, display=True, maxiter=1000, tol=1e-5)
 
 plt.figure()
 mstar = dl.Function(ADV.Vh)
 mstar.vector()[:] = m0 + result[0]
-cm = dl.plot(mstar)
+cm = dl.plot(mstar, cmap='gray')
 plt.colorbar(cm)
+plt.title('reconstruction, areg='+str(areg))
+
+predicted_obs = ADV.parameter_to_observable_map(mstar.vector()[:])
+
+discrepancy = np.linalg.norm(predicted_obs - ADV.obs)
+noise_discrepancy = np.linalg.norm(ADV.noise)
+
+print('discrepancy=', discrepancy)
+print('noise_discrepancy=', noise_discrepancy)
 
 #
 
@@ -481,7 +514,7 @@ psf_preconditioner.build_hessian_preconditioner()
 psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg)
 psf_preconditioner.update_deflation(areg)
 
-areg = 1e-4
+areg = 2e-5 # psf5: 132 iter
 P_linop = spla.LinearOperator(
     (ADV.N, ADV.N),
     matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg))
@@ -517,8 +550,8 @@ print('noise_discrepancy=', noise_discrepancy)
 
 # more (25) batches
 
-psf_preconditioner.psf_options['num_initial_batches'] = 50 # # 34 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
-# psf_preconditioner.psf_options['num_initial_batches'] = 25 # 42 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
+# psf_preconditioner.psf_options['num_initial_batches'] = 50 # # 34 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
+psf_preconditioner.psf_options['num_initial_batches'] = 25 # 42 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
 # psf_preconditioner.psf_options['num_initial_batches'] = 5 # 104 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
 # psf_preconditioner.psf_options['num_initial_batches'] = 1 # 196 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
 
@@ -527,7 +560,7 @@ psf_preconditioner.build_hessian_preconditioner()
 psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg)
 psf_preconditioner.update_deflation(areg)
 
-areg = 3.3e-5
+areg = 2e-5 #3.3e-5
 P_linop = spla.LinearOperator(
     (ADV.N, ADV.N),
     matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg))
@@ -552,28 +585,22 @@ print('noise_discrepancy=', noise_discrepancy)
 
 #
 
-plt.figure()
-obs_func = dl.Function(ADV.Vh)
-obs_func.vector()[:] = ADV.obs.reshape(-1)
-cm = dl.plot(obs_func)
-plt.colorbar(cm)
-plt.title('obs')
-
-#
-
 psf_preconditioner.current_preconditioning_type = 'reg'
 result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 623 iter
+# sharper image, 2e-5 areg: 830 iter
 
 #
 
 psf_preconditioner.current_preconditioning_type = 'none'
 result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 562 iter
+# sharper image, 2e-5 areg: 525 iter
 
 #
 
 psf_preconditioner.current_preconditioning_type = 'psf'
 result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) #196 psf1 # 104 psf5 # 48 iter, PSF25
-
+# sharper image, 2e-5 areg: 132 iter psf5
+# sharper image, 2e-5 areg: 54 iter psf25
 
 #
 # ADP = AdvectionDiffusionProblem(kappa, t_final, gamma)
