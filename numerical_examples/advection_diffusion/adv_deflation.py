@@ -192,6 +192,7 @@ def checkerboard_function(nx, ny, Vh, smoothing_time=2e-4):
     sy = ''
     for y in yy[1:-1]:
         sy += '(2*(x[1] > ' + str(y) + ')-1)*'
+    # s = '1.0 - (' + sx + sy + '0.5 + 0.5)'
     s = sx + sy + '0.5 + 0.5'
     checker_expr = dl.Expression(s, element=Vh.ufl_element())
 
@@ -454,7 +455,7 @@ def make_adv_universe(
 
 import scipy.sparse.linalg as spla
 
-noise_level=0.05
+noise_level = 0.1 # 0.05
 kappa=1e-4 # 1e-3
 t_final = 1.0 #2.0 # 1.0 # 0.5
 num_checkers = 8
@@ -492,7 +493,7 @@ plt.title('Impulse response')
 #
 
 m0 = np.zeros(ADV.N) # np.random.randn(ADV.N) # np.zeros(ADV.N)
-areg = 1e-5
+areg = 3e-5
 
 J0 = ADV.cost(m0, areg)
 print('J0=', J0)
@@ -535,12 +536,12 @@ psf_preconditioner.build_hessian_preconditioner()
 psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg)
 psf_preconditioner.update_deflation(areg)
 
-areg = 2e-5 # psf5: 132 iter
+# areg = 1e-5 #2e-5 # psf5: 132 iter
 P_linop = spla.LinearOperator(
     (ADV.N, ADV.N),
     matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg))
 H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg))
-result2 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 73 iter
+result2 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=2000, tol=1e-8) # 73 iter
 
 plt.figure()
 mstar2 = dl.Function(ADV.Vh)
@@ -551,12 +552,12 @@ plt.colorbar(cm)
 #
 
 psf_preconditioner.current_preconditioning_type = 'reg'
-result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 932 iter
+result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=2000, tol=1e-8) # 932 iter
 
 #
 
 psf_preconditioner.current_preconditioning_type = 'none'
-result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 388 iter
+result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=2000, tol=1e-8) # 388 iter
 
 #
 
@@ -581,7 +582,7 @@ psf_preconditioner.build_hessian_preconditioner()
 psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg)
 psf_preconditioner.update_deflation(areg)
 
-areg = 2e-5 #3.3e-5
+areg = 3e-5 #3.3e-5
 P_linop = spla.LinearOperator(
     (ADV.N, ADV.N),
     matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg))
@@ -592,7 +593,7 @@ result = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=
 mstar = dl.Function(ADV.Vh)
 mstar.vector()[:] = m0 + result[0]
 plt.figure()
-cm = dl.plot(mstar)
+cm = dl.plot(mstar, cmap='gray')
 plt.colorbar(cm)
 
 predicted_obs = ADV.parameter_to_observable_map(mstar.vector()[:])
