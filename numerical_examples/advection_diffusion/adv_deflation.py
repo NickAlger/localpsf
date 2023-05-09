@@ -355,6 +355,28 @@ class AdvUniverse:
         discrepancy = new_obs - me.obs
         return np.linalg.norm(discrepancy)
 
+    def vec2func(me, u_vec: np.ndarray) -> dl.Function:
+        assert(u_vec.shape == (me.N,))
+        u_func = dl.Function(me.Vh)
+        u_func.vector()[:] = u_vec.copy()
+        return u_func
+
+    @cached_property
+    def true_initial_condition_func(me) -> dl.Function:
+        return me.vec2func(me.true_initial_condition)
+
+    @cached_property
+    def obs_func(me) -> dl.Function:
+        return me.vec2func(me.obs[-1,:])
+
+    @cached_property
+    def true_obs_func(me) -> dl.Function:
+        return me.vec2func(me.true_obs[-1,:])
+
+    @cached_property
+    def noise_func(me) -> dl.Function:
+        return me.vec2func(me.noise)
+
 
 def make_adv_universe(
         noise_level: float, # 0.05, i.e., 5% noise, is typical
@@ -365,8 +387,8 @@ def make_adv_universe(
         t_init = 0.0,
         dt: float=0.1,
         prior_correlation_length: float=0.25,
-        num_checkers_x: int=6,
-        num_checkers_y: int=6,
+        num_checkers_x: int=8,
+        num_checkers_y: int=8,
         smoothing_time: float=1e-4,
 ) -> AdvUniverse:
     mesh_and_function_space = make_adv_mesh_and_function_space(num_refinements=num_mesh_refinements)
@@ -433,33 +455,32 @@ def make_adv_universe(
 import scipy.sparse.linalg as spla
 
 noise_level=0.05
-kappa=1e-4
-t_final = 1.0 # 0.5
+kappa=1e-4 # 1e-3
+t_final = 1.0 #2.0 # 1.0 # 0.5
+num_checkers = 8
 
-ADV = make_adv_universe(noise_level, kappa, t_final)
+ADV = make_adv_universe(noise_level, kappa, t_final,
+                        num_checkers_x=num_checkers,
+                        num_checkers_y=num_checkers)
 
 #
 
 plt.figure()
-obs_func = dl.Function(ADV.Vh)
-obs_func.vector()[:] = ADV.obs.reshape(-1)
-cm = dl.plot(obs_func, cmap='gray')
+cm = dl.plot(ADV.obs_func, cmap='gray')
 plt.colorbar(cm)
 plt.title('obs')
 
 #
 
-
 plt.figure()
-true_ic_func = dl.Function(ADV.Vh)
-true_ic_func.vector()[:] = ADV.true_initial_condition.reshape(-1)
-cm = dl.plot(true_ic_func, cmap='gray')
+cm = dl.plot(ADV.true_initial_condition_func, cmap='gray')
 plt.colorbar(cm)
 plt.title('true initial condition')
 
 #
 
-p = np.random.rand(2)
+# p = np.random.rand(2)
+p = np.array([0.292, 0.842])
 phi = dl.Function(ADV.Vh)
 phi.vector()[:] = ADV.get_misfit_hessian_impulse_response(p)
 plt.figure()
@@ -471,7 +492,7 @@ plt.title('Impulse response')
 #
 
 m0 = np.zeros(ADV.N) # np.random.randn(ADV.N) # np.zeros(ADV.N)
-areg = 2e-5
+areg = 1e-5
 
 J0 = ADV.cost(m0, areg)
 print('J0=', J0)

@@ -934,12 +934,12 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 	\label{fig:ice_mountain_mesh}
     \end{subfigure} \\
 	\begin{subfigure}{0.49\textwidth}
-		\includegraphics[scale=0.243]{mtrue_withColorBar.png}
+		\includegraphics[scale=0.22]{mtrue_withColorBar.png}
 		\caption{$\basalfriction_\text{true}$.}
 		\label{fig:true_beta}
 	\end{subfigure}
 	\begin{subfigure}{0.49\textwidth}
-		\includegraphics[scale=0.243]{trueVelocity2_glyphs.png}
+		\includegraphics[scale=0.22]{trueVelocity2_glyphs.png}
 		\caption{$\velocity_\text{true}$.}
 	\end{subfigure}
     \end{center}
@@ -995,32 +995,32 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 %incremental forward and one incremental adjoint Stokes PDE of the form
 %\eqref{Stokeseqn}, but with different right hand sides.
 \begin{figure}
-	\begin{subfigure}{0.18\textwidth}
-		\includegraphics[scale=0.075]{mstar_0.25noise_cropped.png}
+	\begin{subfigure}{0.32\textwidth}
+		\includegraphics[scale=0.13]{mstar_0.25noise_cropped.png}
 		%		\caption{}
 		%		\label{fig:newtoniter1}
 	\end{subfigure}
-	\begin{subfigure}{0.18\textwidth}
-		\includegraphics[scale=0.075]{mstar_0.12noise_cropped.png}
-		%		\caption{}
-		%		\label{fig:newtoniter2}
-	\end{subfigure}
-	\begin{subfigure}{0.18\textwidth}
-		\includegraphics[scale=0.075]{mstar_0.05noise_cropped.png}
+%	\begin{subfigure}{0.18\textwidth}
+%		\includegraphics[scale=0.075]{mstar_0.12noise_cropped.png}
+%		%		\caption{}
+%		%		\label{fig:newtoniter2}
+%	\end{subfigure}
+	\begin{subfigure}{0.32\textwidth}
+		\includegraphics[scale=0.13]{mstar_0.05noise_cropped.png}
 		%		\caption{}
 		%		\label{fig:newtoniter3}
 	\end{subfigure}
-	\begin{subfigure}{0.18\textwidth}
-		\includegraphics[scale=0.075]{mstar_0.02noise_cropped.png}
-		%		\caption{}
-		%		\label{fig:newtoniter4}
-	\end{subfigure}
-	\begin{subfigure}{0.18\textwidth}
-	\includegraphics[scale=0.075]{mstar_0.01noise_cropped.png}
+%	\begin{subfigure}{0.18\textwidth}
+%		\includegraphics[scale=0.075]{mstar_0.02noise_cropped.png}
+%		%		\caption{}
+%		%		\label{fig:newtoniter4}
+%	\end{subfigure}
+	\begin{subfigure}{0.32\textwidth}
+	\includegraphics[scale=0.13]{mstar_0.01noise_cropped.png}
 	%		\caption{}
 	%		\label{fig:newtoniter4}
     \end{subfigure}
-	\caption{The log basal sliding parameter, with colorscale as in Figure~\ref{fig:true_beta}, computed from the PDE-constrained optimization problem with noise levels: $25\%$ (left), $11\%$ (second from left), $5.0\%$ (middle), $2.2\%$ (second from right), and $1.0\%$ (right). \todo{remove reference to newon iterates figure as this figure has a new significance}}
+	\caption{The log basal sliding parameter, with colorscale as in Figure~\ref{fig:true_beta}, computed from the PDE-constrained optimization problem with noise levels: $25\%$ (left), $5.0\%$ (middle),and $1.0\%$ (right). \todo{remove reference to newon iterates figure as this figure has a new significance}}
 	\label{fig:newton_iterates} 
 \end{figure} 
 
@@ -1103,7 +1103,7 @@ Table~\ref{tab:newton_convergence_table} shows the performance of our preconditi
 		xtick={0, 200, 400, 600},
 		title={CG convergence},
 		xlabel={$k$, CG iteration},
-		ylabel={$\|\bm{x}_k-\bm{x}_{\text{true}}\|/\|\bm{x}_{\text{true}}\|$},
+		ylabel={$\|\bm{x}_k-\bm{x}\|/\|\bm{x}\|$},
 		legend style={at={(1.1,1)},anchor=north east},
 		%legend pos=north east,
 		legend style={font=\small}
@@ -1131,7 +1131,7 @@ Table~\ref{tab:newton_convergence_table} shows the performance of our preconditi
 		xmin=-50,
 		xmax=1450,
 		ymax=1.e7,
-		title={Generalized eigenvalues, $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$},
+		title={Generalized eigenvalues},
 		xlabel={$k$, generalized eigenvalue \#},
 		ylabel={$\lambda_{k}$},
 		xtick={0, 300, 600, 900, 1200},
@@ -1157,14 +1157,14 @@ Table~\ref{tab:newton_convergence_table} shows the performance of our preconditi
 	\caption{}
 	\label{fig:generalized_eigenvalues}
     \end{subfigure}
-	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard normal distribution. The reference solution $\bm{x}_{\text{true}}$ is determined by solving $\bm{H} \bm{x} = \bm{b}$ to an accuracy of ? using method ? (\todo{include details about $\bm{x}_{\text{true}}$ here}). 
+	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard normal distribution. The reference solution $\bm{x}$ is determined by solving $\bm{H} \bm{x} = \bm{b}$ to an accuracy of $10^{-12}$ using method PCG. 
 	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle when using $5\%$ noise. Results in these figures are shown for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.
-	Right (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \genericvec_k = \lambda_k \bm{\preconditioner} \genericvec_k$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), or the regularization Hessian (REG).}
+	Right (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), or the regularization Hessian (REG).}
 	\label{fig:krylov_convergence}
 \end{figure} 
 %
 %
-Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\bm{\basalfriction}$. We use PCG to solve a linear system with the Hessian as the coefficient operator and a right hand vector with random i.i.d. entries drawn from the standard normal distribution. In Figure~\ref{fig:cg_convergence} we compare the convergence of PCG for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. PCG converges fastest with the PSF preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. PCG converges much slower with no preconditioning and regularization preconditioning than it does with PSF preconditioning, with no preconditioning outperforming regularization preconditioning. In Figure~\ref{fig:gamma_sweep}, we perform PCG solves on linear systems of the same form, except now we vary $\gamma$. The performance of our PSF preconditioners is good and relatively stable over a wide range of $\gamma$'s. All PSF preconditioners perform the same for medium and large values of $\gamma$. For small values of $\gamma$ PSF (25) performs slightly better than PSF (5), which performs slightly better than PSF (1). As expected, regularization preconditioning performs well for large $\gamma$ and poorly for small $\gamma$. Our PSF preconditioners outperform no preconditioning and regularization preconditioning for medium and small $\gamma$, and perform similarly to regularization preconditioning for large $\gamma$.
+We build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\bm{\basalfriction}$. We use PCG to solve a linear system with the Hessian as the coefficient operator and a right hand vector with random i.i.d. entries drawn from the standard normal distribution. In Figure~\ref{fig:cg_convergence} we compare the convergence of PCG for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. PCG converges fastest with the PSF preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. PCG converges much slower with no preconditioning and regularization preconditioning than it does with PSF preconditioning, with no preconditioning outperforming regularization preconditioning. In Figure~\ref{fig:gamma_sweep}, we perform PCG solves on linear systems of the same form, except now we vary $\gamma$. The performance of our PSF preconditioners is good and relatively stable over a wide range of $\gamma$'s. All PSF preconditioners perform the same for medium and large values of $\gamma$. For small values of $\gamma$ PSF (25) performs slightly better than PSF (5), which performs slightly better than PSF (1). As expected, regularization preconditioning performs well for large $\gamma$ and poorly for small $\gamma$. Our PSF preconditioners outperform no preconditioning and regularization preconditioning for medium and small $\gamma$, and perform similarly to regularization preconditioning for large~$\gamma$.
 
 \begin{figure}
 	\begin{center}
@@ -1189,7 +1189,7 @@ Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss
 
 In Figure~\ref{fig:generalized_eigenvalues} we show the generalized eigenvalues for the generalized eigenvalue problem
 $
-	\bm{H} \genericvec = \lambda \bm{\preconditioner} \genericvec.
+	\bm{H} \mathbf{u} = \lambda \bm{\preconditioner} \mathbf{u}.
 $
 Here $\bm{H}$ is the Hessian evaluated at the reconstructed parameter $\bm{\basalfriction}$ for $\gamma$ chosen to satisfy the Morozov discrepancy principle. The matrix $\bm{\preconditioner}$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations constructed at that $\bm{\basalfriction}$, or the regularization Hessian. The PSF preconditioners cluster the eigenvalues of the Hessian near one, with more batches yielding better clustering. The regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. In Figure~\ref{fig:condition_number} we show the condition numbers of $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$. The PSF preconditioners yield the the smallest condition numbers, with more batches yielding smaller condition numbers. Regularization preconditioning and no preconditioning yield larger condition numbers. The condition numbers are similar for both $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$, demonstrating that the preconditioner built based on $\bm{H}_\text{gn}$ is a good preconditioner for $\bm{H}$.
 
