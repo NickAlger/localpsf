@@ -359,10 +359,10 @@ class AdvUniverse:
 def make_adv_universe(
         noise_level: float, # 0.05, i.e., 5% noise, is typical
         kappa: float, # 1e-3 is default for hippylib
+        t_final: float,
         reynolds_number: float=1e2,
         num_mesh_refinements=2,
         t_init = 0.0,
-        t_final: float=0.5,
         dt: float=0.1,
         prior_correlation_length: float=0.25,
         num_checkers_x: int=6,
@@ -432,9 +432,10 @@ def make_adv_universe(
 import scipy.sparse.linalg as spla
 
 noise_level=0.05
-kappa=1e-3
+kappa=1e-4
+t_final = 1.0 # 0.5
 
-ADV = make_adv_universe(noise_level, kappa)
+ADV = make_adv_universe(noise_level, kappa, t_final)
 
 p = np.random.rand(2)
 phi = dl.Function(ADV.Vh)
@@ -516,14 +517,17 @@ print('noise_discrepancy=', noise_discrepancy)
 
 # more (25) batches
 
-psf_preconditioner.psf_options['num_initial_batches'] = 25
+psf_preconditioner.psf_options['num_initial_batches'] = 50 # # 34 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
+# psf_preconditioner.psf_options['num_initial_batches'] = 25 # 42 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
+# psf_preconditioner.psf_options['num_initial_batches'] = 5 # 104 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
+# psf_preconditioner.psf_options['num_initial_batches'] = 1 # 196 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
 
 psf_preconditioner.build_hessian_preconditioner()
 
 psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg)
 psf_preconditioner.update_deflation(areg)
 
-areg = 1e-5
+areg = 3.3e-5
 P_linop = spla.LinearOperator(
     (ADV.N, ADV.N),
     matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg))
@@ -554,6 +558,22 @@ obs_func.vector()[:] = ADV.obs.reshape(-1)
 cm = dl.plot(obs_func)
 plt.colorbar(cm)
 plt.title('obs')
+
+#
+
+psf_preconditioner.current_preconditioning_type = 'reg'
+result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 623 iter
+
+#
+
+psf_preconditioner.current_preconditioning_type = 'none'
+result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 562 iter
+
+#
+
+psf_preconditioner.current_preconditioning_type = 'psf'
+result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) #196 psf1 # 104 psf5 # 48 iter, PSF25
+
 
 #
 # ADP = AdvectionDiffusionProblem(kappa, t_final, gamma)
