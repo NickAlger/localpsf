@@ -16,6 +16,7 @@ from . import derivatives_at_point
 from . import bilaplacian_regularization
 from . import localpsf_cg1_lumped
 from . import stokes_mesh
+from . import advection_diffusion
 from .filesystem_helpers import localpsf_root
 # from . import deflate_negative_eigenvalues # moved to hlibpro
 # from . import path
