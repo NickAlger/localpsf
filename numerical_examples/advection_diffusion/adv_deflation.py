@@ -158,15 +158,56 @@ plt.savefig(save_dir_str + '/reconstructed_initial_condition.png', dpi=fig_dpi, 
 
 dl.File(save_dir_str + '/reconstructed_initial_condition.pvd') << mstar
 
-# # # #
+#### KRYLOV CONVERGENCE PLOTS ####
 
+M_reg_matvec = lambda x: ADV.regularization.solve_hessian(x, m0, areg_morozov)
+M_reg_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=M_reg_matvec)
 
-predicted_obs = ADV.parameter_to_observable_map(mstar_vec)
+_, _, _, errs_none = nhf.custom_cg(H_linop, -g0, x_true=mstar_vec, display=True, maxiter=3000, tol=1e-12)
+_, _, _, errs_reg = nhf.custom_cg(H_linop, -g0, M=M_reg_linop, x_true=mstar_vec, display=True, maxiter=3000, tol=1e-12)
 
-discrepancy = np.linalg.norm(predicted_obs - ADV.obs)
-noise_discrepancy = np.linalg.norm(ADV.noise)
+#
 
-print('areg=', areg, ', discrepancy=', discrepancy, ', noise_discrepancy=', noise_discrepancy)
+print('Making row and column cluster trees')
+ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords, cluster_size_cutoff=50)
+
+print('Making block cluster trees')
+bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
+
+HR_hmatrix = ADV.regularization.Cov.make_invC_hmatrix(bct, 1.0)
+
+all_num_batches = [1, 5, 25]
+all_errs_psf = []
+for num_batches in all_num_batches:
+    psf_preconditioner = PSFHessianPreconditioner(
+        ADV.apply_misfit_hessian, ADV.Vh, ADV.mesh_and_function_space.mass_lumps,
+        HR_hmatrix, display=True)
+
+    psf_preconditioner.psf_options['num_initial_batches'] = num_batches
+    psf_preconditioner.build_hessian_preconditioner()
+
+    psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg_morozov)
+    psf_preconditioner.update_deflation(areg_morozov)
+
+    P_linop = spla.LinearOperator(
+        (ADV.N, ADV.N),
+        matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg_morozov))
+
+    _, _, _, errs_psf = nhf.custom_cg(H_linop, -g0, M=P_linop, x_true=mstar_vec, display=True, maxiter=3000, tol=1e-12)
+    all_errs_psf.append(errs_psf)
+
+plt.figure()
+plt.semilogy(errs_none)
+plt.semilogy(errs_reg)
+legend = ['None', 'Reg']
+for jj in range(len(all_num_batches)):
+    plt.semilogy(all_errs_psf[jj])
+    legend.append('PSF ' + str(all_num_batches[jj]))
+plt.legend(legend)
+plt.xlabel('Iteration')
+plt.ylabel('Relative error')
+plt.title('PCG convergence, noise level=' + str(noise_level))
+plt.savefig(save_dir_str + '/pcg' + str(noise_level) + '.png', dpi=fig_dpi, bbox_inches='tight')
 
 # # # #
 
