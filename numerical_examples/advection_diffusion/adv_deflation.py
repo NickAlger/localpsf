@@ -100,6 +100,8 @@ for kp in all_kappa:
 
 #### MOROZOV DISCREPANCY ####
 
+kappa = all_kappa[1]
+
 ADV = adv.make_adv_universe(noise_level, kappa, t_final,
                             num_checkers_x=num_checkers,
                             num_checkers_y=num_checkers)
@@ -210,6 +212,7 @@ plt.title('PCG convergence, noise level=' + str(noise_level))
 plt.savefig(save_dir_str + '/pcg' + str(noise_level) + '.png', dpi=fig_dpi, bbox_inches='tight')
 
 # # # #
+
 
 print('Making row and column cluster trees')
 ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords, cluster_size_cutoff=50)
