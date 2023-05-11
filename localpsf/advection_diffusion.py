@@ -245,6 +245,7 @@ class AdvUniverse:
     true_initial_condition: np.ndarray
     obs: np.ndarray
     true_obs: np.ndarray
+    psf_preconditioner: PSFHessianPreconditioner
 
     def __post_init__(me):
         assert(me.obs.shape == (me.num_obs_times, me.num_obs_locations))
@@ -381,6 +382,58 @@ class AdvUniverse:
     def noise_func(me) -> dl.Function:
         return me.vec2func(me.noise)
 
+    def solve_inverse_problem(
+            me, areg: float, cg_options: typ.Dict[str, typ.Any]=None,
+    ) -> typ.Tuple[np.ndarray, typ.Tuple]:
+        cg_options2 = {'tol' : 1e-8,
+                       'display' : True,
+                       'maxiter' : 2000,
+                       }
+        if cg_options is not None:
+            cg_options2.update(cg_options)
+
+        m0 = np.zeros(me.N)
+        g0 = me.gradient(m0, areg)
+
+        P_linop = spla.LinearOperator(
+            (me.N, me.N),
+            matvec=lambda x: me.psf_preconditioner.solve_hessian_preconditioner(x, areg))
+
+        H_linop = spla.LinearOperator((me.N, me.N), matvec=lambda x: me.apply_hessian(x, areg))
+        result = nhf.custom_cg(H_linop, -g0, M=P_linop, **cg_options2)
+
+        mstar_vec = m0 + result[0]
+        return mstar_vec, result
+
+    def compute_morozov_discrepancy(me, areg: float, cg_options: typ.Dict[str, typ.Any]=None) -> float:
+        cg_options2 = {'tol' : 1e-5}
+        if cg_options is not None:
+            cg_options2.update(cg_options)
+
+        mstar_vec, _ = me.solve_inverse_problem(areg, cg_options=cg_options2)
+        predicted_obs = me.parameter_to_observable_map(mstar_vec)
+
+        discrepancy = np.linalg.norm(predicted_obs - me.obs)
+        noise_discrepancy = np.linalg.norm(me.noise)
+
+        print('areg=', areg, ', discrepancy=', discrepancy, ', noise_discrepancy=', noise_discrepancy)
+        return discrepancy
+
+    def compute_morozov_regularization_parameter(
+            me, areg_initial_guess: float,
+            morozov_options: typ.Dict[str, typ.Any]=None,
+            cg_options: typ.Dict[str, typ.Any]=None
+    ) -> typ.Tuple[float,       # optimal morozov regularization parmaeter
+                   np.ndarray,  # all regularization parameters
+                   np.ndarray]: # all morozov discrepancies:
+        f = lambda a: me.compute_morozov_discrepancy(a, cg_options=cg_options)
+        morozov_options2 = dict()
+        if morozov_options is not None:
+            morozov_options2.update(morozov_options)
+
+        return compute_morozov_regularization_parameter(
+            areg_initial_guess, f, me.noise_norm, **morozov_options2)
+
 
 def make_adv_universe(
         noise_level: float, # 0.05, i.e., 5% noise, is typical
@@ -394,6 +447,7 @@ def make_adv_universe(
         num_checkers_x: int=8,
         num_checkers_y: int=8,
         smoothing_time: float=1e-4,
+        admissibility_eta=1.0
 ) -> AdvUniverse:
     mesh_and_function_space = make_adv_mesh_and_function_space(num_refinements=num_mesh_refinements)
 
@@ -451,6 +505,22 @@ def make_adv_universe(
     misfit.observe(x, obs_hippy)
     obs = np.array([di[:].copy() for di in obs_hippy.data])
 
-    return AdvUniverse(
+    print('Making row and column cluster trees')
+    ct = hpro.build_cluster_tree_from_pointcloud(mesh_and_function_space.dof_coords, cluster_size_cutoff=50)
+
+    print('Making block cluster trees')
+    bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=admissibility_eta)
+
+    HR_hmatrix = regularization.Cov.make_invC_hmatrix(bct, 1.0)
+
+    psf_preconditioner = PSFHessianPreconditioner(
+        None, Vh, mesh_and_function_space.mass_lumps,
+        HR_hmatrix, display=True)
+
+    ADV = AdvUniverse(
         mesh_and_function_space, wind_object, problem, misfit, regularization,
-        true_initial_condition, obs, true_obs)
+        true_initial_condition, obs, true_obs, psf_preconditioner)
+
+    ADV.psf_preconditioner.apply_misfit_gauss_newton_hessian = ADV.apply_misfit_hessian
+
+    return ADV

@@ -15,9 +15,7 @@ import scipy.sparse.linalg as spla
 import scipy.linalg as sla
 # from localpsf.bilaplacian_regularization import BiLaplacianRegularization
 from localpsf.bilaplacian_regularization_lumped import BilaplacianRegularization, BiLaplacianCovariance, make_bilaplacian_covariance
-from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
 from localpsf.inverse_problem_objective import PSFHessianPreconditioner
-from localpsf.morozov_discrepancy import compute_morozov_regularization_parameter
 import nalger_helper_functions as nhf
 
 import hlibpro_python_wrapper as hpro
@@ -70,32 +68,71 @@ dl.File(save_dir_str + "/noisy_observations.pvd") << ADV.obs_func
 
 # all_kappa = [1e-4]
 # all_t_final = [2.0]
+all_noise_levels = [0.05, 0.1, 0.2]
 all_kappa = list(np.logspace(-4, -3, 3))
 all_t_final = [0.5, 1.0, 2.0]
+
+np.savetxt(save_dir_str + '/all_noise_levels.txt', np.array(all_noise_levels))
+np.savetxt(save_dir_str + '/all_kappa.txt', np.array(all_kappa))
+np.savetxt(save_dir_str + '/all_t_final.txt', np.array(all_t_final))
 
 # p = np.array([0.292, 0.842])
 # p = np.array([0.3, 0.85])
 p = np.array([0.3, 0.8]) # <-- Good upper left
 # p = np.array([0.75, 0.25])
 
-for kp in all_kappa:
-    for tf  in all_t_final:
-        ADV = adv.make_adv_universe(noise_level, kp, tf,
-                                    num_checkers_x=num_checkers,
-                                    num_checkers_y=num_checkers)
+all_areg_morozov = np.ones((len(all_noise_levels),
+                             len(all_kappa),
+                             len(all_t_final))) * np.nan
 
-        phi = dl.Function(ADV.Vh)
-        phi.vector()[:] = ADV.get_misfit_hessian_impulse_response(p)
+for ii, ns in enumerate(all_noise_levels):
+    for jj, kp in enumerate(all_kappa):
+        for kk, tf in enumerate(all_t_final):
+            ns_str = np.format_float_scientific(ns, precision=1, exp_digits=1)
+            tf_str = np.format_float_scientific(tf, precision=1, exp_digits=1)
+            kp_str = np.format_float_scientific(kp, precision=1, exp_digits=1)
+            id_str = '_T=' + tf_str + '_K=' + kp_str + '_N=' + ns_str
 
-        plt.figure()
-        cm = dl.plot(phi)
-        plt.colorbar(cm)
-        plt.axis('off')
-        plt.plot(p[0], p[1], '*r')
-        plt.title('Impulse response, T='+str(tf)+', kappa='+str(kp))
-        plt.savefig(save_dir_str + '/impulse_response_T'+str(tf)+'_k'+str(kp)+'.png', dpi=fig_dpi, bbox_inches='tight')
+            ADV = adv.make_adv_universe(noise_level, kp, tf,
+                                        num_checkers_x=num_checkers,
+                                        num_checkers_y=num_checkers)
 
-        dl.File(save_dir_str + '/impulse_response_T'+str(tf)+'_k'+str(kp)+'.pvd') << phi
+            phi = dl.Function(ADV.Vh)
+            phi.vector()[:] = ADV.get_misfit_hessian_impulse_response(p)
+
+            plt.figure()
+            cm = dl.plot(phi)
+            plt.colorbar(cm)
+            plt.axis('off')
+            plt.plot(p[0], p[1], '*r')
+            plt.title('Impulse response, T='+str(tf)+', kappa='+str(kp))
+            plt.savefig(save_dir_str + '/impulse_response'+id_str+'.png', dpi=fig_dpi, bbox_inches='tight')
+
+            dl.File(save_dir_str + '/impulse_response'+id_str+'.pvd') << phi
+
+            # MOROZOV
+
+            areg_morozov, seen_aregs, seen_discrepancies = ADV.compute_morozov_regularization_parameter(
+                1e-5, morozov_options={'morozov_rtol' : 1e-4})
+
+            inds = np.argsort(seen_aregs)
+            seen_aregs = seen_aregs[inds]
+            seen_discrepancies = seen_discrepancies[inds]
+
+            print('areg_morozov=', areg_morozov)
+            all_areg_morozov[ii,jj,kk] = areg_morozov
+
+            np.save(save_dir_str + '/all_areg_morozov', all_areg_morozov)
+            np.savetxt(save_dir_str + '/seen_aregs' + id_str + '.txt', seen_aregs)
+            np.savetxt(save_dir_str + '/seen_discrepancies' + id_str + '.txt', seen_discrepancies)
+
+            plt.figure()
+            plt.loglog(seen_aregs, seen_discrepancies)
+            plt.loglog(areg_morozov, ADV.noise_norm, '*r')
+            plt.xlabel('regularization parameter')
+            plt.ylabel('Morozov discrepancy')
+            plt.title('noise_level=' + str(noise_level))
+            plt.savefig(save_dir_str + '/morozov' + id_str + '.png', dpi=fig_dpi, bbox_inches='tight')
 
 
 #### MOROZOV DISCREPANCY ####
@@ -106,25 +143,11 @@ ADV = adv.make_adv_universe(noise_level, kappa, t_final,
                             num_checkers_x=num_checkers,
                             num_checkers_y=num_checkers)
 
-def compute_morozov_discrepancy(areg: float) -> float:
-    m0 = np.zeros(ADV.N)
-    g0 = ADV.gradient(m0, areg)
+ADV.psf_preconditioner.psf_options['num_initial_batches'] = 25
+ADV.psf_preconditioner.build_hessian_preconditioner()
 
-    H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg))
-    result = nhf.custom_cg(H_linop, -g0, display=True, maxiter=2000, tol=1e-4)
-
-    mstar_vec = m0 + result[0]
-    predicted_obs = ADV.parameter_to_observable_map(mstar_vec)
-
-    discrepancy = np.linalg.norm(predicted_obs - ADV.obs)
-    noise_discrepancy = np.linalg.norm(ADV.noise)
-
-    print('areg=', areg, ', discrepancy=', discrepancy, ', noise_discrepancy=', noise_discrepancy)
-    return discrepancy
-
-
-areg_morozov, seen_aregs, seen_discrepancies = compute_morozov_regularization_parameter(
-    1e-5, compute_morozov_discrepancy, ADV.noise_norm, display=True)
+areg_morozov, seen_aregs, seen_discrepancies = ADV.compute_morozov_regularization_parameter(
+    1e-5, morozov_options={'morozov_rtol' : 1e-4})
 
 print('areg_morozov=', areg_morozov)
 
