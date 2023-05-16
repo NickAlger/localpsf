@@ -62,7 +62,7 @@ all_kappa = list(np.logspace(-4, -3, 3)) # 1e-3, 3.16e-4, 1e-4
 all_t_final = [0.5, 1.0, 2.0]
 all_num_batches = [1, 5, 25]
 
-krylov_thresholds = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
+krylov_thresholds = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]
 
 impulse_points = np.array([[0.1, 0.8],
                            [0.75, 0.25],
@@ -168,6 +168,16 @@ all_noise_norms = np.ones((len(all_noise_levels),
 
 ####
 
+print('Making row and column cluster trees')
+ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords, cluster_size_cutoff=50)
+
+print('Making block cluster trees')
+bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
+
+HR_hmatrix = ADV.regularization.Cov.make_invC_hmatrix(bct, 1.0)
+
+####
+
 for ii, ns in enumerate(all_noise_levels):
     for jj, kp in enumerate(all_kappa):
         for kk, tf in enumerate(all_t_final):
@@ -246,9 +256,9 @@ for ii, ns in enumerate(all_noise_levels):
             g0 = ADV.gradient(m0, areg_morozov)
 
             H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg_morozov))
-            result = nhf.custom_cg(H_linop, -g0, display=True, maxiter=4000, tol=1e-13)
+            p_newton = nhf.custom_cg(H_linop, -g0, display=True, maxiter=4000, tol=1e-13)[0]
 
-            mstar_vec = m0 + result[0]
+            mstar_vec = m0 + p_newton
             mstar = dl.Function(ADV.Vh)
             mstar.vector()[:] = mstar_vec.copy()
 
@@ -262,19 +272,25 @@ for ii, ns in enumerate(all_noise_levels):
             dl.File(save_dir_str + '/reconstructed_initial_condition'+id_str+'.pvd') << mstar
             plt.close()
 
+            #
+
+            print('Solving inverse problem to tight tol with areg_morozov')
+            b_randn = np.random.randn(ADV.N)
+            x_randn = nhf.custom_cg(H_linop, b_randn, display=True, maxiter=4000, tol=1e-13)[0]
+
             #### KRYLOV CONVERGENCE AND PRECONDITIONED SPECTRUM PLOTS ####
             print('Making Krylov convergence plots')
             M_reg_matvec = lambda x: ADV.regularization.solve_hessian(x, m0, areg_morozov)
             M_reg_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=M_reg_matvec)
 
-            _, _, _, errs_none = nhf.custom_cg(H_linop, -g0, x_true=mstar_vec, display=True, maxiter=4000, tol=1e-11)
-            _, _, _, errs_reg = nhf.custom_cg(H_linop, -g0, M=M_reg_linop, x_true=mstar_vec, display=True, maxiter=4000, tol=1e-11)
+            _, _, _, newton_errs_none = nhf.custom_cg(H_linop, -g0, x_true=p_newton, display=True, maxiter=4000, tol=1e-11)
+            _, _, _, newton_errs_reg = nhf.custom_cg(H_linop, -g0, M=M_reg_linop, x_true=p_newton, display=True, maxiter=4000, tol=1e-11)
 
-            np.savetxt(save_dir_str + '/errs_none' + id_str + '.txt', errs_none)
-            np.savetxt(save_dir_str + '/errs_reg' + id_str + '.txt', errs_reg)
+            np.savetxt(save_dir_str + '/newton_errs_none' + id_str + '.txt', newton_errs_none)
+            np.savetxt(save_dir_str + '/newton_errs_reg' + id_str + '.txt', newton_errs_reg)
 
-            newton_crossings_none = compute_threshold_crossings(np.array(errs_none), np.array(krylov_thresholds))
-            newton_crossings_reg = compute_threshold_crossings(np.array(errs_reg), np.array(krylov_thresholds))
+            newton_crossings_none = compute_threshold_crossings(np.array(newton_errs_none), np.array(krylov_thresholds))
+            newton_crossings_reg = compute_threshold_crossings(np.array(newton_errs_reg), np.array(krylov_thresholds))
 
             newton_krylov_iters_none[ii, jj, kk] = newton_crossings_none
             newton_krylov_iters_reg[ii, jj, kk] = newton_crossings_reg
@@ -288,17 +304,29 @@ for ii, ns in enumerate(all_noise_levels):
 
             #
 
-            print('Making row and column cluster trees')
-            ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords, cluster_size_cutoff=50)
+            _, _, _, randn_errs_none = nhf.custom_cg(H_linop, b_randn, x_true=x_randn, display=True, maxiter=4000, tol=1e-11)
+            _, _, _, randn_errs_reg = nhf.custom_cg(H_linop, b_randn, M=M_reg_linop, x_true=x_randn, display=True, maxiter=4000, tol=1e-11)
 
-            print('Making block cluster trees')
-            bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
+            np.savetxt(save_dir_str + '/randn_errs_none' + id_str + '.txt', randn_errs_none)
+            np.savetxt(save_dir_str + '/randn_errs_reg' + id_str + '.txt', randn_errs_reg)
 
-            HR_hmatrix = ADV.regularization.Cov.make_invC_hmatrix(bct, 1.0)
+            randn_crossings_none = compute_threshold_crossings(np.array(randn_errs_none), np.array(krylov_thresholds))
+            randn_crossings_reg = compute_threshold_crossings(np.array(randn_errs_reg), np.array(krylov_thresholds))
 
-            all_errs_psf = []
+            randn_krylov_iters_none[ii, jj, kk, :] = randn_crossings_none
+            randn_krylov_iters_reg[ii, jj, kk, :] = randn_crossings_reg
+
+            np.save(save_dir_str + '/randn_krylov_iters_none', randn_krylov_iters_none)
+            np.save(save_dir_str + '/randn_krylov_iters_reg', randn_krylov_iters_reg)
+
+            print('krylov_thresholds=', krylov_thresholds)
+            print('randn_crossings_none=', randn_crossings_none)
+            print('randn_crossings_reg=', randn_crossings_reg)
+
+            #
+
             for ll, num_batches in enumerate(all_num_batches):
-                bt_str = '_N=' + np.format_float_scientific(num_batches, precision=1, exp_digits=1)
+                bt_str = '_B=' + np.format_float_scientific(num_batches, precision=1, exp_digits=1)
                 psf_preconditioner = PSFHessianPreconditioner(
                     ADV.apply_misfit_hessian, ADV.Vh, ADV.mesh_and_function_space.mass_lumps,
                     HR_hmatrix, display=True)
@@ -313,14 +341,32 @@ for ii, ns in enumerate(all_noise_levels):
                     (ADV.N, ADV.N),
                     matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg_morozov))
 
-                _, _, _, errs_psf = nhf.custom_cg(H_linop, -g0, M=P_linop, x_true=mstar_vec, display=True, maxiter=3000, tol=1e-12)
-                all_errs_psf.append(errs_psf)
+                _, _, _, newton_errs_psf = nhf.custom_cg(H_linop, -g0, M=P_linop, x_true=p_newton, display=True, maxiter=4000, tol=1e-11)
 
-                np.savetxt(save_dir_str + '/errs_none' + bt_str + id_str + '.txt', errs_none)
+                np.savetxt(save_dir_str + '/newton_errs_psf' + bt_str + id_str + '.txt', newton_errs_psf)
+                newton_crossings_psf = compute_threshold_crossings(np.array(newton_errs_psf), np.array(krylov_thresholds))
+                newton_krylov_iters_psf[ll, ii, jj, kk, :] = newton_crossings_psf
+                np.save(save_dir_str + '/newton_krylov_iters_psf', newton_krylov_iters_psf)
 
-                iter_count_psf = np.min(np.argwhere(np.array(errs_psf) < krylov_threshold))
-                krylov_iters_psf[ll, ii, jj, kk] = iter_count_psf
-                np.save(save_dir_str + '/krylov_iters_psf', krylov_iters_psf)
+                print('num_batches=', num_batches)
+                print('krylov_thresholds=', krylov_thresholds)
+                print('newton_crossings_psf=', newton_crossings_psf)
+
+                #
+
+                _, _, _, randn_errs_psf = nhf.custom_cg(H_linop, b_randn, M=P_linop, x_true=x_randn, display=True, maxiter=4000, tol=1e-11)
+
+                np.savetxt(save_dir_str + '/randn_errs_psf' + bt_str + id_str + '.txt', randn_errs_psf)
+                randn_crossings_psf = compute_threshold_crossings(np.array(randn_errs_psf), np.array(krylov_thresholds))
+                randn_krylov_iters_psf[ll, ii, jj, kk, :] = randn_crossings_psf
+                np.save(save_dir_str + '/randn_krylov_iters_psf', randn_krylov_iters_psf)
+
+                print('num_batches=', num_batches)
+                print('krylov_thresholds=', krylov_thresholds)
+                print('randn_crossings_psf=', randn_crossings_psf)
+
+            raise RuntimeError
+
 
 
 
