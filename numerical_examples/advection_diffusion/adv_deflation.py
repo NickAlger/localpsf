@@ -325,6 +325,8 @@ for ii, ns in enumerate(all_noise_levels):
 
             #
 
+            all_newton_errs_psf = []
+            all_randn_errs_psf = []
             for ll, num_batches in enumerate(all_num_batches):
                 bt_str = '_B=' + np.format_float_scientific(num_batches, precision=1, exp_digits=1)
                 psf_preconditioner = PSFHessianPreconditioner(
@@ -342,6 +344,7 @@ for ii, ns in enumerate(all_noise_levels):
                     matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg_morozov))
 
                 _, _, _, newton_errs_psf = nhf.custom_cg(H_linop, -g0, M=P_linop, x_true=p_newton, display=True, maxiter=4000, tol=1e-11)
+                all_newton_errs_psf.append(newton_errs_psf)
 
                 np.savetxt(save_dir_str + '/newton_errs_psf' + bt_str + id_str + '.txt', newton_errs_psf)
                 newton_crossings_psf = compute_threshold_crossings(np.array(newton_errs_psf), np.array(krylov_thresholds))
@@ -355,6 +358,7 @@ for ii, ns in enumerate(all_noise_levels):
                 #
 
                 _, _, _, randn_errs_psf = nhf.custom_cg(H_linop, b_randn, M=P_linop, x_true=x_randn, display=True, maxiter=4000, tol=1e-11)
+                all_randn_errs_psf.append(randn_errs_psf)
 
                 np.savetxt(save_dir_str + '/randn_errs_psf' + bt_str + id_str + '.txt', randn_errs_psf)
                 randn_crossings_psf = compute_threshold_crossings(np.array(randn_errs_psf), np.array(krylov_thresholds))
@@ -365,24 +369,41 @@ for ii, ns in enumerate(all_noise_levels):
                 print('krylov_thresholds=', krylov_thresholds)
                 print('randn_crossings_psf=', randn_crossings_psf)
 
+            plt.figure()
+            plt.semilogy(newton_errs_none)
+            plt.semilogy(newton_errs_reg)
+            legend = ['None', 'Reg']
+            for jj in range(len(all_num_batches)):
+                plt.semilogy(all_newton_errs_psf[jj])
+                legend.append('PSF ' + str(all_num_batches[jj]))
+            plt.legend(legend)
+            plt.xlabel('Iteration')
+            plt.ylabel('Relative error')
+            plt.title('PCG convergence (Newton system) ' + id_str)
+            plt.savefig(save_dir_str + '/pcg_convergence_newton' + id_str + '.png', dpi=fig_dpi, bbox_inches='tight')
+            plt.close()
+
+            plt.figure()
+            plt.semilogy(randn_errs_none)
+            plt.semilogy(randn_errs_reg)
+            legend = ['None', 'Reg']
+            for jj in range(len(all_num_batches)):
+                plt.semilogy(all_randn_errs_psf[jj])
+                legend.append('PSF ' + str(all_num_batches[jj]))
+            plt.legend(legend)
+            plt.xlabel('Iteration')
+            plt.ylabel('Relative error')
+            plt.title('PCG convergence (randn RHS) ' + id_str)
+            plt.savefig(save_dir_str + '/pcg_convergence_randn' + id_str + '.png', dpi=fig_dpi, bbox_inches='tight')
+            plt.close()
+
+
             raise RuntimeError
 
 
 
 
 
-plt.figure()
-plt.semilogy(errs_none)
-plt.semilogy(errs_reg)
-legend = ['None', 'Reg']
-for jj in range(len(all_num_batches)):
-    plt.semilogy(all_errs_psf[jj])
-    legend.append('PSF ' + str(all_num_batches[jj]))
-plt.legend(legend)
-plt.xlabel('Iteration')
-plt.ylabel('Relative error')
-plt.title('PCG convergence, noise level=' + str(noise_level))
-plt.savefig(save_dir_str + '/pcg' + str(noise_level) + '.png', dpi=fig_dpi, bbox_inches='tight')
 
 # # # #
 
