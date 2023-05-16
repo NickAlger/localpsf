@@ -325,8 +325,34 @@ for ii, ns in enumerate(all_noise_levels):
 
             #
 
+            print('Building H_dense')
+            H_dense = nhf.build_dense_matrix_from_matvecs(H_linop.matvec, H_linop.shape[1])
+
+            print('computing ee_none')
+            ee_none = sla.eigh(H_dense, eigvals_only=True)[::-1]
+
+            geigs_none[ii,jj,kk,:] = ee_none
+            np.save(save_dir_str + '/geigs_none', geigs_none)
+
+            print('Building invHR_dense')
+            invHR_dense = nhf.build_dense_matrix_from_matvecs(M_reg_linop.matvec, M_reg_linop.shape[1])
+
+            print('Computing HR_dense')
+            HR_dense = np.linalg.inv(invHR_dense)
+            del invHR_dense
+
+            print('computing ee_reg')
+            ee_reg = sla.eigh(H_dense, HR_dense, eigvals_only=True)[::-1]
+            del HR_dense
+
+            geigs_reg[ii, jj, kk, :] = ee_reg
+            np.save(save_dir_str + '/geigs_reg', geigs_reg)
+
+            #
+
             all_newton_errs_psf = []
             all_randn_errs_psf = []
+            all_ee_psf = []
             for ll, num_batches in enumerate(all_num_batches):
                 bt_str = '_B=' + np.format_float_scientific(num_batches, precision=1, exp_digits=1)
                 psf_preconditioner = PSFHessianPreconditioner(
@@ -369,6 +395,26 @@ for ii, ns in enumerate(all_noise_levels):
                 print('krylov_thresholds=', krylov_thresholds)
                 print('randn_crossings_psf=', randn_crossings_psf)
 
+                #
+
+                print('Building invPSF_dense')
+                invPSF_dense = nhf.build_dense_matrix_from_matvecs(P_linop.matvec, P_linop.shape[1])
+
+                print('Computing PSF_dense')
+                PSF_dense = np.linalg.inv(invPSF_dense)
+                del invPSF_dense
+
+                print('computing ee_psf')
+                ee_psf = sla.eigh(H_dense, PSF_dense, eigvals_only=True)[::-1]
+                del PSF_dense
+
+                all_ee_psf.append(ee_psf)
+
+                geigs_psf[ll, ii, jj, kk, :] = ee_psf
+                np.save(save_dir_str + '/geigs_psf', geigs_psf)
+
+            del H_dense
+
             plt.figure()
             plt.semilogy(newton_errs_none)
             plt.semilogy(newton_errs_reg)
@@ -397,6 +443,19 @@ for ii, ns in enumerate(all_noise_levels):
             plt.savefig(save_dir_str + '/pcg_convergence_randn' + id_str + '.png', dpi=fig_dpi, bbox_inches='tight')
             plt.close()
 
+            plt.figure()
+            plt.semilogy(ee_none)
+            plt.semilogy(ee_reg)
+            legend = ['None', 'Reg']
+            for jj in range(len(all_num_batches)):
+                plt.semilogy(all_ee_psf[jj])
+                legend.append('PSF ' + str(all_num_batches[jj]))
+            plt.legend(legend)
+            plt.xlabel('index')
+            plt.ylabel('eigenvalue')
+            plt.title('generalized eigenvalues ' + id_str)
+            plt.savefig(save_dir_str + '/generalized_eigenvalues' + id_str + '.png', dpi=fig_dpi, bbox_inches='tight')
+            plt.close()
 
             raise RuntimeError
 
