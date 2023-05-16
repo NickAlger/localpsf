@@ -164,7 +164,7 @@ def find_bad_moments(
     eee0, PP = np.linalg.eigh(IM.Sigma)  # eee0.shape=(N,d), PP.shape=(N,d,d)
 
     printmaybe('finding ellipsoids that have tiny or negative primary axis lengths')
-    tiny_Sigmas = np.any(eee0 <= (0.5*min_length)**2, axis=1)
+    tiny_Sigmas = np.any(eee0 <= (1.0*min_length)**2, axis=1)
     printmaybe('num_tiny_Sigmas / ndof_in =', np.sum(tiny_Sigmas), ' / ', V_in.ndof)
 
     printmaybe('finding ellipsoids that have primary axis lengths much larger than the domain')

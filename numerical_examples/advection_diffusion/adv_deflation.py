@@ -23,6 +23,8 @@ from localpsf.product_convolution_kernel import ProductConvolutionKernel
 from localpsf.product_convolution_hmatrix import make_hmatrix_from_kernel
 
 
+np.random.seed(0)
+
 def compute_threshold_crossings(y: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
     '''out[ii]=k where k is first index at which y[k] < threshold[ii].
 
@@ -53,7 +55,7 @@ save_dir_str = str(save_dir)
 
 num_checkers = 8
 
-all_noise_levels = [0.05, 0.1, 0.2]
+all_noise_levels = [0.05] #[0.05, 0.1, 0.2]
 all_kappa = list(np.logspace(-4, -3, 5))
 all_t_final = [0.5, 1.0, 2.0]
 all_num_batches = [1, 5, 25]
