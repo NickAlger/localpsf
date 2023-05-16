@@ -51,18 +51,19 @@ save_dir = localpsf_root / 'numerical_examples' / 'advection_diffusion' / 'data'
 save_dir.mkdir(parents=True, exist_ok=True)
 save_dir_str = str(save_dir)
 
-# impulse_dir = save_dir / 'impulse_responses'
-# impulse_dir.mkdir(parents=True, exist_ok=True)
-# impulse_dir_str = str(impulse_dir)
-
 num_checkers = 8
 
 all_noise_levels = [0.05, 0.1, 0.2]
-all_kappa = list(np.logspace(-4, -3, 3)) # 1e-3, 3.16e-4, 1e-4
+all_kappa = list(np.logspace(-4, -3, 5))
 all_t_final = [0.5, 1.0, 2.0]
 all_num_batches = [1, 5, 25]
 
 krylov_thresholds = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]
+
+exact_rtol = 1e-13
+tight_rtol = 1e-11
+morozov_rtol = 1e-3
+maxiter_krylov = 4000
 
 impulse_points = np.array([[0.1, 0.8],
                            [0.75, 0.25],
@@ -227,7 +228,7 @@ for ii, ns in enumerate(all_noise_levels):
             #### COMPUTE MOROZOV REGULARIZATION PARAMETER ####
             areg_initial_guess = 1e-5
             areg_morozov, seen_aregs, seen_discrepancies = ADV.compute_morozov_regularization_parameter(
-                areg_initial_guess, morozov_options={'morozov_rtol' : 1e-3})
+                areg_initial_guess, morozov_options={'morozov_rtol' : morozov_rtol})
 
             inds = np.argsort(seen_aregs)
             seen_aregs = seen_aregs[inds]
@@ -256,7 +257,7 @@ for ii, ns in enumerate(all_noise_levels):
             g0 = ADV.gradient(m0, areg_morozov)
 
             H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg_morozov))
-            p_newton = nhf.custom_cg(H_linop, -g0, display=True, maxiter=4000, tol=1e-13)[0]
+            p_newton = nhf.custom_cg(H_linop, -g0, display=True, maxiter=maxiter_krylov, tol=exact_rtol)[0]
 
             mstar_vec = m0 + p_newton
             mstar = dl.Function(ADV.Vh)
@@ -276,15 +277,15 @@ for ii, ns in enumerate(all_noise_levels):
 
             print('Solving inverse problem to tight tol with areg_morozov')
             b_randn = np.random.randn(ADV.N)
-            x_randn = nhf.custom_cg(H_linop, b_randn, display=True, maxiter=4000, tol=1e-13)[0]
+            x_randn = nhf.custom_cg(H_linop, b_randn, display=True, maxiter=maxiter_krylov, tol=exact_rtol)[0]
 
             #### KRYLOV CONVERGENCE AND PRECONDITIONED SPECTRUM PLOTS ####
             print('Making Krylov convergence plots')
             M_reg_matvec = lambda x: ADV.regularization.solve_hessian(x, m0, areg_morozov)
             M_reg_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=M_reg_matvec)
 
-            _, _, _, newton_errs_none = nhf.custom_cg(H_linop, -g0, x_true=p_newton, display=True, maxiter=4000, tol=1e-11)
-            _, _, _, newton_errs_reg = nhf.custom_cg(H_linop, -g0, M=M_reg_linop, x_true=p_newton, display=True, maxiter=4000, tol=1e-11)
+            _, _, _, newton_errs_none = nhf.custom_cg(H_linop, -g0, x_true=p_newton, display=True, maxiter=maxiter_krylov, tol=tight_rtol)
+            _, _, _, newton_errs_reg = nhf.custom_cg(H_linop, -g0, M=M_reg_linop, x_true=p_newton, display=True, maxiter=maxiter_krylov, tol=tight_rtol)
 
             np.savetxt(save_dir_str + '/newton_errs_none' + id_str + '.txt', newton_errs_none)
             np.savetxt(save_dir_str + '/newton_errs_reg' + id_str + '.txt', newton_errs_reg)
@@ -304,8 +305,8 @@ for ii, ns in enumerate(all_noise_levels):
 
             #
 
-            _, _, _, randn_errs_none = nhf.custom_cg(H_linop, b_randn, x_true=x_randn, display=True, maxiter=4000, tol=1e-11)
-            _, _, _, randn_errs_reg = nhf.custom_cg(H_linop, b_randn, M=M_reg_linop, x_true=x_randn, display=True, maxiter=4000, tol=1e-11)
+            _, _, _, randn_errs_none = nhf.custom_cg(H_linop, b_randn, x_true=x_randn, display=True, maxiter=maxiter_krylov, tol=tight_rtol)
+            _, _, _, randn_errs_reg = nhf.custom_cg(H_linop, b_randn, M=M_reg_linop, x_true=x_randn, display=True, maxiter=maxiter_krylov, tol=tight_rtol)
 
             np.savetxt(save_dir_str + '/randn_errs_none' + id_str + '.txt', randn_errs_none)
             np.savetxt(save_dir_str + '/randn_errs_reg' + id_str + '.txt', randn_errs_reg)
@@ -369,7 +370,7 @@ for ii, ns in enumerate(all_noise_levels):
                     (ADV.N, ADV.N),
                     matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg_morozov))
 
-                _, _, _, newton_errs_psf = nhf.custom_cg(H_linop, -g0, M=P_linop, x_true=p_newton, display=True, maxiter=4000, tol=1e-11)
+                _, _, _, newton_errs_psf = nhf.custom_cg(H_linop, -g0, M=P_linop, x_true=p_newton, display=True, maxiter=maxiter_krylov, tol=tight_rtol)
                 all_newton_errs_psf.append(newton_errs_psf)
 
                 np.savetxt(save_dir_str + '/newton_errs_psf' + bt_str + id_str + '.txt', newton_errs_psf)
@@ -383,7 +384,7 @@ for ii, ns in enumerate(all_noise_levels):
 
                 #
 
-                _, _, _, randn_errs_psf = nhf.custom_cg(H_linop, b_randn, M=P_linop, x_true=x_randn, display=True, maxiter=4000, tol=1e-11)
+                _, _, _, randn_errs_psf = nhf.custom_cg(H_linop, b_randn, M=P_linop, x_true=x_randn, display=True, maxiter=maxiter_krylov, tol=tight_rtol)
                 all_randn_errs_psf.append(randn_errs_psf)
 
                 np.savetxt(save_dir_str + '/randn_errs_psf' + bt_str + id_str + '.txt', randn_errs_psf)
@@ -457,200 +458,5 @@ for ii, ns in enumerate(all_noise_levels):
             plt.savefig(save_dir_str + '/generalized_eigenvalues' + id_str + '.png', dpi=fig_dpi, bbox_inches='tight')
             plt.close()
 
-            raise RuntimeError
 
 
-
-
-
-
-# # # #
-
-
-print('Making row and column cluster trees')
-ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords, cluster_size_cutoff=50)
-
-print('Making block cluster trees')
-bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
-
-HR_hmatrix = ADV.regularization.Cov.make_invC_hmatrix(bct, 1.0)
-
-psf_preconditioner = PSFHessianPreconditioner(
-    ADV.apply_misfit_hessian, ADV.Vh, ADV.mesh_and_function_space.mass_lumps,
-    HR_hmatrix, display=True)
-
-psf_preconditioner.psf_options['num_initial_batches'] = 25
-psf_preconditioner.build_hessian_preconditioner()
-
-m0 = np.zeros(ADV.N) # np.random.randn(ADV.N) # np.zeros(ADV.N)
-areg = 3e-5
-
-J0 = ADV.cost(m0, areg)
-print('J0=', J0)
-g0 = ADV.gradient(m0, areg)
-
-H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg))
-result = nhf.custom_cg(H_linop, -g0, display=True, maxiter=1000, tol=1e-5)
-
-plt.figure()
-mstar = dl.Function(ADV.Vh)
-mstar.vector()[:] = m0 + result[0]
-cm = dl.plot(mstar, cmap='gray')
-plt.colorbar(cm)
-plt.title('reconstruction, areg='+str(areg))
-
-predicted_obs = ADV.parameter_to_observable_map(mstar.vector()[:])
-
-discrepancy = np.linalg.norm(predicted_obs - ADV.obs)
-noise_discrepancy = np.linalg.norm(ADV.noise)
-
-print('discrepancy=', discrepancy)
-print('noise_discrepancy=', noise_discrepancy)
-
-#
-
-print('Making row and column cluster trees')
-ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords, cluster_size_cutoff=50)
-
-print('Making block cluster trees')
-bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
-
-HR_hmatrix = ADV.regularization.Cov.make_invC_hmatrix(bct, 1.0)
-
-psf_preconditioner = PSFHessianPreconditioner(
-    ADV.apply_misfit_hessian, ADV.Vh, ADV.mesh_and_function_space.mass_lumps,
-    HR_hmatrix, display=True)
-
-psf_preconditioner.build_hessian_preconditioner()
-
-psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg)
-psf_preconditioner.update_deflation(areg)
-
-# areg = 1e-5 #2e-5 # psf5: 132 iter
-P_linop = spla.LinearOperator(
-    (ADV.N, ADV.N),
-    matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg))
-H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg))
-result2 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=2000, tol=1e-8) # 73 iter
-
-plt.figure()
-mstar2 = dl.Function(ADV.Vh)
-mstar2.vector()[:] = m0 + result2[0]
-cm = dl.plot(mstar2)
-plt.colorbar(cm)
-
-#
-
-psf_preconditioner.current_preconditioning_type = 'reg'
-result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=2000, tol=1e-8) # 932 iter
-
-#
-
-psf_preconditioner.current_preconditioning_type = 'none'
-result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=2000, tol=1e-8) # 388 iter
-
-#
-
-predicted_obs = ADV.parameter_to_observable_map(mstar2.vector()[:])
-
-discrepancy = np.linalg.norm(predicted_obs - ADV.obs)
-noise_discrepancy = np.linalg.norm(ADV.noise)
-
-print('discrepancy=', discrepancy)
-print('noise_discrepancy=', noise_discrepancy)
-
-
-# more (25) batches
-
-# psf_preconditioner.psf_options['num_initial_batches'] = 50 # # 34 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
-psf_preconditioner.psf_options['num_initial_batches'] = 25 # 42 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
-# psf_preconditioner.psf_options['num_initial_batches'] = 5 # 104 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
-# psf_preconditioner.psf_options['num_initial_batches'] = 1 # 196 iter, areg=3.3e-5, kappa=1e-4, t_final=1.0
-
-psf_preconditioner.build_hessian_preconditioner()
-
-psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg)
-psf_preconditioner.update_deflation(areg)
-
-areg = 3e-5 #3.3e-5
-P_linop = spla.LinearOperator(
-    (ADV.N, ADV.N),
-    matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg))
-H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg))
-result = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 23 iter
-
-
-mstar = dl.Function(ADV.Vh)
-mstar.vector()[:] = m0 + result[0]
-plt.figure()
-cm = dl.plot(mstar, cmap='gray')
-plt.colorbar(cm)
-
-predicted_obs = ADV.parameter_to_observable_map(mstar.vector()[:])
-
-discrepancy = np.linalg.norm(predicted_obs - ADV.obs)
-noise_discrepancy = np.linalg.norm(ADV.noise)
-
-print('areg=', areg)
-print('discrepancy=', discrepancy)
-print('noise_discrepancy=', noise_discrepancy)
-
-#
-
-psf_preconditioner.current_preconditioning_type = 'reg'
-result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 623 iter
-# sharper image, 2e-5 areg: 830 iter
-
-#
-
-psf_preconditioner.current_preconditioning_type = 'none'
-result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) # 562 iter
-# sharper image, 2e-5 areg: 525 iter
-
-#
-
-psf_preconditioner.current_preconditioning_type = 'psf'
-result3 = nhf.custom_cg(H_linop, -g0, M=P_linop, display=True, maxiter=1000, tol=1e-8) #196 psf1 # 104 psf5 # 48 iter, PSF25
-# sharper image, 2e-5 areg: 132 iter psf5
-# sharper image, 2e-5 areg: 54 iter psf25
-
-#
-# ADP = AdvectionDiffusionProblem(kappa, t_final, gamma)
-#
-# cmap = 'gray'  # 'binary_r' #'gist_gray' #'binary' # 'afmhot'
-#
-# plt.figure(figsize=(5, 5))
-# cm = dl.plot(ADP.utrue_final, cmap=cmap)
-# plt.axis('off')
-# cm.set_clim(0.0, 1.0)
-# # cm.extend = 'both'
-# plt.colorbar(cm, fraction=0.046, pad=0.04)
-# plt.gca().set_aspect('equal')
-# plt.show()
-#
-# plt.set_cmap('viridis')
-#
-# plt.figure(figsize=(5, 5))
-# p = np.array([0.25, 0.75])
-# impulse_response0 = dl.Function(Vh)
-# impulse_response0.vector()[:] = ADP.get_impulse_response(find_nearest_dof(p))
-# cm = dl.plot(impulse_response0)
-# plt.colorbar(cm)
-# plt.title('impulse response near ' + str(p))
-#
-#
-# ic_func = checkerboard_function(num_checkers_x, num_checkers_y, Vh)
-# true_initial_condition = ic_func.vector()
-#
-# utrue_initial = dl.Function(Vh)
-# utrue_initial.vector()[:] = true_initial_condition
-#
-# cmap = 'gray' #'binary_r' #'gist_gray' #'binary' # 'afmhot'
-#
-# plt.figure(figsize=(5,5))
-# cm = dl.plot(utrue_initial, cmap=cmap)
-# plt.axis('off')
-# plt.colorbar(cm,fraction=0.046, pad=0.04)
-# plt.gca().set_aspect('equal')
-# plt.show()
-#
