@@ -398,12 +398,10 @@ for ii, ns in enumerate(all_noise_levels):
 
                 #
 
-                print('Building invPSF_dense')
-                invPSF_dense = nhf.build_dense_matrix_from_matvecs(P_linop.matvec, P_linop.shape[1])
+                apply_PSF = lambda x: psf_preconditioner.shifted_inverse_interpolator.apply_shifted_deflated(x, areg_morozov)
 
-                print('Computing PSF_dense')
-                PSF_dense = np.linalg.inv(invPSF_dense)
-                del invPSF_dense
+                print('Building PSF_dense')
+                PSF_dense = nhf.build_dense_matrix_from_matvecs(apply_PSF, P_linop.shape[1])
 
                 print('computing ee_psf')
                 ee_psf = sla.eigh(H_dense, PSF_dense, eigvals_only=True)[::-1]
