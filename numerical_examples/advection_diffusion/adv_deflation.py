@@ -171,19 +171,14 @@ all_noise_norms = np.ones((len(all_noise_levels),
 
 ####
 
-print('Making row and column cluster trees')
-ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords, cluster_size_cutoff=50)
-
-print('Making block cluster trees')
-bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
-
-HR_hmatrix = ADV.regularization.Cov.make_invC_hmatrix(bct, 1.0)
-
-####
-
 for ii, ns in enumerate(all_noise_levels):
     for jj, kp in enumerate(all_kappa):
         for kk, tf in enumerate(all_t_final):
+            print()
+            print('ns=', ns)
+            print('kp=', kp)
+            print('tf=', tf)
+
             plt.close('all')
 
             ns_str = '_N=' + np.format_float_scientific(ns, precision=1, exp_digits=1)
@@ -357,6 +352,17 @@ for ii, ns in enumerate(all_noise_levels):
             all_randn_errs_psf = []
             all_ee_psf = []
             for ll, num_batches in enumerate(all_num_batches):
+                print('Making row and column cluster trees')
+                ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords,
+                                                             cluster_size_cutoff=32)
+
+                print('Making block cluster trees')
+                bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=1.0)
+
+                HR_hmatrix = ADV.regularization.Cov.make_invC_hmatrix(bct, 1.0)
+
+                ####
+
                 bt_str = '_B=' + np.format_float_scientific(num_batches, precision=1, exp_digits=1)
                 psf_preconditioner = PSFHessianPreconditioner(
                     ADV.apply_misfit_hessian, ADV.Vh, ADV.mesh_and_function_space.mass_lumps,
