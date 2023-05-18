@@ -48,7 +48,7 @@ def savetxt2(file, data):
 
 def load2(file):
     try:
-        return np.load(file)
+        return np.load(file, allow_pickle=True)
     except:
         return None
 
@@ -60,30 +60,41 @@ def loadtxt2(file):
 
 @dataclass
 class ADVData:
-    all_noise_levels: np.ndarray
-    all_kappa: np.ndarray
-    all_t_final: np.ndarray
-    all_num_batches: np.ndarray
-    krylov_thresholds: np.ndarray
-    impulse_points: np.ndarray
+    all_noise_levels: np.ndarray = None
+    all_kappa: np.ndarray = None
+    all_t_final: np.ndarray = None
+    all_num_batches: np.ndarray = None
+    krylov_thresholds: np.ndarray = None
+    impulse_points: np.ndarray = None
 
-    newton_krylov_iters_none: np.ndarray
-    newton_krylov_iters_reg: np.ndarray
-    newton_krylov_iters_psf: np.ndarray
+    newton_krylov_iters_none: np.ndarray = None
+    newton_krylov_iters_reg: np.ndarray = None
+    newton_krylov_iters_psf: np.ndarray = None
 
-    randn_krylov_iters_none: np.ndarray
-    randn_krylov_iters_reg: np.ndarray
-    randn_krylov_iters_psf: np.ndarray
+    randn_krylov_iters_none: np.ndarray = None
+    randn_krylov_iters_reg: np.ndarray = None
+    randn_krylov_iters_psf: np.ndarray = None
 
-    geigs_none: np.ndarray
-    geigs_reg: np.ndarray
-    geigs_psf: np.ndarray
+    geigs_none: np.ndarray = None
+    geigs_reg: np.ndarray = None
+    geigs_psf: np.ndarray = None
 
-    all_areg_morozov: np.ndarray
-    all_noise_norms: np.ndarray
+    all_areg_morozov: np.ndarray = None
+    all_noise_norms: np.ndarray = None
 
-    def __init__(me):
-        pass
+    all_gradients: np.ndarray = None
+    all_newton_dirs: np.ndarray = None
+
+    all_randn_b: np.ndarray = None
+    all_randn_x: np.ndarray = None
+
+    all_newton_errs_none: np.ndarray = None
+    all_newton_errs_reg: np.ndarray = None
+    all_newton_errs_psf: np.ndarray = None
+
+    all_randn_errs_none: np.ndarray = None
+    all_randn_errs_reg: np.ndarray = None
+    all_randn_errs_psf: np.ndarray = None
 
     def save(me):
         savetxt2(save_dir_str + '/all_noise_levels.txt', me.all_noise_levels)
@@ -108,51 +119,89 @@ class ADVData:
         save2(save_dir_str + '/all_areg_morozov', me.all_areg_morozov)
         save2(save_dir_str + '/all_noise_norms', me.all_noise_norms)
 
+        save2(save_dir_str + '/all_gradients', me.all_gradients)
+        save2(save_dir_str + '/all_newton_dirs', me.all_newton_dirs)
+
+        save2(save_dir_str + '/all_randn_b', me.all_randn_b)
+        save2(save_dir_str + '/all_randn_x', me.all_randn_x)
+
+        save2(save_dir_str + '/all_newton_errs_none', me.all_newton_errs_none)
+        save2(save_dir_str + '/all_newton_errs_reg', me.all_newton_errs_reg)
+        save2(save_dir_str + '/all_newton_errs_psf', me.all_newton_errs_psf)
+
+        save2(save_dir_str + '/all_randn_errs_none', me.all_randn_errs_none)
+        save2(save_dir_str + '/all_randn_errs_reg', me.all_randn_errs_reg)
+        save2(save_dir_str + '/all_randn_errs_psf', me.all_randn_errs_psf)
+
     def load(me):
-        me.all_noise_levels = loadtxt2(save_dir_str + '/all_noise_levels.txt')
-        me.all_kappa = loadtxt2(save_dir_str + '/all_kappa.txt')
-        me.all_t_final = loadtxt2(save_dir_str + '/all_t_final.txt')
-        me.all_num_batches = loadtxt2(save_dir_str + '/all_num_batches.txt')
-        me.krylov_thresholds = loadtxt2(save_dir_str + '/krylov_thresholds.txt')
+        me.all_noise_levels = loadtxt2(save_dir_str + '/all_noise_levels.txt').reshape(-1)
+        me.all_kappa = loadtxt2(save_dir_str + '/all_kappa.txt').reshape(-1)
+        me.all_t_final = loadtxt2(save_dir_str + '/all_t_final.txt').reshape(-1)
+        me.all_num_batches = loadtxt2(save_dir_str + '/all_num_batches.txt').reshape(-1)
+        me.all_num_batches = np.array(np.rint(me.all_num_batches), dtype=int)
+
+        me.krylov_thresholds = loadtxt2(save_dir_str + '/krylov_thresholds.txt').reshape(-1)
         me.impulse_points = loadtxt2(save_dir_str + '/impulse_points.txt')
+        if len(me.impulse_points.shape) == 1:
+            me.impulse_points = me.impulse_points.reshape((1,-1))
 
-        me.newton_krylov_iters_none = load2(save_dir_str + '/newton_krylov_iters_none')
-        me.newton_krylov_iters_reg = load2(save_dir_str + '/newton_krylov_iters_reg')
-        me.newton_krylov_iters_psf = load2(save_dir_str + '/newton_krylov_iters_psf')
+        me.newton_krylov_iters_none = load2(save_dir_str + '/newton_krylov_iters_none.npy')
+        me.newton_krylov_iters_reg = load2(save_dir_str + '/newton_krylov_iters_reg.npy')
+        me.newton_krylov_iters_psf = load2(save_dir_str + '/newton_krylov_iters_psf.npy')
 
-        me.randn_krylov_iters_none = load2(save_dir_str + '/randn_krylov_iters_none')
-        me.randn_krylov_iters_reg = load2(save_dir_str + '/randn_krylov_iters_reg')
-        me.randn_krylov_iters_psf = load2(save_dir_str + '/randn_krylov_iters_psf')
+        me.randn_krylov_iters_none = load2(save_dir_str + '/randn_krylov_iters_none.npy')
+        me.randn_krylov_iters_reg = load2(save_dir_str + '/randn_krylov_iters_reg.npy')
+        me.randn_krylov_iters_psf = load2(save_dir_str + '/randn_krylov_iters_psf.npy')
 
-        me.geigs_none = load2(save_dir_str + '/geigs_none')
-        me.geigs_reg = load2(save_dir_str + '/geigs_reg')
-        me.geigs_psf = load2(save_dir_str + '/geigs_psf')
+        me.geigs_none = load2(save_dir_str + '/geigs_none.npy')
+        me.geigs_reg = load2(save_dir_str + '/geigs_reg.npy')
+        me.geigs_psf = load2(save_dir_str + '/geigs_psf.npy')
 
-        me.all_areg_morozov = load2(save_dir_str + '/all_areg_morozov')
-        me.all_noise_norms = load2(save_dir_str + '/all_noise_norms')
+        me.all_areg_morozov = load2(save_dir_str + '/all_areg_morozov.npy')
+        me.all_noise_norms = load2(save_dir_str + '/all_noise_norms.npy')
+
+        me.all_gradients = load2(save_dir_str + '/all_gradients.npy')
+        me.all_newton_dirs = load2(save_dir_str + '/all_newton_dirs.npy')
+
+        me.all_randn_b = load2(save_dir_str + '/all_randn_b.npy')
+        me.all_randn_x = load2(save_dir_str + '/all_randn_x.npy')
+
+        me.all_newton_errs_none = load2(save_dir_str + '/all_newton_errs_none.npy')
+        me.all_newton_errs_reg = load2(save_dir_str + '/all_newton_errs_reg.npy')
+        me.all_newton_errs_psf = load2(save_dir_str + '/all_newton_errs_psf.npy')
+
+        me.all_randn_errs_none = load2(save_dir_str + '/all_randn_errs_none.npy')
+        me.all_randn_errs_reg = load2(save_dir_str + '/all_randn_errs_reg.npy')
+        me.all_randn_errs_psf = load2(save_dir_str + '/all_randn_errs_psf.npy')
 
 
-def adv_initial_stuff():
+def initialize_stuff():
     print()
     print('------------------    adv_initial_stuff()    -----------------------')
 
-    S = ADVData()
+    all_noise_levels = [0.05] #[0.05, 0.1, 0.2]
+    all_kappa = list(np.logspace(-4, -3, 5))
+    all_t_final = [0.5, 1.0, 2.0]
+    all_num_batches = [1, 5, 25]
 
-    S.all_noise_levels = [0.05] #[0.05, 0.1, 0.2]
-    S.all_kappa = list(np.logspace(-4, -3, 5))
-    S.all_t_final = [0.5, 1.0, 2.0]
-    S.all_num_batches = [1, 5, 25]
+    krylov_thresholds = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]
 
-    S.krylov_thresholds = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]
-
-    S.impulse_points = np.array([[0.1, 0.8],
+    impulse_points = np.array([[0.1, 0.8],
                                  [0.75, 0.25],
                                  [0.3, 0.6]])
 
+    S = ADVData()
+    S.all_noise_levels = all_noise_levels
+    S.all_kappa = all_kappa
+    S.all_t_final = all_t_final
+    S.all_num_batches = all_num_batches
+    S.krylov_thresholds = krylov_thresholds
+    S.impulse_points = impulse_points
     S.save()
 
     #### MAKE INITIAL CONDITION PLOT ####
 
+    np.random.seed(0)
     ADV = adv.make_adv_universe(all_noise_levels[0], all_kappa[0], all_t_final[0],
                                 num_checkers_x=num_checkers,
                                 num_checkers_y=num_checkers)
@@ -178,39 +227,39 @@ def adv_initial_stuff():
 
     #### INITIALIZE DATA ARRAYS ####
 
-    S.newton_krylov_iters_none = np.ones((len(all_noise_levels),
-                                          len(all_kappa),
-                                          len(all_t_final),
-                                          len(krylov_thresholds)), dtype=int) * np.nan
+    S.newton_krylov_iters_none = -1 * np.ones((len(all_noise_levels),
+                                               len(all_kappa),
+                                               len(all_t_final),
+                                               len(krylov_thresholds)), dtype=int)
 
-    S.newton_krylov_iters_reg = np.ones((len(all_noise_levels),
-                                         len(all_kappa),
-                                         len(all_t_final),
-                                         len(krylov_thresholds)), dtype=int) * np.nan
+    S.newton_krylov_iters_reg = -1 * np.ones((len(all_noise_levels),
+                                              len(all_kappa),
+                                              len(all_t_final),
+                                              len(krylov_thresholds)), dtype=int)
 
-    S.newton_krylov_iters_psf = np.ones((len(all_num_batches),
-                                         len(all_noise_levels),
-                                         len(all_kappa),
-                                         len(all_t_final),
-                                         len(krylov_thresholds)), dtype=int) * np.nan
+    S.newton_krylov_iters_psf = -1 * np.ones((len(all_num_batches),
+                                              len(all_noise_levels),
+                                              len(all_kappa),
+                                              len(all_t_final),
+                                              len(krylov_thresholds)), dtype=int)
 
     ####
 
-    S.randn_krylov_iters_none = np.ones((len(all_noise_levels),
-                                         len(all_kappa),
-                                         len(all_t_final),
-                                         len(krylov_thresholds)), dtype=int) * np.nan
+    S.randn_krylov_iters_none = -1 * np.ones((len(all_noise_levels),
+                                              len(all_kappa),
+                                              len(all_t_final),
+                                              len(krylov_thresholds)), dtype=int)
 
-    S.randn_krylov_iters_reg = np.ones((len(all_noise_levels),
-                                        len(all_kappa),
-                                        len(all_t_final),
-                                        len(krylov_thresholds)), dtype=int) * np.nan
+    S.randn_krylov_iters_reg = -1 * np.ones((len(all_noise_levels),
+                                             len(all_kappa),
+                                             len(all_t_final),
+                                             len(krylov_thresholds)), dtype=int)
 
-    S.randn_krylov_iters_psf = np.ones((len(all_num_batches),
-                                        len(all_noise_levels),
-                                        len(all_kappa),
-                                        len(all_t_final),
-                                        len(krylov_thresholds)), dtype=int) * np.nan
+    S.randn_krylov_iters_psf = -1 * np.ones((len(all_num_batches),
+                                             len(all_noise_levels),
+                                             len(all_kappa),
+                                             len(all_t_final),
+                                             len(krylov_thresholds)), dtype=int)
 
     ####
 
@@ -230,8 +279,6 @@ def adv_initial_stuff():
                            len(all_t_final),
                            ADV.N)) * np.nan
 
-
-
     ####
 
     S.all_areg_morozov = np.ones((len(all_noise_levels),
@@ -242,50 +289,82 @@ def adv_initial_stuff():
                                  len(all_kappa),
                                  len(all_t_final))) * np.nan
 
+    ####
+
+    S.all_gradients = np.ones((len(all_noise_levels),
+                               len(all_kappa),
+                               len(all_t_final),
+                               ADV.N)) * np.nan
+
+    S.all_newton_dirs = np.ones((len(all_noise_levels),
+                                  len(all_kappa),
+                                  len(all_t_final),
+                                  ADV.N)) * np.nan
+
+    S.all_randn_b = np.ones((len(all_noise_levels),
+                             len(all_kappa),
+                             len(all_t_final),
+                             ADV.N)) * np.nan
+
+    S.all_randn_x = np.ones((len(all_noise_levels),
+                             len(all_kappa),
+                             len(all_t_final),
+                             ADV.N)) * np.nan
+
+    ####
+
+    S.all_newton_errs_none = np.empty((len(all_noise_levels),
+                                       len(all_kappa),
+                                       len(all_t_final)), dtype=object)
+
+    S.all_newton_errs_reg = np.empty((len(all_noise_levels),
+                                      len(all_kappa),
+                                      len(all_t_final)), dtype=object)
+
+    S.all_newton_errs_psf = np.empty((len(all_num_batches),
+                                      len(all_noise_levels),
+                                      len(all_kappa),
+                                      len(all_t_final)), dtype=object)
+    ####
+
+    S.all_randn_errs_none = np.empty((len(all_noise_levels),
+                                      len(all_kappa),
+                                      len(all_t_final)), dtype=object)
+
+    S.all_randn_errs_reg = np.empty((len(all_noise_levels),
+                                     len(all_kappa),
+                                     len(all_t_final)), dtype=object)
+
+    S.all_randn_errs_psf = np.empty((len(all_num_batches),
+                                     len(all_noise_levels),
+                                     len(all_kappa),
+                                     len(all_t_final)), dtype=object)
+
+    ####
+
     S.save()
 
-####
 
-def adv_do_one_run_nopsf(ii, jj, kk):
-    all_noise_levels = list(np.loadtxt(save_dir_str + '/all_noise_levels.txt'))
-    all_kappa = list(np.loadtxt(save_dir_str + '/all_kappa.txt'))
-    all_t_final = list(np.loadtxt(save_dir_str + '/all_t_final.txt'))
-    all_num_batches = list(np.loadtxt(save_dir_str + '/all_num_batches.txt'))
-    krylov_thresholds = list(np.loadtxt(save_dir_str + '/krylov_thresholds.txt'))
-    impulse_points = list(np.loadtxt(save_dir_str + '/impulse_points.txt'))
+def do_one_run_firstpart(ii, jj, kk):
+    S = ADVData()
+    S.load()
 
-    newton_krylov_iters_none = np.load(save_dir_str + '/newton_krylov_iters_none')
-    newton_krylov_iters_reg = np.load(save_dir_str + '/newton_krylov_iters_reg')
-    newton_krylov_iters_psf = np.load(save_dir_str + '/newton_krylov_iters_psf')
-
-    randn_krylov_iters_none = np.load(save_dir_str + '/randn_krylov_iters_none')
-    randn_krylov_iters_reg = np.load(save_dir_str + '/randn_krylov_iters_reg')
-    randn_krylov_iters_psf = np.load(save_dir_str + '/randn_krylov_iters_psf')
-
-    geigs_none = np.load(save_dir_str + '/geigs_none')
-    geigs_reg = np.load(save_dir_str + '/geigs_reg')
-    geigs_psf = np.load(save_dir_str + '/geigs_psf')
-
-    all_areg_morozov = np.load(save_dir_str + '/all_areg_morozov')
-    all_noise_norms = np.load(save_dir_str + '/all_noise_norms')
-
-    ns = all_noise_levels[ii]
-    kp = all_kappa[jj]
-    tf = all_t_final[kk]
+    ns = S.all_noise_levels[ii]
+    kp = S.all_kappa[jj]
+    tf = S.all_t_final[kk]
 
     print()
-    print('------------------    New ADV run (np psf part)    -----------------------')
+    print('------------------    do_one_run_firstpart    -----------------------')
     print('ns=', ns)
     print('kp=', kp)
     print('tf=', tf)
-
-    plt.close('all')
 
     ns_str = '_N=' + np.format_float_scientific(ns, precision=1, exp_digits=1)
     tf_str = '_T=' + np.format_float_scientific(tf, precision=1, exp_digits=1)
     kp_str = '_K=' + np.format_float_scientific(kp, precision=1, exp_digits=1)
     id_str = tf_str + kp_str + ns_str
 
+    np.random.seed(0)
     ADV = adv.make_adv_universe(ns, kp, tf,
                                 num_checkers_x=num_checkers,
                                 num_checkers_y=num_checkers)
@@ -294,15 +373,15 @@ def adv_do_one_run_nopsf(ii, jj, kk):
     if ii == 0:  # impulse responses don't depend on noise
         print('making impulse response pictures')
         plt.figure()
-        for ll in range(impulse_points.shape[0]):
-            p_str = '_P' + str(tuple(impulse_points[ll, :]))
+        for ll in range(S.impulse_points.shape[0]):
+            p_str = '_P' + str(tuple(S.impulse_points[ll, :]))
             phi = dl.Function(ADV.Vh)
-            phi.vector()[:] = ADV.get_misfit_hessian_impulse_response(impulse_points[ll, :])
+            phi.vector()[:] = ADV.get_misfit_hessian_impulse_response(S.impulse_points[ll, :])
 
             cm = dl.plot(phi)
             plt.colorbar(cm)
             plt.axis('off')
-            plt.plot(impulse_points[ll, 0], impulse_points[ll, 1], '*r')
+            plt.plot(S.impulse_points[ll, 0], S.impulse_points[ll, 1], '*r')
             plt.title('Impulse response, T=' + str(tf) + ', kappa=' + str(kp))
             plt.savefig(save_dir_str + '/impulse_response' + p_str + id_str + '.png',
                         dpi=fig_dpi, bbox_inches='tight')
@@ -310,6 +389,8 @@ def adv_do_one_run_nopsf(ii, jj, kk):
             dl.File(save_dir_str + '/impulse_response' + p_str + id_str + '.pvd') << phi
             plt.clf()
         plt.close()
+
+    S.save()
 
     #### PLOT OBSERVATIONS ####
     plt.figure()
@@ -332,10 +413,10 @@ def adv_do_one_run_nopsf(ii, jj, kk):
     seen_discrepancies = seen_discrepancies[inds]
 
     print('areg_morozov=', areg_morozov)
-    all_areg_morozov[ii, jj, kk] = areg_morozov
-    all_noise_norms[ii, jj, kk] = ADV.noise_norm
+    S.all_areg_morozov[ii, jj, kk] = areg_morozov
+    S.all_noise_norms[ii, jj, kk] = ADV.noise_norm
+    S.save()
 
-    np.save(save_dir_str + '/all_areg_morozov', all_areg_morozov)
     np.savetxt(save_dir_str + '/seen_aregs' + id_str + '.txt', seen_aregs)
     np.savetxt(save_dir_str + '/seen_discrepancies' + id_str + '.txt', seen_discrepancies)
 
@@ -353,8 +434,14 @@ def adv_do_one_run_nopsf(ii, jj, kk):
     m0 = np.zeros(ADV.N)
     g0 = ADV.gradient(m0, areg_morozov)
 
+    S.all_gradients[ii,jj,kk,:] = g0
+    S.save()
+
     H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg_morozov))
     p_newton = nhf.custom_cg(H_linop, -g0, display=True, maxiter=maxiter_krylov, tol=exact_rtol)[0]
+
+    S.all_newton_dirs[ii,jj,kk,:] = p_newton
+    S.save()
 
     mstar_vec = m0 + p_newton
     mstar = dl.Function(ADV.Vh)
@@ -376,6 +463,10 @@ def adv_do_one_run_nopsf(ii, jj, kk):
     b_randn = np.random.randn(ADV.N)
     x_randn = nhf.custom_cg(H_linop, b_randn, display=True, maxiter=maxiter_krylov, tol=exact_rtol)[0]
 
+    S.all_randn_b[ii,jj,kk,:] = b_randn
+    S.all_randn_x[ii, jj, kk, :] = x_randn
+    S.save()
+
     #### KRYLOV CONVERGENCE AND PRECONDITIONED SPECTRUM PLOTS ####
     print('Making Krylov convergence plots')
     M_reg_matvec = lambda x: ADV.regularization.solve_hessian(x, m0, areg_morozov)
@@ -389,18 +480,18 @@ def adv_do_one_run_nopsf(ii, jj, kk):
     np.savetxt(save_dir_str + '/newton_errs_none' + id_str + '.txt', newton_errs_none)
     np.savetxt(save_dir_str + '/newton_errs_reg' + id_str + '.txt', newton_errs_reg)
 
-    newton_crossings_none = nhf.threshold_crossings(newton_errs_none, krylov_thresholds)
-    newton_crossings_reg = nhf.threshold_crossings(newton_errs_reg, krylov_thresholds)
+    S.all_newton_errs_none[ii, jj, kk] = newton_errs_none
+    S.all_newton_errs_reg[ii, jj, kk] = newton_errs_reg
+    S.newton_krylov_iters_none[ii, jj, kk] = nhf.threshold_crossings(newton_errs_none, S.krylov_thresholds)
+    S.newton_krylov_iters_reg[ii, jj, kk] = nhf.threshold_crossings(newton_errs_reg, S.krylov_thresholds)
+    S.save()
 
-    newton_krylov_iters_none[ii, jj, kk] = newton_crossings_none
-    newton_krylov_iters_reg[ii, jj, kk] = newton_crossings_reg
-
-    np.save(save_dir_str + '/newton_krylov_iters_none', newton_krylov_iters_none)
-    np.save(save_dir_str + '/newton_krylov_iters_reg', newton_krylov_iters_reg)
-
-    print('krylov_thresholds=', krylov_thresholds)
-    print('newton_crossings_none=', newton_crossings_none)
-    print('newton_crossings_reg=', newton_crossings_reg)
+    print('ns=', ns)
+    print('kp=', kp)
+    print('tf=', tf)
+    print('krylov_thresholds=', S.krylov_thresholds)
+    print('newton_crossings_none=', S.newton_krylov_iters_none[ii, jj, kk])
+    print('newton_crossings_reg=', S.newton_krylov_iters_reg[ii, jj, kk])
 
     #
 
@@ -412,29 +503,27 @@ def adv_do_one_run_nopsf(ii, jj, kk):
     np.savetxt(save_dir_str + '/randn_errs_none' + id_str + '.txt', randn_errs_none)
     np.savetxt(save_dir_str + '/randn_errs_reg' + id_str + '.txt', randn_errs_reg)
 
-    randn_crossings_none = nhf.threshold_crossings(randn_errs_none, krylov_thresholds)
-    randn_crossings_reg = nhf.threshold_crossings(randn_errs_reg, krylov_thresholds)
+    S.all_randn_errs_none[ii, jj, kk] = randn_errs_none
+    S.all_randn_errs_reg[ii, jj, kk] = randn_errs_reg
+    S.randn_krylov_iters_none[ii, jj, kk, :] = nhf.threshold_crossings(randn_errs_none, S.krylov_thresholds)
+    S.randn_krylov_iters_reg[ii, jj, kk, :] = nhf.threshold_crossings(randn_errs_reg, S.krylov_thresholds)
+    S.save()
 
-    randn_krylov_iters_none[ii, jj, kk, :] = randn_crossings_none
-    randn_krylov_iters_reg[ii, jj, kk, :] = randn_crossings_reg
-
-    np.save(save_dir_str + '/randn_krylov_iters_none', randn_krylov_iters_none)
-    np.save(save_dir_str + '/randn_krylov_iters_reg', randn_krylov_iters_reg)
-
-    print('krylov_thresholds=', krylov_thresholds)
-    print('randn_crossings_none=', randn_crossings_none)
-    print('randn_crossings_reg=', randn_crossings_reg)
+    print('krylov_thresholds=', S.krylov_thresholds)
+    print('randn_crossings_none=', S.randn_krylov_iters_none[ii, jj, kk, :])
+    print('randn_crossings_reg=', S.randn_krylov_iters_reg[ii, jj, kk, :])
 
     #
 
     print('Building H_dense')
     H_dense = nhf.build_dense_matrix_from_matvecs(H_linop.matvec, H_linop.shape[1])
+    np.save('H_dense_tmp', H_dense)
 
     print('computing ee_none')
     ee_none = sla.eigh(H_dense, eigvals_only=True)[::-1]
 
-    geigs_none[ii, jj, kk, :] = ee_none
-    np.save(save_dir_str + '/geigs_none', geigs_none)
+    S.geigs_none[ii, jj, kk, :] = ee_none
+    S.save()
 
     print('Building invHR_dense')
     invHR_dense = nhf.build_dense_matrix_from_matvecs(M_reg_linop.matvec, M_reg_linop.shape[1])
@@ -447,95 +536,147 @@ def adv_do_one_run_nopsf(ii, jj, kk):
     ee_reg = sla.eigh(H_dense, HR_dense, eigvals_only=True)[::-1]
     del HR_dense
 
-    geigs_reg[ii, jj, kk, :] = ee_reg
-    np.save(save_dir_str + '/geigs_reg', geigs_reg)
+    S.geigs_reg[ii, jj, kk, :] = ee_reg
+    S.save()
+
+
+def do_one_run_psf(ll, ii, jj, kk): # ll is num_batches index
+    S = ADVData()
+    S.load()
+
+    ns = S.all_noise_levels[ii]
+    kp = S.all_kappa[jj]
+    tf = S.all_t_final[kk]
+    nb = S.all_num_batches[ll]
+
+    np.random.seed(0)
+    ADV = adv.make_adv_universe(ns, kp, tf,
+                                num_checkers_x=num_checkers,
+                                num_checkers_y=num_checkers)
+
+    print()
+    print('------------------    do_one_run_psf    -----------------------')
+    print('ns=', ns)
+    print('kp=', kp)
+    print('tf=', tf)
+    print('nb=', nb)
+
+    ns_str = '_N=' + np.format_float_scientific(ns, precision=1, exp_digits=1)
+    tf_str = '_T=' + np.format_float_scientific(tf, precision=1, exp_digits=1)
+    kp_str = '_K=' + np.format_float_scientific(kp, precision=1, exp_digits=1)
+    bt_str = '_B=' + np.format_float_scientific(nb, precision=1, exp_digits=1)
+    extended_id_str = bt_str + tf_str + kp_str + ns_str
+
+    print('Making row and column cluster trees')
+    ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords,
+                                                 cluster_size_cutoff=32)
+
+    print('Making block cluster trees')
+    bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=1.0)
+
+    HR_hmatrix = ADV.regularization.Cov.make_invC_hmatrix(bct, 1.0)
+
+    ####
+
+    areg_morozov = S.all_areg_morozov[ii, jj, kk]
+    H_linop = spla.LinearOperator((ADV.N, ADV.N), matvec=lambda x: ADV.apply_hessian(x, areg_morozov))
+    g0 = S.all_gradients[ii,jj,kk,:]
+    p_newton = S.all_newton_dirs[ii,jj,kk,:]
+
+    psf_preconditioner = PSFHessianPreconditioner(
+        ADV.apply_misfit_hessian, ADV.Vh, ADV.mesh_and_function_space.mass_lumps,
+        HR_hmatrix, display=True)
+
+    psf_preconditioner.psf_options['num_initial_batches'] = nb
+    psf_preconditioner.build_hessian_preconditioner()
+
+    psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg_morozov)
+    psf_preconditioner.update_deflation(areg_morozov)
+
+    P_linop = spla.LinearOperator(
+        (ADV.N, ADV.N),
+        matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg_morozov))
+
+    _, _, _, newton_errs_psf = nhf.custom_cg(H_linop, -g0, M=P_linop, x_true=p_newton, display=True,
+                                             maxiter=maxiter_krylov, tol=tight_rtol)
+
+    np.savetxt(save_dir_str + '/newton_errs_psf' + extended_id_str + '.txt', newton_errs_psf)
+
+    S.all_newton_errs_psf[ll, ii, jj, kk] = newton_errs_psf
+    S.newton_krylov_iters_psf[ll, ii, jj, kk, :] = nhf.threshold_crossings(newton_errs_psf, S.krylov_thresholds)
+    S.save()
+
+    print('ns=', ns)
+    print('kp=', kp)
+    print('tf=', tf)
+    print('nb=', nb)
+    print('krylov_thresholds=', S.krylov_thresholds)
+    print('newton_crossings_psf=', S.newton_krylov_iters_psf[ll, ii, jj, kk, :])
+
+    #
+    b_randn = S.all_randn_b[ii, jj, kk, :]
+    x_randn = S.all_randn_x[ii, jj, kk, :]
+
+    _, _, _, randn_errs_psf = nhf.custom_cg(H_linop, b_randn, M=P_linop, x_true=x_randn, display=True,
+                                            maxiter=maxiter_krylov, tol=tight_rtol)
+
+    np.savetxt(save_dir_str + '/randn_errs_psf' + extended_id_str + '.txt', randn_errs_psf)
+
+    S.all_randn_errs_psf[ll, ii, jj, kk] = randn_errs_psf
+    S.randn_krylov_iters_psf[ll, ii, jj, kk, :] = nhf.threshold_crossings(randn_errs_psf, S.krylov_thresholds)
+    S.save()
+
+    print('ns=', ns)
+    print('kp=', kp)
+    print('tf=', tf)
+    print('nb=', nb)
+    print('krylov_thresholds=', S.krylov_thresholds)
+    print('randn_crossings_psf=', S.randn_krylov_iters_psf[ll, ii, jj, kk, :])
 
     #
 
-def adv_do_one_run_one_psf(ll, ii, jj, kk): # ll = num_batches index
-    all_newton_errs_psf = []
-    all_randn_errs_psf = []
-    all_ee_psf = []
-    for ll, num_batches in enumerate(all_num_batches):
-        print('Making row and column cluster trees')
-        ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords,
-                                                     cluster_size_cutoff=32)
+    H_dense = np.load('H_dense_tmp.npy')
 
-        print('Making block cluster trees')
-        bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=1.0)
+    apply_PSF = lambda x: psf_preconditioner.shifted_inverse_interpolator.apply_shifted_deflated(x, areg_morozov)
 
-        HR_hmatrix = ADV.regularization.Cov.make_invC_hmatrix(bct, 1.0)
+    print('Building PSF_dense')
+    PSF_dense = nhf.build_dense_matrix_from_matvecs(apply_PSF, P_linop.shape[1])
 
-        ####
+    print('computing ee_psf')
+    ee_psf = sla.eigh(H_dense, PSF_dense, eigvals_only=True)[::-1]
+    del PSF_dense
 
-        bt_str = '_B=' + np.format_float_scientific(num_batches, precision=1, exp_digits=1)
-        psf_preconditioner = PSFHessianPreconditioner(
-            ADV.apply_misfit_hessian, ADV.Vh, ADV.mesh_and_function_space.mass_lumps,
-            HR_hmatrix, display=True)
+    S.geigs_psf[ll, ii, jj, kk, :] = ee_psf
+    S.save()
 
-        psf_preconditioner.psf_options['num_initial_batches'] = num_batches
-        psf_preconditioner.build_hessian_preconditioner()
+    ####
 
-        psf_preconditioner.shifted_inverse_interpolator.insert_new_mu(areg_morozov)
-        psf_preconditioner.update_deflation(areg_morozov)
+def do_one_run_lastpart(ii, jj, kk):
+    S = ADVData()
+    S.load()
 
-        P_linop = spla.LinearOperator(
-            (ADV.N, ADV.N),
-            matvec=lambda x: psf_preconditioner.solve_hessian_preconditioner(x, areg_morozov))
+    ns = S.all_noise_levels[ii]
+    kp = S.all_kappa[jj]
+    tf = S.all_t_final[kk]
 
-        _, _, _, newton_errs_psf = nhf.custom_cg(H_linop, -g0, M=P_linop, x_true=p_newton, display=True,
-                                                 maxiter=maxiter_krylov, tol=tight_rtol)
-        all_newton_errs_psf.append(newton_errs_psf)
+    ns_str = '_N=' + np.format_float_scientific(ns, precision=1, exp_digits=1)
+    tf_str = '_T=' + np.format_float_scientific(tf, precision=1, exp_digits=1)
+    kp_str = '_K=' + np.format_float_scientific(kp, precision=1, exp_digits=1)
+    id_str = tf_str + kp_str + ns_str
 
-        np.savetxt(save_dir_str + '/newton_errs_psf' + bt_str + id_str + '.txt', newton_errs_psf)
-        newton_crossings_psf = nhf.threshold_crossings(newton_errs_psf, krylov_thresholds)
-        newton_krylov_iters_psf[ll, ii, jj, kk, :] = newton_crossings_psf
-        np.save(save_dir_str + '/newton_krylov_iters_psf', newton_krylov_iters_psf)
-
-        print('num_batches=', num_batches)
-        print('krylov_thresholds=', krylov_thresholds)
-        print('newton_crossings_psf=', newton_crossings_psf)
-
-        #
-
-        _, _, _, randn_errs_psf = nhf.custom_cg(H_linop, b_randn, M=P_linop, x_true=x_randn, display=True,
-                                                maxiter=maxiter_krylov, tol=tight_rtol)
-        all_randn_errs_psf.append(randn_errs_psf)
-
-        np.savetxt(save_dir_str + '/randn_errs_psf' + bt_str + id_str + '.txt', randn_errs_psf)
-        randn_crossings_psf = nhf.threshold_crossings(randn_errs_psf, krylov_thresholds)
-        randn_krylov_iters_psf[ll, ii, jj, kk, :] = randn_crossings_psf
-        np.save(save_dir_str + '/randn_krylov_iters_psf', randn_krylov_iters_psf)
-
-        print('num_batches=', num_batches)
-        print('krylov_thresholds=', krylov_thresholds)
-        print('randn_crossings_psf=', randn_crossings_psf)
-
-        #
-
-        apply_PSF = lambda x: psf_preconditioner.shifted_inverse_interpolator.apply_shifted_deflated(x, areg_morozov)
-
-        print('Building PSF_dense')
-        PSF_dense = nhf.build_dense_matrix_from_matvecs(apply_PSF, P_linop.shape[1])
-
-        print('computing ee_psf')
-        ee_psf = sla.eigh(H_dense, PSF_dense, eigvals_only=True)[::-1]
-        del PSF_dense
-
-        all_ee_psf.append(ee_psf)
-
-        geigs_psf[ll, ii, jj, kk, :] = ee_psf
-        np.save(save_dir_str + '/geigs_psf', geigs_psf)
-
-    del H_dense
+    print()
+    print('------------------    do_one_run_lastpart    -----------------------')
+    print('ns=', ns)
+    print('kp=', kp)
+    print('tf=', tf)
 
     plt.figure()
-    plt.semilogy(newton_errs_none)
-    plt.semilogy(newton_errs_reg)
+    plt.semilogy(S.all_newton_errs_none[ii, jj, kk])
+    plt.semilogy(S.all_newton_errs_reg[ii, jj, kk])
     legend = ['None', 'Reg']
-    for jj in range(len(all_num_batches)):
-        plt.semilogy(all_newton_errs_psf[jj])
-        legend.append('PSF ' + str(all_num_batches[jj]))
+    for ll in range(len(S.all_num_batches)):
+        plt.semilogy(S.all_newton_errs_psf[ll, ii, jj, kk])
+        legend.append('PSF ' + str(S.all_num_batches[ll]))
     plt.legend(legend)
     plt.xlabel('Iteration')
     plt.ylabel('Relative error')
@@ -544,12 +685,12 @@ def adv_do_one_run_one_psf(ll, ii, jj, kk): # ll = num_batches index
     plt.close()
 
     plt.figure()
-    plt.semilogy(randn_errs_none)
-    plt.semilogy(randn_errs_reg)
+    plt.semilogy(S.all_randn_errs_none[ii, jj, kk])
+    plt.semilogy(S.all_randn_errs_reg[ii, jj, kk])
     legend = ['None', 'Reg']
-    for jj in range(len(all_num_batches)):
-        plt.semilogy(all_randn_errs_psf[jj])
-        legend.append('PSF ' + str(all_num_batches[jj]))
+    for ll in range(len(S.all_num_batches)):
+        plt.semilogy(S.all_randn_errs_psf[ll, ii, jj, kk])
+        legend.append('PSF ' + str(S.all_num_batches[ll]))
     plt.legend(legend)
     plt.xlabel('Iteration')
     plt.ylabel('Relative error')
@@ -558,12 +699,12 @@ def adv_do_one_run_one_psf(ll, ii, jj, kk): # ll = num_batches index
     plt.close()
 
     plt.figure()
-    plt.semilogy(ee_none)
-    plt.semilogy(ee_reg)
+    plt.semilogy(S.geigs_none[ii, jj, kk, :])
+    plt.semilogy(S.geigs_reg[ii, jj, kk, :])
     legend = ['None', 'Reg']
-    for jj in range(len(all_num_batches)):
-        plt.semilogy(all_ee_psf[jj])
-        legend.append('PSF ' + str(all_num_batches[jj]))
+    for ll in range(len(S.all_num_batches)):
+        plt.semilogy(S.geigs_psf[ll, ii, jj, kk, :])
+        legend.append('PSF ' + str(S.all_num_batches[ll]))
     plt.legend(legend)
     plt.xlabel('index')
     plt.ylabel('eigenvalue')
