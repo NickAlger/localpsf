@@ -9,9 +9,9 @@
 # [1 0 4 2]
 # [2 0 0 1]]
 
-python adv_deflation.py 0 0 1 0 'first'
-python adv_deflation.py 0 0 1 2 'psf'
-python adv_deflation.py 0 0 1 0 'last'
+#python adv_deflation.py 0 0 1 0 'first'
+#python adv_deflation.py 0 0 1 2 'psf'
+#python adv_deflation.py 0 0 1 0 'last'
 
 python adv_deflation.py 0 4 0 0 'first'
 python adv_deflation.py 0 4 0 0 'psf'
