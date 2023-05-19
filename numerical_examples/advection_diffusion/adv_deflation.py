@@ -737,4 +737,13 @@ elif run_type.lower() == 'psf':
 elif run_type.lower() == 'last':
     do_one_run_lastpart(ii_in, jj_in, kk_in)
 
-
+print()
+print('-----------------------------------------')
+geigs_psf = load2(save_dir_str + '/geigs_psf.npy')
+incomplete_runs = np.argwhere(np.isnan(geigs_psf[:,:,:,:,0]))
+print('ll, ii, jj, kk')
+print('nb, ns, kp, tf')
+print('incomplete_runs:')
+print(incomplete_runs)
+print('-----------------------------------------')
+print()
