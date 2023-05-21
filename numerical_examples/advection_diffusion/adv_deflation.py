@@ -715,6 +715,90 @@ def do_one_run_lastpart(ii, jj, kk):
 
 ####
 
+def make_kappa_plot(ii, kk):
+    S = ADVData()
+    S.load()
+
+    ns = S.all_noise_levels[ii]
+    tf = S.all_t_final[kk]
+
+    ns_str = '_N=' + np.format_float_scientific(ns, precision=1, exp_digits=1)
+    tf_str = '_T=' + np.format_float_scientific(tf, precision=1, exp_digits=1)
+    id_str_reduced = tf_str + ns_str
+
+    threshold_ind = 5
+    krylov_tol= S.krylov_thresholds[threshold_ind]
+    print('krylov_tol=', krylov_tol)
+    plt.figure()
+    plt.loglog(S.all_kappa, S.newton_krylov_iters_none[ii,:,kk,threshold_ind])
+    plt.loglog(S.all_kappa, S.newton_krylov_iters_reg[ii,:,kk,threshold_ind])
+    legend = ['None', 'Reg']
+    for ll in range(len(S.all_num_batches)):
+        plt.loglog(S.all_kappa, S.newton_krylov_iters_psf[ll,ii,:,kk,threshold_ind])
+        legend.append('PSF ' + str(S.all_num_batches[ll]))
+    plt.legend(legend)
+    plt.xlabel('kappa')
+    plt.ylabel('num krylov iters')
+    plt.title('number of krylov iters vs kappa, newton, krylov_tol=' + str(krylov_tol))
+    plt.savefig(save_dir_str + '/krylov_vs_kappa_newton' + id_str_reduced + '.png', dpi=fig_dpi, bbox_inches='tight')
+
+    plt.figure()
+    plt.loglog(S.all_kappa, S.randn_krylov_iters_none[ii,:,kk,threshold_ind])
+    plt.loglog(S.all_kappa, S.randn_krylov_iters_reg[ii,:,kk,threshold_ind])
+    legend = ['None', 'Reg']
+    for ll in range(len(S.all_num_batches)):
+        plt.loglog(S.all_kappa, S.randn_krylov_iters_psf[ll,ii,:,kk,threshold_ind])
+        legend.append('PSF ' + str(S.all_num_batches[ll]))
+    plt.legend(legend)
+    plt.xlabel('kappa')
+    plt.ylabel('num krylov iters')
+    plt.title('number of krylov iters vs kappa, randn, krylov_tol=' + str(krylov_tol))
+    plt.savefig(save_dir_str + '/krylov_vs_kappa_randn' + id_str_reduced + '.png', dpi=fig_dpi, bbox_inches='tight')
+
+
+def make_tf_plot(ii, jj):
+    S = ADVData()
+    S.load()
+
+    ns = S.all_noise_levels[ii]
+    kp = S.all_kappa[jj]
+
+    ns_str = '_N=' + np.format_float_scientific(ns, precision=1, exp_digits=1)
+    kp_str = '_T=' + np.format_float_scientific(kp, precision=1, exp_digits=1)
+    id_str_reduced2 = kp_str + ns_str
+
+    threshold_ind = 5
+    krylov_tol= S.krylov_thresholds[threshold_ind]
+    print('krylov_tol=', krylov_tol)
+    plt.figure()
+    plt.loglog(S.all_t_final, S.newton_krylov_iters_none[ii,jj,:,threshold_ind])
+    plt.loglog(S.all_t_final, S.newton_krylov_iters_reg[ii,jj,:,threshold_ind])
+    legend = ['None', 'Reg']
+    for ll in range(len(S.all_num_batches)):
+        plt.loglog(S.all_t_final, S.newton_krylov_iters_psf[ll,ii,jj,:,threshold_ind])
+        legend.append('PSF ' + str(S.all_num_batches[ll]))
+    plt.legend(legend)
+    plt.xlabel('Tf')
+    plt.ylabel('num krylov iters')
+    plt.title('number of krylov iters vs Tf, newton, krylov_tol=' + str(krylov_tol))
+    plt.savefig(save_dir_str + '/krylov_vs_tf_newton' + id_str_reduced2 + '.png', dpi=fig_dpi, bbox_inches='tight')
+
+    plt.figure()
+    plt.loglog(S.all_t_final, S.randn_krylov_iters_none[ii,jj,:,threshold_ind])
+    plt.loglog(S.all_t_final, S.randn_krylov_iters_reg[ii,jj,:,threshold_ind])
+    legend = ['None', 'Reg']
+    for ll in range(len(S.all_num_batches)):
+        plt.loglog(S.all_t_final, S.randn_krylov_iters_psf[ll,ii,jj,:,threshold_ind])
+        legend.append('PSF ' + str(S.all_num_batches[ll]))
+    plt.legend(legend)
+    plt.xlabel('Tf')
+    plt.ylabel('num krylov iters')
+    plt.title('number of krylov iters vs Tf, randn, krylov_tol=' + str(krylov_tol))
+    plt.savefig(save_dir_str + '/krylov_vs_tf_randn' + id_str_reduced2 + '.png', dpi=fig_dpi, bbox_inches='tight')
+
+
+
+
 args = sys.argv[1:]
 ii_in = int(args[0]) # noise
 jj_in = int(args[1]) # kappa
@@ -736,6 +820,10 @@ elif run_type.lower() == 'psf':
     do_one_run_psf(ll_in, ii_in, jj_in, kk_in)
 elif run_type.lower() == 'last':
     do_one_run_lastpart(ii_in, jj_in, kk_in)
+elif run_type.lower() == 'kappa':
+    make_kappa_plot(ii_in, kk_in)
+elif run_type.lower() == 'tf':
+    make_tf_plot(ii_in, jj_in)
 
 print()
 print('-----------------------------------------')

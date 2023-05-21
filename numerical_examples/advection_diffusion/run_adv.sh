@@ -18,3 +18,6 @@ for ((i = 0; i < $numNoises; i++)); do
 		done
 	done
 done
+
+python adv_deflation.py 0 2 1 0 'kappa'
+python adv_deflation.py 0 2 1 0 'tf'
