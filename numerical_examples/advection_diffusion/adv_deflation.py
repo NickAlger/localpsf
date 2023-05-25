@@ -570,7 +570,7 @@ def do_one_run_psf(ll, ii, jj, kk): # ll is num_batches index
 
     print('Making row and column cluster trees')
     ct = hpro.build_cluster_tree_from_pointcloud(ADV.mesh_and_function_space.dof_coords,
-                                                 cluster_size_cutoff=32)
+                                                 cluster_size_cutoff=32)#32)
 
     print('Making block cluster trees')
     bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=1.0)
