@@ -463,6 +463,10 @@ class PSFObject:
         print('Building kernel hmatrix')
         kernel_hmatrix = me.psf_kernel.build_hmatrix(bct, tol=hmatrix_rtol)
 
+        z = kernel_hmatrix.matvec(np.random.randn(kernel_hmatrix.shape[1]))
+        print('np.any(np.isnan(z))=', np.any(np.isnan(z)))
+        print('np.any(np.isinf(z))=', np.any(np.isinf(z)))
+
         print('Computing hmatrix = diag(mass_lumps_out) @ kernel_hmatrix * diag(mass_lumps_in)')
         hmatrix = kernel_hmatrix.copy()
         hmatrix.mul_diag_left(me.V_out.mass_lumps)
@@ -536,6 +540,10 @@ def make_psf(
     modified_Sigma[bad_Sigmas,:,:] = np.eye(V_out.gdim).reshape((1, V_out.gdim, V_out.gdim))
 
     bad_inds = np.logical_or(bad_vols, bad_Sigmas)
+
+    print('np.any(np.isnan(modified_vol))=', np.any(np.isnan(modified_vol)))
+    print('np.any(np.isnan(modified_mu))=', np.any(np.isnan(modified_mu)))
+    print('np.any(np.isnan(modified_Sigma))=', np.any(np.isnan(modified_Sigma)))
 
     modified_IM = ImpulseMoments(modified_vol, modified_mu, modified_Sigma)
 

@@ -191,7 +191,7 @@ Hessian approximations and preconditioners are highly desirable because the Hess
 %\end{figure} 
 
 
-Owing to the implicit dependence of predicted observations on the parameter, entries of the Hessian are not easily accessible. Rather, the Hessian may be applied to a vector via a computational process that involves solving a pair of forward and adjoint PDEs which are linearizations of the original PDE~\cite{GhattasWillcox21,Gunzburger03}. The most popular matrix-free Hessian approximation methods are based on low rank approximation of either the data misfit Hessian, or the data misfit Hessian preconditioned by the regularization Hessian, e.g.,~\cite{BuiEtAl13,CuiEtAl14,FlathEtAl11,PetraEtAl14,SpantiniEtAl15}. Krylov methods such as Lanczos or randomized methods~\cite{Cheng05,HalkoMartinssonTropp11} are typically used to construct these low rank approximations by applying the Hessian to vectors. Using these methods, the required number of Hessian applications (and hence the required number of PDE solves) is typically proportional to the rank of the low rank approximation. Low rank approximation methods are justified by arguing that the numerical rank of the data misfit Hessian is insensitive to the dimension of the discretized parameter. This means that the required number of PDE solves remains the same as the mesh used to discretize the parameter is refined.
+Owing to the implicit dependence of predicted observations on the parameter, entries of the Hessian are not easily accessible. Rather, the Hessian may be applied to a vector via a computational process that involves solving a pair of forward and adjoint PDEs which are linearizations of the original PDE~\cite{GhattasWillcox21,Gunzburger03}. The most popular matrix-free Hessian approximation methods are based on low rank approximation of either the data misfit Hessian, or the data misfit Hessian preconditioned by the regularization Hessian, e.g.,~\cite{BuiEtAl13,CuiEtAl14,FlathEtAl11,PetraEtAl14,SpantiniEtAl15}. Krylov methods such as Lanczos or randomized methods~\cite{Cheng05,HalkoMartinssonTropp11} are typically used to construct these low rank approximations by applying the Hessian to vectors. Using these methods, the required number of Hessian applications (and hence the required number of PDE solves) is proportional to the rank of the low rank approximation. Low rank approximation methods are justified by arguing that the numerical rank of the data misfit Hessian is insensitive to the dimension of the discretized parameter. This means that the required number of PDE solves remains the same as the mesh used to discretize the parameter is refined.
 However, in many inverse problems of practical interest the numerical rank of the data misfit Hessian, while mesh independent, is still large, which makes it costly to approximate the Hessian using low rank approximation methods~\cite{AmbartsumyanEtAl20,BuiEtAl13,IsaacEtAl15}. 
 
 Examples of inverse problems with high rank data misfit Hessians include advection dominated advection-diffusion inverse problems~\cite{AkcelikBirosDraganescuEtAl05}\cite[Chapter 5]{Flath13}, high frequency wave inverse problems~\cite{BuiEtAl13}, and more generally, all inverse problems in which the observations highly inform the parameter. The eigenvalues of the data misfit Hessian characterize the sensitivity of the predicted observations to perturbations of the parameter in the corresponding eigenvector directions,
@@ -388,21 +388,21 @@ The vector $\spatialmean(x)\in \mathbb{R}^\gdim$ and the matrix $\spatialcov(x) 
 
 The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to obtain $\impulseresponse_x$, as per~\eqref{eq:impulse_response_delta_action}. Then one can post process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. However, this direct approach is not feasible because we need to know $V(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ before we compute $\phi_x$, in order choose the point $x$. Computing $\phi_x$ in order to determine $V(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ would be extremely computationally expensive, and defeat the purpose of our algorithm, which is to reduce the computational cost by computing impulse responses in batches. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ indirectly, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions (e.g., 6 total operator applies in two spatial dimensions and 10 in three spatial dimensions). This may be motivated by analogy to matrices. If $\mathbf{B}\in \mathbb{R}^{\fedim \times \fedim}$ is a matrix with $i^\text{th}$ column $\mathbf{b}_i$ and $\mathbf{w} \in \mathbb{R}^\fedim$, then
 \begin{equation*}
-\mathbf{B}^T \mathbf{w} = \begin{bmatrix}
-\horzbar & \mathbf{b}_1^T & \horzbar \\
-%\horzbar & \mathbf{b}_2^T & \horzbar \\
+\mathbf{A}^T \mathbf{w} = \begin{bmatrix}
+\horzbar & \mathbf{a}_1^T & \horzbar \\
+%\horzbar & \mathbf{a}_2^T & \horzbar \\
 & \vdots & \\
-\horzbar & \mathbf{b}_\fedim^T & \horzbar
+\horzbar & \mathbf{a}_\fedim^T & \horzbar
 \end{bmatrix}
 \mathbf{w} = 
 \begin{bmatrix}
-\mathbf{b}_1^T \mathbf{w} \\
-%\mathbf{b}_2^T \mathbf{w} \\
+\mathbf{a}_1^T \mathbf{w} \\
+%\mathbf{a}_2^T \mathbf{w} \\
 \vdots \\
-\mathbf{b}_\fedim^T \mathbf{w}
+\mathbf{a}_\fedim^T \mathbf{w}
 \end{bmatrix}.
 \end{equation*}
-By computing one matrix-vector product of $\mathbf{B}^T$ with $\mathbf{w}$, we compute the inner product of each column of $\mathbf{B}$ with $\mathbf{w}$ simultaneously. The operator case is analogous, with $\phi_x$ taking the place of a matrix column. We have
+By computing one matrix-vector product of $\mathbf{A}^T$ with $\mathbf{w}$, we compute the inner product of each column of $\mathbf{A}$ with $\mathbf{w}$ simultaneously. The operator case is analogous, with $\phi_x$ taking the place of a matrix column. We have
 \begin{equation}
 \label{eq:operator_simultaneous_ips}
 \left(\Aop^T w\right)^*(x) = \int_\Omega \Aker(y,x) w(y) dy = \left(\phi_x, w\right)_{L^2(\Omega)}.
@@ -489,14 +489,15 @@ Approximation~\eqref{eq:translate3} improves upon~\eqref{eq:translate1} and~\eqr
 
 We use approximation~\eqref{eq:translate4}, which is the same as~\eqref{eq:translate3}, except for the factor $\spatialvol(x)/\spatialvol(x')$. This factor makes the approximation more accurate if $\spatialvol(x)$ varies widely. Approximation~\eqref{eq:translate4} is equivalent to~\eqref{eq:translate3}, but with $\phi_x$ replaced by its normalized version, $\phi_x/\spatialvol(x)$. We call~\eqref{eq:translate4} \emph{normalized local mean displacement invariance}. 
 
-\paragraph{Future extension: approximation using $\Sigma$} One may map $E_x$ to the unit sphere via the change of variables $z = \Sigma^{-1/2}\left(x\right)\left(y - \spatialmean(x)\right) / \tau$, and approximate
-\begin{equation}
-\label{eq:sigma_interpolation}
-\phi_x(z) \det{\Sigma^{1/2}\left(x\right)}/\spatialvol(x) \approx \phi_{x'}(z') \det{\Sigma^{1/2}\left(x'\right)}/\spatialvol(x').
-\end{equation}
-Notice that equality holds in \eqref{eq:sigma_interpolation} if the impulse responses are Gaussian functions. Although interpolation schemes based on \eqref{eq:sigma_interpolation} have the potential to be more accurate than those based on \eqref{eq:translate4}, we were unable to construct an interpolation scheme based on \eqref{eq:sigma_interpolation} that is robust to negative entries in the integral kernel. The integral kernel should have non-negative entries per Condition 3 in Section \ref{sec:conditions_2}, but in practice some entries are negative due to discretization error. 
-%Therefore, in this paper we do not use \eqref{eq:sigma_interpolation}. 
-%Constructing interpolation schemes based on \eqref{eq:sigma_interpolation} that are robust to discretization error is a promising direction for future research.
+%\paragraph{Future extension: approximation using $\Sigma$} One may map $E_x$ to the unit sphere via the change of variables $z = \Sigma^{-1/2}\left(x\right)\left(y - \spatialmean(x)\right) / \tau$, and approximate
+%\begin{equation}
+%\label{eq:sigma_interpolation}
+%\phi_x(z) \det{\Sigma^{1/2}\left(x\right)}/\spatialvol(x) \approx \phi_{x'}(z') \det{\Sigma^{1/2}\left(x'\right)}/\spatialvol(x').
+%\end{equation}
+%%Notice that equality holds in \eqref{eq:sigma_interpolation} if the impulse responses are Gaussian functions. 
+%While interpolation schemes based on \eqref{eq:sigma_interpolation} have the potential to be more accurate than those based on \eqref{eq:translate4}, we were unable to construct an interpolation scheme based on \eqref{eq:sigma_interpolation} that is robust to negative entries in the integral kernel. The integral kernel should have non-negative entries per Condition 3 in Section \ref{sec:conditions_2}, but in practice some entries are negative due to discretization error. 
+%%Therefore, in this paper we do not use \eqref{eq:sigma_interpolation}. 
+%%Constructing interpolation schemes based on \eqref{eq:sigma_interpolation} that are robust to discretization error is a promising direction for future research.
 
 
 %but we find they are not robust, and therefore we do not use them:
@@ -522,7 +523,7 @@ The ability to rapidly evaluate approximate kernel entries $\Aker(y,x)$ allows u
 %\end{equation*}
 The complete algorithm for constructing $\mathbf{A}_H$ is shown in Algorithm~\ref{alg:construct_Atilde}. The cost is discussed in Section~\ref{sec:overall_cost}.
 
-When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be non-symmetric and indefinite due to errors in the approximation. In this case, we symmetrize $\mathbf{A}_H$, find directions with large negative Rayleigh quotients using a Cayley-type shift-and-invert scheme, and flip these directions so that they have positive Rayleigh quotients via a low rank correction (see Appendix~\ref{sec:make_spd}).
+When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be non-symmetric and indefinite due to errors in the approximation. In this case, one may optionally symmetrize $\mathbf{A}_H$, then modify it via low rank updates to remove erroneous negative eigenvalues (Section \ref{sec:flip_eigs}).
 
 %. The matrix is symmetrized by computing $\left(\mathbf{A}_H+\mathbf{A}_H^T\right)/2$ using H-matrix addition. Negative eigenvalues modified to be positive using a rational method that is described in Appendix~\ref{sec:make_spd}.
 
@@ -552,7 +553,7 @@ When $\Aop$ is symmetric positive semi-definite, $\mathbf{A}_H$ may be non-symme
 
 		Form H-matrix approximation $\mathbf{A}_H$ of $\Aop$ (Section~\ref{sec:h_matrix_construction_short})
 		
-		(optional) Modify $\mathbf{A}_H$ to make it symmetric positive definite (Appendix~\ref{sec:make_spd})
+		(optional) Modify $\mathbf{A}_H$ to make it symmetric and remove negative eigenvalues (Section \ref{sec:flip_eigs})
 		
 	}
 	\caption{Construct H-matrix approximation}
@@ -570,14 +571,16 @@ We start with a finite set of candidate points $\candidatepts$ and build $\point
 Once $\candidatepoint_i$ is selected, we remove $\candidatepoint_i$ from $\candidatepts$. Then we perform the following checks:
 \begin{enumerate}
 	\item We check whether $\candidatepoint_i$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_{\candidatepoint_i} \cap E_{\candidatepoint_j} = \{\}$ for all $\candidatepoint_j \in \pointbatch_k$.
-	\item We make sure that $\spatialvol(\candidatepoint_i)$ is not too small, by checking whether $\spatialvol(\candidatepoint_i) > \epsilon \spatialvol_\text{max}$. Here $\spatialvol_\text{max}$ is the largest value of $\spatialvol(\candidatepoint_j)$ over all points $q$ in the initial set of candidate points, and $\epsilon_V$ is a small threshold parameter (we use $\epsilon_V=10^{-5}$).
-	\item We make sure that all eigenvalues of $\spatialcov(\candidatepoint_i)$ are positive, and the aspect ratio of $E_{\candidatepoint_i}$ (ratio of the largest eigenvalue of $\spatialcov(\candidatepoint_i)$ to the smallest) is bounded by a constant $1/\epsilon_\Sigma$ (we use $1/\epsilon_\Sigma=20$). Negative integral kernel entries due to discretization error can cause $\spatialcov(\candidatepoint_i)$ to be indefinite or highly ill-conditioned, in which case the set $E_{\candidatepoint_i}$ poorly reflects the support of $\phi_{\candidatepoint_i}$.
+	\item We make sure that $\spatialvol(\candidatepoint_i)$ is not too small, by checking whether $\spatialvol(\candidatepoint_i) > \epsilon_V \spatialvol_\text{max}$. Here $\spatialvol_\text{max}$ is the largest value of $\spatialvol(\candidatepoint_j)$ over all points $q$ in the initial set of candidate points, and $\epsilon_V$ is a small threshold parameter (we use $\epsilon_V=10^{-5}$).
+	\item We make sure that all eigenvalues of $\spatialcov(\candidatepoint_i)$ are positive, and the aspect ratio of $E_{\candidatepoint_i}$ (ratio of the largest eigenvalue of $\spatialcov(\candidatepoint_i)$ to the smallest) is bounded by a constant $1/\epsilon_\Sigma$ (we use $1/\epsilon_\Sigma=20$). Negative integral kernel entries due to discretization error can cause $\spatialcov(\candidatepoint_i)$ to be indefinite or highly ill-conditioned. We reject these points because it is likely that the set $E_{\candidatepoint_i}$ poorly reflects the support of $\phi_{\candidatepoint_i}$.
 \end{enumerate}
 If $\candidatepoint_i$ passes these checks 
 %(i.e., if $\candidatepoint_i$ is sufficiently far from other points in the batch, and $\spatialvol(\candidatepoint_i)$ is not too small, and the )
 then we add $\candidatepoint_i$ to $\pointbatch_k$. Otherwise we discard $\candidatepoint_i$. This process repeats until there are no more points in $\candidatepts$.  
 %This is detailed in Algorithm~\ref{alg:point_choice}. 
-We check whether $E_{\candidatepoint_i} \cap E_{\candidatepoint_j} = \{\}$ using the ellipsoid intersection test described in Appendix~\ref{sec:fast_ellipsoid_intersection_test}. We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots, \pointbatch_{\nbatch}$. For each batch, $\candidatepts$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, except for points in previous batches.
+%We check whether $E_{\candidatepoint_i} \cap E_{\candidatepoint_j} = \{\}$ using the fast ellipsoid intersection test in \cite{GilitschenskiHanebeck12}.
+described in Appendix~\ref{sec:fast_ellipsoid_intersection_test}. 
+We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots, \pointbatch_{\nbatch}$. For each batch, $\candidatepts$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, except for points in previous batches.
 
 %\begin{algorithm2e}
 %	\SetAlgoNoLine
@@ -660,7 +663,10 @@ Interpolation is performed using the following radial basis function~\cite{Wendl
 \begin{equation}
 \Aker(y,x) \approx \widetilde{\Aker}(y,x) := \sum_{i=1}^{\numnbr} \rbfweight_i~ \rbf\left(\|x-x_i\|\right),
 \end{equation}
-where $\rbfweight_i$ are weights, and $\rbf$ is a polyharmonic spline radial basis function, which is defined as $\rbf(r):=r^\gdim$ if $\gdim$ is odd, and $\rbf(r):=r^\gdim \log r$ for $r>0$ and $\rbf(0):=0$ if $\gdim$ is even.
+where $\rbfweight_i$ are weights, and 
+$$\rbf(r):= \exp\left(-C_\text{RBF}^2\frac{r^2}{2 L^2}\right)$$
+is a Gaussian kernel radial basis function. Here $L:=\diam\left(\{x_i\}_{i=1}^{\numnbr}\right)$ is the diameter of the set of sample points used in the interpolation, and $C_\text{RBF}$ is a user-defined shape parameter that controls the width of the kernel function; we use $C_\text{RBF}=3.0$.
+%is a polyharmonic spline radial basis function, which is defined as $\rbf(r):=r^\gdim$ if $\gdim$ is odd, and $\rbf(r):=r^\gdim \log r$ for $r>0$ and $\rbf(0):=0$ if $\gdim$ is even.
 %\begin{equation}
 %\rbf(r) := \begin{cases}
 %r^\gdim, & \gdim=1,3,5,\dots \\
@@ -676,7 +682,8 @@ where $B \in \mathbb{R}^{\numnbr \times \numnbr}$ has entries
 $
 B_{ij} := \rbf\left(\|x_i - x_j\|\right),
 $
-and $f \in \mathbb{R}^{\numnbr}$ has entries $f_i$ from~\eqref{eq:fxyxp}. Polyharmonic spline radial basis function interpolation yields the smoothest interpolant of the given points and values, in a least squares sense~\cite{Duchon77}. 
+and $f \in \mathbb{R}^{\numnbr}$ has entries $f_i$ from~\eqref{eq:fxyxp}. 
+%Polyharmonic spline radial basis function interpolation yields the smoothest interpolant of the given points and values, in a least squares sense~\cite{Duchon77}. 
 %For more details on radial basis function interpolation, see~\cite{Wendland04}. 
 %The interpolation procedure is illustrate in Figure~\ref{fig:rbf_interpolation}.
 
@@ -711,6 +718,27 @@ A dense representation of $\mathbf{\Aker}$ is never formed.
 %We describe this H-matrix construction process in detail in Appendix~\ref{app:h_matrix}. 
 We form $\massmatrix_H$ using standard H-matrix methods for sparse matrices implemented within HLIBpro, using the same geometrical clustering block cluster tree as was used for $\mathbf{\Aker}$. 
 
+
+\subsection{Symmetrizing and flipping negative eigenvalues (optional)}
+\label{sec:flip_eigs}
+
+In many applications, one seeks to approximate an operator
+$\mathcal{H} = \Aop + \mathcal{R},$
+where $\Aop$ is a symmetric positive semi-definite operator that we approximate with our PSF method to form an H-matrix $\mathbf{A}_H$, and $\mathcal{R}$ is a symmetric positive definite operator that may be easily converted to an H-matrix $\mathbf{R}_H$ without using our PSF method. For example, in inverse problems $\mathcal{H}$ is the Hessian, $\Aop$ is the data misfit term in the Hessian which is dense and only available matrix-free, and $\mathcal{R}$ is the regularization term, which is typically an elliptic differential operator that becomes a sparse matrix after discretization.
+
+%In many problems $\Aop$ is symmetric positive semi-definite. 
+The PSF approximation $\mathbf{A}_H$, and therefore $\mathbf{A}_H + \mathbf{R}_H$, may be non-symmetric and indefinite because of approximation error. 
+This is undesirable because symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms to perform further operations involving $\mathbf{A}_H + \mathbf{R}_H$, such as using $\mathbf{A}_H + \mathbf{R}_H$ as a preconditioner in the conjugate gradient method.
+
+We therefore modify $\mathbf{A}_H$ to make it symmetric and remove negative eigenvalues. First, we symmetrize $\mathbf{A}_H$ via
+$
+\mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
+$
+Next, we find negative eigenvalues and their corresponding eigenvectors for the generalized eigenvalue problem
+$\mathbf{A}_H^{\text{sym}} \mathbf{u} = \lambda \mathbf{R}_H$
+using a Cayley shift-and-invert Krylov scheme \cite{LehoucqEtAl98}. We flip the signs of these eigenvalues to be positive instead of negative (i.e., $\lambda \rightarrow |\lambda|$) by performing a low rank update to $\mathbf{A}_H^{\text{sym}}$. The primary computational task in the Cayley shift-and-invert scheme is the solution of shifted linear systems of the form
+$\left(\mathbf{A}_H^{\text{sym}} + \mu_i \mathbf{R}_H\right) x = b,$
+for a small number of positive shifts $\mu_i$. We solve these linear systems by factorizing the matrices $\mathbf{A}_H^{\text{sym}} + \mu_i \mathbf{R}_H$ using fast H-matrix methods. We compute and flip all eigenvalues $\lambda < \tau$ which are less than some threshold $\tau \in (-1,0]$. By choosing $\tau > -1$, we ensure that the modified version of $\mathbf{A}_H^{\text{sym}} + \mathbf{R}_H$ is positive definite. Choosing $\tau=0$ would remove all erroneous negative eigenvalues. However, this is computationally infeasible if $\Aop$ has a large or infinite cluster of eigenvalues near zero, a common situation in practice. We therefore recommend choosing $\tau < 0$, and we use $\tau=-0.1$ in our numerical experiments.
 
 
 \section{Computational cost}
@@ -768,7 +796,8 @@ requires evaluating $O(\hrank^2 \fedim \log \fedim)$ matrix entries of the appro
 \end{equation}
 where $a \in \{0,1,2,3\}$~\cite{GrasedyckHackbusch03}. The precise cost depends on the type of H-matrix used and the operation being performed. In the numerical results (Section~\ref{sec:numerical_results}), we use one matrix-matrix addition to add the H-matrix approximation of the data misfit term in the Hessian to the regularization term in the Hessian. Constructing an H-matrix representation of the regularization term in the Hessian requires one matrix inversion and two matrix-matrix multiplications. Then, we use one matrix factorization to form a preconditioner for the Newton linear system. 
 %We perform low-rank updates to the H-matrix as the Newton iterations proceed, as per the discussion in Appendix~\ref{sec:recycle_krylov}.
-The rational method for modifying $\mathbf{A}_H$ to be positive semi-definite, described in Appendix~\ref{sec:make_spd}, is performed using two matrix-matrix additions, $\ratord+1$ matrix-matrix multiplications, and one matrix inversion, where $2^\ratord$ is the rational function order.
+Symmetrizing $\mathbf{A}_H$ requires one matrix-matrix addition, and flipping negative eigenvalues to be positive requires a handful (typically around 5) matrix-matrix additions and matrix factorizations.
+%semi-definite, described in Appendix~\ref{sec:make_spd}, is performed using two matrix-matrix additions, $\ratord+1$ matrix-matrix multiplications, and one matrix inversion, where $2^\ratord$ is the rational function order.
 
 
 \section{Numerical results}
@@ -790,7 +819,7 @@ mitigate boundary effects
 we use a constant coefficient Robin boundary condition as
 in~\cite{Roininen14}. The parameters for the regularization are chosen
 so that the Green's function of the Hessian of the regularization has
-a characteristic length of $0.25$ (NOTE: CHECK THIS FOR BOTH PROBLEMS) of the domain radius. For the
+a characteristic length of $0.25$ of the domain radius. For the
 specific setup, we refer the reader to~\cite[Section
   2.2]{VillaPetraGhattas21}. For both examples, we choose the
 regularization parameter, $\gamma$, that controls the overall strength
@@ -1218,6 +1247,15 @@ Here $\bm{H}$ is the Hessian evaluated at the reconstructed parameter $\bm{\basa
 
 {\Huge Key parameter choices: $\kappa=3.2e-3$, $T_f = 1.0$, noise level = 0.05}
 
+%        |   0.5   |   1.0   |   2.0   
+% -------------------------------------
+% 1.0e-4 |   OK    |   OK    |   OK
+% 1.8e-4 |   OK    |   OK    |   OK
+% 3.2e-4 |   OK    |   OK    |   OK
+% 5.6e-4 |   OK    |   OK    |   5
+% 1.0e-3 |   OK    |   OK    |   5
+%
+
 Here we consider a time-dependent advection-diffusion equation for
 which we seek to infer the unknown spatially varying initial condition, $\ipar$, from observations of the state  
 at a final time. This PDE
@@ -1622,37 +1660,37 @@ intersect if and only if $a_{-}^k \le b_{+}^k$ and $b_{-}^k \le a_{+}^k$ for $k=
 
 
 
-\section{Rational positive semi-definite modification}
-\label{sec:make_spd}
-In many problems $\Aop$ is symmetric positive semi-definite. However, $\mathbf{A}_H$ is non-symmetric and indefinite because of approximation error. 
-This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms, such as the conjugate gradient method, to perform further operations involving $\mathbf{A}_H$. 
-
-If $\Aop$ is symmetric, we symmetrize $\mathbf{A}_H$ as follows:
-$
-\mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
-$
-If $\Aop$ is positive semi-definite, we adapt the rational method from~\cite[Section 13.8]{HackbuschKress07} to approximate the matrix absolute value of $\mathbf{A}_H^{\text{sym}}$, which we denote by $|\mathbf{A}_H^{\text{sym}}|$. That is, $|\mathbf{A}_H^{\text{sym}}|$ has the same eigenvectors as $\mathbf{A}_H^{\text{sym}}$, but the eigenvalues of $|\mathbf{A}_H^{\text{sym}}|$ are the absolute values of the eigenvalues of $\mathbf{A}_H^{\text{sym}}$.
-%flip (or approximately flip) the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ to be positive. 
-Once constructed, we use the approximation of $|\mathbf{A}_H^{\text{sym}}|$ in place of $\mathbf{A}_H$ in further linear algebra operations.
-
-In detail, let $a$ be any scalar satisfying $-a < \lambda_\text{min}$, where $\lambda_\text{min}$ is the smallest eigenvalue of $\mathbf{A}_H^{\text{sym}}$, and set 
-\begin{equation}
-\label{eq:ratT999}
-\mathbf{T} :=  \left(2 \mathbf{A}_H^{\text{sym}} + a \mathbf{I}\right)/a,
-\end{equation}
-From the results in~\cite[Section 13.8]{HackbuschKress07} it is straightforward to show that
-\begin{equation}
-\label{eq:rational343}
-\mathbf{\Pi}_\ratord := \left(\mathbf{I} + \mathbf{T}^{2^\ratord}\right)^{-1}
-\end{equation}
-approximates the spectral projector onto the eigenspace of $\mathbf{A}_H^{\text{sym}}$ corresponding to negative eigenvalues. Thus, we have
-\begin{equation}
-\label{eq:rational76567}
-|\mathbf{A}_H^{\text{sym}}| \approx \left(\mathbf{I} - 2\mathbf{\Pi}_\ratord\right)\mathbf{A}_H^{\text{sym}}.
-\end{equation}
-To form an approximation of $|\mathbf{A}_H^{\text{sym}}|$, first, we compute $\lambda_\text{min}$ using the Lanczos method, and set $a=\gamma \lambda_\text{min}$, where $\gamma\ge 1$ is a parameter that must be chosen. 
-The method is relatively insensitive to $\gamma$ and numerically we find that the method works well for any $\gamma \in [1,2]$. We use $\gamma=1.5$ in our numerical results. 
-Next, we compute $\mathbf{T}$ per~\eqref{eq:ratT999}, compute $\mathbf{T}^{2^\ratord}$ per~\eqref{eq:rational343} via repeated squaring, compute $\mathbf{\Pi}_\ratord$ per~\eqref{eq:rational343}, and form an approximation of $|\mathbf{A}_H^{\text{sym}}|$ per~\eqref{eq:rational76567}. Fast H-matrix methods are used to perform the required matrix-matrix additions and multiplications, and matrix inversion. We recommend using $\ratord=1$ or $2$. Larger $\ratord$ is unnecessary and may make the method unstable. 
+%\section{Rational positive semi-definite modification}
+%\label{sec:make_spd}
+%In many problems $\Aop$ is symmetric positive semi-definite. However, $\mathbf{A}_H$ is non-symmetric and indefinite because of approximation error. 
+%This is undesirable. Symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms, such as the conjugate gradient method, to perform further operations involving $\mathbf{A}_H$. 
+%
+%If $\Aop$ is symmetric, we symmetrize $\mathbf{A}_H$ as follows:
+%$
+%\mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
+%$
+%If $\Aop$ is positive semi-definite, we adapt the rational method from~\cite[Section 13.8]{HackbuschKress07} to approximate the matrix absolute value of $\mathbf{A}_H^{\text{sym}}$, which we denote by $|\mathbf{A}_H^{\text{sym}}|$. That is, $|\mathbf{A}_H^{\text{sym}}|$ has the same eigenvectors as $\mathbf{A}_H^{\text{sym}}$, but the eigenvalues of $|\mathbf{A}_H^{\text{sym}}|$ are the absolute values of the eigenvalues of $\mathbf{A}_H^{\text{sym}}$.
+%%flip (or approximately flip) the negative eigenvalues of $\mathbf{A}_H^{\text{sym}}$ to be positive. 
+%Once constructed, we use the approximation of $|\mathbf{A}_H^{\text{sym}}|$ in place of $\mathbf{A}_H$ in further linear algebra operations.
+%
+%In detail, let $a$ be any scalar satisfying $-a < \lambda_\text{min}$, where $\lambda_\text{min}$ is the smallest eigenvalue of $\mathbf{A}_H^{\text{sym}}$, and set 
+%\begin{equation}
+%\label{eq:ratT999}
+%\mathbf{T} :=  \left(2 \mathbf{A}_H^{\text{sym}} + a \mathbf{I}\right)/a,
+%\end{equation}
+%From the results in~\cite[Section 13.8]{HackbuschKress07} it is straightforward to show that
+%\begin{equation}
+%\label{eq:rational343}
+%\mathbf{\Pi}_\ratord := \left(\mathbf{I} + \mathbf{T}^{2^\ratord}\right)^{-1}
+%\end{equation}
+%approximates the spectral projector onto the eigenspace of $\mathbf{A}_H^{\text{sym}}$ corresponding to negative eigenvalues. Thus, we have
+%\begin{equation}
+%\label{eq:rational76567}
+%|\mathbf{A}_H^{\text{sym}}| \approx \left(\mathbf{I} - 2\mathbf{\Pi}_\ratord\right)\mathbf{A}_H^{\text{sym}}.
+%\end{equation}
+%To form an approximation of $|\mathbf{A}_H^{\text{sym}}|$, first, we compute $\lambda_\text{min}$ using the Lanczos method, and set $a=\gamma \lambda_\text{min}$, where $\gamma\ge 1$ is a parameter that must be chosen. 
+%The method is relatively insensitive to $\gamma$ and numerically we find that the method works well for any $\gamma \in [1,2]$. We use $\gamma=1.5$ in our numerical results. 
+%Next, we compute $\mathbf{T}$ per~\eqref{eq:ratT999}, compute $\mathbf{T}^{2^\ratord}$ per~\eqref{eq:rational343} via repeated squaring, compute $\mathbf{\Pi}_\ratord$ per~\eqref{eq:rational343}, and form an approximation of $|\mathbf{A}_H^{\text{sym}}|$ per~\eqref{eq:rational76567}. Fast H-matrix methods are used to perform the required matrix-matrix additions and multiplications, and matrix inversion. We recommend using $\ratord=1$ or $2$. Larger $\ratord$ is unnecessary and may make the method unstable. 
 
 %Finally, we approximate $|\mathbf{A}_H^{\text{sym}}|$ per~\eqref{eq:rational76567}, using fast H-matrix operations to perform the required matrix-matrix addition and matrix inversion.
 
