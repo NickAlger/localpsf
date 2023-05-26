@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<VTKFile type="Collection" version="0.1">
+  <Collection>
+    <DataSet timestep="0" part="0" file="impulse_response_P(0.3, 0.6)_T=1.e+0_K=1.e-3_N=5.e-2000000.vtu" />
+  </Collection>
+</VTKFile>
