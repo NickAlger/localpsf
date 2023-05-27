@@ -46,7 +46,7 @@ all_num_batches = [1, 5, 25] # number of batches used for spectral comparisons
 
 fig_dpi = 200
 
-save_dir = localpsf_root / 'numerical_examples' / 'stokes' / 'data' / 'stokes_deflation2'
+save_dir = localpsf_root / 'numerical_examples' / 'stokes' / 'data' / 'gauss_rbf'
 save_dir.mkdir(parents=True, exist_ok=True)
 save_dir_str = str(save_dir)
 
