@@ -28,7 +28,7 @@ np.random.seed(0)
 
 fig_dpi = 200
 
-save_dir = localpsf_root / 'numerical_examples' / 'advection_diffusion' / 'data'
+save_dir = localpsf_root / 'numerical_examples' / 'advection_diffusion' / 'data' / 'gaussian_rbf'
 save_dir.mkdir(parents=True, exist_ok=True)
 save_dir_str = str(save_dir)
 
@@ -797,7 +797,26 @@ def make_tf_plot(ii, jj):
     plt.savefig(save_dir_str + '/krylov_vs_tf_randn' + id_str_reduced2 + '.png', dpi=fig_dpi, bbox_inches='tight')
 
 
+def make_convergence_table():
+    S = ADVData()
+    S.load()
 
+    krylov_tol_ind = 6
+    krylov_tol = S.krylov_thresholds[krylov_tol_ind]
+    print('krylov_tol=', krylov_tol)
+
+    iters_none = S.newton_krylov_iters_none[0, :, :, krylov_tol_ind]
+    np.savetxt(save_dir_str + '/iters_none_tol' + str(krylov_tol) + '.txt',
+               iters_none.astype(int), fmt='%i', delimiter=",")
+
+    iters_reg = S.newton_krylov_iters_reg[0, :, :, krylov_tol_ind]
+    np.savetxt(save_dir_str + '/iters_reg_tol' + str(krylov_tol) + '.txt',
+               iters_reg.astype(int), fmt='%i', delimiter=",")
+
+    for ll, nb in enumerate(S.all_num_batches):
+        iters_psf = S.newton_krylov_iters_psf[ll,0, :, :, krylov_tol_ind]
+        np.savetxt(save_dir_str + '/iters_psf_tol' + str(krylov_tol) + '_psf' + str(nb) + '.txt',
+                   iters_psf.astype(int), fmt='%i', delimiter=",")
 
 args = sys.argv[1:]
 ii_in = int(args[0]) # noise
@@ -824,6 +843,8 @@ elif run_type.lower() == 'kappa':
     make_kappa_plot(ii_in, kk_in)
 elif run_type.lower() == 'tf':
     make_tf_plot(ii_in, jj_in)
+elif run_type.lower() == 'ctable':
+    make_convergence_table()
 
 print()
 print('-----------------------------------------')
