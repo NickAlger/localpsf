@@ -1353,6 +1353,38 @@ Figure~\ref{fig:adv_inversion1}.
 
 \begin{figure}
 	\begin{center}
+		\begingroup
+		\setlength{\tabcolsep}{8pt}
+		\renewcommand{\arraystretch}{1.25}
+		\begin{tabular}{c| c | c c c c c}
+			& $\kappa$    & REG     &	NONE   & PSF $(1)$ & PSF $(5)$ & PSF $(25)$ \\ 
+			\hline 
+			& $1.0e-4$    & 692 & 371  & 350   & 171   & 65    \\ 
+			& $1.8e-4$    & 744 & 367  & 220   & 150   & 55    \\   
+			$T=0.5$ & $3.2e-4$    & 805 & 364  & 271   & 164   & 51    \\ 
+			& $5.6e-4$    & 867 & 365  & 400   & 171   & 45    \\  
+			& $1.0e-3$    & 820 & 383  & 139   & 82   & 37    \\ 
+			\hline
+			& $1.0e-4$    & 744 & 526  & 620   & 338   & 108    \\ 
+			& $1.8e-4$    & 769 & 528  & 554   & 248   & 98    \\   
+			$T=1.0$ & $3.2e-4$    & 778 & 542  & 401   & 233   & 101    \\ 
+			& $5.6e-4$    & 725 & 570  & 296   & 227   & 80    \\  
+			& $1.0e-3$    & 666 & 624  & 299   & 291   & 251    \\ 
+			\hline
+			& $1.0e-4$    & 718 & 707  & 616   & 596   & 194    \\ 
+			& $1.8e-4$    & 670 & 731  & 505   & 478   & 207    \\   
+			$T=2.0$ & $3.2e-4$    & 606 & 778  & 382   & 445   & 189    \\ 
+			& $5.6e-4$    & 528 & 856  & 558   & 326   & 173    \\  
+			& $1.0e-3$    & 398 & 945  & 425   & 294   & 182    \\ 
+		\end{tabular}
+		\endgroup
+	\end{center}
+	\caption{Number of preconditioned conjugate gradient iterations to achieve tolerance $10^{-7}$ for solving the Newton linear system in the advection-diffusion inverse problem. Iteration counts are shown for a variety of different diffusion parameters $\kappa$, simulation times $T$, and preconditioners.}
+	\label{tab:adv_convergence}
+\end{figure}
+
+\begin{figure}
+	\begin{center}
 		\includegraphics[scale=0.75]{adv_vary_kappa_tf_tmp.png}
 	\end{center}
 	\caption{Impulse responses for various diffusivities kappa and fixed simulation time Tf=0.5 (top) and simulation times with fixed kappa=1e-3 (bot). Colorbar is normalized independently for each subfigure}
