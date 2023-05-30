@@ -165,7 +165,7 @@ H-matrix methods permit us to perform matrix-vector products cheaply, and perfor
 %These H-matrix methods are fast and scale well to large problems. 
 The work and memory required to perform these operations for an $\fedim \times \fedim$ H-matrix scales 
 %as $O(\fedim \log(\fedim)^a)$, where $a \in \{0,1,2,3\}$. That is, the cost is \emph{nearly-linear}
-\emph{nearly linearly} in $N$ (i.e., $o(N^{1+\epsilon})$ for any $\epsilon > 0$). The exact cost depends on the type of H-matrix used, the operation being performed, and the rank of the off-diagonal blocks~\cite{GrasedyckHackbusch03}. The ability to perform these operations permits, for example, solution of Newton linear systems in PDE constrained optimization, sampling of ill-conditioned posterior distribution in Bayesian inverse problems, and construction of high rank Gaussian surrogate models that can be used for uncertainty quantification. 
+\emph{nearly linearly} in $N$ (i.e., $o(N^{1+\epsilon})$ for any $\epsilon > 0$). The exact cost depends on the type of H-matrix used, the operation being performed, and the rank of the off-diagonal blocks~\cite{GrasedyckHackbusch03}. These operations can be used, for example, to solve Newton linear systems in PDE constrained optimization, sample from ill-conditioned posterior distributions in Bayesian inverse problems, and construct high rank Gaussian surrogate models that can be used for uncertainty quantification. 
 %Classical H-matrix construction methods 
 %(described in Appendix~\ref{sec:H_matrix_construction}) 
 %require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available matrix free.
