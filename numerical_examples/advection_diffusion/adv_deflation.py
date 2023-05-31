@@ -801,7 +801,7 @@ def make_convergence_table():
     S = ADVData()
     S.load()
 
-    krylov_tol_ind = 6
+    krylov_tol_ind = 5
     krylov_tol = S.krylov_thresholds[krylov_tol_ind]
     print('krylov_tol=', krylov_tol)
 
