@@ -31,7 +31,7 @@ shared_psf_options = {
 
 psf_preconditioner_build_iters=(3,)
 
-newton_rtol = 1e-8
+newton_rtol = 1e-6
 
 forcing_sequence_power = 0.5
 num_gn_iter = 5
@@ -46,7 +46,7 @@ all_num_batches = [1, 5, 25] # number of batches used for spectral comparisons
 
 fig_dpi = 200
 
-save_dir = localpsf_root / 'numerical_examples' / 'stokes' / 'data' / 'gauss_rbf2'
+save_dir = localpsf_root / 'numerical_examples' / 'stokes' / 'data' / 'gauss_rbf_e6'
 save_dir.mkdir(parents=True, exist_ok=True)
 save_dir_str = str(save_dir)
 

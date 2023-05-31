@@ -1,0 +1,14 @@
+all_noise_levels=[0.25, 0.11180339887498947, 0.049999999999999996, 0.022360679774997897, 0.01]
+primary_noise_level=0.049999999999999996
+num_batches_ncg_table=5
+shared_psf_options={'display': True, 'smoothing_width_in': 0.0, 'smoothing_width_out': 0.0}
+psf_preconditioner_build_iters=(3,)
+forcing_sequence_power=0.5
+num_gn_iter=5
+run_finite_difference_checks=False
+check_gauss_newton_hessian=False
+all_num_batches=[1, 5, 25]
+fig_dpi=200
+random_seed=0
+recompute_morozov_aregs=True
+recompute_ncg_convergence_comparison=True
