@@ -113,15 +113,15 @@ but we cannot easily access entries of $\Aop$'s integral kernel. Evaluating the 
 \begin{figure}
 	\begin{subfigure}{0.32\textwidth}
 		\centering
-		\includegraphics[scale=0.33]{impulse_batch1.png}
+		\includegraphics[scale=0.34]{impulse_batch1.png}
 	\end{subfigure}
 	\begin{subfigure}{0.32\textwidth}
 		\centering
-		\includegraphics[scale=0.33]{impulse_batch2.png}
+		\includegraphics[scale=0.34]{impulse_batch2.png}
 	\end{subfigure}
 	\begin{subfigure}{0.32\textwidth}
 		\centering
-		\includegraphics[scale=0.33]{impulse_batch3.png}
+		\includegraphics[scale=0.34]{impulse_batch3.png}
 	\end{subfigure}
 	\caption{Batches, $\eta_b$, of normalized impulses, $\impulseresponse_{x}$, for the Stokes inverse problem data misfit Gauss-Newton Hessian (Section~\ref{sec:numerical_results}). 
 %	Brightness scale differs between the subfigures. 
@@ -1143,69 +1143,71 @@ Table~\ref{tab:newton_convergence_table} shows the performance of our preconditi
 %
 %
 \begin{figure}
-	\begin{subfigure}{0.49\textwidth}
+	\begin{subfigure}{0.52\textwidth}
 		\centering
-		\begin{tikzpicture}[baseline, trim axis right]
-		\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
-		ymode=log,
-		ymin=1e-13,
-		ymax=2,
-		xmax=750,
-		axis x line*=bottom,
-		axis y line*=left,
-		xtick={0, 200, 400, 600},
-		title={CG convergence},
-		xlabel={$k$, CG iteration},
-		ylabel={$\|\bm{x}_k-\bm{x}\|/\|\bm{x}\|$},
-		legend style={at={(1.1,1)},anchor=north east},
-		%legend pos=north east,
-		legend style={font=\small}
-		]
-		\addlegendentry{Reg}		
-		\addplot[dotted, line width=0.5mm] table {cg_relres_reg_0.05noise.dat};
-		\addlegendentry{None}
-		\addplot[dash dot, line width=0.5mm] table {cg_relres_none_0.05noise.dat};
-		\addlegendentry{PSF (1)}
-		\addplot[blue, line width=0.5mm] table {cg_relres_psf1_0.05noise.dat};
-		\addlegendentry{PSF (5)}
-		\addplot[red, line width=0.5mm] table {cg_relres_psf5_0.05noise.dat};
-		\addlegendentry{PSF (25)}
-		\addplot[purple, line width=0.5mm] table {cg_relres_psf25_0.05noise.dat};
-		\end{axis}
-		\end{tikzpicture}
+		\includegraphics[scale=1.0]{stokes_pcg_convergence.pdf}
+%		\begin{tikzpicture}[baseline, trim axis right]
+%		\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
+%		ymode=log,
+%		ymin=1e-13,
+%		ymax=2,
+%		xmax=750,
+%		axis x line*=bottom,
+%		axis y line*=left,
+%		xtick={0, 200, 400, 600},
+%		title={CG convergence},
+%		xlabel={$k$, CG iteration},
+%		ylabel={$\|\bm{x}_k-\bm{x}\|/\|\bm{x}\|$},
+%		legend style={at={(1.1,1)},anchor=north east},
+%		%legend pos=north east,
+%		legend style={font=\small}
+%		]
+%		\addlegendentry{Reg}		
+%		\addplot[dotted, line width=0.5mm] table {cg_relres_reg_0.05noise.dat};
+%		\addlegendentry{None}
+%		\addplot[dash dot, line width=0.5mm] table {cg_relres_none_0.05noise.dat};
+%		\addlegendentry{PSF (1)}
+%		\addplot[blue, line width=0.5mm] table {cg_relres_psf1_0.05noise.dat};
+%		\addlegendentry{PSF (5)}
+%		\addplot[red, line width=0.5mm] table {cg_relres_psf5_0.05noise.dat};
+%		\addlegendentry{PSF (25)}
+%		\addplot[purple, line width=0.5mm] table {cg_relres_psf25_0.05noise.dat};
+%		\end{axis}
+%		\end{tikzpicture}
 		\caption{}
 		\label{fig:cg_convergence}
 	\end{subfigure}
-	\begin{subfigure}{0.49\textwidth}
+	\begin{subfigure}{0.47\textwidth}
 	\begin{center}
-		\begin{tikzpicture}[baseline, trim axis right]
-		\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
-		ymode=log,
-		xmin=-50,
-		xmax=1450,
-		ymax=1.e7,
-		title={Generalized eigenvalues},
-		xlabel={$k$, generalized eigenvalue \#},
-		ylabel={$\lambda_{k}$},
-		xtick={0, 300, 600, 900, 1200},
-		%legend pos=north east,
-		legend style={font=\small},
-		ylabel near ticks, ylabel shift={-6pt},
-		axis x line*=bottom,
-		axis y line*=right,
-		%legend style={at={(0.95,1)},anchor=north east},
-		]
-		%\addlegendentry{REG}
-		\addplot[dotted, line width=0.5mm] table[x=k, y=reg] {generalizedEigenvalues_0.05noise.dat};
-		\addplot[dash dot, line width=0.5mm] table[x=k, y=none] {generalizedEigenvalues_0.05noise.dat};
-		%\addlegendentry{PSF (1)}
-		\addplot[blue, line width=0.5mm] table[x=k, y=psf1] {generalizedEigenvalues_0.05noise.dat};
-		%\addlegendentry{PSF (5)}
-		\addplot[red, line width=0.5mm] table[x=k, y=psf5] {generalizedEigenvalues_0.05noise.dat};
-		%\addlegendentry{PSF (25)}
-		\addplot[purple, line width=0.5mm] table[x=k, y=psf25] {generalizedEigenvalues_0.05noise.dat};
-		\end{axis}
-		\end{tikzpicture}
+		\includegraphics[scale=1.0]{stokes_geigs_figure.pdf}
+%		\begin{tikzpicture}[baseline, trim axis right]
+%		\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
+%		ymode=log,
+%		xmin=-50,
+%		xmax=1450,
+%		ymax=1.e7,
+%		title={Generalized eigenvalues},
+%		xlabel={$k$, generalized eigenvalue \#},
+%		ylabel={$\lambda_{k}$},
+%		xtick={0, 300, 600, 900, 1200},
+%		%legend pos=north east,
+%		legend style={font=\small},
+%		ylabel near ticks, ylabel shift={-6pt},
+%		axis x line*=bottom,
+%		axis y line*=right,
+%		%legend style={at={(0.95,1)},anchor=north east},
+%		]
+%		%\addlegendentry{REG}
+%		\addplot[dotted, line width=0.5mm] table[x=k, y=reg] {generalizedEigenvalues_0.05noise.dat};
+%		\addplot[dash dot, line width=0.5mm] table[x=k, y=none] {generalizedEigenvalues_0.05noise.dat};
+%		%\addlegendentry{PSF (1)}
+%		\addplot[blue, line width=0.5mm] table[x=k, y=psf1] {generalizedEigenvalues_0.05noise.dat};
+%		%\addlegendentry{PSF (5)}
+%		\addplot[red, line width=0.5mm] table[x=k, y=psf5] {generalizedEigenvalues_0.05noise.dat};
+%		%\addlegendentry{PSF (25)}
+%		\addplot[purple, line width=0.5mm] table[x=k, y=psf25] {generalizedEigenvalues_0.05noise.dat};
+%		\end{axis}
+%		\end{tikzpicture}
 	\end{center}
 	\caption{}
 	\label{fig:generalized_eigenvalues}
