@@ -1099,43 +1099,43 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 				8 & 18 & 8.4e+6 &
 				2 & 6  & 6.1e+6 \\
 				2 &
-				3 & 8 & 2.6e+6 &
+				4 & 10 & 2.6e+6 &
 				16 & 34 & 4.1e+6 &
-				3 & 8 & 2.6e+6 \\
+				4 & 10 & 2.6e+6 \\
 				3 &
-				1 & 4+22 & 9.2e+5 &
-				34 & 70 & 1.7e+6 &
-				11 & 24 & 9.2e+5 \\
+				2 & 6+22 & 6.9e+5 &
+				34 & 70 & 1.8e+6 &
+				14 & 30 & 6.9e+5 \\
 				4 &
-				2 & 6 & 1.5e+5 &
-				54 & 110 & 5.0e+5 &
-				30 & 62 & 1.4e+5 \\
+				3 & 8 & 4.4e+4 &
+				52 & 106 & 5.6e+5 &
+				29 & 60 & 1.3e+5 \\
 				5 &
-				4 & 10 & 7.1e+3 &
-				79 & 160 & 8.0e+4 &
-				34 & 70 & 1.4e+4 \\
+				5 & 12 & 2.2e+3 &
+				79 & 160 & 9.4e+4 &
+				38 & 78 & 1.0e+4 \\
 				6 &
-				5 & 12 & 6.0e+1 &
-				112 & 226 & 5.2e+3 &
-				61 & 124 & 2.3e+2 \\
+				0 & 2 & 1.1e+1 &
+				102 & 206 & 6.5e+3 &
+				58 & 118 & 1.8e+2 \\
 				7 &
-				0 & 2 & 8.9e-2 &
-				162 & 326 & 8.0e+1 &
-				84 & 170 & 7.3e-1 \\
+				--- & --- & --- &
+				151 & 304 & 1.2e+2 &
+				0 & 2 & 5.5e-1 \\
 				8 & 
 				--- & --- & --- &
-				0 & 2 & 1.6e-1 &
-				0 & 2 & 3.0e-2 \\
+				0 & 2 & 2.9e-1 &
+				--- & --- & --- \\
 				\hline
 				Total & 
-				18 & 74 & --- &
-				468 & 954 & --- &
-				226 & 470 & --- \\
+				17 & 70 & --- &
+				445 & 908 & --- &
+				146 & 308 & --- \\
 			\end{tabular}
 			\endgroup
 		\end{center}
 	}
-	\caption{Convergence history for solving the Stokes inverse problem using preconditioned inexact Newton PCG. Preconditioners shown are our method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $\|\bm{g}\|$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. Under PSF (5) and in row Iter 3, we write $4+22$ to indicate that $4$ Stokes solves were used during the standard course of the iteration, and $22$ Stokes solves were used to build the PSF (5) preconditioner.}
+	\caption{Convergence history for solving the Stokes inverse problem using preconditioned inexact Newton PCG. Preconditioners shown are our method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $\|\bm{g}\|$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. Under PSF (5) and in row Iter 3, we write $6+22$ to indicate that $6$ Stokes solves were used during the standard course of the iteration, and $22$ Stokes solves were used to build the PSF (5) preconditioner.}
 	\label{tab:newton_convergence_table}
 \end{table}
 
@@ -1146,68 +1146,12 @@ Table~\ref{tab:newton_convergence_table} shows the performance of our preconditi
 	\begin{subfigure}{0.52\textwidth}
 		\centering
 		\includegraphics[scale=1.0]{stokes_pcg_convergence.pdf}
-%		\begin{tikzpicture}[baseline, trim axis right]
-%		\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
-%		ymode=log,
-%		ymin=1e-13,
-%		ymax=2,
-%		xmax=750,
-%		axis x line*=bottom,
-%		axis y line*=left,
-%		xtick={0, 200, 400, 600},
-%		title={CG convergence},
-%		xlabel={$k$, CG iteration},
-%		ylabel={$\|\bm{x}_k-\bm{x}\|/\|\bm{x}\|$},
-%		legend style={at={(1.1,1)},anchor=north east},
-%		%legend pos=north east,
-%		legend style={font=\small}
-%		]
-%		\addlegendentry{Reg}		
-%		\addplot[dotted, line width=0.5mm] table {cg_relres_reg_0.05noise.dat};
-%		\addlegendentry{None}
-%		\addplot[dash dot, line width=0.5mm] table {cg_relres_none_0.05noise.dat};
-%		\addlegendentry{PSF (1)}
-%		\addplot[blue, line width=0.5mm] table {cg_relres_psf1_0.05noise.dat};
-%		\addlegendentry{PSF (5)}
-%		\addplot[red, line width=0.5mm] table {cg_relres_psf5_0.05noise.dat};
-%		\addlegendentry{PSF (25)}
-%		\addplot[purple, line width=0.5mm] table {cg_relres_psf25_0.05noise.dat};
-%		\end{axis}
-%		\end{tikzpicture}
 		\caption{}
 		\label{fig:cg_convergence}
 	\end{subfigure}
 	\begin{subfigure}{0.47\textwidth}
 	\begin{center}
 		\includegraphics[scale=1.0]{stokes_geigs_figure.pdf}
-%		\begin{tikzpicture}[baseline, trim axis right]
-%		\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
-%		ymode=log,
-%		xmin=-50,
-%		xmax=1450,
-%		ymax=1.e7,
-%		title={Generalized eigenvalues},
-%		xlabel={$k$, generalized eigenvalue \#},
-%		ylabel={$\lambda_{k}$},
-%		xtick={0, 300, 600, 900, 1200},
-%		%legend pos=north east,
-%		legend style={font=\small},
-%		ylabel near ticks, ylabel shift={-6pt},
-%		axis x line*=bottom,
-%		axis y line*=right,
-%		%legend style={at={(0.95,1)},anchor=north east},
-%		]
-%		%\addlegendentry{REG}
-%		\addplot[dotted, line width=0.5mm] table[x=k, y=reg] {generalizedEigenvalues_0.05noise.dat};
-%		\addplot[dash dot, line width=0.5mm] table[x=k, y=none] {generalizedEigenvalues_0.05noise.dat};
-%		%\addlegendentry{PSF (1)}
-%		\addplot[blue, line width=0.5mm] table[x=k, y=psf1] {generalizedEigenvalues_0.05noise.dat};
-%		%\addlegendentry{PSF (5)}
-%		\addplot[red, line width=0.5mm] table[x=k, y=psf5] {generalizedEigenvalues_0.05noise.dat};
-%		%\addlegendentry{PSF (25)}
-%		\addplot[purple, line width=0.5mm] table[x=k, y=psf25] {generalizedEigenvalues_0.05noise.dat};
-%		\end{axis}
-%		\end{tikzpicture}
 	\end{center}
 	\caption{}
 	\label{fig:generalized_eigenvalues}
