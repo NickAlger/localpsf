@@ -1395,74 +1395,76 @@ Figure~\ref{fig:adv_inversion1}.
 \end{table}
 
 \begin{figure}
-	\caption{Impulse responses for various diffusivities kappa and fixed simulation time Tf=0.5 (top) and simulation times with fixed kappa=1e-3 (bot).}
+	\caption{Impulse responses for various diffusivities kappa and fixed simulation time Tf=0.5 (top) and simulation times with fixed $\kappa=1e{-3}$ (bot).}
 	\label{fig:adv_vary_kappa_tf}
 \end{figure}
 
 \begin{figure}
-	\begin{subfigure}{0.49\textwidth}
+	\begin{subfigure}{0.52\textwidth}
 		\centering
-		\begin{tikzpicture}[baseline, trim axis right]
-		\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
-		ymode=log,
-		ymin=1e-11,
-		ymax=2,
-		xmax=1000,
-		axis x line*=bottom,
-		axis y line*=left,
-		xtick={0, 200, 400, 600,800,1000},
-		xlabel={CG iteration},
-		ylabel={$\|\bm{x}_k - \bm{x}\|/\|\bm{x}\|$},
-		title={CG convergence},
-		legend style={at={(1.2,1)},anchor=north east},
-		%legend pos=north east,
-		legend style={font=\small}
-		]
-		\addlegendentry{Reg}
-		\addplot[dotted, line width=0.5mm] table {advDiff_cg_rand_errs_reg.dat};
-		\addlegendentry{None}
-		\addplot[dash dot, line width=0.5mm] table {advDiff_cg_rand_errs_none.dat};
-		\addlegendentry{PSF (1)}
-		\addplot[blue, line width=0.5mm] table {advDiff_cg_rand_errs_psf1.dat};
-		\addlegendentry{PSF (5)}
-		\addplot[red, line width=0.5mm] table {advDiff_cg_rand_errs_psf5.dat};
-		\addlegendentry{PSF (25)}
-		\addplot[purple, line width=0.5mm] table {advDiff_cg_rand_errs_psf25.dat};
-		\end{axis}
-		\end{tikzpicture}
+		\includegraphics[scale=1.0]{adv_pcg_convergence.pdf}
+%		\begin{tikzpicture}[baseline, trim axis right]
+%		\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
+%		ymode=log,
+%		ymin=1e-11,
+%		ymax=2,
+%		xmax=1000,
+%		axis x line*=bottom,
+%		axis y line*=left,
+%		xtick={0, 200, 400, 600,800,1000},
+%		xlabel={CG iteration},
+%		ylabel={$\|\bm{x}_k - \bm{x}\|/\|\bm{x}\|$},
+%		title={CG convergence},
+%		legend style={at={(1.2,1)},anchor=north east},
+%		%legend pos=north east,
+%		legend style={font=\small}
+%		]
+%		\addlegendentry{Reg}
+%		\addplot[dotted, line width=0.5mm] table {advDiff_cg_rand_errs_reg.dat};
+%		\addlegendentry{None}
+%		\addplot[dash dot, line width=0.5mm] table {advDiff_cg_rand_errs_none.dat};
+%		\addlegendentry{PSF (1)}
+%		\addplot[blue, line width=0.5mm] table {advDiff_cg_rand_errs_psf1.dat};
+%		\addlegendentry{PSF (5)}
+%		\addplot[red, line width=0.5mm] table {advDiff_cg_rand_errs_psf5.dat};
+%		\addlegendentry{PSF (25)}
+%		\addplot[purple, line width=0.5mm] table {advDiff_cg_rand_errs_psf25.dat};
+%		\end{axis}
+%		\end{tikzpicture}
 		\caption{}
 		\label{fig:adv_cg_convergence}
 	\end{subfigure}
-	\begin{subfigure}{0.49\textwidth}
+	\begin{subfigure}{0.47\textwidth}
 		\centering
-		\begin{tikzpicture}[baseline, trim axis right]
-\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
-ymode=log,
-xmin=-50,
-xmax=600,
-ymax=1.e6,
-title={Generalized eigenvalues},
-xlabel={$k$, generalized eigenvalue \#},
-ylabel={$\lambda_{k}$},
-xtick={0, 300, 600, 900, 1200},
-%legend pos=north east,
-legend style={font=\small},
-ylabel near ticks, ylabel shift={-6pt},
-axis x line*=bottom,
-axis y line*=right,
-%legend style={at={(0.95,1)},anchor=north east},
-]
-%\addlegendentry{REG}
-\addplot[dotted, line width=0.5mm] table[x=k, y=reg] {advDiff_generalizedEigenvalues.dat};
-\addplot[dash dot, line width=0.5mm] table[x=k, y=none] {advDiff_generalizedEigenvalues.dat};
-%\addlegendentry{PSF (1)}
-\addplot[blue, line width=0.5mm] table[x=k, y=psf1] {advDiff_generalizedEigenvalues.dat};
-%\addlegendentry{PSF (5)}
-\addplot[red, line width=0.5mm] table[x=k, y=psf5] {advDiff_generalizedEigenvalues.dat};
-%\addlegendentry{PSF (25)}
-\addplot[purple, line width=0.5mm] table[x=k, y=psf25] {advDiff_generalizedEigenvalues.dat};
-\end{axis}
-\end{tikzpicture}
+		\includegraphics[scale=1.0]{adv_geigs_figure.pdf}
+%		\begin{tikzpicture}[baseline, trim axis right]
+%\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
+%ymode=log,
+%xmin=-50,
+%xmax=600,
+%ymax=1.e6,
+%title={Generalized eigenvalues},
+%xlabel={$k$, generalized eigenvalue \#},
+%ylabel={$\lambda_{k}$},
+%xtick={0, 300, 600, 900, 1200},
+%%legend pos=north east,
+%legend style={font=\small},
+%ylabel near ticks, ylabel shift={-6pt},
+%axis x line*=bottom,
+%axis y line*=right,
+%%legend style={at={(0.95,1)},anchor=north east},
+%]
+%%\addlegendentry{REG}
+%\addplot[dotted, line width=0.5mm] table[x=k, y=reg] {advDiff_generalizedEigenvalues.dat};
+%\addplot[dash dot, line width=0.5mm] table[x=k, y=none] {advDiff_generalizedEigenvalues.dat};
+%%\addlegendentry{PSF (1)}
+%\addplot[blue, line width=0.5mm] table[x=k, y=psf1] {advDiff_generalizedEigenvalues.dat};
+%%\addlegendentry{PSF (5)}
+%\addplot[red, line width=0.5mm] table[x=k, y=psf5] {advDiff_generalizedEigenvalues.dat};
+%%\addlegendentry{PSF (25)}
+%\addplot[purple, line width=0.5mm] table[x=k, y=psf25] {advDiff_generalizedEigenvalues.dat};
+%\end{axis}
+%\end{tikzpicture}
 		\caption{}
 		\label{fig:adv_generalized_eigenvalues}
 	\end{subfigure}
