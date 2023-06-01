@@ -1250,8 +1250,6 @@ Here $\bm{H}$ is the Hessian evaluated at the reconstructed parameter $\bm{\basa
 \subsection{Example 2: Inversion for the initial condition in an advection-diffusion problem}
 \label{sec:adv}
 
-{\Huge Key parameter choices: $\kappa=3.2e-3$, $T_f = 1.0$, noise level = 0.05}
-
 %        |   0.5   |   1.0   |   2.0   
 % -------------------------------------
 % 1.0e-4 |   OK    |   OK    |   OK
@@ -1360,23 +1358,23 @@ Figure~\ref{fig:adv_inversion1}.
 		\begin{tabular}{c| c | c c c c c}
 			& $\kappa$    & REG     &	NONE   & PSF $(1)$ & PSF $(5)$ & PSF $(25)$ \\ 
 			\hline 
-			& $1.0e{-4}$    & 584 & 317  & 311   & 151   & 56    \\ 
+			& 1.0e-4    & 584 & 317  & 311   & 151   & 56    \\ 
 %			& $1.8e{-4}$    & 628 & 313  & 192   & 131   & 49    \\   
-	$T=0.5$ & $3.2e{-4}$    & 685 & 311  & 233   & 140   & 44    \\ 
+	$T=0.5$ & 3.2e-4    & 685 & 311  & 233   & 140   & 44    \\ 
 %			& $5.6e{-4}$    & 734 & 310  & 334   & 144   & 40    \\  
-			& $1.0e{-3}$    & 702 & 324  & 122   & 71   & 33    \\ 
+			& 1.0e-3    & 702 & 324  & 122   & 71   & 33    \\ 
 			\hline
-			& $1.0e{-4}$    & 634 & 449  & 539   & 288   & 100    \\ 
+			& 1.0e-4    & 634 & 449  & 539   & 288   & 100    \\ 
 %			& $1.8e{-4}$    & 665 & 449  & 493   & 212   & 84    \\   
-	$T=1.0$ & $3.2e{-4}$    & 681 & 459  & 350   & 202   & 90    \\ 
+	$T=1.0$ & 3.2e-4    & 681 & 459  & 350   & 202   & 90    \\ 
 %			& $5.6e{-4}$    & 619 & 482  & 262   & 197   & 70    \\  
-			& $1.0e{-3}$    & 574 & 520  & 266   & 260   & 208    \\ 
+			& 1.0e-3    & 574 & 520  & 266   & 260   & 208    \\ 
 			\hline
-			& $1.0e{-4}$    & 609 & 591  & 548   & 520   & 165    \\ 
-%			& $1.8e{-4}$    & 576 & 611  & 434   & 426   & 185    \\   
-	$T=2.0$ & $3.2e{-4}$    & 524 & 645  & 318   & 379   & 170    \\ 
+			& 1.0e-4    & 609 & 591  & 548   & 520   & 165    \\ 
+%			& 1.8e{-4}$    & 576 & 611  & 434   & 426   & 185    \\   
+	$T=2.0$ & 3.2e-4    & 524 & 645  & 318   & 379   & 170    \\ 
 %			& $5.6e{-4}$    & 464 & 711  & 480   & 289   & 153    \\  
-			& $1.0e{-3}$    & 349 & 786  & 381   & 262   & 158    \\ 
+			& 1.0e-3    & 349 & 786  & 381   & 262   & 158    \\ 
 		\end{tabular}
 		\endgroup
 	\end{center}
@@ -1409,27 +1407,27 @@ Figure~\ref{fig:adv_inversion1}.
 		ymode=log,
 		ymin=1e-11,
 		ymax=2,
-		xmax=750,
+		xmax=1000,
 		axis x line*=bottom,
 		axis y line*=left,
-		xtick={0, 200, 400, 600},
+		xtick={0, 200, 400, 600,800,1000},
 		xlabel={CG iteration},
-		ylabel={$\|\bm{b}-\bm{H} \bm{x}_k\|/\|\bm{b}\|$},
+		ylabel={$\|\bm{x}_k - \bm{x}\|/\|\bm{x}\|$},
 		title={CG convergence},
-		legend style={at={(1.1,1)},anchor=north east},
+		legend style={at={(1.2,1)},anchor=north east},
 		%legend pos=north east,
 		legend style={font=\small}
 		]
 		\addlegendentry{Reg}
-		\addplot[dotted, line width=0.5mm] table {cg_relres_reg.dat};
+		\addplot[dotted, line width=0.5mm] table {advDiff_cg_rand_errs_reg.dat};
 		\addlegendentry{None}
-		\addplot[dash dot, line width=0.5mm] table {cg_relres_none.dat};
+		\addplot[dash dot, line width=0.5mm] table {advDiff_cg_rand_errs_none.dat};
 		\addlegendentry{PSF (1)}
-		\addplot[blue, line width=0.5mm] table {cg_relres_p1.dat};
+		\addplot[blue, line width=0.5mm] table {advDiff_cg_rand_errs_psf1.dat};
 		\addlegendentry{PSF (5)}
-		\addplot[red, line width=0.5mm] table {cg_relres_p5.dat};
+		\addplot[red, line width=0.5mm] table {advDiff_cg_rand_errs_psf5.dat};
 		\addlegendentry{PSF (25)}
-		\addplot[purple, line width=0.5mm] table {cg_relres_p25.dat};
+		\addplot[purple, line width=0.5mm] table {advDiff_cg_rand_errs_psf25.dat};
 		\end{axis}
 		\end{tikzpicture}
 		\caption{}
@@ -1438,96 +1436,41 @@ Figure~\ref{fig:adv_inversion1}.
 	\begin{subfigure}{0.49\textwidth}
 		\centering
 		\begin{tikzpicture}[baseline, trim axis right]
-		\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
-		xmode=log,
-		ymode=log,
-		xlabel={$\gamma$, regularization parameter},
-		ylabel={\# of CG iterations},
-		axis y line*=right,
-		axis x line*=bottom,
-		ylabel near ticks, yticklabel pos=right,
-		%ylabel near ticks, ylabel shift={-6pt},
-		%legend pos=north east,
-		title={Regularization robustness}
-		%title={CG iterations to achieve $\|H x-b\|/\|b\|<10^{-6}$}
-		]
-		%\addlegendentry{None}
-		\addplot[dash dot, line width=0.5mm] table[x=gamma, y=none] {CGitsvsGamma.dat};
-		%\addlegendentry{REG}
-		\addplot[dotted, line width=0.5mm] table[x=gamma, y=reg] {CGitsvsGamma.dat};
-		%\addlegendentry{PSF (1)}
-		\addplot[blue, line width=0.5mm] table[x=gamma, y=psf1] {CGitsvsGamma.dat};
-		%\addlegendentry{PSF (5)}
-		\addplot[red, line width=0.5mm] table[x=gamma, y=psf5] {CGitsvsGamma.dat};
-		%\addlegendentry{PSF (25)}
-		\addplot[purple, line width=0.5mm] table[x=gamma, y=psf25] {CGitsvsGamma.dat};
-		\end{axis}
-		\end{tikzpicture}
-		\caption{}
-		\label{fig:adv_kappa_sweep}
-	\end{subfigure}
-	\caption{Left (\ref{fig:adv_cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard normal distribution. BLAH BLAH BLAH
-		%		The y-axis is $\|b-Hx_k\|/\|b\|$, where $x_k$ is the $k$th PCG iterate. 
-		Here we use $\gamma=9999 \times 10^9$, which is determined by the Morozov discrepancy principle. Right (\ref{fig:adv_kappa_sweep}) shows the number of PCG iterations required to achieve $\|\bm{b}-\bm{H} \bm{x}_k\|/\|\bm{b}\| < 10^{-6}$, where $\bm{x}_k$ is the $k$th PCG iterate, for a range of different $\kappa$. Results in these figures are shown for our preconditioner with 5, 15, and 30 batches (PSF (5), PSF (15), and PSF(30), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.}
-	\label{fig:adv_krylov_convergence}
-\end{figure} 
-
-\begin{figure}
-	\begin{subfigure}{0.59\textwidth}
-		\begin{center}
-			\begin{tikzpicture}[baseline, trim axis right]
-			\begin{axis}[width=0.99\linewidth, height=0.8\linewidth,
-			ymode=log,
-			xmin=-50,
-			xmax=1450,
-			ymax=1.e4,
-			xlabel={$k$, generalized eigenvalue \#},
-			ylabel={$\lambda_{k}$},
-			xtick={0, 300, 600, 900, 1200},
-			%legend pos=north east,
-			legend style={font=\small},
-			ylabel near ticks, ylabel shift={-6pt},
-			axis x line*=bottom,
-			axis y line*=left,
-			legend style={at={(0.95,1)},anchor=north east},
-			title={Generalized eigenvalues, $\bm{H} \genericvec_{k}=\lambda_{k} \bm{\preconditioner} \genericvec_{k}$}
-			]
-			\addlegendentry{REG}
-			\addplot[dotted, line width=0.5mm] table[x=k, y=reg] {generalizedEigenvalues.dat};
-			\addlegendentry{PSF (1)}
-			\addplot[blue, line width=0.5mm] table[x=k, y=psf1] {generalizedEigenvalues.dat};
-			\addlegendentry{PSF (5)}
-			\addplot[red, line width=0.5mm] table[x=k, y=psf5] {generalizedEigenvalues.dat};
-			\addlegendentry{PSF (25)}
-			\addplot[purple, line width=0.5mm] table[x=k, y=psf25] {generalizedEigenvalues.dat};
-			\end{axis}
-			\end{tikzpicture}
-		\end{center}
+\begin{axis}[width=0.99\linewidth, height=1.0\linewidth,
+ymode=log,
+xmin=-50,
+xmax=600,
+ymax=1.e6,
+title={Generalized eigenvalues},
+xlabel={$k$, generalized eigenvalue \#},
+ylabel={$\lambda_{k}$},
+xtick={0, 300, 600, 900, 1200},
+%legend pos=north east,
+legend style={font=\small},
+ylabel near ticks, ylabel shift={-6pt},
+axis x line*=bottom,
+axis y line*=right,
+%legend style={at={(0.95,1)},anchor=north east},
+]
+%\addlegendentry{REG}
+\addplot[dotted, line width=0.5mm] table[x=k, y=reg] {advDiff_generalizedEigenvalues.dat};
+\addplot[dash dot, line width=0.5mm] table[x=k, y=none] {advDiff_generalizedEigenvalues.dat};
+%\addlegendentry{PSF (1)}
+\addplot[blue, line width=0.5mm] table[x=k, y=psf1] {advDiff_generalizedEigenvalues.dat};
+%\addlegendentry{PSF (5)}
+\addplot[red, line width=0.5mm] table[x=k, y=psf5] {advDiff_generalizedEigenvalues.dat};
+%\addlegendentry{PSF (25)}
+\addplot[purple, line width=0.5mm] table[x=k, y=psf25] {advDiff_generalizedEigenvalues.dat};
+\end{axis}
+\end{tikzpicture}
 		\caption{}
 		\label{fig:adv_generalized_eigenvalues}
 	\end{subfigure}
-	\begin{subfigure}{0.39\textwidth}
-		\begin{center}
-			\begingroup
-			\setlength{\tabcolsep}{4pt}
-			\renewcommand{\arraystretch}{1.25}
-			\begin{tabular}{c| c c}
-				& $\kappa(\bm{\preconditioner}^{-1} \bm{H})$\\
-				\hline 
-				REG        & 7.02e+3 \\
-				NONE       & 8.71e+2 \\
-				PSF $(5)$  & 1.75e+1 \\
-				PSF $(15)$  & 1.39e+1 \\
-				PSF $(30)$ & 1.03e+1
-			\end{tabular}
-			\endgroup
-		\end{center}
-		\caption{}
-		\label{fig:adv_condition_number}
-	\end{subfigure}
-	\caption{Left (\ref{fig:adv_generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_k = \lambda_k \bm{\preconditioner} \bm{u}_k$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 5, 15, and 30 batches (PSF (5), PSF (15), and PSF (30), respectively), or the regularization Hessian (REG). Right (\ref{fig:adv_condition_number}): condition number for $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$ for these different preconditioners, and no preconditioner (NONE). COND(H) LABELS!}
-	\label{fig:adv_spectrum}
-\end{figure}
+	\caption{Left (\ref{fig:adv_cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard normal distribution. BLAH BLAH BLAH
+		%		The y-axis is $\|b-Hx_k\|/\|b\|$, where $x_k$ is the $k$th PCG iterate. 
+		Here we use $\gamma=7.88 \times 10^{-6}$, which is determined by the Morozov discrepancy principle. Results in these figures are shown for our preconditioner with 5, 15, and 30 batches (PSF (5), PSF (15), and PSF(30), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.}
+	\label{fig:adv_krylov_convergence}
+\end{figure} 
 
 \begin{itemize}
 	\item Picture of velocity field, initial condition, final condition, reconstruction (1) (OKOK)
