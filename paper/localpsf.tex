@@ -1304,6 +1304,22 @@ Figure~\ref{fig:adv_inversion1}.
 
 
 \begin{table}
+	\centering
+	{
+		%	\setlength{\tabcolsep}{0.1em}
+		%	\renewcommand{\arraystretch}{2.0}
+		\begin{tabular}{cccc}
+			& $T=0.5$ & $T=1.0$ & $T=2.0$ \\
+			$\kappa=1.0e{-4}$  & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-4.png} \\
+			$\kappa=3.2e{-4}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K3.2e-4.png} \\
+			$\kappa=1.0e{-3}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-3.png}
+		\end{tabular}
+	}
+	\caption{Impulse responses for a variety of different diffusion parameters $\kappa$ and simulation times $T$.}
+	\label{tbl:adv_vary_kappa_tf}
+\end{table}
+
+\begin{table}
 	\begin{center}
 		\begingroup
 		\setlength{\tabcolsep}{8pt}
@@ -1336,26 +1352,6 @@ Figure~\ref{fig:adv_inversion1}.
 	\label{tab:adv_convergence}
 \end{table}
 
-\begin{table}
-	\centering
-	{
-%	\setlength{\tabcolsep}{0.1em}
-%	\renewcommand{\arraystretch}{2.0}
-	\begin{tabular}{cccc}
-		  & $T=0.5$ & $T=1.0$ & $T=2.0$ \\
-		$\kappa=1.0e{-4}$  & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-4.png} \\
-		$\kappa=3.2e{-4}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K3.2e-4.png} \\
-		$\kappa=1.0e{-3}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-3.png}
-	\end{tabular}
-	}
-	\caption{Impulse responses for a variety of different diffusion parameters $\kappa$ and simulation times $T$.}
-	\label{tbl:table_of_figures}
-\end{table}
-
-\begin{figure}
-	\caption{Impulse responses for various diffusivities kappa and fixed simulation time Tf=0.5 (top) and simulation times with fixed $\kappa=1e{-3}$ (bot).}
-	\label{fig:adv_vary_kappa_tf}
-\end{figure}
 
 \begin{figure}
 	\begin{subfigure}{0.52\textwidth}
@@ -1432,12 +1428,12 @@ Figure~\ref{fig:adv_inversion1}.
 	\label{fig:adv_krylov_convergence}
 \end{figure} 
 
-\begin{itemize}
-	\item Picture of velocity field, initial condition, final condition, reconstruction (1) (OKOK)
-	\item Impulse responses: vary time and Peclet number (3) (OKOK)
-	\item CG convergence (1) CG iters vs Peclet number (Morozov) (2) (OKOK)
-	\item Preconditioned spectrum, condition numbers? (1)
-\end{itemize}
+%\begin{itemize}
+%	\item Picture of velocity field, initial condition, final condition, reconstruction (1) (OKOK)
+%	\item Impulse responses: vary time and Peclet number (3) (OKOK)
+%	\item CG convergence (1) CG iters vs Peclet number (Morozov) (2) (OKOK)
+%	\item Preconditioned spectrum, condition numbers? (1)
+%\end{itemize}
 
 
 \section{Conclusions}
