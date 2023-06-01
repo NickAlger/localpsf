@@ -997,8 +997,8 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 	\end{subfigure}
     \end{center}
 	\caption{
-		Top: bird's eye view of the ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography). The radius of the domain is $10^4$ meters, the maximum height of the mountain is $2.1 \times 10^3$ meters, and the average thickness of the ice sheet is 250 meters.		
-		True parameter, $\basalfriction_\text{true}$, (bottom left) and true velocity $\velocity_\text{true}$ (bottom right). In the bottom right plot, arrows indicate the direction of $\velocity_\text{true}$ and color indicates the magnitude of $\velocity_\text{true}$.}
+		(Top) Bird's eye view of the ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography). The radius of the domain is $10^4$ meters, the maximum height of the mountain is $2.1 \times 10^3$ meters, and the average thickness of the ice sheet is 250 meters.		
+		(Bottom left) True parameter, $\basalfriction_\text{true}$. (Bottom right) True velocity $\velocity_\text{true}$. Arrows indicate the direction of $\velocity_\text{true}$ and color indicates the magnitude of $\velocity_\text{true}$.}
 	\label{fig:true_beta_u}
 \end{figure} 
 
@@ -1073,7 +1073,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 	%		\caption{}
 	%		\label{fig:newtoniter4}
     \end{subfigure}
-	\caption{The log basal sliding parameter, with colorscale as in Figure~\ref{fig:true_beta}, computed from the PDE-constrained optimization problem with noise levels: $25\%$ (left), $5.0\%$ (middle),and $1.0\%$ (right).}
+	\caption{The log basal sliding parameter, with colorscale as in Figure~\ref{fig:true_beta}, computed from the PDE-constrained optimization problem with noise levels: $25\%$ (left), $5.0\%$ (middle), and $1.0\%$ (right).}
 	\label{fig:stokes_reconstructions} 
 \end{figure} 
 
@@ -1135,7 +1135,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 			\endgroup
 		\end{center}
 	}
-	\caption{Convergence history for solving the Stokes inverse problem using preconditioned inexact Newton PCG. Preconditioners shown are our method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $\|\bm{g}\|$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the linesearch going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. Under PSF (5) and in row Iter 3, we write $6+22$ to indicate that $6$ Stokes solves were used during the standard course of the iteration, and $22$ Stokes solves were used to build the PSF (5) preconditioner.}
+	\caption{Convergence history for solving the Stokes inverse problem using inexact Newton PCG. The Newton iteration is terminated when $||\mathbf{g}_k|| < 10^{-6} ||\mathbf{g}_0||$, where $\mathbf{g}_i$ is the gradient at the $i$th iteration. Preconditioners shown are our method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $\|\bm{g}\|$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the line search going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. Under PSF (5) and in row Iter 3, we write $6+22$ to indicate that $6$ Stokes solves were used during the standard course of the iteration, and $22$ Stokes solves were used to build the PSF (5) preconditioner.}
 	\label{tab:newton_convergence_table}
 \end{table}
 
@@ -1156,8 +1156,10 @@ Table~\ref{tab:newton_convergence_table} shows the performance of our preconditi
 	\caption{}
 	\label{fig:generalized_eigenvalues}
     \end{subfigure}
-	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard normal distribution. The reference solution $\bm{x}$ is determined by solving $\bm{H} \bm{x} = \bm{b}$ to an accuracy of $10^{-12}$ using method PCG. 
-	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle when using $5\%$ noise. Results in these figures are shown for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.
+	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard normal distribution and $\mathbf{H}$ is evaluated at the solution of the inverse problem. 
+%	The reference solution $\bm{x}$ is determined by solving $\bm{H} \bm{x} = \bm{b}$. 
+%	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle when using $5\%$ noise.
+	Results in these figures are shown for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.
 	Right (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), or the regularization Hessian (REG).}
 	\label{fig:krylov_convergence}
 \end{figure} 
@@ -1172,7 +1174,8 @@ The matrix $\bm{\preconditioner}$ is one of the PSF (1), PSF (5), or PSF (25) Ga
 
 %In Figure~\ref{fig:condition_number} we show the condition numbers of $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$. The PSF preconditioners yield the the smallest condition numbers, with more batches yielding smaller condition numbers. Regularization preconditioning and no preconditioning yield larger condition numbers. The condition numbers are similar for both $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$, demonstrating that the preconditioner built based on $\bm{H}_\text{gn}$ is a good preconditioner for $\bm{H}$.
 
-In Table~\ref{tab:condition_number}, we show the condition number of the preconditioned Hessian using our preconditioners, for a variety of noise levels ranging from $1\%$ to $25\%$. The condition number using our PSF preconditioners is extremely small (ranging between 1 and 10) and relatively stable over this range of noise levels. PSF (25) performs better than PSF(5), which performs better than PSF (1), as expected. All PSF preconditioners outperform no preconditioning and regularization preconditioning for all noise levels. No preconditioning outperforms regularization preconditioning for all noise levels except $25\%$. We report condition number results for the preconditioned Hessian, $\mathbf{H}$, demonstrating that the PSF preconditioners built based on the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, are also good preconditioner for $\bm{H}$.
+In Table~\ref{tab:condition_number}, we show the condition number of the preconditioned Hessian using our preconditioners, for a variety of noise levels ranging from $1\%$ to $25\%$. The condition number using our PSF preconditioners is extremely small (ranging between 1 and 10) and relatively stable over this range of noise levels. PSF (25) performs better than PSF (5), which performs better than PSF (1), as expected. All PSF preconditioners outperform no preconditioning and regularization preconditioning for all noise levels. No preconditioning outperforms regularization preconditioning for all noise levels except $25\%$. 
+%We report condition number results for the preconditioned Hessian, $\mathbf{H}$, demonstrating that the PSF preconditioners built based on the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, are also good preconditioner for $\bm{H}$.
 %As expected, regularization preconditioning performs well for large $\gamma$ and poorly for small $\gamma$. Our PSF preconditioners outperform no preconditioning and regularization preconditioning for medium and small $\gamma$, and perform similarly to regularization preconditioning for large~$\gamma$.
 
 \begin{table}
@@ -1335,12 +1338,16 @@ Figure~\ref{fig:adv_inversion1}.
 
 \begin{table}
 	\centering
+	{
+%	\setlength{\tabcolsep}{0.1em}
+%	\renewcommand{\arraystretch}{2.0}
 	\begin{tabular}{cccc}
 		  & $T=0.5$ & $T=1.0$ & $T=2.0$ \\
 		$\kappa=1.0e{-4}$  & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-4.png} \\
 		$\kappa=3.2e{-4}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K3.2e-4.png} \\
 		$\kappa=1.0e{-3}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-3.png}
 	\end{tabular}
+	}
 	\caption{Impulse responses for a variety of different diffusion parameters $\kappa$ and simulation times $T$.}
 	\label{tbl:table_of_figures}
 \end{table}
