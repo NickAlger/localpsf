@@ -287,6 +287,8 @@ for ii in range(len(all_noise_levels)):
     plt.title('Optimal m, noise level=' + str(noise_level))
     plt.savefig(save_dir_str + '/mstar_'+str(noise_level)+'.png', dpi=fig_dpi, bbox_inches='tight')
 
+    dl.File(save_dir_str + "/mstar_" + str(noise_level) + ".pvd") << mstar
+
     H_dense = build_dense_matrix_from_matvecs(
         lambda x: SU.objective.apply_hessian(x, areg_morozov), N)
 
