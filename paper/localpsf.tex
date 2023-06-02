@@ -518,7 +518,7 @@ We use approximation~\eqref{eq:translate4}, which is the same as~\eqref{eq:trans
 
 We use~\eqref{eq:vol_mean_var} to compute $\spatialvol$, $\spatialmean$, and $\spatialcov$ by applying $\Aop^T$ to polynomial functions. Then we use~\eqref{eq:support_ellipsoid} to form ellipsoid shaped estimates for the support of the $\phi_x$'s, \emph{without} computing them. This allows us to compute large numbers of $\impulseresponse_{x_i}$ in ``batches,'' $\eta_b$ (see Figure~\ref{fig:batches_intro}). We compute one batch, denoted $\eta_b$, by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section~\ref{sec:get_impulse_response}). The batch of points $S_b$ is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support ellipsoid for $\impulseresponse_{x_i}$ and the support ellipsoid for $\impulseresponse_{x_j}$ do not overlap if $i \neq j$ (Section~\ref{sec:sample_point_selection}). Because these supports do not overlap (or do not overlap much), we can post process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$---with one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section~\ref{sec:get_impulse_response}). The process is repeated until a desired number of batches is reached.
 
-Once the batches $\eta_b$ are computed, we approximate the integral kernel $\Aker(y,x)$ at arbitrary points $(y,x)$ by interpolation of translated and scaled versions of the computed $\impulseresponse_{x_i}$ (Section~\ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section~\ref{sec:local_mean_displacement_invariance}. Specifically, we approximate $\Aker(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}(y - \spatialmean(x) + \spatialmean(x_i))$ for a small number of sample points $x_i$ near $x$. The weights are determined by radial basis function interpolation.
+Once the batches $\eta_b$ are computed, we approximate the integral kernel $\Aker(y,x)$ at arbitrary points $(y,x)$ by interpolation of translated and scaled versions of the computed $\impulseresponse_{x_i}$ (Section~\ref{sec:approximate_kernel_entries}). The key idea behind the interpolation is the normalized local mean displacement invariance assumption discussed in Section~\ref{sec:local_mean_displacement_invariance}. Specifically, we approximate $\Aker(y,x) = \phi_x(y)$ by a weighted linear combination of the values $\frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}(y - \spatialmean(x) + \spatialmean(x_i))$ for a small number of sample points $x_i$ near $x$. The weights are determined by radial basis function (RBF) interpolation.
 
 The ability to rapidly evaluate approximate kernel entries $\Aker(y,x)$ allows us to construct an H-matrix approximation, $\boldsymbol{\Aker}_H \approx \mathbf{\Aker}$, using the conventional adaptive cross H-matrix construction method (Section~\ref{sec:h_matrix_construction_short}). In this method, one forms low rank approximations of off-diagonal blocks of the matrix by sampling rows and columns of those blocks. We then use H-matrix methods to convert $\boldsymbol{\Aker}_H$ into an H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$. 
 %Schematically the algorithm proceeds as follows:
@@ -578,11 +578,11 @@ Once $\candidatepoint_i$ is selected, we remove $\candidatepoint_i$ from $\candi
 	\item We make sure that all eigenvalues of $\spatialcov(\candidatepoint_i)$ are positive, and the aspect ratio of $E_{\candidatepoint_i}$ (ratio of the largest eigenvalue of $\spatialcov(\candidatepoint_i)$ to the smallest) is bounded by a constant $1/\epsilon_\Sigma$ (we use $1/\epsilon_\Sigma=20$). Negative integral kernel entries due to discretization error can cause $\spatialcov(\candidatepoint_i)$ to be indefinite or highly ill-conditioned. We reject these points because it is likely that the set $E_{\candidatepoint_i}$ poorly reflects the support of $\phi_{\candidatepoint_i}$.
 \end{enumerate}
 If $\candidatepoint_i$ passes these checks 
-%(i.e., if $\candidatepoint_i$ is sufficiently far from other points in the batch, and $\spatialvol(\candidatepoint_i)$ is not too small, and the )
+(i.e., if $\candidatepoint_i$ is sufficiently far from other points in the batch, and $\spatialvol(\candidatepoint_i)$ and $\spatialcov(\candidatepoint_i)$ are acceptable)
 then we add $\candidatepoint_i$ to $\pointbatch_k$. Otherwise we discard $\candidatepoint_i$. This process repeats until there are no more points in $\candidatepts$.  
 %This is detailed in Algorithm~\ref{alg:point_choice}. 
-%We check whether $E_{\candidatepoint_i} \cap E_{\candidatepoint_j} = \{\}$ using the fast ellipsoid intersection test in \cite{GilitschenskiHanebeck12}.
-described in Appendix~\ref{sec:fast_ellipsoid_intersection_test}. 
+We check whether $E_{\candidatepoint_i} \cap E_{\candidatepoint_j} = \{\}$ using the fast ellipsoid intersection test in \cite{GilitschenskiHanebeck12}.
+%described in Appendix~\ref{sec:fast_ellipsoid_intersection_test}. 
 We repeat the process to construct several batches of points $\pointbatch_1, \pointbatch_2, \dots, \pointbatch_{\nbatch}$. For each batch, $\candidatepts$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, except for points in previous batches.
 
 %\begin{algorithm2e}
@@ -1050,7 +1050,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 %\eqref{Stokeseqn}, but with different right hand sides.
 \begin{figure}
 	\begin{subfigure}{0.32\textwidth}
-		\includegraphics[scale=0.13]{mstar_0.25noise_cropped.png}
+		\includegraphics[scale=0.20]{mstar_0.25noise_cropped.png}
 		%		\caption{}
 		%		\label{fig:newtoniter1}
 	\end{subfigure}
@@ -1060,7 +1060,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 %		%		\label{fig:newtoniter2}
 %	\end{subfigure}
 	\begin{subfigure}{0.32\textwidth}
-		\includegraphics[scale=0.13]{mstar_0.05noise_cropped.png}
+		\includegraphics[scale=0.20]{mstar_0.05noise_cropped.png}
 		%		\caption{}
 		%		\label{fig:newtoniter3}
 	\end{subfigure}
@@ -1070,7 +1070,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 %		%		\label{fig:newtoniter4}
 %	\end{subfigure}
 	\begin{subfigure}{0.32\textwidth}
-	\includegraphics[scale=0.13]{mstar_0.01noise_cropped.png}
+	\includegraphics[scale=0.20]{mstar_0.01noise_cropped.png}
 	%		\caption{}
 	%		\label{fig:newtoniter4}
     \end{subfigure}
@@ -1449,7 +1449,7 @@ In Figure \ref{fig:adv_cg_convergence} we show the convergence of PCG for solvin
 
 We presented an efficient matrix-free PSF method for approximating operators with locally supported non-negative integral kernels. The method only requires access to the operator via application of the operator to a small number of vectors. The idea of the method is to compute batches of impulse responses by applying the operator to Dirac combs of scattered point sources, then interpolate these impulse responses to approximate entries of the operator's integral kernel. The interpolation is based on a new principle we call ``local mean displacement invariance,'' which generalizes classical local translation invariance. The ability to quickly approximate arbitrary integral kernel entries permits us to form an H-matrix approximation of the operator. Fast H-matrix arithmetic is then used to perform further linear algebra operations that cannot be performed easily with the original operator, such as matrix factorization and inversion. The supports of the impulse responses are estimated to be contained in ellipsoids, which are determined a-priori via a new procedure that involves applying the operator to a small number of polynomial functions. Point source locations for the impulse response batches are chosen using a greedy ellipsoid packing procedure, in which we choose as many impulse responses per batch as possible, while ensuring that the corresponding ellipsoids do not overlap. We applied the method to approximate the Gauss-Newton Hessians in Stokes ice sheet and advection-diffusion inverse problems, and saw that the approximation substantially outperforms existing Hessian approximation methods. Although the method we presented is not applicable to all Hessians, it is applicable to many Hessians of practical interest. For these Hessians, our method offers a \emph{data scalable} alternative to conventional low rank approximation, because our method can form high rank approximations of an operator using a small number of operator applies, and thus forward and adjoint PDE solves.
 
-\appendix
+%\appendix
 
 
 %\section{Hierarchical matrix details}
@@ -1524,92 +1524,92 @@ We presented an efficient matrix-free PSF method for approximating operators wit
 %We use the adaptive cross method to form low rank approximations for each admissible block of $\mathbf{\Aker}$. We directly compute all entries of the small dense blocks of $\mathbf{\Aker}$ that are not admissible. This process requires us to compute $O(\hrank^2 \fedim \log \fedim)$ entries of $\mathbf{\Aker}$, which is relatively cheap compared to the operator actions of $\Aop$ that are required to form the product-convolution approximation.
 
 
-\section{Ellipsoid intersection test}
-\label{sec:fast_ellipsoid_intersection_test}
-The procedure for choosing sample points relies on quickly determining whether two ellipsoids intersect. Let $E_1$ and $E_2$ be the ellipsoids defined as
-\begin{align*}
-	E_i :=& \{x : (x - \spatialmean_i)^T \spatialcov_i^{-1} (x - \spatialmean_i) \le \tau^2\}
-\end{align*}
-for $i\in\{1,2\}$, where $\spatialmean_1, \spatialmean_2 \in \mathbb{R}^\gdim$, and $\spatialcov_1, \spatialcov_2 \in \mathbb{R}^{\gdim \times \gdim}$ are positive definite. Let $K$ be the following one dimensional convex function:
-\begin{equation*}
-	K(s) := 1 - \frac{1}{\tau^2} (\spatialmean_1 - \spatialmean_2)^T \left(\frac{1}{1-s}\spatialcov_1 + \frac{1}{s}\spatialcov_2\right)^{-1}(\spatialmean_1 - \spatialmean_2).
-\end{equation*}
-In~\cite{GilitschenskiHanebeck12} it is shown that $E_1 \cap E_2 = \{\}$ if and only if $K(s) < 0$ for some $s\in (0,1)$.
-% (see Figure~\ref{fig:ellipsoid_intersection_test}). 
-
-%\begin{figure}
-%	\begin{subfigure}{0.37\textwidth}
-%		\centering
-%		\includegraphics[scale=1.0]{ellipsoids_intersect0.pdf}
-%	\end{subfigure}
-%	\begin{subfigure}{0.30\textwidth}
-%		\centering
-%		\includegraphics[scale=1.0]{ellipsoids_intersect1.pdf}
-%	\end{subfigure}
-%	\begin{subfigure}{0.30\textwidth}
-%		\centering
-%		\includegraphics[scale=1.0]{ellipsoids_intersect2.pdf}
-%	\end{subfigure}
-%	\caption{The ellipsoids intersect if $K(s) \ge 0$ for all $s \in (0,1)$.
-%	}
-%	\label{fig:ellipsoid_intersection_test}
-%\end{figure}
-
-The function $K(s)$ may be evaluated quickly for many $s$ by computing the solution to the generalized eigenvalue problem
-$
-	\spatialcov_1 \eigenvectormatrix = \spatialcov_2 \eigenvectormatrix \Lambda,
-$
-where $\eigenvectormatrix \in \mathbb{R}^{\gdim \times \gdim}$ is the matrix of generalized eigenvectors, and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_\gdim)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. 
-%The matrix $\eigenvectormatrix$ simultaneously diagonalizes $\spatialcov_1$ and $\spatialcov_2$, in the sense that $\eigenvectormatrix^T\spatialcov_1 \eigenvectormatrix = \Lambda$, and $\eigenvectormatrix^T\spatialcov_2 \eigenvectormatrix = I$, where $I$ is the $\gdim \times \gdim$ identity matrix. Using this diagonalization, and 
-After some algebraic manipulations, we have
-\begin{equation}
-	\label{eq:Ks_generalized}
-	K(s) = 1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2,
-\end{equation}
-where $v := \eigenvectormatrix^T\left(\spatialmean_1 - \spatialmean_2\right)$. To check whether $E_1$ and $E_2$ intersect, we compute the generalized eigenvalue decomposition of $\spatialcov_1$ and $\spatialcov_2$, form $v$, then minimize $K(s)$ in the form~\eqref{eq:Ks_generalized} on $(0,1)$ using Brent's method~\cite{Brent71}. If $K(s^*) <0$ at the minimizer, $s^*$, then $E_1 \cap E_2 = \{\}$. Otherwise $E_1 \cap E_2 \neq \{\}$.
-%The resulting algorithm for checking whether $E_1$ and $E_2$ intersect is summarized in Algorithm~\ref{alg:ellipsoid_intersection_test}.
-
-%\begin{algorithm2e}
-%	\SetAlgoNoLine
-%	\SetKwInOut{Input}{Input}
-%	\SetKwInOut{Output}{Output}
-%	\SetKwProg{Fn}{Function}{}{}
-%	\Input{Ellipsoid $E_1$ with mean $\spatialmean_1$ and covariance $\spatialcov_1/\tau^2$\\
-%		Ellipsoid $E_2$ with mean $\spatialmean_2$ and covariance $\spatialcov_2/\tau^2$ 
-%	}
-%	
-%	\Output{Boolean $\text{ellipsoids\_intersect}$ which is true if $E_1 \cap E_2 \neq \{\}$ and false otherwise}
-%	
-%	
-%	Solve generalized eigenvalue problem $\spatialcov_1 P = \spatialcov_2 P \Lambda$
-%		
-%	$v \gets P^T\left(\spatialmean_1 - \spatialmean_2\right)$
-%		
-%	$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
-%		
-%	\If{$K^* < 0$}{
-%			
-%		$\text{ellipsoids\_intersect} \gets \text{False}$
-%			
-%	}
-%	\Else{
-%			
-%		$\text{ellipsoids\_intersect} \gets \text{True}$
-%			
-%	}
-%	\caption{Determining whether two ellipsoids intersect}
-%	\label{alg:ellipsoid_intersection_test}
-%\end{algorithm2e}
-
-%\subsection{Ellipsoid bounding box test}
-
-This ellipsoid intersection test is only performed if the coordinate axis aligned bounding boxes for the ellipsoids intersect. The smallest coordinate axis aligned box that contains $E_i$ is the box
-$
-	\prod_{k=1}^\gdim \left[ \spatialmean_i^{k} -\tau\sqrt{\Sigma_i^{kk}}, \spatialmean_i^{k} +\tau\sqrt{\Sigma_i^{kk}} \right],
-$
-where $\spatialmean_i^{k}$ is the $k$th entry of $\spatialmean_i$, and $\Sigma_i^{kk}$ is the $k$th diagonal entry of $\Sigma_i$\footnote{See \url{https://math.stackexchange.com/q/3928964}}. The boxes
-$\prod_{k=1}^\gdim \left[a_{-}^k, a_{+}^k\right]$ and $\prod_{k=1}^\gdim \left[b_{-}^k, b_{+}^k\right]$
-intersect if and only if $a_{-}^k \le b_{+}^k$ and $b_{-}^k \le a_{+}^k$ for $k=1,\dots,d$.
+%\section{Ellipsoid intersection test}
+%\label{sec:fast_ellipsoid_intersection_test}
+%The procedure for choosing sample points relies on quickly determining whether two ellipsoids intersect. Let $E_1$ and $E_2$ be the ellipsoids defined as
+%\begin{align*}
+%	E_i :=& \{x : (x - \spatialmean_i)^T \spatialcov_i^{-1} (x - \spatialmean_i) \le \tau^2\}
+%\end{align*}
+%for $i\in\{1,2\}$, where $\spatialmean_1, \spatialmean_2 \in \mathbb{R}^\gdim$, and $\spatialcov_1, \spatialcov_2 \in \mathbb{R}^{\gdim \times \gdim}$ are positive definite. Let $K$ be the following one dimensional convex function:
+%\begin{equation*}
+%	K(s) := 1 - \frac{1}{\tau^2} (\spatialmean_1 - \spatialmean_2)^T \left(\frac{1}{1-s}\spatialcov_1 + \frac{1}{s}\spatialcov_2\right)^{-1}(\spatialmean_1 - \spatialmean_2).
+%\end{equation*}
+%In~\cite{GilitschenskiHanebeck12} it is shown that $E_1 \cap E_2 = \{\}$ if and only if $K(s) < 0$ for some $s\in (0,1)$.
+%% (see Figure~\ref{fig:ellipsoid_intersection_test}). 
+%
+%%\begin{figure}
+%%	\begin{subfigure}{0.37\textwidth}
+%%		\centering
+%%		\includegraphics[scale=1.0]{ellipsoids_intersect0.pdf}
+%%	\end{subfigure}
+%%	\begin{subfigure}{0.30\textwidth}
+%%		\centering
+%%		\includegraphics[scale=1.0]{ellipsoids_intersect1.pdf}
+%%	\end{subfigure}
+%%	\begin{subfigure}{0.30\textwidth}
+%%		\centering
+%%		\includegraphics[scale=1.0]{ellipsoids_intersect2.pdf}
+%%	\end{subfigure}
+%%	\caption{The ellipsoids intersect if $K(s) \ge 0$ for all $s \in (0,1)$.
+%%	}
+%%	\label{fig:ellipsoid_intersection_test}
+%%\end{figure}
+%
+%The function $K(s)$ may be evaluated quickly for many $s$ by computing the solution to the generalized eigenvalue problem
+%$
+%	\spatialcov_1 \eigenvectormatrix = \spatialcov_2 \eigenvectormatrix \Lambda,
+%$
+%where $\eigenvectormatrix \in \mathbb{R}^{\gdim \times \gdim}$ is the matrix of generalized eigenvectors, and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_\gdim)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. 
+%%The matrix $\eigenvectormatrix$ simultaneously diagonalizes $\spatialcov_1$ and $\spatialcov_2$, in the sense that $\eigenvectormatrix^T\spatialcov_1 \eigenvectormatrix = \Lambda$, and $\eigenvectormatrix^T\spatialcov_2 \eigenvectormatrix = I$, where $I$ is the $\gdim \times \gdim$ identity matrix. Using this diagonalization, and 
+%After some algebraic manipulations, we have
+%\begin{equation}
+%	\label{eq:Ks_generalized}
+%	K(s) = 1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2,
+%\end{equation}
+%where $v := \eigenvectormatrix^T\left(\spatialmean_1 - \spatialmean_2\right)$. To check whether $E_1$ and $E_2$ intersect, we compute the generalized eigenvalue decomposition of $\spatialcov_1$ and $\spatialcov_2$, form $v$, then minimize $K(s)$ in the form~\eqref{eq:Ks_generalized} on $(0,1)$ using Brent's method~\cite{Brent71}. If $K(s^*) <0$ at the minimizer, $s^*$, then $E_1 \cap E_2 = \{\}$. Otherwise $E_1 \cap E_2 \neq \{\}$.
+%%The resulting algorithm for checking whether $E_1$ and $E_2$ intersect is summarized in Algorithm~\ref{alg:ellipsoid_intersection_test}.
+%
+%%\begin{algorithm2e}
+%%	\SetAlgoNoLine
+%%	\SetKwInOut{Input}{Input}
+%%	\SetKwInOut{Output}{Output}
+%%	\SetKwProg{Fn}{Function}{}{}
+%%	\Input{Ellipsoid $E_1$ with mean $\spatialmean_1$ and covariance $\spatialcov_1/\tau^2$\\
+%%		Ellipsoid $E_2$ with mean $\spatialmean_2$ and covariance $\spatialcov_2/\tau^2$ 
+%%	}
+%%	
+%%	\Output{Boolean $\text{ellipsoids\_intersect}$ which is true if $E_1 \cap E_2 \neq \{\}$ and false otherwise}
+%%	
+%%	
+%%	Solve generalized eigenvalue problem $\spatialcov_1 P = \spatialcov_2 P \Lambda$
+%%		
+%%	$v \gets P^T\left(\spatialmean_1 - \spatialmean_2\right)$
+%%		
+%%	$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^\gdim \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
+%%		
+%%	\If{$K^* < 0$}{
+%%			
+%%		$\text{ellipsoids\_intersect} \gets \text{False}$
+%%			
+%%	}
+%%	\Else{
+%%			
+%%		$\text{ellipsoids\_intersect} \gets \text{True}$
+%%			
+%%	}
+%%	\caption{Determining whether two ellipsoids intersect}
+%%	\label{alg:ellipsoid_intersection_test}
+%%\end{algorithm2e}
+%
+%%\subsection{Ellipsoid bounding box test}
+%
+%This ellipsoid intersection test is only performed if the coordinate axis aligned bounding boxes for the ellipsoids intersect. The smallest coordinate axis aligned box that contains $E_i$ is the box
+%$
+%	\prod_{k=1}^\gdim \left[ \spatialmean_i^{k} -\tau\sqrt{\Sigma_i^{kk}}, \spatialmean_i^{k} +\tau\sqrt{\Sigma_i^{kk}} \right],
+%$
+%where $\spatialmean_i^{k}$ is the $k$th entry of $\spatialmean_i$, and $\Sigma_i^{kk}$ is the $k$th diagonal entry of $\Sigma_i$\footnote{See \url{https://math.stackexchange.com/q/3928964}}. The boxes
+%$\prod_{k=1}^\gdim \left[a_{-}^k, a_{+}^k\right]$ and $\prod_{k=1}^\gdim \left[b_{-}^k, b_{+}^k\right]$
+%intersect if and only if $a_{-}^k \le b_{+}^k$ and $b_{-}^k \le a_{+}^k$ for $k=1,\dots,d$.
 
 
 
