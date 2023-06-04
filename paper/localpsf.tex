@@ -83,7 +83,7 @@
 	We present an efficient matrix-free point spread function (PSF) method for approximating operators that have locally supported non-negative integral kernels.
 %	, with a focus on approximating high rank Hessians in distributed parameter inverse problems governed by partial differential equations (PDEs). 
 %	The method may be used to approximate other operators, including certain Schur complements, Poincare-Steklov operators, covariance operators, and blurring operators. 
-	The method computes impulse responses of the operator at a collection of scattered points, and interpolates translated and scaled versions of these impulse responses to approximate entries of the integral kernel. We compute a large number of impulse responses by applying the operator to a small number Dirac combs associated with ``batches'' of point sources. By solving an ellipsoid packing problem, we compute as many impulse responses as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. Support ellipsoids are estimated a-priori based on impulse response moments, which are computed by applying the operator to a small number of polynomial functions. The interpolation uses a ``local mean displacement invariance'' approximation, which generalizes classical local translation invariance. The ability to rapidly evaluate kernel entries allows us to construct a hierarchical matrix (H-matrix) approximation of the operator. Further matrix computations are performed with H-matrix methods. We apply the method to approximate the Hessians in an ice sheet flow PDE constrained inverse problem, and an advection-diffusion PDE constrained inverse problem. Numerical results demonstrate that the proposed method outperforms existing methods, and can approximate high rank operators using only a small number of operator applies.
+	The method computes impulse responses of the operator at a collection of scattered points, and interpolates translated and scaled versions of these impulse responses to approximate entries of the integral kernel. We compute a large number of impulse responses by applying the operator to a small number of Dirac combs associated with ``batches'' of point sources. By solving an ellipsoid packing problem, we compute as many impulse responses as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. Support ellipsoids are estimated a-priori based on impulse response moments, which are computed by applying the operator to a small number of polynomial functions. The interpolation uses a ``local mean displacement invariance'' approximation, which generalizes classical local translation invariance. The ability to rapidly evaluate kernel entries allows us to construct a hierarchical matrix (H-matrix) approximation of the operator. Further matrix computations are performed with H-matrix methods. We apply the method to approximate the Hessians in an ice sheet flow PDE constrained inverse problem, and an advection-diffusion PDE constrained inverse problem. Numerical results demonstrate that the proposed method outperforms existing methods, and can approximate high rank operators using only a small number of operator applies.
 \end{abstract}
 
 % REQUIRED
@@ -105,7 +105,7 @@ We present an efficient \emph{matrix-free} point spread function (PSF) method fo
 u \mapsto\Aop u \qquad \text{and} \qquad w \mapsto \Aop^T w,
 \end{equation} 
 via a black box computational procedure, 
-but we cannot easily access entries of $\Aop$'s integral kernel. Evaluating the maps in~\eqref{eq:eval_maps} may require, as a sub procedure, solving PDEs or performing other costly computations. By ``non-negative integral kernel,'' we mean that entries of the integral kernel are non-negative numbers; this is not the same as positive semi-definiteness of $\Aop$.
+but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the maps in~\eqref{eq:eval_maps} may require, as a sub procedure, solving PDEs or other costly computations. By ``non-negative integral kernel,'' we mean that entries of the integral kernel are non-negative numbers; this is not the same as positive semi-definiteness of $\Aop$.
 
 
 
@@ -133,8 +133,8 @@ but we cannot easily access entries of $\Aop$'s integral kernel. Evaluating the 
 %Existing scalable high rank approximation methods typically require the ability to rapidly evaluate arbitrary entries of $\Aop$'s integral kernel, which we cannot do. 
 We use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applies. The impulse response, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Then we interpolate translated and scaled versions of these impulse responses to approximate entries of the operator's integral kernel. 
 %This allows fast evaluation of approximate matrix entries, which are needed by high-rank approximation methods, in particular, classical H-matrix construction methods. 
-Picking the batches of points requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} we compute them. We form a-priori ellipsoid estimates for the supports of all the $\phi_x$ via a moment method that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We were inspired by resolution analysis in seismic imaging, in which
-$\Aop^T$ is applied to a random noise function, and the width of $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$~\cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. Our moment method estimates the support of $\phi_x$ more accurately than random noise probing, at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. 
+Picking the batches of points requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} they are computed. Ellipsoid estimates for the supports of all $\phi_x$ are determined a-priori via a moment method that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We are inspired by resolution analysis in seismic imaging, in which
+$\Aop^T$ is applied to a random noise function, and the width of $\phi_x$\todo{the width of the support?} is estimated to be the autocorrelation length of the resultant function near $x$~\cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. Our moment method estimates the support of $\phi_x$ more accurately than random noise probing, at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. 
 
 Our operator approximation method may be categorized as a PSF method that is loosely based on ``product convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others), \cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,EscandeWeiss15,EscandeWeiss22,EscandeWeiss12,FishEtAl96,NagyOleary98,ZhuLiFomelEtAl16}, in which the convolution kernels are constructed from sampling impulse responses of the operator to scattered point sources. For background on PC and PSF methods, we recommend the following papers: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. While PC approximations are based on an assumption of local translation invariance, the method we propose is based on a more general assumption we call ``local mean displacement invariance'' (Section~\ref{sec:local_mean_displacement_invariance} and Figure~\ref{fig:mean_displacement_invariance}). 
 %Furthermore, PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulses. We avoid this issue by temporarily excluding impulses from the approximation procedure whenever an attempt is made to evaluate the impulse at a location where it is undefined. 
@@ -158,7 +158,7 @@ Our operator approximation method may be categorized as a PSF method that is loo
 
 The ability to rapidly approximate entries of $\Aop$'s integral kernel allows one to approximate discretized versions of $\Aop$ using the full arsenal of tools for matrix approximation that rely on fast access to matrix entries.
 %one to approximate discretized matrix representations of $\Aop$ using methods that require fast access to arbitrary matrix entries. We 
-We form a hierarchical matrix (H-matrix)~\cite{BormGrasedyckHackbusch03,Hackbusch99} approximation of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high rank. 
+We form a hierarchical matrix (H-matrix)~\cite{BormGrasedyckHackbusch03,Hackbusch99} approximation of $\Aop$\todo{here a reviewer might complain that $\Aop$ is an infinite dimensional operator and H-matrix methods are only defined for finite dimensional operators}. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high rank. 
 %(see Figure~\ref{fig:hmatrix_intro} and Appendix~\ref{app:h_matrix}).
 H-matrix methods permit us to perform matrix-vector products cheaply, and perform other useful linear algebra operations that cannot be done easily using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. 
 %These H-matrix methods are fast and scale well to large problems. 
@@ -177,9 +177,9 @@ In distributed parameter inverse problems governed by PDEs, one seeks to infer a
 %Inverse problems are typically ill-posed, in the sense that many different parameter fields may yield predicted observations that agree with the actual observations to within the noise level. 
 Conventionally, the inverse problem is formulated using either a deterministic framework~\cite{AsterBorchersThurber18,Vogel02},
 %Guy Chavent, Nonlinear Least Squares for Inverse Problems, Springer, 2009.
-or a Bayesian probabilistic framework~\cite{KaipioSomersalo05,Stuart10a,Tarantola05}. In the deterministic framework, one solves an optimization problem to find the parameter that best fits the observations, subject to appropriate regularization~\cite{EnglHankeNeubauer96}. In the probabilistic framework, Bayes' theorem combines the observations with prior information to form a posterior distribution over the space of all possible parameter fields, and computations are performed to extract statistical information about the parameter from this posterior. The Hessian of the objective function in the determinstic optimization problem and the Hessian of the negative log posterior in the Bayesian setting are equal or approximately equal to each other under typical noise, regularization, and prior models, so we refer to both of these Hessians as ``the Hessian.'' The Hessian consists of a data misfit term (the ``data misfit Hessian''), which depends on discrepancy between the observations and the associated model predictions, and a regularization or prior term (the ``regularization Hessian'') which does not depend on the observations. For more details on the Hessian, see~\cite{Alger19,GhattasWillcox21,VillaPetraGhattas21}. 
+or a Bayesian probabilistic framework~\cite{KaipioSomersalo05,Stuart10a,Tarantola05}. In the deterministic framework, one solves an optimization problem to find the parameter that best fits the observations, subject to appropriate regularization~\cite{EnglHankeNeubauer96}. In the probabilistic framework, Bayes' theorem combines the observations with prior information to form a posterior distribution over the space of all possible parameter fields, and computations are performed to extract statistical information about the parameter from this posterior. The Hessian of the objective function in the determinstic optimization problem and the Hessian of the negative log posterior in the Bayesian setting are equal or approximately equal to each other under typical noise, regularization, and prior models, so we refer to both of these Hessians as ``the Hessian.'' The Hessian consists of a data misfit term (the ``data misfit Hessian''), which depends on a discrepancy between the observations and the associated model predictions, and a regularization or prior term (the ``regularization Hessian'') which does not depend on the observations. For more details on the Hessian, see~\cite{Alger19,GhattasWillcox21,VillaPetraGhattas21}. 
 
-Hessian approximations and preconditioners are highly desirable because the Hessian is central to efficient solution of inverse problems in both the deterministic and Bayesian settings. When solving the deterministic optimization problem with Newton-type methods, the Hessian is the coefficient operator for the linear system that must be solved or approximately solved at every Newton iteration. Good Hessian preconditioners reduce the number of iterations required to solve these Newton linear systems with Krylov methods such as conjugate gradient~\cite{Saad03}. In the Bayesian setting, the inverse of the Hessian is the covariance of a local Gaussian approximation of the posterior. Such a Gaussian distribution can be used as a direct approximations of the posterior, or as a proposal for Markov chain Monte-Carlo methods for drawing samples from the posterior. For instance, see~\cite{KimEtAl21,PetraEtAl14} and the references therein. 
+Hessian approximations and preconditioners are highly desirable because the Hessian is central to efficient solution of inverse problems in both the deterministic and Bayesian settings. When solving the deterministic optimization problem with Newton-type methods, the Hessian is the coefficient operator for the linear system that must be solved or approximately solved at every Newton iteration. Good Hessian preconditioners reduce the number of iterations required to solve these Newton linear systems with Krylov methods such as the conjugate gradient method~\cite{Saad03}. In the Bayesian setting, the inverse of the Hessian is the covariance of a local Gaussian approximation of the posterior. This Gaussian distribution can be used directly as an approximation of the posterior, or it can be utilized as a proposal for Markov chain Monte-Carlo methods for drawing samples from the posterior. For instance, see~\cite{KimEtAl21,PetraEtAl14} and the references therein. 
 
 %\begin{figure}
 %	\begin{subfigure}{0.5\textwidth}
@@ -248,10 +248,10 @@ In this paper, we also form an H-matrix Hessian approximation. However, to reduc
 Let $\Omega \subset \mathbb{R}^\gdim$ be a bounded domain (typically $\gdim=1$, $2$, or $3$). We seek to approximate integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ of the form
 \begin{equation}
 \label{eq:kernel_representation}
-(\Aop u)(w) := \int_\Omega \int_\Omega w(y) \Aker(y,x) u(x) dx dy.
+(\Aop u)(w) := \int_\Omega \int_\Omega w(y) \Aker(y,x) u(x) \mathrm{d}x \mathrm{d}y.
 \end{equation}
 Here the linear functional $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, the scalar $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$.
-The integral kernel, $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$, exists in principle but is not easily accessible. In this section we describe how to extend the action of $\Aop$ to distributions, which allows us to define impulse responses (Section~\ref{sec:impulse_response_2}), we state the conditions on $\Aop$ that our method requires (Section~\ref{sec:conditions_2}), and we detail finite element discretization (Section~\ref{sec:finite_element_kernel}).
+The integral kernel, $\Aker:\Omega \times \Omega \rightarrow \mathbb{R}$, exists in principle but is not easily accessible. In this section we describe how to extend the action of $\Aop$ to distributions, which allows us to define impulse responses (Section~\ref{sec:impulse_response_2}), we then state the conditions on $\Aop$ that our method requires (Section~\ref{sec:conditions_2}), and detail finite element discretization (Section~\ref{sec:finite_element_kernel}).
 
 \subsection{Distributions and impulse responses}
 \label{sec:impulse_response_2}
@@ -262,9 +262,9 @@ Let $\rho \in L^2(\Omega)'$, and let $\rho^* \in L^2(\Omega)$ denote the Riesz r
 \begin{subequations}
 	\label{eq:extension_to_distributions}
 	\begin{align}
-		\left(\Aop \genericdistribution^*\right)(w) &= \int_\Omega \int_\Omega w(y) \Aker(y,x) \genericdistribution^*(x) dx ~dy \\
-		&= \int_\Omega w(y) \int_\Omega \Aker(y,x) \genericdistribution^*(x) dx ~dy 
-		= \int_\Omega w(y) \genericdistribution\left(\Aker(y,\cdot)\right) dy, \label{eq:action_on_distribution}
+		\left(\Aop \genericdistribution^*\right)(w) &= \int_\Omega \int_\Omega w(y) \Aker(y,x) \genericdistribution^*(x) \mathrm{d}x ~\mathrm{d}y \\
+		&= \int_\Omega w(y) \int_\Omega \Aker(y,x) \genericdistribution^*(x) \mathrm{d}x ~\mathrm{d}y 
+		= \int_\Omega w(y) \genericdistribution\left(\Aker(y,\cdot)\right) \mathrm{d}y, \label{eq:action_on_distribution}
 	\end{align}
 \end{subequations}
 where $\Aker(y,\cdot)$ denotes the function $x \mapsto \Aker(y,x)$.
@@ -310,7 +310,7 @@ Linear functionals $\rho_h \in V_h'$ have coefficient dual vectors $\boldsymbol{
 %\begin{equation*}
 %\boldsymbol{\rho}_i = \rho_h(\febasis_i), \qquad i=1,\dots,\nsamplepts. 
 %\end{equation*}
-Here $\massmatrix \in \mathbb{R}^{\fedim \times \fedim}$ denotes the sparse finite element mass matrix which has entries $\massmatrix_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx$ for $i,j=1,\dots,\fedim$.
+Here $\massmatrix \in \mathbb{R}^{\fedim \times \fedim}$ denotes the sparse finite element mass matrix which has entries $\massmatrix_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) \mathrm{d}x$ for $i,j=1,\dots,\fedim$.
 %\begin{equation*}
 %\massmatrix_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) dx, \qquad i,j=1,\dots,\fedim,
 %\end{equation*}
@@ -369,7 +369,7 @@ In our numerical results, we use the lumped mass matrix in which the $i$th diago
 In this section we present two key innovations that our method is based on.
 First, we define moments of the impulse responses, $\phi_x$, show how these moments can be computed efficiently, and use these moments to form ellipsoid shaped a-priori estimates for the supports of the impulse responses (Section~\ref{sec:intromoments}). 
 %Our method will use these ellipsoid estimates to choose sets of impulses that can be computed in batches. 
-Second, we describe an improved method of approximating impulse responses by other nearby impulse responses, which we call ``normalized local mean displacement invariance'' (Section~\ref{sec:local_mean_displacement_invariance}). 
+Second, we describe an improved method to approximate impulse responses from other nearby impulse responses, which we call ``normalized local mean displacement invariance'' (Section~\ref{sec:local_mean_displacement_invariance}). 
 %Our method will interpolate impulses using this approximation. 
 
 
@@ -378,15 +378,23 @@ Second, we describe an improved method of approximating impulse responses by oth
 \label{sec:intromoments}
 
 The impulse response $\impulseresponse_x$ may be interpreted as a scaled probability distribution because of the non-negative integral kernel property. Let $\spatialvol:\Omega \rightarrow \mathbb{R}$,
+%
+%
 \begin{equation}
 \label{eq:define_vol}
-\spatialvol(x) := \int_\Omega \impulseresponse_x(y) dy
+\spatialvol(x) := \int_\Omega \impulseresponse_x(y) \mathrm{d}y
 \end{equation}
+%
+%
 denote the spatially varying scaling factor, and for $i,j=1,\dots,\gdim$ define $\spatialmean:\Omega \rightarrow \mathbb{R}^\gdim$ and $\spatialcov:\Omega \rightarrow \mathbb{R}^{\gdim \times \gdim}$ as follows:
+%
+%
 \begin{align}
-\spatialmean^i(x) :=& \int_\Omega (\impulseresponse_x(y) / V(x)) y^i ~dy \label{eq:define_mean} \\
-\spatialcov^{ij}(x) :=& \int_\Omega (\impulseresponse_x(y) / V(x)) \left(y^i - \spatialmean^i(x)\right) \left(y^j - \spatialmean^j(x)\right) ~dy, \label{eq:define_cov}
+\spatialmean^i(x) :=& \int_\Omega (\impulseresponse_x(y) / V(x)) y^i ~\mathrm{d}y \label{eq:define_mean} \\
+\spatialcov^{ij}(x) :=& \int_\Omega (\impulseresponse_x(y) / V(x)) \left(y^i - \spatialmean^i(x)\right) \left(y^j - \spatialmean^j(x)\right) ~\mathrm{d}y, \label{eq:define_cov}
 \end{align}
+%
+%
 where $\spatialmean^i(x)$ denotes the $i^\text{th}$ component of the vector $\spatialmean(x)$, and $\spatialcov^{ij}(x)$ denotes the $(i,j)$ entry of the matrix $\spatialcov(x)$.
 The vector $\spatialmean(x)\in \mathbb{R}^\gdim$ and the matrix $\spatialcov(x) \in \mathbb{R}^{\gdim \times \gdim}$ are the mean and covariance of the normalized version of $\impulseresponse_x$, respectively. 
 
@@ -469,11 +477,15 @@ for $i,j=1,\dots, \gdim$. Here $u/w$ denotes pointwise division, $\left(u/w\righ
 %\end{algorithm2e}
 
 We approximate the support of $\impulseresponse_x$ with the ellipsoid
+%
+%
 \begin{equation}
 \label{eq:support_ellipsoid}
 E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spatialmean(x)) \le \tau^2\},
 \end{equation}
-where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations from the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$. The quantity $\tau$ is a parameter that must be chosen appropriately. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section~\ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids is better), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. In practice, we find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is typically conservative.
+%
+%
+where $\tau$ is a fixed constant. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$. The quantity $\tau$ is a parameter that must be chosen appropriately. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section~\ref{sec:sample_point_selection} we will see that the cost of our algorithm depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids is better), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. In practice, we find that $\tau=3$ yields a reasonable balance between these competing interests, and use $\tau=3$ in our numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is typically conservative.
 % and typically far less mass resides in this region. 
 
 
@@ -738,7 +750,7 @@ where $\Aop$ is a symmetric positive semi-definite operator that we approximate 
 The PSF approximation $\mathbf{A}_H$, and therefore $\mathbf{A}_H + \mathbf{R}_H$, may be non-symmetric and indefinite because of approximation error. 
 This is undesirable because symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms to perform further operations involving $\mathbf{A}_H + \mathbf{R}_H$, such as using $\mathbf{A}_H + \mathbf{R}_H$ as a preconditioner in the conjugate gradient method.
 
-We therefore modify $\mathbf{A}_H$ to make it symmetric and remove negative eigenvalues. First, we symmetrize $\mathbf{A}_H$ via
+We modify $\mathbf{A}_H$ to make it symmetric and remove negative eigenvalues. First, we symmetrize $\mathbf{A}_H$ via
 $
 \mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
 $
@@ -746,13 +758,13 @@ Next, we find negative eigenvalues and their corresponding eigenvectors for the 
 $\mathbf{A}_H^{\text{sym}} \mathbf{u} = \lambda \mathbf{R}_H$
 using a Cayley shift-and-invert Krylov scheme \cite{LehoucqEtAl98}. We flip the signs of these eigenvalues to be positive instead of negative (i.e., $\lambda \rightarrow |\lambda|$) by performing a low rank update to $\mathbf{A}_H^{\text{sym}}$. The primary computational task in the Cayley shift-and-invert scheme is the solution of shifted linear systems of the form
 $\left(\mathbf{A}_H^{\text{sym}} + \mu_i \mathbf{R}_H\right) x = b,$
-for a small number of positive shifts $\mu_i$. We solve these linear systems by factorizing the matrices $\mathbf{A}_H^{\text{sym}} + \mu_i \mathbf{R}_H$ using fast H-matrix methods. We compute and flip all eigenvalues $\lambda < \tau$ which are less than some threshold $\tau \in (-1,0]$. By choosing $\tau > -1$, we ensure that the modified version of $\mathbf{A}_H^{\text{sym}} + \mathbf{R}_H$ is positive definite. Choosing $\tau=0$ would remove all erroneous negative eigenvalues. However, this is computationally infeasible if $\Aop$ has a large or infinite cluster of eigenvalues near zero, a common situation for Hessians in ill-posed inverse problems. We therefore recommend choosing $\tau < 0$, and we use $\tau=-0.1$ in our numerical experiments.
+for a small number of positive shifts $\mu_i$. We solve these linear systems by factorizing the matrices $\mathbf{A}_H^{\text{sym}} + \mu_i \mathbf{R}_H$ using fast H-matrix methods. We compute and flip all eigenvalues $\lambda < \tau$ which are less than some threshold $\tau \in (-1,0]$\todo{notation conflict, $\tau$ used as threshold here and previously as a number of standard deviations in choosing batches of points from Gaussian info of impulse responses}. By choosing $\tau > -1$, we ensure that the modified version of $\mathbf{A}_H^{\text{sym}} + \mathbf{R}_H$ is positive definite. Choosing $\tau=0$ would remove all erroneous negative eigenvalues. However, this is computationally infeasible if $\Aop$ has a large or infinite cluster of eigenvalues near zero, a common situation for Hessians in ill-posed inverse problems. We therefore recommend choosing $\tau < 0$, and we use $\tau=-0.1$ in our numerical experiments.
 
 
 \section{Computational cost}
 \label{sec:overall_cost}
 
-The computational cost of our method may be divided into the costs to perform the following tasks: (1) Computing impulse response moments and batches; (2) Building the H-matrix; (3) Performing linear algebra operations with the H-matrix. This may optionally include modifying the H-matrix to make it symmetric positive semi-definite. In target applications, (1) is the dominant cost because applying $\Aop$ to a vector requires an expensive computational procedure such as solving a PDE, and (1) is the only step that requires applying $\Aop$ to vectors.
+The computational cost of our method may be divided into the costs to perform the following tasks: (1) Computing impulse response moments and batches; (2) Building the H-matrix; (3) Performing linear algebra operations with the H-matrix. This may optionally include a symmetric positive semi-definite modification of the H-matrix. In target applications, (1) is the dominant cost because applying $\Aop$ to a vector requires an expensive computational procedure such as solving a PDE, and (1) is the only step that requires applying $\Aop$ to vectors.
 %In practice, (1) is the dominant cost, because (1) is the only task that requires applying $\Aop$ to vectors, and  
 All operations that do not require applications of $\Aop$ to vectors are nearly linear, and therefore scalable, in the size of the problem, $N$.
 We now describe these costs in detail. For convenience, Table~\ref{tab:vars} lists variable symbols and their approximate sizes.
@@ -782,22 +794,30 @@ Computing each $\eta_i$ requires applying $\Aop$ to one vector, so computing $\{
 In a typical application one might have $\gdim=2$ and $\nbatch=5$, in which case a modest $11$ operator applies are required.
 
 Computing the impulse response batches also requires choosing sample point batches via the greedy ellipsoid packing algorithm described in Section~\ref{sec:sample_point_selection}. Choosing the $i$th batch of sample points may require performing up to $\fedim |\pointbatch_i|$ ellipsoid intersection tests, where $|\pointbatch_i|$ is the number of sample points in the $i$th batch. Choosing all of the sample points therefore requires performing at most
+%
+%
 \begin{equation*}
 	\fedim \nsamplepts \qquad \text{ellipsoid intersection tests,}
 \end{equation*}
+%
+%
 where $\nsamplepts$ is the total number of sample points in all batches. The multiplicative dependence of $\fedim$ with $\nsamplepts$ is undesirable since $\nsamplepts$ may be large, and reducing this cost is possible with more involved computational geometry methods. 
 %Several improvements are possible. The cost of picking sample points could be reduced by ``thinning'' the set of candidate points that the sample points are picked from. That is, choosing sample points from a smaller subset of $\fedim_\text{thin} << \fedim$ points. The cost to perform the ellipsoid intersection tests could be reduced by first checking whether the ellipsoid bounding boxes intersect before performing the ellipsoid intersection test of Appendix~\ref{sec:fast_ellipsoid_intersection_test}. The cost of picking the $i$th batch could be reduced to $O(\fedim \log |\pointbatch_i|)$ using more advanced computational geometry techniques, such as organizing the ellipsoids associated with points that have already been picked into a dynamic AABB tree, then using this AABB tree to accelerate the required ellipsoid intersection tests. 
-However, from a practical perspective, the cost for picking sample points is small compared to other parts of the approximation algorithm, so we do not pursue these improvements in this paper.
+However, from a practical perspective, the cost for picking sample points is small compared to other parts of the approximation algorithm, so such improvements are not pursued here.
 
 \paragraph{(2) Building the H-matrix} Classical H-matrix construction techniques
 %, which is described in Appendix~\ref{app:h_matrix}, 
 require evaluating $O(\hrank^2 \fedim \log \fedim)$ matrix entries of the approximation, where $\hrank$ is the H-matrix rank, i.e,  the maximum rank among the blocks of the H-matrix. To evaluate one matrix entry, first one must find the $\numnbr$ nearest sample points to a given point, where $\numnbr$ is the number of impulse responses used in the RBF interpolation. This is done using a precomputed kd-tree of sample points, and requires $O(\numnbr \log \nsamplepts)$ floating point and logical elementary operations. Second, one must find the mesh cells that the points $\{z_i\}_{i=1}^{\numnbr}$ reside in. This is done using an AABB tree of mesh cells, and requires $O(\numnbr \log \fedim)$ elementary operations. Third, one must evaluate finite element basis functions on each of those cells, which requires $O(\numnbr)$ elementary operations. Finally, one must solve a $\numnbr \times \numnbr$ linear system to perform the radial basis function interpolation, which requires $O(\numnbr^3)$ elementary operations, which typically is negligible. Therefore, building the H-matrix requires
+%
+%
 \begin{equation*}
 	O\left(\left(\hrank^2 \fedim \log \fedim\right)\left(\numnbr \log \fedim + \numnbr^3\right)\right) \qquad \text{elementary operations}.
 \end{equation*}
+%
+%
 %This follows from the above discussion, and the fact that $\fedim \ge \nsamplepts$.
 
-\paragraph{(3) Performing linear algebra operations with the H-matrix} It is well known that H-matrix methods for matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion, and low rank updates require
+\paragraph{(3) Performing linear algebra operations with the H-matrix} It is well known that H-matrix methods for matrix-vector products, matrix-matrix addition, matrix-matrix multiplication, matrix factorization, matrix inversion, and low rank updates require
 \begin{equation}
 \label{eq:H_matrix_cost_operations}
 	O(\hrank^2 \fedim \log(\fedim)^a) \qquad \text{elementary operations},
@@ -820,7 +840,7 @@ sheet flow~\cite{PetraEtAl12} (Section~\ref{sec:ice}) and transport
 and flow of a contaminant~\cite{PetraStadler11}
 (Section~\ref{sec:adv}). 
 To reconstruct the unknown parameter fields, denoted $q$, the inverse problems are formulated as nonlinear least squares
-optimization problems, whose cost functions consist of a misfit term
+optimization problems, whose cost functions consist of a data misfit term
 (between the observations and model output) and a bi-Laplacian
 regularization term following~\cite{VillaPetraGhattas21}. The
 regularization is centered at a constant function $q_0(x)$. To
@@ -867,10 +887,10 @@ approximations are indicated by ``PSF ($\nbatch$)'', where $\nbatch$ is the numb
 stiffness and mass matrices, which are sparse. Therefore, we form
 H-matrix representations of these matrices and combine them into a H-matrix approximation of the regularization term in the Hessian, $\mathbf{R}_H$, using
 standard sparse H-matrix techniques. H-matrix approximations of the Gauss-Newton Hessian, 
-$$\bm{H}_\text{gn}\approx \widetilde{\mathbf{H}}:=\mathbf{A}_H + \mathbf{R}_H,$$
-are formed by adding $\bm{A}_H$ to $\mathbf{R}_H$ using fast H-matrix arithmetic. We modify $\widetilde{\mathbf{H}}$ to be symmetric and remove negative eigenvalues via the procedure described in Section~\ref{sec:flip_eigs}. We factor $\bm{\preconditioner}$,
+$$\bm{H}_\text{gn}\approx \widetilde{\bm{H}}:=\mathbf{A}_H + \mathbf{R}_H,$$
+are formed by adding $\mathbf{A}_H$ to $\mathbf{R}_H$ using fast H-matrix arithmetic. We modify $\widetilde{\bm{H}}$ to be symmetric positive definite via the procedure described in Section~\ref{sec:flip_eigs}. We factor $\bm{\preconditioner}$,
 using fast H-matrix methods, then use the factorization as a
-preconditioner. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $\bm{H}$ more often has negative values in its integral kernel. Our results show that $\widetilde{\mathbf{H}}$ is a good preconditioner for both $\bm{H}_\text{gn}$ and $\bm{H}$. 
+preconditioner. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $\bm{H}$ more often has negative values in its integral kernel. Our results show that~$\widetilde{\bm{H}}$ is a good preconditioner for both~$\bm{H}_\text{gn}$ and~$\bm{H}$. 
 %The H-matrix approximation of the data misfit Gauss-Newton Hessian is added to an H-matrix approximation of the Hessian of the regularization term to form an H-matrix approximation of $\bm{H}_\text{gn}$.
 %
 %Straightforward calculation shows that the discretized Hessian of the regularization term is given by
@@ -885,51 +905,6 @@ preconditioner. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $
 \subsection{Example 1: Inversion for the basal sliding coefficient in an ice sheet flow problem}
 \label{sec:ice}
 
-%\textbf{Heat equation}
-%\begin{itemize}
-%	\item Hessian per-column error plots for 1, 5, and 15 batches
-%	\item $H-P$ error vs number of batches for interior and whole domain
-%	\item $P^{-1}H-I$: error vs rank for $P=R$ and $P=P_\text{pch}$ diffusion time, for 1, 5, and 15 batches
-%	\item Krylov iterations to tols 1e-1 and 1e-6 vs diffusion parameter
-%	\item GLR vs PCH vs diffusion time
-%	\item Krylov method convergence plot: $R$ vs $P_\text{pch}$ vs no preconditioner
-%	\item Krylov iterations to tols 1e-6 vs mesh size $h$, PCH vs R vs no preconditioner (hold)
-%	\item true parameter (H)
-%	\item deterministic reconstruction (H)
-%	\item noisy measurements (1\%, 5\%, 10\% noise). $u|_\text{top}$ (H)
-%	\item recovered state at top (H)
-%	\item mesh scalability of PCH (CC) (H)
-%	\item put plot data into data directory
-%	\item save function .pvd files in paraview  directory
-%\end{itemize}
-%
-%\begin{itemize}
-%	\item GLR vs PCH number of obs (Computational cost in PDE solves) (S)
-%	\item GLR vs PCH aspect ratio (CC) (S)
-%	\item turn on preconditioner after number of krylov iterations exceeds 15 in an iteration. Rebuild "as needed". (S)
-%\end{itemize}
-%
-%\begin{itemize}
-%	\item Stokes Krylov convergence (10 solves for nonlinear forward + 6 hessian matvecs for ellipsoid estimation + 10 matvecs for impulse responses + 30 matvecs for PCH6 CG solve + 100 matvecs for Reg CG solve)
-%	\item Stokes error vs num batches (small number of batches; 1, 3, 6, 9 batches?) (50 matvecs for randomized error estimation +)
-%	\item Velocity field
-%	\item basal sliding field
-%	\item Picture of impulse responses
-%	\item Mesh negative numbers picture
-%\end{itemize}
-%
-%\begin{itemize}
-%	\item mtrue
-%	\item utrue (no arrows)
-%	\item utrue (yes arrows)
-%	\item reconstruction iterations 1,3,4,8: PCH vs REG
-%	\item urecovered (arrows, 3D)
-%	\item morozov plot
-%	\item Newton convergence (iter, numcg, numPDEsolves (num preconditioner build), gradnorm)
-%	\item impulse response batches
-%	\item 
-%\end{itemize}
-
 For this example, we consider a sheet of ice flowing down a mountain (see Figure~\ref{fig:ice_mountain_mesh}). Given observations of the tangential component of the ice velocity on the top surface of the ice, we invert for the logarithm of the unknown spatially varying basal sliding Robin coefficient field, which governs the resistance to sliding along the base of the ice sheet. %The inverse problem considered here is synthetic, but in practice surface velocity observations are available from satellites.
 %
 %
@@ -942,8 +917,8 @@ For this example, we consider a sheet of ice flowing down a mountain (see Figure
 %\end{figure} 
 %
 %
-The domain that is filled with ice is denoted by
-$\icedomain \subset\mathbb{R}^{3}$. The basal, lateral and top parts of $\partial \icedomain$ are denoted by $\Gamma_{b}$, $\Gamma_{l}$, and $\Gamma_{t}$, respectively.
+The region of ice is denoted by
+$\icedomain \subset\mathbb{R}^{3}$. The basal, lateral and top parts of the boundary $\partial \icedomain$ are denoted by $\Gamma_{b}$, $\Gamma_{l}$, and $\Gamma_{t}$, respectively.
 The governing equations are the linear incompressible Stokes
 equations,
 %
@@ -978,7 +953,7 @@ The pressure, $\pressure$, is discretized with first order scalar continuous Gal
 %This flattening is necessary because our operator approximation method requires adding points on this surface together to get other points on the surface, and this is only well-defined in flat space. 
 The observations are generated by adding multiplicative
 Gaussian noise to the tangential component of the velocity field
-restricted to the top surface of the geometry. We use $5\%$ noise in all cases, except for Figure \ref{fig:stokes_reconstructions} and Table \ref{tab:condition_number} where the noise is varied from $1\%$ to $25\%$. The true basal sliding
+restricted to the top surface of the geometry. We use $5\%$ noise in all cases, except for Figure \ref{fig:stokes_reconstructions} and Table \ref{tab:condition_number} where the noise is varied from $1\%$ to $25\%$ and the regularization determined by the Morozov discrepancy principle for each noise level. The true basal sliding
 coefficient field and the true velocity field, which is obtained by
 solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 
@@ -1162,7 +1137,7 @@ Table~\ref{tab:newton_convergence_table} shows the performance of our preconditi
 	\caption{}
 	\label{fig:generalized_eigenvalues}
     \end{subfigure}
-	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard Gaussian distribution and $\mathbf{H}$ is evaluated at the solution of the inverse problem. 
+	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard Gaussian distribution and $\bm{H}$ is evaluated at the solution of the inverse problem. 
 %	The reference solution $\bm{x}$ is determined by solving $\bm{H} \bm{x} = \bm{b}$. 
 %	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle when using $5\%$ noise.
 	Results in these figures are shown for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.
@@ -1242,11 +1217,11 @@ equation given by
 Here, $\kappa > 0$ is a diffusivity coefficient, $\nu$ is the boundary unit normal vector, and $T > 0$ is the
 final time.  The velocity field, $v:\advdomain \rightarrow \mathbb{R}^d$, is computed by solving the
 steady-state Navier-Stokes equations for a two dimensional flow with
-Reynolds number 50, with boundary conditions $v(x)=(0,1)$ on the left boundary, $v(x)=(0,-1)$ on the right boundary, and $v(x)=(0,0)$ on the top and bottom boundaries, as in~\cite[Section 3]{PetraStadler11}. We use a checkerboard image for the initial condition and add $5\%$ multiplicative noise to the observations at the final time, $T$. We use $\kappa=3.2e{-1}$ and $T=1.0$ for all results, except for Table \ref{tab:adv_convergence} and Figure \ref{tbl:adv_vary_kappa_tf} where we vary $\kappa$ and $T$ to study the impact of these parameters on the impulse responses and our preconditioner's effectiveness. The initial condition, velocity field, noisy observations, and reconstructed initial condition are shown in Figure~\ref{fig:adv_inversion1}.
+Reynolds number 50, with boundary conditions $v(x)=(0,1)$ on the left boundary, $v(x)=(0,-1)$ on the right boundary, and $v(x)=(0,0)$ on the top and bottom boundaries, as in~\cite[Section 3]{PetraStadler11}. We use a checkerboard image for the initial condition~\ref{fig:adv_initial_condition} and add $5\%$ multiplicative noise to the synthetic observations at the final time, $T$. We use $\kappa=3.2$e${-1}$ and $T=1.0$ for all results, except for Table \ref{tab:adv_convergence} and Figure \ref{tbl:adv_vary_kappa_tf} where we vary $\kappa$ and $T$ to study the impact of these parameters on the impulse responses and our preconditioner's effectiveness. The initial condition, velocity field, noisy observations, and reconstructed initial condition are shown in Figure~\ref{fig:adv_inversion1}.
 
-In Table \ref{tab:adv_convergence} we show the number of PCG iterations, $k$, required to solve the Newton linear system to a relative error tolerance of $||\widehat{\mathbf{q}} - \widehat{\mathbf{q}}_k|| < 10^{-6} ||\widehat{\mathbf{q}}||$. The solution of the Newton system that we compare to, $\widehat{\mathbf{q}}$, is found via another PCG iteration with a relative residual tolerance of $10^{-11}$. We show results for $T$ ranging from $0.5$ to $2.0$ and $\kappa$ ranging from $10^{-4}$ to $10^{-3}$, using our PSF preconditioner with $1$, $5$, and $25$ batches, regularization preconditioning, and no preconditioning. PSF preconditioning performs better than regularization preconditioning and no preconditioning, with more batches yielding better results. The PSF preconditioners perform best in the high-rank regime where $T$ and $\kappa$ are small, and the observations are highly informative about the initial condition. This makes sense given the effect of $T$ and $\kappa$ on the shape of the impulse responses, as shown in Figure \ref{tbl:adv_vary_kappa_tf}. As $\kappa$ increases, the impulse responses grow wider and as $T$ increases the impulse responses grow longer. This means that the impulse responses become more local as $\kappa$ and $T$ decrease, so more impulse responses can fit within each batch.
+In Table~\ref{tab:adv_convergence} we show the number of PCG iterations, $k$, required to solve the Newton linear system to a relative error tolerance of $\|\widehat{\mathbf{q}} - \widehat{\mathbf{q}}_k\| < 10^{-6} \|\widehat{\mathbf{q}}\|$. The solution of the Newton system that we compare to, $\widehat{\mathbf{q}}$, is found via another PCG iteration with a relative residual tolerance of $10^{-11}$. We show results for $T$ ranging from $0.5$ to $2.0$ and $\kappa$ ranging from $10^{-4}$ to $10^{-3}$, using our PSF preconditioner with $1$, $5$, and $25$ batches, regularization preconditioning, and no preconditioning. PSF preconditioning performs better than regularization preconditioning and no preconditioning, with more batches yielding better results. The PSF preconditioners perform best in the high-rank regime where $T$ and $\kappa$ are small, and the observations are highly informative about the initial condition. This makes sense given the effect of $T$ and $\kappa$ on the shape of the impulse responses, as shown in Figure \ref{tbl:adv_vary_kappa_tf}. As $\kappa$ increases, the impulse responses grow wider and as $T$ increases the impulse responses grow longer. This means that the impulse responses become more local as $\kappa$ and $T$ decrease, so more impulse responses can be computed per batch.
 
-In Figure \ref{fig:adv_cg_convergence} we show the convergence of PCG for solving $\mathbf{H}\mathbf{x}=\mathbf{b}$, where $\mathbf{b}$ has i.i.d. random entries drawn from a standard Gaussian distribution. The preconditioners used, $\widetilde{H}$, are our PSF preconditioner with $1$, $5$, or $25$ batches, regularization preconditioning, and no preconditioning. PCG converges fastest with the PSF preconditioners, with more batches yielding faster convergence. In Figure \ref{fig:adv_generalized_eigenvalues}, we show the eigenvalues for the generalized eigenvalue problem $\mathbf{H}\mathbf{u}=\lambda \widetilde{\mathbf{H}}\mathbf{u}$, where the $\widetilde{H}$ are the preconditioners stated above. The PSF preconditioners cluster the eigenvalues of the Hessian near one, and the regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. For the PSF preconditioner, more batches yields better clustering.
+In Figure~\ref{fig:adv_cg_convergence} we show the convergence of PCG for solving $\bm{H}\bm{x}=\bm{b}$, where $\bm{b}$ has i.i.d. random entries drawn from a standard Gaussian distribution. The preconditioners used, $\widetilde{\bm{H}}$, are our PSF preconditioner with $1$, $5$, or $25$ batches, regularization preconditioning, and no preconditioning. PCG converges fastest with the PSF preconditioners, with more batches yielding faster convergence. In Figure~\ref{fig:adv_generalized_eigenvalues}, we show the eigenvalues for the generalized eigenvalue problem $\bm{H}\bm{u}=\lambda \widetilde{\bm{H}}\bm{u}$, where the $\widetilde{\bm{H}}$ are the preconditioners stated above. The PSF preconditioners cluster the eigenvalues of the Hessian near one, and the regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. For the PSF preconditioner, more batches yields better clustering.
 
 %INTRODUCE EQUATIONS: REWRITE HERE vvvvvvv
 
@@ -1359,9 +1334,9 @@ In Figure \ref{fig:adv_cg_convergence} we show the convergence of PCG for solvin
 		%	\renewcommand{\arraystretch}{2.0}
 		\begin{tabular}{cccc}
 			& $T=0.5$ & $T=1.0$ & $T=2.0$ \\
-			$\kappa=1.0e{-4}$  & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-4.png} \\
-			$\kappa=3.2e{-4}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K3.2e-4.png} \\
-			$\kappa=1.0e{-3}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-3.png}
+			$\kappa=1.0$e${-4}$  & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-4.png} \\
+			$\kappa=3.2$e${-4}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K3.2e-4.png} \\
+			$\kappa=1.0$e${-3}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-3.png}
 		\end{tabular}
 	}
 	\caption{Impulse responses for a variety of different diffusion parameters $\kappa$ and simulation times $T$.}
