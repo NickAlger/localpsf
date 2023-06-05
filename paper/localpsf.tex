@@ -134,7 +134,7 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 We use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applies. The impulse response, $\phi_x$, associated with a point $x$ is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Then we interpolate translated and scaled versions of these impulse responses to approximate entries of the operator's integral kernel. 
 %This allows fast evaluation of approximate matrix entries, which are needed by high-rank approximation methods, in particular, classical H-matrix construction methods. 
 Picking the batches of points requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} they are computed. Ellipsoid estimates for the supports of all $\phi_x$ are determined a-priori via a moment method that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We are inspired by resolution analysis in seismic imaging, in which
-$\Aop^T$ is applied to a random noise function, and the width of $\phi_x$\todo{the width of the support?} is estimated to be the autocorrelation length of the resultant function near $x$~\cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. Our moment method estimates the support of $\phi_x$ more accurately than random noise probing, at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. 
+$\Aop^T$ is applied to a random noise function, and the width of the support $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$~\cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. Our moment method estimates the support of $\phi_x$ more accurately than random noise probing, at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. 
 
 Our operator approximation method may be categorized as a PSF method that is loosely based on ``product convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others), \cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,EscandeWeiss15,EscandeWeiss22,EscandeWeiss12,FishEtAl96,NagyOleary98,ZhuLiFomelEtAl16}, in which the convolution kernels are constructed from sampling impulse responses of the operator to scattered point sources. For background on PC and PSF methods, we recommend the following papers: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. While PC approximations are based on an assumption of local translation invariance, the method we propose is based on a more general assumption we call ``local mean displacement invariance'' (Section~\ref{sec:local_mean_displacement_invariance} and Figure~\ref{fig:mean_displacement_invariance}). 
 %Furthermore, PC approximations have well-known issues near boundaries due to so-called ``boundary artifacts,'' caused by the boundary artificially ``cutting off'' impulses. We avoid this issue by temporarily excluding impulses from the approximation procedure whenever an attempt is made to evaluate the impulse at a location where it is undefined. 
@@ -158,7 +158,7 @@ Our operator approximation method may be categorized as a PSF method that is loo
 
 The ability to rapidly approximate entries of $\Aop$'s integral kernel allows one to approximate discretized versions of $\Aop$ using the full arsenal of tools for matrix approximation that rely on fast access to matrix entries.
 %one to approximate discretized matrix representations of $\Aop$ using methods that require fast access to arbitrary matrix entries. We 
-We form a hierarchical matrix (H-matrix)~\cite{BormGrasedyckHackbusch03,Hackbusch99} approximation of $\Aop$\todo{here a reviewer might complain that $\Aop$ is an infinite dimensional operator and H-matrix methods are only defined for finite dimensional operators}. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high rank. 
+We form a hierarchical matrix (H-matrix)~\cite{BormGrasedyckHackbusch03,Hackbusch99} approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks, in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high rank. 
 %(see Figure~\ref{fig:hmatrix_intro} and Appendix~\ref{app:h_matrix}).
 H-matrix methods permit us to perform matrix-vector products cheaply, and perform other useful linear algebra operations that cannot be done easily using the original operator. These operations include matrix-matrix addition, matrix-matrix multiplication, matrix factorization, and matrix inversion. 
 %These H-matrix methods are fast and scale well to large problems. 
@@ -750,7 +750,7 @@ where $\Aop$ is a symmetric positive semi-definite operator that we approximate 
 The PSF approximation $\mathbf{A}_H$, and therefore $\mathbf{A}_H + \mathbf{R}_H$, may be non-symmetric and indefinite because of approximation error. 
 This is undesirable because symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms to perform further operations involving $\mathbf{A}_H + \mathbf{R}_H$, such as using $\mathbf{A}_H + \mathbf{R}_H$ as a preconditioner in the conjugate gradient method.
 
-We modify $\mathbf{A}_H$ to make it symmetric and remove negative eigenvalues. First, we symmetrize $\mathbf{A}_H$ via
+We modify $\mathbf{A}_H$ to make it symmetric and remove negative eigenvalues via the following procedure. First, we symmetrize $\mathbf{A}_H$ via
 $
 \mathbf{A}_H^{\text{sym}} := \frac{1}{2}\left(\mathbf{A}_H + \mathbf{A}_H^T\right).
 $
@@ -758,13 +758,13 @@ Next, we find negative eigenvalues and their corresponding eigenvectors for the 
 $\mathbf{A}_H^{\text{sym}} \mathbf{u} = \lambda \mathbf{R}_H$
 using a Cayley shift-and-invert Krylov scheme \cite{LehoucqEtAl98}. We flip the signs of these eigenvalues to be positive instead of negative (i.e., $\lambda \rightarrow |\lambda|$) by performing a low rank update to $\mathbf{A}_H^{\text{sym}}$. The primary computational task in the Cayley shift-and-invert scheme is the solution of shifted linear systems of the form
 $\left(\mathbf{A}_H^{\text{sym}} + \mu_i \mathbf{R}_H\right) x = b,$
-for a small number of positive shifts $\mu_i$. We solve these linear systems by factorizing the matrices $\mathbf{A}_H^{\text{sym}} + \mu_i \mathbf{R}_H$ using fast H-matrix methods. We compute and flip all eigenvalues $\lambda < \tau$ which are less than some threshold $\tau \in (-1,0]$\todo{notation conflict, $\tau$ used as threshold here and previously as a number of standard deviations in choosing batches of points from Gaussian info of impulse responses}. By choosing $\tau > -1$, we ensure that the modified version of $\mathbf{A}_H^{\text{sym}} + \mathbf{R}_H$ is positive definite. Choosing $\tau=0$ would remove all erroneous negative eigenvalues. However, this is computationally infeasible if $\Aop$ has a large or infinite cluster of eigenvalues near zero, a common situation for Hessians in ill-posed inverse problems. We therefore recommend choosing $\tau < 0$, and we use $\tau=-0.1$ in our numerical experiments.
+for a small number of positive shifts $\mu_i$. We solve these linear systems by factorizing the matrices $\mathbf{A}_H^{\text{sym}} + \mu_i \mathbf{R}_H$ using fast H-matrix methods. We compute and flip all eigenvalues $\lambda < \epsilon_\text{flip}$ which are less than some threshold $\epsilon_\text{flip} \in (-1,0]$. By choosing $\epsilon_\text{flip} > -1$, we ensure that the modified version of $\mathbf{A}_H^{\text{sym}} + \mathbf{R}_H$ is positive definite. Choosing $\epsilon_\text{flip}=0$ would remove all erroneous negative eigenvalues. However, this is computationally infeasible if $\Aop$ has a large or infinite cluster of eigenvalues near zero, a common situation for Hessians in ill-posed inverse problems. We therefore recommend choosing $\epsilon_\text{flip} < 0$, and we use $\epsilon_\text{flip}=-0.1$ in our numerical experiments.
 
 
 \section{Computational cost}
 \label{sec:overall_cost}
 
-The computational cost of our method may be divided into the costs to perform the following tasks: (1) Computing impulse response moments and batches; (2) Building the H-matrix; (3) Performing linear algebra operations with the H-matrix. This may optionally include a symmetric positive semi-definite modification of the H-matrix. In target applications, (1) is the dominant cost because applying $\Aop$ to a vector requires an expensive computational procedure such as solving a PDE, and (1) is the only step that requires applying $\Aop$ to vectors.
+The computational cost of our method may be divided into the costs to perform the following tasks: (1) Computing impulse response moments and batches; (2) Building the H-matrix; (3) Performing linear algebra operations with the H-matrix. This may optionally include the symmetric positive semi-definite modifications described in Section \ref{sec:flip_eigs}. In target applications, (1) is the dominant cost because applying $\Aop$ to a vector requires an expensive computational procedure such as solving a PDE, and (1) is the only step that requires applying $\Aop$ to vectors.
 %In practice, (1) is the dominant cost, because (1) is the only task that requires applying $\Aop$ to vectors, and  
 All operations that do not require applications of $\Aop$ to vectors are nearly linear, and therefore scalable, in the size of the problem, $N$.
 We now describe these costs in detail. For convenience, Table~\ref{tab:vars} lists variable symbols and their approximate sizes.
@@ -852,7 +852,7 @@ so that the Green's function of the Hessian of the regularization has
 a characteristic length of $0.25$ of the domain radius. For the
 specific setup, we refer the reader to~\cite[Section
   2.2]{VillaPetraGhattas21}. In all numerical results we choose the
-regularization parameter (which controls the overall strength of the regularization) using Morozov's discrepancy
+regularization parameter (which controls the overall strength of the regularization) using the Morozov discrepancy
 principle~\cite{Vogel02}. 
 %The optimal value of $\gamma$ is used for
 %  $\gamma =  7.3 \times 10^3$ for Stokes  Figure~\ref{fig:gamma_sweep}
@@ -888,7 +888,7 @@ stiffness and mass matrices, which are sparse. Therefore, we form
 H-matrix representations of these matrices and combine them into a H-matrix approximation of the regularization term in the Hessian, $\mathbf{R}_H$, using
 standard sparse H-matrix techniques. H-matrix approximations of the Gauss-Newton Hessian, 
 $$\bm{H}_\text{gn}\approx \widetilde{\bm{H}}:=\mathbf{A}_H + \mathbf{R}_H,$$
-are formed by adding $\mathbf{A}_H$ to $\mathbf{R}_H$ using fast H-matrix arithmetic. We modify $\widetilde{\bm{H}}$ to be symmetric positive definite via the procedure described in Section~\ref{sec:flip_eigs}. We factor $\bm{\preconditioner}$,
+are formed by adding $\mathbf{A}_H$ to $\mathbf{R}_H$ using fast H-matrix arithmetic. We modify $\widetilde{\bm{H}}$ to be (approximately) symmetric positive semi-definite via the procedure described in Section~\ref{sec:flip_eigs}. We factor $\bm{\preconditioner}$,
 using fast H-matrix methods, then use the factorization as a
 preconditioner. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $\bm{H}$ more often has negative values in its integral kernel. Our results show that~$\widetilde{\bm{H}}$ is a good preconditioner for both~$\bm{H}_\text{gn}$ and~$\bm{H}$. 
 %The H-matrix approximation of the data misfit Gauss-Newton Hessian is added to an H-matrix approximation of the Hessian of the regularization term to form an H-matrix approximation of $\bm{H}_\text{gn}$.
@@ -953,7 +953,7 @@ The pressure, $\pressure$, is discretized with first order scalar continuous Gal
 %This flattening is necessary because our operator approximation method requires adding points on this surface together to get other points on the surface, and this is only well-defined in flat space. 
 The observations are generated by adding multiplicative
 Gaussian noise to the tangential component of the velocity field
-restricted to the top surface of the geometry. We use $5\%$ noise in all cases, except for Figure \ref{fig:stokes_reconstructions} and Table \ref{tab:condition_number} where the noise is varied from $1\%$ to $25\%$ and the regularization determined by the Morozov discrepancy principle for each noise level. The true basal sliding
+restricted to the top surface of the geometry. We use $5\%$ noise in all cases, except for Figure~\ref{fig:stokes_reconstructions} and Table \ref{tab:condition_number} where the noise is varied from $1\%$ to $25\%$ and the regularization is determined by the Morozov discrepancy principle for each noise level. The true basal sliding
 coefficient field and the true velocity field, which is obtained by
 solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 
@@ -977,7 +977,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 		\label{fig:stokes_velocity}
 	\end{subfigure}
     \end{center}
-	\caption{
+	\caption{\textbf{(Ice sheet)} 
 		(\ref{fig:ice_mountain_mesh}) Bird's eye view of the ice sheet, discretized by a mesh of tetrahedra. Color indicates the height of the base of the ice sheet (i.e., the mountain topography). The radius of the domain is $10^4$ meters, the maximum height of the mountain is $2.1 \times 10^3$ meters, and the average thickness of the ice sheet is 250 meters.		
 		(\ref{fig:true_beta}) True parameter, $\basalfriction_\text{true}$. (\ref{fig:stokes_velocity}) True velocity $\velocity_\text{true}$. Arrows indicate the direction of $\velocity_\text{true}$ and color indicates the magnitude of $\velocity_\text{true}$.}
 	\label{fig:true_beta_u}
@@ -1054,7 +1054,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 	%		\caption{}
 	%		\label{fig:newtoniter4}
     \end{subfigure}
-	\caption{The log basal sliding parameter, with colorscale as in Figure~\ref{fig:true_beta}, computed from the PDE-constrained optimization problem with noise levels: $25\%$ (left), $5.0\%$ (middle), and $1.0\%$ (right).}
+	\caption{\textbf{(Ice sheet)} The log basal sliding parameter, with colorscale as in Figure~\ref{fig:true_beta}, computed from the PDE-constrained optimization problem with noise levels: $25\%$ (left), $5.0\%$ (middle), and $1.0\%$ (right).}
 	\label{fig:stokes_reconstructions} 
 \end{figure} 
 
@@ -1116,7 +1116,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 			\endgroup
 		\end{center}
 	}
-	\caption{Convergence history for solving the Stokes inverse problem using inexact Newton PCG. The Newton iteration is terminated when $||\mathbf{g}_k|| < 10^{-6} ||\mathbf{g}_0||$, where $\mathbf{g}_i$ is the gradient at the $i$th iteration. Preconditioners shown are our method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $\|\bm{g}\|$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the line search going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. Under PSF (5) and in row Iter 3, we write $6+22$ to indicate that $6$ Stokes solves were used during the standard course of the iteration, and $22$ Stokes solves were used to build the PSF (5) preconditioner.}
+	\caption{\textbf{(Ice sheet)} Convergence history for solving the Stokes inverse problem using inexact Newton PCG. The Newton iteration is terminated when $||\mathbf{g}_k|| < 10^{-6} ||\mathbf{g}_0||$, where $\mathbf{g}_i$ is the gradient at the $i$th iteration. Preconditioners shown are our method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}_k$. Columns titled $\|\bm{g}\|$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}_k$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves for $u$ performed during the line search going from $\bm{\basalfriction}_{k-1}$ to $\bm{\basalfriction}_k$, plus one adjoint Stokes solve to compute the gradient at $\bm{\basalfriction}_k$, plus one incremental forward and one incremental adjoint Stokes solve per PCG iteration for solving the Newton system. Under PSF (5) and in row Iter 3, we write $6+22$ to indicate that $6$ Stokes solves were used during the standard course of the iteration, and $22$ Stokes solves were used to build the PSF (5) preconditioner.}
 	\label{tab:newton_convergence_table}
 \end{table}
 
@@ -1127,36 +1127,37 @@ Table~\ref{tab:newton_convergence_table} shows the performance of our preconditi
 	\begin{subfigure}{0.52\textwidth}
 		\centering
 		\includegraphics[scale=1.0]{stokes_pcg_convergence.pdf}
-		\caption{}
-		\label{fig:cg_convergence}
+%		\caption{}
+%		\label{fig:cg_convergence}
 	\end{subfigure}
 	\begin{subfigure}{0.47\textwidth}
 	\begin{center}
 		\includegraphics[scale=1.0]{stokes_geigs_figure.pdf}
 	\end{center}
-	\caption{}
-	\label{fig:generalized_eigenvalues}
+%	\caption{}
+%	\label{fig:generalized_eigenvalues}
     \end{subfigure}
-	\caption{Left (\ref{fig:cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard Gaussian distribution and $\bm{H}$ is evaluated at the solution of the inverse problem. 
+	\caption{\textbf{(Ice sheet)} Left: convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard Gaussian distribution and $\bm{H}$ is evaluated at the solution of the inverse problem. 
 %	The reference solution $\bm{x}$ is determined by solving $\bm{H} \bm{x} = \bm{b}$. 
 %	Here we use $\gamma=7.3 \times 10^3$, which is determined by the Morozov discrepancy principle when using $5\%$ noise.
 	Results in these figures are shown for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.
-	Right (\ref{fig:generalized_eigenvalues}): eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
+	Right: generalized eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
 	\label{fig:krylov_convergence}
 \end{figure} 
 %
 
-Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\bm{\basalfriction}$. We use PCG to solve a linear system with the Hessian as the coefficient operator and a right hand vector with random independent and identically distributed (i.i.d.) entries drawn from the standard Gaussian distribution. In Figure~\ref{fig:cg_convergence} we compare the convergence of PCG for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. PCG converges fastest with the PSF preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. PCG converges much slower with no preconditioning and regularization preconditioning than it does with PSF preconditioning, with no preconditioning outperforming regularization preconditioning. 
-In Figure~\ref{fig:generalized_eigenvalues} we show the generalized eigenvalues for the generalized eigenvalue problem
+Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\bm{\basalfriction}$. We use PCG to solve a linear system with the Hessian as the coefficient operator and a right hand vector with random independent and identically distributed (i.i.d.) entries drawn from the standard Gaussian distribution. In the left subfigure of Figure~\ref{fig:krylov_convergence} we compare the convergence of PCG for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. PCG converges fastest with the PSF preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. PCG converges much slower with no preconditioning and regularization preconditioning than it does with PSF preconditioning, with no preconditioning outperforming regularization preconditioning. 
+In the right subfigure of Figure~\ref{fig:krylov_convergence} we show the generalized eigenvalues for the generalized eigenvalue problem
 $
 \bm{H} \mathbf{u} = \lambda \bm{\preconditioner} \mathbf{u}.
 $ 
-The matrix $\bm{\preconditioner}$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations, the regularization Hessian (REG), or the identity matrix (NONE). The PSF preconditioners cluster the eigenvalues of the Hessian near one, with more batches yielding better clustering. 
+The matrix $\bm{\preconditioner}$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations, the regularization Hessian (REG), or the identity matrix (NONE). With the PSF preconditioners, the generalized eigenvalues cluster near one, with more batches yielding better clustering. 
 %The regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. 
 
 %In Figure~\ref{fig:condition_number} we show the condition numbers of $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$. The PSF preconditioners yield the the smallest condition numbers, with more batches yielding smaller condition numbers. Regularization preconditioning and no preconditioning yield larger condition numbers. The condition numbers are similar for both $\bm{\preconditioner}^{-1} \bm{H}$ and $\bm{\preconditioner}^{-1} \bm{H}_\text{gn}$, demonstrating that the preconditioner built based on $\bm{H}_\text{gn}$ is a good preconditioner for $\bm{H}$.
 
-In Table~\ref{tab:condition_number}, we show the condition number of the preconditioned Hessian using our preconditioners, for a variety of noise levels ranging from $1\%$ to $25\%$. The condition number using our PSF preconditioners is extremely small (ranging between 1 and 10) and relatively stable over this range of noise levels. PSF (25) performs better than PSF (5), which performs better than PSF (1), as expected. All PSF preconditioners outperform no preconditioning and regularization preconditioning for all noise levels. No preconditioning outperforms regularization preconditioning for all noise levels except $25\%$. 
+In Table~\ref{tab:condition_number}, we show the condition number of the preconditioned Hessian using our preconditioners, for a variety of noise levels ranging from $1\%$ to $25\%$. The condition number using our PSF preconditioners is extremely small (ranging between 1 and 10) and relatively stable over this range of noise levels. PSF (25) performs better than PSF (5), which performs better than PSF (1), as expected. All PSF preconditioners outperform no preconditioning and regularization preconditioning for all noise levels. 
+%No preconditioning outperforms regularization preconditioning for all noise levels except $25\%$. 
 %We report condition number results for the preconditioned Hessian, $\mathbf{H}$, demonstrating that the PSF preconditioners built based on the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, are also good preconditioner for $\bm{H}$.
 %As expected, regularization preconditioning performs well for large $\gamma$ and poorly for small $\gamma$. Our PSF preconditioners outperform no preconditioning and regularization preconditioning for medium and small $\gamma$, and perform similarly to regularization preconditioning for large~$\gamma$.
 
@@ -1176,7 +1177,7 @@ In Table~\ref{tab:condition_number}, we show the condition number of the precond
 			\end{tabular}
 			\endgroup
 		\end{center}
-	\caption{Condition number for $\bm{\preconditioner}^{-1} \bm{H}$ for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), no preconditioner (NONE) and regularization (REG). All operators are evaluated at the $\bm{\basalfriction}$ that solves the inverse problem for 
+	\caption{\textbf{(Ice sheet)} Condition number for $\bm{\preconditioner}^{-1} \bm{H}$ for our preconditioner with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), no preconditioner (NONE) and regularization (REG). All operators are evaluated at the $\bm{\basalfriction}$ that solves the inverse problem for 
 	the respective noise level.}
 	\label{tab:condition_number}
 \end{table}
@@ -1217,11 +1218,11 @@ equation given by
 Here, $\kappa > 0$ is a diffusivity coefficient, $\nu$ is the boundary unit normal vector, and $T > 0$ is the
 final time.  The velocity field, $v:\advdomain \rightarrow \mathbb{R}^d$, is computed by solving the
 steady-state Navier-Stokes equations for a two dimensional flow with
-Reynolds number 50, with boundary conditions $v(x)=(0,1)$ on the left boundary, $v(x)=(0,-1)$ on the right boundary, and $v(x)=(0,0)$ on the top and bottom boundaries, as in~\cite[Section 3]{PetraStadler11}. We use a checkerboard image for the initial condition~\ref{fig:adv_initial_condition} and add $5\%$ multiplicative noise to the synthetic observations at the final time, $T$. We use $\kappa=3.2$e${-1}$ and $T=1.0$ for all results, except for Table \ref{tab:adv_convergence} and Figure \ref{tbl:adv_vary_kappa_tf} where we vary $\kappa$ and $T$ to study the impact of these parameters on the impulse responses and our preconditioner's effectiveness. The initial condition, velocity field, noisy observations, and reconstructed initial condition are shown in Figure~\ref{fig:adv_inversion1}.
+Reynolds number 50, with boundary conditions $v(x)=(0,1)$ on the left boundary, $v(x)=(0,-1)$ on the right boundary, and $v(x)=(0,0)$ on the top and bottom boundaries, as in~\cite[Section 3]{PetraStadler11}. We use a checkerboard image for the initial condition (Figure~\ref{fig:adv_initial_condition}) and add $5\%$ multiplicative noise to generate synthetic observations at the final time, $T$. We use $\kappa=3.2$e${-1}$ and $T=1.0$ for all results, except for Table \ref{tab:adv_convergence} and Figure~\ref{tbl:adv_vary_kappa_tf} where we vary $\kappa$ and $T$ to study the impact of these parameters on the impulse responses and our preconditioner's effectiveness. The initial condition, velocity field, noisy observations, and reconstructed initial condition are shown in Figure~\ref{fig:adv_inversion1}.
 
-In Table~\ref{tab:adv_convergence} we show the number of PCG iterations, $k$, required to solve the Newton linear system to a relative error tolerance of $\|\widehat{\mathbf{q}} - \widehat{\mathbf{q}}_k\| < 10^{-6} \|\widehat{\mathbf{q}}\|$. The solution of the Newton system that we compare to, $\widehat{\mathbf{q}}$, is found via another PCG iteration with a relative residual tolerance of $10^{-11}$. We show results for $T$ ranging from $0.5$ to $2.0$ and $\kappa$ ranging from $10^{-4}$ to $10^{-3}$, using our PSF preconditioner with $1$, $5$, and $25$ batches, regularization preconditioning, and no preconditioning. PSF preconditioning performs better than regularization preconditioning and no preconditioning, with more batches yielding better results. The PSF preconditioners perform best in the high-rank regime where $T$ and $\kappa$ are small, and the observations are highly informative about the initial condition. This makes sense given the effect of $T$ and $\kappa$ on the shape of the impulse responses, as shown in Figure \ref{tbl:adv_vary_kappa_tf}. As $\kappa$ increases, the impulse responses grow wider and as $T$ increases the impulse responses grow longer. This means that the impulse responses become more local as $\kappa$ and $T$ decrease, so more impulse responses can be computed per batch.
+In Table~\ref{tab:adv_convergence} we show the number of PCG iterations, $k$, required to solve the Newton linear system to a relative error tolerance of $\|\widehat{\mathbf{q}} - \widehat{\mathbf{q}}_k\| < 10^{-6} \|\widehat{\mathbf{q}}\|$. The solution of the Newton system that we compare to, $\widehat{\mathbf{q}}$, is found via another PCG iteration with a relative residual tolerance of $10^{-11}$. We show results for $T$ ranging from $0.5$ to $2.0$ and $\kappa$ ranging from $10^{-4}$ to $10^{-3}$, using our PSF preconditioner with $1$, $5$, and $25$ batches, regularization preconditioning, and no preconditioning. PSF preconditioning performs better than regularization preconditioning and no preconditioning, with more batches yielding better results. The PSF preconditioners perform best in the high-rank regime where $T$ and $\kappa$ are small, and the observations are highly informative about the initial condition. This makes sense given the effect of $T$ and $\kappa$ on the shape of the impulse responses, as shown in Figure~\ref{tbl:adv_vary_kappa_tf}. As $\kappa$ increases, the impulse responses grow wider and as $T$ increases the impulse responses grow longer. This means that the impulse responses become more local as $\kappa$ and $T$ decrease, so more impulse responses can be computed per batch.
 
-In Figure~\ref{fig:adv_cg_convergence} we show the convergence of PCG for solving $\bm{H}\bm{x}=\bm{b}$, where $\bm{b}$ has i.i.d. random entries drawn from a standard Gaussian distribution. The preconditioners used, $\widetilde{\bm{H}}$, are our PSF preconditioner with $1$, $5$, or $25$ batches, regularization preconditioning, and no preconditioning. PCG converges fastest with the PSF preconditioners, with more batches yielding faster convergence. In Figure~\ref{fig:adv_generalized_eigenvalues}, we show the eigenvalues for the generalized eigenvalue problem $\bm{H}\bm{u}=\lambda \widetilde{\bm{H}}\bm{u}$, where the $\widetilde{\bm{H}}$ are the preconditioners stated above. The PSF preconditioners cluster the eigenvalues of the Hessian near one, and the regularization preconditioner clusters the trailing eigenvalues but amplifies leading eigenvalues. For the PSF preconditioner, more batches yields better clustering.
+In the right subfigure of Figure~\ref{fig:adv_krylov_convergence} we show the convergence of PCG for solving $\bm{H}\bm{x}=\bm{b}$, where $\bm{b}$ has i.i.d. random entries drawn from a standard Gaussian distribution. The preconditioners used, $\widetilde{\bm{H}}$, are our PSF preconditioner with $1$, $5$, or $25$ batches, regularization preconditioning, and no preconditioning. PCG converges fastest with the PSF preconditioners, with more batches yielding faster convergence. In the left subfigure of Figure~\ref{fig:adv_krylov_convergence}, we show the generalized eigenvalues for the generalized eigenvalue problem $\bm{H}\bm{u}=\lambda \widetilde{\bm{H}}\bm{u}$, where the $\widetilde{\bm{H}}$ are the preconditioners stated above. With the PSF preconditioners, the eigenvalues cluster near one; more batches yields better clustering. With the regularization preconditioner the trailing eigenvalues cluster near one, while the leading eigenvalues are amplified.
 
 %INTRODUCE EQUATIONS: REWRITE HERE vvvvvvv
 
@@ -1289,7 +1290,7 @@ In Figure~\ref{fig:adv_cg_convergence} we show the convergence of PCG for solvin
 	%\begin{subfigure}{0.05\textwidth}
 	%	\includegraphics[scale=0.1]{mColorBar.png}
 	%\end{subfigure}
-	\caption{(\ref{fig:adv_initial_condition}) True initial condition. (\ref{fig:adv_velocity}) Velocity field. Color indicates magnitude of velocity vector. (\ref{fig:adv_observations}) Noisy observations of concentration at final time. (\ref{fig:adv_reconstruction}) Reconstructed initial condition.}
+	\caption{\textbf{(Advection-diffusion)} (\ref{fig:adv_initial_condition}) True initial condition. (\ref{fig:adv_velocity}) Velocity field. Color indicates magnitude of velocity vector. (\ref{fig:adv_observations}) Noisy observations of concentration at final time. (\ref{fig:adv_reconstruction}) Reconstructed initial condition.}
 	\label{fig:adv_inversion1} 
 \end{figure} 
 
@@ -1322,7 +1323,7 @@ In Figure~\ref{fig:adv_cg_convergence} we show the convergence of PCG for solvin
 		\end{tabular}
 		\endgroup
 	\end{center}
-	\caption{Number of preconditioned conjugate gradient iterations required to achieve a relative $l^2$ error of $10^{-6}$ \todo{we should be more specific about what the stopping criteria is, I expect that it is based on the linear system residual and if so we should state that, in order to distinguish it from the Stokes results earlier} for solving the Newton linear system in the advection-diffusion inverse problem. Iteration counts are shown for a variety of different diffusion parameters $\kappa$, simulation times $T$, and preconditioners.}
+	\caption{\textbf{(Advection-diffusion)} Number of preconditioned conjugate gradient iterations required to achieve error tolerance $||\widehat{\bm{q}}_j - \widehat{\bm{q}}|| < 10^{-6}||\widehat{\bm{q}}||$, where $\widehat{\bm{q}}_j$ is the $j$th conjugate gradient iterate, and $\widehat{\bm{q}}$ is the solution of the Newton linear system in the advection-diffusion inverse problem. Iteration counts are shown for a variety of different diffusion parameters $\kappa$, simulation times $T$, and preconditioners.}
 	\label{tab:adv_convergence}
 \end{table}
 
@@ -1332,14 +1333,20 @@ In Figure~\ref{fig:adv_cg_convergence} we show the convergence of PCG for solvin
 	{
 		%	\setlength{\tabcolsep}{0.1em}
 		%	\renewcommand{\arraystretch}{2.0}
-		\begin{tabular}{cccc}
-			& $T=0.5$ & $T=1.0$ & $T=2.0$ \\
-			$\kappa=1.0$e${-4}$  & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-4.png} \\
-			$\kappa=3.2$e${-4}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K3.2e-4.png} \\
-			$\kappa=1.0$e${-3}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-3.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-3.png}
+		\begin{tabular}{ccc}
+			& $T=0.5$ 
+%			& $T=1.0$ 
+			& $T=2.0$ \\
+			$\kappa=1.0$e${-4}$  & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-4.png} 
+%			& \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-4.png}
+			& \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-4.png} \\
+%			$\kappa=3.2$e${-4}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K3.2e-4.png} \\
+			$\kappa=1.0$e${-3}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-3.png} 
+%			& \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-3.png} 
+			& \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-3.png}
 		\end{tabular}
 	}
-	\caption{Impulse responses for a variety of different diffusion parameters $\kappa$ and simulation times $T$.}
+	\caption{\textbf{(Advection-diffusion)} Impulse responses for small and large diffusion parameters $\kappa$ and simulation times $T$.}
 	\label{tbl:adv_vary_kappa_tf}
 \end{figure}
 
@@ -1376,8 +1383,8 @@ In Figure~\ref{fig:adv_cg_convergence} we show the convergence of PCG for solvin
 %		\addplot[purple, line width=0.5mm] table {advDiff_cg_rand_errs_psf25.dat};
 %		\end{axis}
 %		\end{tikzpicture}
-		\caption{}
-		\label{fig:adv_cg_convergence}
+%		\caption{}
+%		\label{fig:adv_cg_convergence}
 	\end{subfigure}
 	\begin{subfigure}{0.47\textwidth}
 		\centering
@@ -1410,10 +1417,10 @@ In Figure~\ref{fig:adv_cg_convergence} we show the convergence of PCG for solvin
 %\addplot[purple, line width=0.5mm] table[x=k, y=psf25] {advDiff_generalizedEigenvalues.dat};
 %\end{axis}
 %\end{tikzpicture}
-		\caption{}
-		\label{fig:adv_generalized_eigenvalues}
+%		\caption{}
+%		\label{fig:adv_generalized_eigenvalues}
 	\end{subfigure}
-	\caption{Left (\ref{fig:adv_cg_convergence}) shows the convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard Gaussian distribution. Right (\ref{fig:adv_generalized_eigenvalues}) shows eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$. Here $\bm{H}$ is the Hessian and the preconditioner $\bm{\preconditioner}$ is the PSF approximation for 1, 5, or 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
+	\caption{\textbf{(Advection-diffusion)} Left: convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard Gaussian distribution. Right: generalized eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$. Here $\bm{H}$ is the Hessian and the preconditioner $\bm{\preconditioner}$ is the PSF approximation for 1, 5, or 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
 	\label{fig:adv_krylov_convergence}
 \end{figure} 
 
