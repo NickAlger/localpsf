@@ -500,7 +500,7 @@ We emphasize that the dense matrix $\mathbf{\Aker}$ is never formed.
 
 In many applications, one seeks to approximate an operator
 $\mathcal{H} = \Aop + \mathcal{R},$
-where $\Aop$ is a symmetric positive semi-definite operator that we approximate with the PSF method to form an H-matrix $\mathbf{A}_H$, and $\mathcal{R}$ is a symmetric positive definite operator that may be easily converted to an H-matrix $\mathbf{R}_H$ without using the PSF method. For example, in inverse problems $\mathcal{H}$ is the Hessian, $\Aop$ is the data misfit term in the Hessian which is dense and only available matrix-free, and $\mathcal{R}$ is the regularization term, which is typically an elliptic differential operator that becomes a sparse matrix after discretization.
+where $\Aop$ is a symmetric positive semi-definite operator that we approximate with the PSF method to form an H-matrix $\mathbf{A}_H$, and $\mathcal{R}$ is a symmetric positive definite operator that may be easily converted to an H-matrix $\mathbf{R}_H$ without using the PSF method. For example, in inverse problems $\mathcal{H}$ is the Hessian, $\Aop$ is the data misfit term in the Hessian which is dense and available only matrix-free, and $\mathcal{R}$ is the regularization term, which is typically an elliptic differential operator that becomes a sparse matrix after discretization.
 
 The PSF approximation $\mathbf{A}_H$, and therefore $\mathbf{A}_H + \mathbf{R}_H$, may be non-symmetric and indefinite because of approximation error. 
 This is undesirable because symmetry and positive semi-definiteness are important properties which should be preserved if possible. Also, lacking these properties may prevent one from using highly effective algorithms to perform further operations involving $\mathbf{A}_H + \mathbf{R}_H$, such as using $\mathbf{A}_H + \mathbf{R}_H$ as a preconditioner in the conjugate gradient method.
@@ -527,7 +527,7 @@ We now describe these costs in detail. For convenience, Table~\ref{tab:vars} lis
 	\begin{tabular}{lll}
 		Symbol & Typical size & Variable name \\
 		\hline
-		$\fedim$ & $10^2$--$10^9$ & Number of finite element degrees of freedom \\
+		$\fedim$ & $10^3$--$10^9$ & Number of finite element degrees of freedom \\
 		$\nbatch$ & $1$--$25$ & Number of batches \\
 		$\hrank$ & $5$--$50$ & H-matrix rank \\
 		$\numnbr$ & $5$--$15$ & Number of nearest neighbors for RBF interpolation \\
@@ -555,7 +555,7 @@ Computing the impulse response batches also requires choosing sample point batch
 %
 %
 where $\nsamplepts$ is the total number of sample points in all batches. The multiplicative dependence of $\fedim$ with $\nsamplepts$ is undesirable since $\nsamplepts$ may be large, and reducing this cost is possible with more involved computational geometry methods. 
-However, from a practical perspective, the cost for choosing sample points is small compared to other parts of the approximation algorithm, hence such improvements are not pursued here.
+However, from a practical perspective, the cost of choosing sample points is small compared to other parts of the approximation algorithm, and hence such improvements are not pursued here.
 
 \paragraph{(2) Building the H-matrix} 
 Classical H-matrix construction techniques
@@ -572,7 +572,7 @@ where $a,b \in \{0,1,2,3\}$ are constants which depend on the type of H-matrix u
 In the numerical results (Section~\ref{sec:numerical_results}), we use one matrix-matrix addition to add the H-matrix approximation of the data misfit term in the Hessian to the regularization term in the Hessian.
 Symmetrizing $\mathbf{A}_H$ requires one matrix-matrix addition. Flipping negative eigenvalues to be positive requires a handful (typically around 5) of matrix-matrix additions and matrix factorizations to factor the required shifted linear systems, and a number of factorized solves that is proportional to the number of erroneous negative eigenvalues.
 
-In summary, computing all the necessary ingredients to evaluate kernel entries of the PSF approximation requires a handful of operator applications (e.g., $6+\nbatch$ operator applications in two dimensions, or $10+\nbatch$ operator applications in three dimensions, with $\nbatch$ typically in the range 1--25), plus comparatively cheap additional overhead costs, most notably performing ellipsoid intersection tests while choosing sample point batches. Once these ingredients are computed, no more operator applications are required, and approximate kernel entries can be evaluated fast. Constructing the H-matrix from kernel entries requires a number of elementary operations that scales nearly linear in $N$. Using the resulting H-matrix to perform further linear algebra operations also scales nearly linearly in $N$, though the details of these costs depend heavily on the type of H-matrix and operation being performed.
+In summary, computing all the necessary ingredients to evaluate kernel entries of the PSF approximation requires a handful of operator applications (e.g., $6+\nbatch$ operator applications in two dimensions, or $10+\nbatch$ operator applications in three dimensions, with $\nbatch$ typically in the range 1--25), plus comparatively cheap additional overhead costs, most notably performing ellipsoid intersection tests while choosing sample point batches. Once these ingredients are computed, no more operator applications are required, and approximate kernel entries can be evaluated rapidly. Constructing the H-matrix from kernel entries requires a number of elementary operations that scales polylog linearly in $N$. Using the resulting H-matrix to perform further linear algebra operations also scales nearly linearly in $N$, though the details of these costs depend heavily on the type of H-matrix and operation being performed.
 
 \section{Numerical results}
 \label{sec:numerical_results}
@@ -584,7 +584,7 @@ sheet flow~\cite{PetraEtAl12} (Section~\ref{sec:ice}) and transport
 and flow of a contaminant~\cite{PetraStadler11}
 (Section~\ref{sec:adv}). 
 To reconstruct the unknown parameter fields, denoted $q$, the inverse problems are formulated as nonlinear least squares
-optimization problems, whose cost functions consist of a data misfit term
+optimization problems, whose objective functions consist of a data misfit term
 (between the observations and model output) and a bi-Laplacian
 regularization term following~\cite{VillaPetraGhattas21}. The
 regularization is centered at a constant function $q_0(x)$. To
@@ -611,7 +611,7 @@ $\bm{\searchdir}$, are obtained by solving
 wherein we choose the initial guess as the discretization of the constant
 function $q_0$. Here $\bm{g}$, $\bm{H}$ and $\bm{H}_\text{gn}$ are
 the discretized gradient, Hessian, and Gauss-Newton Hessian of the
-inverse problem cost function, respectively, evaluated at the current Newton iterate.
+inverse problem objective function, respectively, evaluated at the current Newton iterate.
 To ensure positive definiteness of the Hessian we use
 $\bm{H}_\text{gn}$ for the first five iterations, and $\bm{H}$ for all
 subsequent iterations. The Newton iterations are terminated when
