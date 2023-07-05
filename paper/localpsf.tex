@@ -80,38 +80,42 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 
 
 \begin{figure}
-	\begin{subfigure}{0.32\textwidth}
+	\begin{subfigure}{0.49\textwidth}
 		\centering
-		\includegraphics[scale=0.34]{impulse_batch1.png}
+		\includegraphics[scale=0.4]{impulse_batch1.png}
+		\caption{One impulse response batch}
+		\label{fig:batches_intro}
 	\end{subfigure}
-	\begin{subfigure}{0.32\textwidth}
+	\begin{subfigure}{0.49\textwidth}
 		\centering
-		\includegraphics[scale=0.34]{impulse_batch2.png}
+		\includegraphics[scale=0.8]{mean_displacement_invariance.pdf}
+		\caption{Local mean displacement invariance}
+		\label{fig:mean_displacement_invariance}
 	\end{subfigure}
-	\begin{subfigure}{0.32\textwidth}
-		\centering
-		\includegraphics[scale=0.34]{impulse_batch3.png}
-	\end{subfigure}
-	\caption{Three batches, $\eta_b$, of normalized impulse responses, $\impulseresponse_{x}$, that arise from applying $\Aop$ to weighted sums of scattered point sources (see Section \ref{sec:get_impulse_response}). Here $\Aop$ is the ice sheet inverse problem data misfit Gauss-Newton Hessian described in Section~\ref{sec:numerical_results}. 
-	Black stars are point source locations. Shading shows the magnitude of the normalized impulse responses (darker means larger function values). Dashed gray ellipses are estimated impulse response support ellipsoids based on the moment method in Section \ref{sec:intromoments}. The large circle is $\partial \Omega$. 
+%	\begin{subfigure}{0.32\textwidth}
+%		\centering
+%		\includegraphics[scale=0.34]{impulse_batch3.png}
+%	\end{subfigure}
+	\caption{(\ref{fig:batches_intro}) One batch, $\eta_b$, of normalized impulse responses, $\impulseresponse_{x}$, that arise from applying $\Aop$ to a weighted sum of scattered point sources (see Section \ref{sec:get_impulse_response}). Here $\Aop$ is the ice sheet inverse problem data misfit Gauss-Newton Hessian described in Section~\ref{sec:numerical_results}. 
+	Black stars are point source locations. Shading shows the magnitude of the normalized impulse responses (darker means larger function values). Dashed gray ellipses are estimated impulse response support ellipsoids based on the moment method in Section \ref{sec:intromoments}. The large circle is $\partial \Omega$. (\ref{fig:mean_displacement_invariance}) Illustration of impulse responses, $\impulseresponse_x$ and $\impulseresponse_{x'}$, that arise from applying $\Aop$ to point sources at two points, $x$ and $x'$. The operator $\Aop$ is locally mean displacement invariant (Section \ref{sec:local_mean_displacement_invariance}) if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \spatialmean(x) + \spatialmean(x')\right)$ when $x$ is close to $x'$. Here $\spatialmean(z)$ denotes the mean (center of mass) of $\phi_z$.
 	}
-	\label{fig:batches_intro}
+	\label{fig:batches_and_mdi}
 \end{figure}
 
 We use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applications. The impulse response, $\phi_x$, associated with a point, $x$, is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Then we interpolate translated and scaled versions of these impulse responses to approximate entries of the operator's integral kernel. 
 Picking the batches of points requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} they are computed. Ellipsoid estimates for the supports of all $\phi_x$ are determined a-priori via a moment method that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We are inspired by resolution analysis in seismic imaging, in which
 $\Aop^T$ is applied to a random noise function, and the width of the support $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$~\cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. The moment method that we use estimates the support of $\phi_x$ more accurately than random noise probing in resolution analysis, at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. 
 
-The proposed operator approximation method may be categorized as a PSF method that is loosely based on ``product convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others) in which the convolution kernels are constructed from sampling impulse responses of the operator to scattered point sources:~\cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,EscandeWeiss15,EscandeWeiss22,EscandeWeiss12,FishEtAl96,NagyOleary98,ZhuLiFomelEtAl16}. For background on PC and PSF methods, we recommend the following papers: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. While PC approximations are based on an assumption of local translation invariance, the method we propose is based on a more general assumption we call ``local mean displacement invariance'' (Section~\ref{sec:local_mean_displacement_invariance} and Figure~\ref{fig:mean_displacement_invariance}). This improves the interpolation of the impulse responses. Furthermore, in our previous work~\cite{AlgerEtAl19}, we chose point sources optimally via a sequential adaptive procedure. However, in that work each point source required a separate operator application, making the previous method expensive when a large number of impulse responses is desired. In this paper, we use a new moment method (Section \ref{sec:intromoments}) which permits computation of many impulse responses (e.g., 50) per operator application. Finally, the method we propose never evaluates computed impulse responses outside of their domain of definition. This eliminates boundary artifacts which plague conventional PC methods.
+The proposed operator approximation method may be categorized as a PSF method that is loosely based on ``product convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others) in which the convolution kernels are constructed from sampling impulse responses of the operator to scattered point sources:~\cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,EscandeWeiss15,EscandeWeiss22,EscandeWeiss12,FishEtAl96,NagyOleary98,ZhuLiFomelEtAl16}. For background on PC and PSF methods, we recommend the following papers: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. The proposed method improves upon existing PC methods in the following ways: (1) While PC approximations are based on an assumption of local translation invariance, the method we propose is based on a more general assumption we call ``local mean displacement invariance'' (Section~\ref{sec:local_mean_displacement_invariance} and Figure~\ref{fig:mean_displacement_invariance}), which improves the interpolation of the impulse responses. (2) In our previous work~\cite{AlgerEtAl19}, we chose point sources optimally via a sequential adaptive procedure. However, in that work each point source required a separate operator application, making the previous method expensive when a large number of impulse responses is desired. In this paper, we use a new moment method (Section \ref{sec:intromoments}) which permits computation of many impulse responses (e.g., 50) per operator application. (3) The method we propose never evaluates computed impulse responses outside of their domain of definition. This eliminates boundary artifacts which plague conventional PC methods.
 
 
-\begin{figure}
-	\begin{center}
-		\includegraphics[scale=0.75]{mean_displacement_invariance.pdf}
-	\end{center}
-	\caption{This figure illustrates impulse responses, $\impulseresponse_x$ and $\impulseresponse_{x'}$, that arise from applying $\Aop$ to point sources at two points, $x$ and $x'$. The operator $\Aop$ is locally mean displacement invariant (Section \ref{sec:local_mean_displacement_invariance}) if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \spatialmean(x) + \spatialmean(x')\right)$ when $x$ is close to $x'$. Here $\spatialmean(z)$ denotes the mean (center of mass) of $\phi_z$.}
-	\label{fig:mean_displacement_invariance}
-\end{figure}
+%\begin{figure}
+%	\begin{center}
+%		\includegraphics[scale=0.75]{mean_displacement_invariance.pdf}
+%	\end{center}
+%	\caption{This figure illustrates impulse responses, $\impulseresponse_x$ and $\impulseresponse_{x'}$, that arise from applying $\Aop$ to point sources at two points, $x$ and $x'$. The operator $\Aop$ is locally mean displacement invariant (Section \ref{sec:local_mean_displacement_invariance}) if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \spatialmean(x) + \spatialmean(x')\right)$ when $x$ is close to $x'$. Here $\spatialmean(z)$ denotes the mean (center of mass) of $\phi_z$.}
+%	\label{fig:mean_displacement_invariance}
+%\end{figure}
 
 The ability to rapidly approximate entries of $\Aop$'s integral kernel allows one to approximate discretized versions of $\Aop$ using the full arsenal of tools for matrix approximation that rely on fast access to matrix entries.
 In this work, we form a hierarchical matrix (H-matrix)~\cite{BormGrasedyckHackbusch03,Hackbusch99} approximation of a discretized version of $\Aop$. H-matrices are a matrix format in which the rows and columns of the matrix are re-ordered, then the matrix is recursively subdivided into blocks in such a way that many off-diagonal blocks are low rank, even though the matrix as a whole may be high rank. 
@@ -591,7 +595,7 @@ We use the proposed method to approximate the Newton (or Gauss-Newton) Hessians
 in inverse problems governed by PDEs which model steady state ice
 sheet flow~\cite{PetraEtAl12} (Section~\ref{sec:ice}) and transport
 and flow of a contaminant~\cite{PetraStadler11}
-(Section~\ref{sec:adv}). 
+(Section~\ref{sec:adv}). These inverse problems are described in Sections~\ref{sec:ice} and~\ref{sec:adv}, respectively.
 To reconstruct the unknown parameter fields, denoted $q$, the inverse problems are formulated as nonlinear least squares
 optimization problems, whose objective functions consist of a data misfit term
 (between the observations and model output) and a bi-Laplacian
@@ -627,15 +631,15 @@ subsequent iterations. The Newton iterations are terminated when
 $\|\bm{g}\| < 10^{-6} \|\bm{g}_0\|$, where $\bm{g}_0$ is the gradient evaluated at the initial guess. Systems~\eqref{eq:newton_system} are solved inexactly using an inner PCG
 iteration, which is terminated early based on the Eisenstat-Walker \cite{EisenstatWalker96} and Steihaug \cite{Steihaug83} conditions. The inverse problem governed by the advection-diffusion PDE is linear, hence Newton's method converges in one iteration. In this case the Newton linear system,~\eqref{eq:newton_system}, is solved using PCG, using termination tolerances described in Section \ref{sec:adv}.
 
-We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations, $\mathbf{A}_H$, of the data misfit Gauss-Newton Hessian (the term in $\bm{H}_\text{gn}$ that arises from the data misfit). The 
+We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations, $\mathbf{A}_H$, of the data misfit Gauss-Newton Hessian (the term in $\mathbf{H}_\text{gn}$ that arises from the data misfit). The 
 approximations are indicated by ``PSF ($\nbatch$)'', where $\nbatch$ is the number of impulse response batches used to build the approximation. The Hessian of the regularization term is a combination of
 stiffness and mass matrices, which are sparse. Therefore, we form
 H-matrix representations of these matrices and combine them into a H-matrix approximation of the regularization term in the Hessian, $\mathbf{R}_H$, using
 standard sparse H-matrix techniques. Then, H-matrix approximations of the Gauss-Newton Hessian, 
-$$\bm{H}_\text{gn}\approx \widetilde{\bm{H}}:=\mathbf{A}_H + \mathbf{R}_H,$$
-are formed by adding $\mathbf{A}_H$ to $\mathbf{R}_H$ using fast H-matrix arithmetic. We modify $\widetilde{\bm{H}}$ to be (approximately) symmetric positive semi-definite via the procedure described in Section~\ref{sec:flip_eigs}. We factor $\bm{\preconditioner}$
+$$\mathbf{H}_\text{gn}\approx \widetilde{\mathbf{H}}:=\mathbf{A}_H + \mathbf{R}_H,$$
+are formed by adding $\mathbf{A}_H$ to $\mathbf{R}_H$ using fast H-matrix arithmetic. We modify $\widetilde{\mathbf{H}}$ to be (approximately) symmetric positive semi-definite via the procedure described in Section~\ref{sec:flip_eigs}. We factor $\mathbf{\preconditioner}$
 using fast H-matrix methods, then use the factorization as a
-preconditioner. We approximate $\bm{H}_\text{gn}$ rather than $\bm{H}$ because $\bm{H}$ more often has negative values in its integral kernel. The numerical results show that~$\widetilde{\bm{H}}$ is a good preconditioner for both~$\bm{H}_\text{gn}$ and~$\bm{H}$. 
+preconditioner. We approximate $\mathbf{H}_\text{gn}$ rather than $\mathbf{H}$ because $\mathbf{H}$ more often has negative values in its integral kernel. The numerical results show that~$\widetilde{\mathbf{H}}$ is a good preconditioner for both~$\mathbf{H}_\text{gn}$ and~$\mathbf{H}$. 
 
 
 \subsection{Example 1: Inversion for the basal friction coefficient in an ice sheet flow problem}
@@ -694,12 +698,12 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
     \end{subfigure} \\
 	\begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.22]{mtrue_withColorBar.png}
-		\caption{$\basalfriction_\text{true}$.}
+		\caption{$\basalfriction_\text{true}$}
 		\label{fig:true_beta}
 	\end{subfigure}
 	\begin{subfigure}{0.49\textwidth}
 		\includegraphics[scale=0.22]{trueVelocity2_glyphs.png}
-		\caption{$\velocity_\text{true}$.}
+		\caption{$\velocity_\text{true}$}
 		\label{fig:stokes_velocity}
 	\end{subfigure}
     \end{center}
@@ -734,9 +738,9 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 				&  \multicolumn{3}{|c|}{PSF (5)} & \multicolumn{3}{|c|}{REG} & \multicolumn{3}{|c}{NONE} \\
 				\hline
 				Iter & 
-				\#CG & \#Stokes & $\|\bm{g}\|$ & 
-				\#CG & \#Stokes & $\|\bm{g}\|$ & 
-				\#CG & \#Stokes & $\|\bm{g}\|$ \\
+				\#CG & \#Stokes & $\|\mathbf{g}\|$ & 
+				\#CG & \#Stokes & $\|\mathbf{g}\|$ & 
+				\#CG & \#Stokes & $\|\mathbf{g}\|$ \\
 				0 &
 				1 & 4 & 1.9e+7 &
 				3 & 8 & 1.9e+7 &
