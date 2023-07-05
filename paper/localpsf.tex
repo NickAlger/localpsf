@@ -202,9 +202,9 @@ The proposed method may still perform well if these conditions are relaxed sligh
 In computations, functions are discretized and replaced by finite-dimensional vectors, and operators mapping between infinite-dimensional spaces are replaced by operators mapping between finite-dimensional spaces. In this paper we discretize using continuous Galerkin finite elements satisfying the Kronecker property (defined below). With minor modifications, the proposed method could be used with more general finite element methods, or other discretization schemes such as finite differences or finite volumes.
 
 Let $\febasis_1, \febasis_2, \dots, \febasis_\fedim$ be a set of continuous Galerkin finite element basis functions used to discretize the problem on a mesh with mesh size parameter $h$, let $V_h := \Span\left(\febasis_1, \febasis_2, \dots, \febasis_\fedim\right)$ be the corresponding finite element space under the $L^2$ inner product, and let $\fepoint_i \in \mathbb{R}^\gdim$, $i=1,\dots, \fedim$ be the Lagrange nodes associated with the functions $\febasis_i$. We assume that the finite element basis satisfies the Kronecker property, i.e., $\febasis_i(\fepoint_i)=1$ and $\febasis_i(\fepoint_j)=0$ if $i\neq j$. 
-For $u_h \in V_h$ we write $\bm{u} \in \mathbb{R}^\nsamplepts_\massmatrix$ to denote the coefficient vector for $u_h$ with respect to the finite element basis, i.e.,
+For $u_h \in V_h$ we write $\mathbf{u} \in \mathbb{R}^\nsamplepts_\massmatrix$ to denote the coefficient vector for $u_h$ with respect to the finite element basis, i.e.,
 $
-u_h(x) = \sum_{i=1}^\fedim \bm{u}_i \febasis_i(x).
+u_h(x) = \sum_{i=1}^\fedim \mathbf{u}_i \febasis_i(x).
 $
 Linear functionals $\rho_h \in V_h'$ have coefficient dual vectors $\boldsymbol{\rho}\in \mathbb{R}^\nsamplepts_{\massmatrix^{-1}}$, with entries $\boldsymbol{\rho}_i = \rho_h(\febasis_i)$ for $i=1,\dots,\nsamplepts$.
 Here $\massmatrix \in \mathbb{R}^{\fedim \times \fedim}$ denotes the sparse finite element mass matrix which has entries $\massmatrix_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) \mathrm{d}x$ for $i,j=1,\dots,\fedim$.
@@ -614,21 +614,21 @@ principle~\cite{Vogel02}.
 
 We solve the ice sheet inverse problem with an inexact Newton preconditioned
 conjugate gradient (PCG) scheme and a globalizing Armijo line search~\cite{NocedalWright99}. The Newton updates,
-$\bm{\searchdir}$, are obtained by solving 
+$\mathbf{\searchdir}$, are obtained by solving 
 %
 \begin{equation}
 	\label{eq:newton_system}
-	\bm{H} \bm{\searchdir} = - \bm{g} \qquad \text{or} \qquad \bm{H}_\text{gn} \bm{\searchdir} = - \bm{g},
+	\mathbf{H} \mathbf{\searchdir} = - \mathbf{g} \qquad \text{or} \qquad \mathbf{H}_\text{gn} \mathbf{\searchdir} = - \mathbf{g},
 \end{equation}
 %
 wherein we choose the initial guess as the discretization of the constant
-function $q_0$. Here $\bm{g}$, $\bm{H}$ and $\bm{H}_\text{gn}$ are
+function $q_0$. Here $\mathbf{g}$, $\mathbf{H}$ and $\mathbf{H}_\text{gn}$ are
 the discretized gradient, Hessian, and Gauss-Newton Hessian of the
 inverse problem objective function, respectively, evaluated at the current Newton iterate.
 To ensure positive definiteness of the Hessian we use
-$\bm{H}_\text{gn}$ for the first five iterations, and $\bm{H}$ for all
+$\mathbf{H}_\text{gn}$ for the first five iterations, and $\mathbf{H}$ for all
 subsequent iterations. The Newton iterations are terminated when
-$\|\bm{g}\| < 10^{-6} \|\bm{g}_0\|$, where $\bm{g}_0$ is the gradient evaluated at the initial guess. Systems~\eqref{eq:newton_system} are solved inexactly using an inner PCG
+$\|\mathbf{g}\| < 10^{-6} \|\mathbf{g}_0\|$, where $\mathbf{g}_0$ is the gradient evaluated at the initial guess. Systems~\eqref{eq:newton_system} are solved inexactly using an inner PCG
 iteration, which is terminated early based on the Eisenstat-Walker \cite{EisenstatWalker96} and Steihaug \cite{Steihaug83} conditions. The inverse problem governed by the advection-diffusion PDE is linear, hence Newton's method converges in one iteration. In this case the Newton linear system,~\eqref{eq:newton_system}, is solved using PCG, using termination tolerances described in Section \ref{sec:adv}.
 
 We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations, $\mathbf{A}_H$, of the data misfit Gauss-Newton Hessian (the term in $\mathbf{H}_\text{gn}$ that arises from the data misfit). The 
@@ -786,7 +786,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 			\endgroup
 		\end{center}
 	}
-	\caption{(Ice sheet) Convergence history for solving the Stokes inverse problem using inexact Newton PCG. The Newton iteration is terminated when $||\mathbf{g}|| < 10^{-6} ||\mathbf{g}_0||$, where $\mathbf{g}$ is the gradient at the current iteration, and $\mathbf{g}_0$ is the gradient at the initial guess. Preconditioners shown are the proposed PSF method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\bm{\widehat{\basalfriction}}$. Columns titled $\|\bm{g}\|$ show the $l^2$ norm of the gradient at $\bm{\basalfriction}$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves performed during the line search to arrive at the current iterate from the previous iterate, plus one adjoint Stokes solve to compute the gradient at the current iterate, plus two Stokes solves per PCG iteration when solving the Newton system to compute the next search direction. Under PSF (5) and in row Iter 3, we write $6+22$ to indicate that $6$ Stokes solves were used during the standard course of the iteration, and $22$ Stokes solves were used to build the PSF (5) preconditioner.}
+	\caption{(Ice sheet) Convergence history for solving the Stokes inverse problem using inexact Newton PCG. The Newton iteration is terminated when $||\mathbf{g}|| < 10^{-6} ||\mathbf{g}_0||$, where $\mathbf{g}$ is the gradient at the current iteration, and $\mathbf{g}_0$ is the gradient at the initial guess. Preconditioners shown are the proposed PSF method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\mathbf{\widehat{\basalfriction}}$. Columns titled $\|\mathbf{g}\|$ show the $l^2$ norm of the gradient at $\mathbf{\basalfriction}$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves performed during the line search to arrive at the current iterate from the previous iterate, plus one adjoint Stokes solve to compute the gradient at the current iterate, plus two Stokes solves per PCG iteration when solving the Newton system to compute the next search direction. Under PSF (5) and in row Iter 3, we write $6+22$ to indicate that $6$ Stokes solves were used during the standard course of the iteration, and $22$ Stokes solves were used to build the PSF (5) preconditioner.}
 	\label{tab:newton_convergence_table}
 \end{table}
 
@@ -803,19 +803,19 @@ Table~\ref{tab:newton_convergence_table} shows the performance of the preconditi
 		\includegraphics[scale=1.0]{stokes_geigs_figure.pdf}
 	\end{center}
     \end{subfigure}
-	\caption{(Ice sheet) Left: convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard Gaussian distribution and $\bm{H}$ is evaluated at the solution of the inverse problem. 
-	Results in these figures are shown for the PSF-based preconditioners with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\bm{H}_\text{gn}$.
-	Right: generalized eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$. Here $\bm{H}$ is the Hessian and $\bm{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\bm{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
+	\caption{(Ice sheet) Left: convergence history for solving $\mathbf{H} \mathbf{x} = \mathbf{b}$ using PCG, where $\mathbf{b}$ has i.i.d. random entries drawn from the standard Gaussian distribution and $\mathbf{H}$ is evaluated at the solution of the inverse problem. 
+	Results in these figures are shown for the PSF-based preconditioners with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\mathbf{H}_\text{gn}$.
+	Right: generalized eigenvalues for generalized eigenvalue problem $\mathbf{H} \mathbf{u}_{k}=\lambda_{k} \mathbf{\preconditioner} \mathbf{u}_{k}$. Here $\mathbf{H}$ is the Hessian and $\mathbf{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\mathbf{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
 	\label{fig:krylov_convergence}
 \end{figure} 
 %
 
-Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\bm{\basalfriction}$. We use PCG to solve a linear system with the Hessian as the coefficient operator and a right hand vector with random independent and identically distributed (i.i.d.) entries drawn from the standard Gaussian distribution. In Figure~\ref{fig:krylov_convergence} (left) we compare the convergence of PCG for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. PCG converges fastest with the PSF-based preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. 
+Next, we build PSF (1), PSF (5), and PSF (25) preconditioners based on the Gauss-Newton Hessian evaluated at the converged solution $\mathbf{\basalfriction}$. We use PCG to solve a linear system with the Hessian as the coefficient operator and a right hand vector with random independent and identically distributed (i.i.d.) entries drawn from the standard Gaussian distribution. In Figure~\ref{fig:krylov_convergence} (left) we compare the convergence of PCG for solving this linear system using the PSF (1), PSF (5), PSF (25), REG, and NONE preconditioners. PCG converges fastest with the PSF-based preconditioners, with PSF (25) converging fastest, followed by PSF (5), followed by PSF (1), as expected. 
 In Figure~\ref{fig:krylov_convergence} (right) we show the generalized eigenvalues for the generalized eigenvalue problem
 $
-\bm{H} \mathbf{u} = \lambda \bm{\preconditioner} \mathbf{u}.
+\mathbf{H} \mathbf{u} = \lambda \mathbf{\preconditioner} \mathbf{u}.
 $ 
-The matrix $\bm{\preconditioner}$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations, the regularization Hessian (REG), or the identity matrix (NONE). With the PSF-based preconditioners, the generalized eigenvalues cluster near one, with more batches yielding better clustering. 
+The matrix $\mathbf{\preconditioner}$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations, the regularization Hessian (REG), or the identity matrix (NONE). With the PSF-based preconditioners, the generalized eigenvalues cluster near one, with more batches yielding better clustering. 
 
 In Table~\ref{tab:condition_number}, we show the condition number of the preconditioned Hessian for a variety of noise levels ranging from $1\%$ to $25\%$. Note that the condition number using PSF-based preconditioners is extremely small (ranging between 1 and 10) and relatively stable over this range of noise levels. As expected, PSF (25) outperforms than PSF (5), which outperforms than PSF (1). All PSF-based preconditioners outperform no preconditioning and regularization preconditioning for all noise levels. 
 
@@ -825,7 +825,7 @@ In Table~\ref{tab:condition_number}, we show the condition number of the precond
 			\setlength{\tabcolsep}{4pt}
 			\renewcommand{\arraystretch}{1.25}
 			\begin{tabular}{c| c c c c c}
-				noise    & \multicolumn{5}{c}{COND$(\bm{\preconditioner}^{-1} \bm{H})$ } \\ \cline{2-6}
+				noise    & \multicolumn{5}{c}{COND$(\mathbf{\preconditioner}^{-1} \mathbf{H})$ } \\ \cline{2-6}
 				level    & REG     &	NONE  & PSF $(1)$ & PSF $(5)$ & PSF $(25)$ \\ \hline 
 				$25\%$   & 1.01e+3 & 2.96e+3  & 1.34e+0   & 1.30e+0   & 1.18e+0    \\ 
 				$11\%$   & 7.40e+3 & 1.05e+3  & 2.27e+0   & 1.55e+0   & 1.31e+0    \\   
@@ -835,7 +835,7 @@ In Table~\ref{tab:condition_number}, we show the condition number of the precond
 			\end{tabular}
 			\endgroup
 		\end{center}
-	\caption{(Ice sheet) Condition number for $\bm{\preconditioner}^{-1} \bm{H}$ for the PSF-based preconditioners with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), no preconditioner (NONE) and regularization (REG). All operators are evaluated at the soutions of the inverse problems for 
+	\caption{(Ice sheet) Condition number for $\mathbf{\preconditioner}^{-1} \mathbf{H}$ for the PSF-based preconditioners with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), no preconditioner (NONE) and regularization (REG). All operators are evaluated at the soutions of the inverse problems for 
 	their respective noise levels.}
 	\label{tab:condition_number}
 \end{table}
@@ -872,7 +872,7 @@ Reynolds number 50, with boundary conditions $v(x)=(0,1)$ on the left boundary, 
 In Table~\ref{tab:adv_convergence} we show the number of PCG iterations, $j$, required to solve the Newton linear system to a relative error tolerance of $\|\widehat{\mathbf{q}} - \widehat{\mathbf{q}}_j\| < 10^{-6} \|\widehat{\mathbf{q}}\|$. The solution of the Newton system that we compare to, $\widehat{\mathbf{q}}$, is found via another PCG iteration with a relative residual tolerance of $10^{-11}$. We show results for $T$ ranging from $0.5$ to $2.0$ and $\kappa$ ranging from $10^{-4}$ to $10^{-3}$ using the PSF-based preconditioners with $1$, $5$, and $25$ batches, regularization preconditioning, and no preconditioning. The results show that PSF-based preconditioning outperforms regularization preconditioning and no preconditioning, with more batches yielding better results. 
 
 
-In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG for solving $\bm{H}\bm{x}=\bm{b}$, where $\bm{b}$ has i.i.d. random entries drawn from a standard Gaussian distribution. The preconditioners used, $\widetilde{\bm{H}}$, are the PSF-based preconditioners with $1$, $5$, or $25$ batches, the regularization Hessian, and the identity matrix (i.e., no preconditioning). The results show that PCG converges fastest with the PSF-based preconditioners, with more batches yielding faster convergence. In Figure~\ref{fig:adv_krylov_convergence} (right), we show the eigenvalues for the generalized eigenvalue problem $\bm{H}\bm{u}=\lambda \widetilde{\bm{H}}\bm{u}$, where the $\widetilde{\bm{H}}$ are the preconditioners stated above. With the PSF-based preconditioners the eigenvalues cluster near one, and more batches yields better clustering. With the regularization preconditioner the trailing eigenvalues cluster near one, while the leading eigenvalues are amplified.
+In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG for solving $\mathbf{H}\mathbf{x}=\mathbf{b}$, where $\mathbf{b}$ has i.i.d. random entries drawn from a standard Gaussian distribution. The preconditioners used, $\widetilde{\mathbf{H}}$, are the PSF-based preconditioners with $1$, $5$, or $25$ batches, the regularization Hessian, and the identity matrix (i.e., no preconditioning). The results show that PCG converges fastest with the PSF-based preconditioners, with more batches yielding faster convergence. In Figure~\ref{fig:adv_krylov_convergence} (right), we show the eigenvalues for the generalized eigenvalue problem $\mathbf{H}\mathbf{u}=\lambda \widetilde{\mathbf{H}}\mathbf{u}$, where the $\widetilde{\mathbf{H}}$ are the preconditioners stated above. With the PSF-based preconditioners the eigenvalues cluster near one, and more batches yields better clustering. With the regularization preconditioner the trailing eigenvalues cluster near one, while the leading eigenvalues are amplified.
 
 \begin{figure}
 	\begin{center}
@@ -937,7 +937,7 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 		\end{tabular}
 		\endgroup
 	\end{center}
-	\caption{(Diffusive transport) Number of PCG iterations required to solve the Newton linear system to tolerance $||\widehat{\bm{q}}_j - \widehat{\bm{q}}|| < 10^{-6}||\widehat{\bm{q}}||$, where $\widehat{\bm{q}}_j$ is the $j$th iterate, and $\widehat{\bm{q}}$ is the solution of the Newton linear system. Iteration counts are shown for a variety of different diffusion parameters $\kappa$, simulation times $T$, and preconditioners.}
+	\caption{(Diffusive transport) Number of PCG iterations required to solve the Newton linear system to tolerance $||\widehat{\mathbf{q}}_j - \widehat{\mathbf{q}}|| < 10^{-6}||\widehat{\mathbf{q}}||$, where $\widehat{\mathbf{q}}_j$ is the $j$th iterate, and $\widehat{\mathbf{q}}$ is the solution of the Newton linear system. Iteration counts are shown for a variety of different diffusion parameters $\kappa$, simulation times $T$, and preconditioners.}
 	\label{tab:adv_convergence}
 \end{table}
 
@@ -974,7 +974,7 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 		\centering
 		\includegraphics[scale=1.0]{adv_geigs_figure.pdf}
 	\end{subfigure}
-	\caption{(Diffusive transport) Left: convergence history for solving $\bm{H} \bm{x} = \bm{b}$ using PCG, where $\bm{b}$ has i.i.d. random entries drawn from the standard Gaussian distribution. Right: generalized eigenvalues for generalized eigenvalue problem $\bm{H} \bm{u}_{k}=\lambda_{k} \bm{\preconditioner} \bm{u}_{k}$. Here $\bm{H}$ is the Hessian and the preconditioner $\bm{\preconditioner}$ is the PSF approximation for 1, 5, or 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
+	\caption{(Diffusive transport) Left: convergence history for solving $\mathbf{H} \mathbf{x} = \mathbf{b}$ using PCG, where $\mathbf{b}$ has i.i.d. random entries drawn from the standard Gaussian distribution. Right: generalized eigenvalues for generalized eigenvalue problem $\mathbf{H} \mathbf{u}_{k}=\lambda_{k} \mathbf{\preconditioner} \mathbf{u}_{k}$. Here $\mathbf{H}$ is the Hessian and the preconditioner $\mathbf{\preconditioner}$ is the PSF approximation for 1, 5, or 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
 	\label{fig:adv_krylov_convergence}
 \end{figure} 
 
