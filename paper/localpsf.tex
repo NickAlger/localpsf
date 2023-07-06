@@ -44,12 +44,12 @@
 
 % REQUIRED
 \begin{abstract}
-	We present an efficient matrix-free point spread function (PSF) method for approximating operators that have locally supported non-negative integral kernels. The method computes impulse responses of the operator at scattered points, and interpolates these impulse responses to approximate entries of the integral kernel. To compute impulse responses efficiently, we apply the operator to Dirac combs associated with batches of point sources, which are chosen by solving an ellipsoid packing problem. The ability to rapidly evaluate kernel entries allows us to construct a hierarchical matrix (H-matrix) approximation of the operator. Further matrix computations are then performed with fast H-matrix methods. We demonstrate the effectiveness of this PSF-based method by using it to build preconditioners for the Hessian operator arising in two inverse problems governed by partial differential equations (PDEs): inversion for the basal friction coefficient in an ice sheet flow problem and for the initial condition in a diffusive transport problem. While for many ill-posed inverse problems the Hessian of the data misfit term exhibits a low rank structure, and hence a low rank approximation is suitable, for many problems of practical interest the numerical rank of the Hessian is still large. The Hessian impulse responses on the other hand typically become more local as the numerical rank increases, which benefits the PSF-based method. Numerical results reveal that the PSF-based preconditioner clusters the spectrum of the preconditioned Hessian near one, yielding roughly $5\times$--$10\times$ reductions in the required number of PDE solves, as compared to classical regularization-based preconditioning and no preconditioning. We also present a comprehensive numerical study for the influence of various parameters (that control the shape of the impulse responses and the rank of the Hessian) on the effectiveness of the approximation. The results show that the PSF-based preconditioners are able to form good approximations of high-rank Hessians using only a small number of operator applications.
+	We present an efficient matrix-free point spread function (PSF) method for approximating operators that have locally supported non-negative integral kernels. The method computes impulse responses of the operator at scattered points, and interpolates these impulse responses to approximate entries of the integral kernel. To compute impulse responses efficiently, we apply the operator to Dirac combs associated with batches of point sources, which are chosen by solving an ellipsoid packing problem. The ability to rapidly evaluate kernel entries allows us to construct a hierarchical matrix (H-matrix) approximation of the operator. Further matrix computations are then performed with fast H-matrix methods. We demonstrate the effectiveness of this PSF-based method by using it to build preconditioners for the Hessian operator arising in two inverse problems governed by partial differential equations (PDEs): inversion for the basal friction coefficient in an ice sheet flow problem and for the initial condition in an advective-diffusive transport problem. While for many ill-posed inverse problems the Hessian of the data misfit term exhibits a low rank structure, and hence a low rank approximation is suitable, for many problems of practical interest the numerical rank of the Hessian is still large. The Hessian impulse responses on the other hand typically become more local as the numerical rank increases, which benefits the PSF-based method. Numerical results reveal that the PSF-based preconditioner clusters the spectrum of the preconditioned Hessian near one, yielding roughly $5\times$--$10\times$ reductions in the required number of PDE solves, as compared to classical regularization-based preconditioning and no preconditioning. We also present a comprehensive numerical study for the influence of various parameters (that control the shape of the impulse responses and the rank of the Hessian) on the effectiveness of the approximation. The results show that the PSF-based preconditioners are able to form good approximations of high-rank Hessians using only a small number of operator applications.
 \end{abstract}
 
 % REQUIRED
 \begin{keywords}
- 	data scalability, Hessian, hierarchical matrix, high-rank, impulse response, local translation invariance, matrix-free, moment methods, operator approximation, PDE constrained inverse problems, point spread function, product convolution  
+ 	data scalability, Hessian, hierarchical matrix, high-rank, impulse response, local translation invariance, matrix-free, moment methods, operator approximation, PDE constrained inverse problems, point spread function, preconditioning, product convolution
 \end{keywords}
 
 % REQUIRED
@@ -74,13 +74,13 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 
 
 \begin{figure}
-	\begin{subfigure}{0.49\textwidth}
+	\begin{subfigure}[b]{0.49\textwidth}
 		\centering
 		\includegraphics[scale=0.3]{impulse_batch1.png}
 		\caption{One impulse response batch}
 		\label{fig:batches_intro}
 	\end{subfigure}
-	\begin{subfigure}{0.49\textwidth}
+	\begin{subfigure}[b]{0.49\textwidth}
 		\centering
 		\includegraphics[scale=0.7]{mean_displacement_invariance.pdf}
 		\caption{Local mean displacement invariance}
@@ -91,14 +91,14 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 %		\includegraphics[scale=0.34]{impulse_batch3.png}
 %	\end{subfigure}
 	\caption{(\ref{fig:batches_intro}) One batch, $\eta_b$, of normalized impulse responses, $\impulseresponse_{x}$, that arise from applying $\Aop$ to a weighted sum of scattered point sources (see Section \ref{sec:get_impulse_response}). Here $\Aop$ is the ice sheet inverse problem data misfit Gauss-Newton Hessian described in Section~\ref{sec:numerical_results}. 
-	Black stars are point source locations. Shading shows the magnitude of the normalized impulse responses (darker means larger function values). Dashed gray ellipses are estimated impulse response support ellipsoids based on the moment method in Section \ref{sec:intromoments}. The large circle is $\partial \Omega$. (\ref{fig:mean_displacement_invariance}) Illustration of impulse responses, $\impulseresponse_x$ and $\impulseresponse_{x'}$, that arise from applying $\Aop$ to point sources at two points, $x$ and $x'$. The operator $\Aop$ is locally mean displacement invariant (Section \ref{sec:local_mean_displacement_invariance}) if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \spatialmean(x) + \spatialmean(x')\right)$ when $x$ is close to $x'$. Here $\spatialmean(z)$ denotes the mean (center of mass) of $\phi_z$.
+	Black stars are point source locations. Shading shows the magnitude of the normalized impulse responses (darker means larger function values). Dashed gray ellipses are estimated impulse response support ellipsoids based on the moment method in Section \ref{sec:intromoments}. The large circle is $\partial \Omega$. (\ref{fig:mean_displacement_invariance}) Illustration of impulse responses, $\impulseresponse_x$ and $\impulseresponse_{x'}$, corresponding to points $x$ and $x'$. The operator $\Aop$ is locally mean displacement invariant (Section \ref{sec:local_mean_displacement_invariance}) if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \spatialmean(x) + \spatialmean(x')\right)$ when $x$ is close to $x'$. Here $\spatialmean(z)$ denotes the mean (center of mass) of $\phi_z$.
 	}
 	\label{fig:batches_and_mdi}
 \end{figure}
 
 We use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applications. The impulse response, $\phi_x$, associated with a point, $x$, is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Then we interpolate translated and scaled versions of these impulse responses to approximate entries of the operator's integral kernel. 
 Picking the batches of points requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} they are computed. Ellipsoid estimates for the supports of all $\phi_x$ are determined a-priori via a moment method that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We are inspired by resolution analysis in seismic imaging, in which
-$\Aop^T$ is applied to a random noise function, and the width of the support $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$~\cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. The moment method that we use estimates the support of $\phi_x$ more accurately than random noise probing in resolution analysis, at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. 
+$\Aop^T$ is applied to a random noise function, and the width of the support $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$~\cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. The moment method that we use estimates the support of $\phi_x$ more accurately than random noise probing in resolution analysis, at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. Adding more batches yields impulse responses at more points, increasing the accuracy of the approximation at the cost of one operator application per batch.
 
 The proposed operator approximation method may be categorized as a PSF method that is loosely based on ``product convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others) in which the convolution kernels are constructed from sampling impulse responses of the operator to scattered point sources:~\cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,EscandeWeiss15,EscandeWeiss22,EscandeWeiss12,FishEtAl96,NagyOleary98,ZhuLiFomelEtAl16}. For background on PC and PSF methods, we recommend the following papers: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. The proposed method improves upon existing PC methods in the following ways: (1) While PC approximations are based on an assumption of local translation invariance, the method we propose is based on a more general assumption we call ``local mean displacement invariance'' (Section~\ref{sec:local_mean_displacement_invariance} and Figure~\ref{fig:mean_displacement_invariance}), which improves the interpolation of the impulse responses. (2) In our previous work~\cite{AlgerEtAl19}, we chose point sources optimally via a sequential adaptive procedure. However, in that work each point source required a separate operator application, making the previous method expensive when a large number of impulse responses is desired. In this paper, we use a new moment method (Section \ref{sec:intromoments}) which permits computation of many impulse responses (e.g., 50) per operator application. (3) The method we propose never evaluates computed impulse responses outside of their domain of definition. This eliminates boundary artifacts which plague conventional PC methods.
 
@@ -122,14 +122,14 @@ The work and memory required to perform these operations for an $\fedim \times \
 \label{sec:hessian}
 
 In distributed parameter inverse problems governed by PDEs, one seeks to infer an unknown spatially varying parameter field from limited observations of a state variable that depends on the parameter implicitly through the solution of a PDE. 
-Conventionally, the inverse problem is formulated using either a deterministic framework~\cite{AsterBorchersThurber18,BanksKunisch89,Vogel02},
+Conventionally, the inverse problem is formulated using either a deterministic framework~\cite{BanksKunisch89,Vogel02},
 or a Bayesian probabilistic framework~\cite{KaipioSomersalo05,Stuart10a,Tarantola05}. In the deterministic framework, one solves an optimization problem to find the parameter that best fits the observations, subject to appropriate regularization~\cite{EnglHankeNeubauer96,Vogel02}. In the probabilistic framework, Bayes' theorem combines the observations with prior information to form a posterior distribution over the space of all possible parameter fields, and computations are performed to extract statistical information about the parameter from this posterior. The Hessian of the objective function with respect to the parameter in the determinstic optimization problem and the Hessian of the negative log posterior in the Bayesian setting are equal or approximately equal under typical noise, regularization, and prior models, so we refer to both of these Hessians as ``the Hessian.'' The Hessian consists of a data misfit term (the \emph{data misfit Hessian}), which depends on a discrepancy between the observations and the associated model predictions, and a regularization or prior term (the \emph{regularization Hessian}) which does not depend on the observations. For more details on the Hessian, see~\cite{Alger19,GhattasWillcox21,VillaPetraGhattas21}. 
 
 Hessian approximations and preconditioners are highly desirable because the Hessian is central to efficient solution of inverse problems in both the deterministic and Bayesian settings. When solving the deterministic optimization problem with Newton-type methods, the Hessian is the coefficient operator for the linear system that must be solved or approximately solved at every Newton iteration. Good Hessian preconditioners reduce the number of iterations required to solve these Newton linear systems with the conjugate gradient method~\cite{Saad03}. In the Bayesian setting, the inverse of the Hessian is the covariance of a local Gaussian approximation of the posterior. This Gaussian distribution can be used directly as an approximation of the posterior, or it can be used as a proposal for Markov chain Monte-Carlo methods for drawing samples from the posterior. For instance, see~\cite{KimEtAl23,PetraEtAl14} and the references therein. 
 
-Owing to the implicit dependence of predicted observations on the parameter, entries of the Hessian are not easily accessible. Rather, the Hessian may be applied to a vector via a computational process that involves solving a pair of forward and adjoint PDEs which are linearizations of the original PDE~\cite{GhattasWillcox21}
+Owing to the implicit dependence of predicted observations on the parameter, entries of the Hessian are not easily accessible. Rather, the Hessian may be applied to a vector via a computational process that involves solving a pair of forward and adjoint PDEs which are linearizations of the original PDE~\cite{GhattasWillcox21,PetraStadler11}.
 %,Gunzburger03}
-. The most popular matrix-free Hessian approximation methods are based on low rank approximation of either the data misfit Hessian, or the data misfit Hessian preconditioned by the regularization Hessian, e.g.,~\cite{BuiEtAl13,CuiEtAl14,FlathEtAl11,PetraEtAl14,SpantiniEtAl15}. Krylov methods such as Lanczos or randomized methods~\cite{Cheng05,HalkoMartinssonTropp11} are typically used to construct these low rank approximations by applying the Hessian to vectors. Using these methods, the required number of Hessian applications (and hence the required number of PDE solves) is proportional to the rank of the low rank approximation. Low rank approximation methods are justified by arguing that the numerical rank of the data misfit Hessian is insensitive to the dimension of the discretized parameter. This means that the required number of PDE solves remains the same as the mesh used to discretize the parameter is refined.
+The most popular matrix-free Hessian approximation methods are based on low rank approximation of either the data misfit Hessian, or the data misfit Hessian preconditioned by the regularization Hessian, e.g.,~\cite{BuiEtAl13,CuiEtAl14,FlathEtAl11,PetraEtAl14,SpantiniEtAl15}. Krylov methods such as Lanczos or randomized methods~\cite{Cheng05,HalkoMartinssonTropp11} are typically used to construct these low rank approximations by applying the Hessian to vectors. Using these methods, the required number of Hessian applications (and hence the required number of PDE solves) is proportional to the rank of the low rank approximation. Low rank approximation methods are justified by arguing that the numerical rank of the data misfit Hessian is insensitive to the dimension of the discretized parameter. This means that the required number of PDE solves remains the same as the mesh used to discretize the parameter is refined.
 However, in many inverse problems of practical interest the numerical rank of the data misfit Hessian, while mesh independent, is still large, which makes it costly to approximate the Hessian using low rank approximation methods~\cite{AmbartsumyanEtAl20,BuiEtAl13,IsaacEtAl15}. 
 
 Examples of inverse problems with high rank data misfit Hessians include large-scale ice sheet inverse problems \cite{Hartland_2023,IsaacEtAl15}, advection dominated advection-diffusion inverse problems~\cite{AkcelikBirosDraganescuEtAl05}\cite[Chapter 5]{Flath13}, high frequency wave propagation inverse problems~\cite{BuiEtAl13}, inverse problems governed by high Reynolds number flows, and more generally, all inverse problems in which the observations highly inform the parameter. The eigenvalues of the data misfit Hessian characterize how informative the data are about components of the parameter in the corresponding eigenvector directions,
@@ -186,7 +186,7 @@ We focus on approximating operators that satisfy the following conditions:
 \begin{enumerate}
 	\item The kernel $\Aker$ is sufficiently regular so that $\phi_x$ is well-defined for all $x\in \Omega$.
 	\item The supports of the impulse responses $\impulseresponse_x$ are contained in localized regions.
-	\item The integral kernel is non-negative in the sense that $$\Aker(y,x) \ge 0$$ for all $(y,x) \in \Omega \times \Omega$.\footnote{Note that having a non-negative integral kernel is different from positive semi-definiteness. The operator $\Aop$ need not be positive semi-definite to use the proposed method, and positive semi-definite operators need not have a non-negative integral kernel.}
+	\item The integral kernel is non-negative\footnote{Note that having a non-negative integral kernel is different from positive semi-definiteness. The operator $\Aop$ need not be positive semi-definite to use the proposed method, and positive semi-definite operators need not have a non-negative integral kernel.} in the sense that $$\Aker(y,x) \ge 0 \quad \text{for all} \quad (y,x) \in \Omega \times \Omega.$$
 \end{enumerate}
 The proposed method may still perform well if these conditions are relaxed slightly. It is acceptable if the support of $\impulseresponse_x$ is not perfectly contained in a localized region, so long as the bulk of the ``mass'' of $\impulseresponse_x$ is contained in a localized region. The integral kernel does not need to be non-negative for all pairs of points $(y,x) \in \Omega \times \Omega$ so long as it is non-negative for the vast majority of pairs of points $(y,x)$, and so long as the negative numbers are comparatively small. If these conditions are violated, the method will incur additional error, and depending on the severity of the violation, the proposed method may fail.
 
@@ -590,8 +590,7 @@ In summary, computing all the necessary ingredients to evaluate kernel entries o
 
 We use the proposed method to approximate the Newton (or Gauss-Newton) Hessians
 in inverse problems governed by PDEs which model steady state ice
-sheet flow~\cite{PetraEtAl12} (Section~\ref{sec:ice}) and transport
-and flow of a contaminant~\cite{PetraStadler11}
+sheet flow~\cite{PetraEtAl12} (Section~\ref{sec:ice}) and advective-diffusive transport of a contaminant~\cite{PetraStadler11}
 (Section~\ref{sec:adv}). These inverse problems are described in detail in their respective sections.
 In both cases, to reconstruct the unknown parameter fields, denoted $q$, the inverse problems are formulated as nonlinear least squares
 optimization problems, whose objective functions consist of a data misfit term
@@ -610,7 +609,7 @@ regularization parameter (which controls the overall strength of the regularizat
 principle~\cite{Vogel02}. 
 
 We solve the ice sheet inverse problem with an inexact Newton preconditioned
-conjugate gradient (PCG) scheme and a globalizing Armijo line search~\cite{NocedalWright99}. The Newton updates,
+conjugate gradient (PCG) scheme and a globalizing Armijo line search~\cite{NocedalWright99}. The Newton search directions,
 $\mathbf{\searchdir}$, are obtained by solving 
 %
 \begin{equation}
@@ -667,17 +666,17 @@ equations,
 \end{subequations}
 %
 %
-The solution to these equations is the pair $(\velocity, \pressure)$, where $\velocity$ is the ice flow velocity field\footnote{We do not use bold to denote vector or tensor fields to avoid confusion with vectors that arise from finite element discretizations, which are already denoted with bold.}, and $\pressure$ is the pressure field. Here, $\basalfriction$ is the unknown logarithmic
+The solution to these equations is the pair $(\velocity, \pressure)$, where $\velocity$ is the ice flow velocity field\footnote{We do not use bold to denote vector or tensor fields to avoid confusion with vectors that arise from finite element discretizations, which are already denoted with bold.} and $\pressure$ is the pressure field. Here, $\basalfriction$ is the unknown logarithmic
 basal friction field (large $\basalfriction$ corresponds to large resistance to sliding) defined on the surface $\Gamma_b$. The quantity $\bodyforce$ is the body force density due to gravity, $\stokesrobincoeff=10^6$ is a Robin boundary condition constant,  $\normalvec$ is the outward unit normal and $\tangentop$ is the tangential projection operator that restricts a vector field to its tangential component along the boundary. 
 We employ a Newtonian constitutive law, $\stress(v, p)= 2\eta
 \dot{\strain}(v) -I\pressure$,
 where $\stress$ is the stress tensor and
 $\dot{\strain}(v)= \frac{1}{2}\left(
-\nabla\velocity+\nabla\velocity^{\top} \right)$ is the strain rate tensor~\cite{Glen1955}. Here $\eta$ is the viscosity and $I$ is the identity operator. 
+\nabla\velocity+\nabla\velocity^{\top} \right)$ is the strain rate tensor~\cite{IsaacEtAl15}. Here $\eta$ is the viscosity and $I$ is the identity operator. 
 %Glen's exponent has been chosen to be one, which provides for a linear Stokes model. 
 Note that while the PDE is linear, the parameter-to-solution map, $\basalfriction \mapsto (\velocity, \pressure)$, is nonlinear.
 
-The pressure, $\pressure$, is discretized with first order scalar continuous Galerkin finite elements defined on a mesh of tetrahedra. The velocity, $\velocity$, is discretized with second order continuous Galerkin finite elements on the same mesh. The parameter $\basalfriction$ is discretized with first order scalar continuous Galerkin finite elements on the mesh of triangles that results from restricting the tetrahedral mesh to the basal boundary, $\Gamma_b$. Note that $\Gamma_b$ is a two-dimensional surface embedded in three dimensions due to the mountain topography. We also generate a flattened version of $\Gamma_b$, denoted by $\Omega \subset \mathbb{R}^2$, by ignoring the height coordinate\footnote{The proposed PSF method requires translating impulse responses. This requires either a flat domain, or a notion of local parallel transport.}. The parameter $\basalfriction$ is viewed as a function on $\Gamma_b$ for the purpose of solving the Stokes equations, and as a function on $\Omega$ for the purpose of building Hessian approximations and defining the regularization. 
+The pressure, $\pressure$, is discretized with first order scalar continuous Galerkin finite elements defined on a mesh of tetrahedra. The velocity, $\velocity$, is discretized with second order continuous Galerkin finite elements on the same mesh. The parameter $\basalfriction$ is discretized with first order scalar continuous Galerkin finite elements on the mesh of triangles that results from restricting the tetrahedral mesh to the basal boundary, $\Gamma_b$. Note that $\Gamma_b$ is a two-dimensional surface embedded in three dimensions due to the mountain topography. The proposed PSF method involves translating impulse responses. Hence it requires either a flat domain, or a notion of local parallel transport. We therefore generate a flattened version of $\Gamma_b$, denoted by $\Omega \subset \mathbb{R}^2$, by ignoring the height coordinate. The parameter $\basalfriction$ is viewed as a function on $\Gamma_b$ for the purpose of solving the Stokes equations, and as a function on $\Omega$ for the purpose of building Hessian approximations and defining the regularization.
 %This flattening is necessary because our operator approximation method requires adding points on this surface together to get other points on the surface, and this is only well-defined in flat space. 
 The observations are generated by adding multiplicative
 Gaussian noise to the tangential component of the velocity field
@@ -722,7 +721,7 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 	\begin{subfigure}{0.32\textwidth}
 	\includegraphics[scale=0.17]{mstar_0.01noise_cropped.png}
     \end{subfigure}
-	\caption{(Ice sheet) The log basal friction parameter, with color scale as in Figure~\ref{fig:true_beta}, computed from the PDE-constrained optimization problem with noise levels: $25\%$ (left), $5.0\%$ (middle), and $1.0\%$ (right).}
+	\caption{(Ice sheet) The log basal friction parameter, with color scale as in Figure~\ref{fig:true_beta}, computed from the PDE constrained optimization problem with noise levels: $25\%$ (left), $5.0\%$ (middle), and $1.0\%$ (right).}
 	\label{fig:stokes_reconstructions} 
 \end{figure} 
 
@@ -784,7 +783,11 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 			\endgroup
 		\end{center}
 	}
-	\caption{(Ice sheet) Convergence history for solving the Stokes inverse problem using inexact Newton PCG. The Newton iteration is terminated when $||\mathbf{g}|| < 10^{-6} ||\mathbf{g}_0||$, where $\mathbf{g}$ is the gradient at the current iteration, and $\mathbf{g}_0$ is the gradient at the initial guess. Preconditioners shown are the proposed PSF method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns titled \#CG show the number of PCG iterations used to solve the Newton system for $\mathbf{\widehat{\basalfriction}}$. Columns titled $\|\mathbf{g}\|$ show the $l^2$ norm of the gradient at $\mathbf{\basalfriction}$. Columns titled \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. This consists of Stokes solves performed during the line search to arrive at the current iterate from the previous iterate, plus one adjoint Stokes solve to compute the gradient at the current iterate, plus two Stokes solves per PCG iteration when solving the Newton system to compute the next search direction. Under PSF (5) and in row Iter 3, we write $6+22$ to indicate that $6$ Stokes solves were used during the standard course of the iteration, and $22$ Stokes solves were used to build the PSF (5) preconditioner.}
+	\caption{(Ice sheet) Convergence history for solving the Stokes inverse problem using inexact Newton PCG to tolerance $10^{-6}$. 
+%	The Newton iteration is terminated when $||\mathbf{g}|| < 10^{-6} ||\mathbf{g}_0||$, where $\mathbf{g}$ is the gradient at the current iteration, and $\mathbf{g}_0$ is the gradient at the initial guess. 
+	Preconditioners shown are the proposed PSF method with five batches (PSF (5)) constructed at the third iteration, regularization preconditioning (REG), and no preconditioning (NONE). Columns \#CG show the number of PCG iterations used to solve the Newton system for $\mathbf{\widehat{\basalfriction}}$. Columns $\|\mathbf{g}\|$ show the $l^2$ norm of the gradient at $\mathbf{\basalfriction}$. Columns \#Stokes show the total number of Stokes PDE solves performed in each Newton iteration. 
+%	This consists of Stokes solves performed during the line search to arrive at the current iterate from the previous iterate, plus one adjoint Stokes solve to compute the gradient at the current iterate, plus two Stokes solves per PCG iteration when solving the Newton system to compute the next search direction.
+	Under PSF (5) and in row Iter 3, we write $6+22$ to indicate that $6$ Stokes solves were used during the standard course of the iteration, and $22$ Stokes solves were used to build the PSF (5) preconditioner.}
 	\label{tab:newton_convergence_table}
 \end{table}
 
@@ -802,7 +805,7 @@ Table~\ref{tab:newton_convergence_table} shows the performance of the preconditi
 	\end{center}
     \end{subfigure}
 	\caption{(Ice sheet) Left: convergence history for solving $\mathbf{H} \mathbf{x} = \mathbf{b}$ using PCG, where $\mathbf{b}$ has i.i.d.\ random entries drawn from the standard Gaussian distribution and $\mathbf{H}$ is evaluated at the solution of the inverse problem. 
-	Results in these figures are shown for the PSF-based preconditioners with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\mathbf{H}_\text{gn}$.
+	Results in these figures are shown for the PSF-based preconditioners with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\mathbf{H}_\text{gn}$.
 	Right: generalized eigenvalues for generalized eigenvalue problem $\mathbf{H} \mathbf{u}_{k}=\lambda_{k} \mathbf{\preconditioner} \mathbf{u}_{k}$. Here $\mathbf{H}$ is the Hessian and $\mathbf{\preconditioner}$ is the PSF approximation constructed using the Gauss-Newton Hessian, $\mathbf{H}_\text{gn}$, for 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
 	\label{fig:krylov_convergence}
 \end{figure} 
@@ -815,11 +818,11 @@ $
 $ 
 The matrix $\mathbf{\preconditioner}$ is one of the PSF (1), PSF (5), or PSF (25) Gauss-Newton Hessian approximations, the regularization Hessian (REG), or the identity matrix (NONE). With the PSF-based preconditioners, the generalized eigenvalues cluster near one, with more batches yielding better clustering. 
 
-In Table~\ref{tab:condition_number}, we show the condition number of the preconditioned Hessian for a variety of noise levels ranging from $1\%$ to $25\%$. Note that the condition number using PSF-based preconditioners is extremely small (ranging between 1 and 10) and relatively stable over this range of noise levels. As expected, PSF (25) outperforms PSF (5), which outperforms PSF (1). All PSF-based preconditioners outperform no preconditioning and regularization preconditioning by several orders of magnitude for all noise levels. 
+In Table~\ref{tab:condition_number}, we show the condition number of the preconditioned Hessian for noise levels ranging from $1\%$ to $25\%$. Note that the condition number using PSF-based preconditioners is extremely small (ranging between 1 and 10) and relatively stable over this range of noise levels. As expected, PSF (25) outperforms PSF (5), which outperforms PSF (1). All PSF-based preconditioners outperform regularization and no preconditioning by several orders of magnitude for all noise levels. 
 
 \begin{table}
 	\begin{center}
-			{\footnotesize
+			{\small
 			\begingroup
 			\setlength{\tabcolsep}{4pt}
 			\renewcommand{\arraystretch}{1.25}
@@ -835,22 +838,22 @@ In Table~\ref{tab:condition_number}, we show the condition number of the precond
 			\endgroup
 			}
 		\end{center}
-	\caption{(Ice sheet) Condition number for $\mathbf{\preconditioner}^{-1} \mathbf{H}$ for the PSF-based preconditioners with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), no preconditioner (NONE) and regularization (REG). All operators are evaluated at the soutions of the inverse problems for 
+	\caption{(Ice sheet) Condition number for $\mathbf{\preconditioner}^{-1} \mathbf{H}$ for the PSF-based preconditioners with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), no preconditioner (NONE) and regularization (REG). All operators are evaluated at the soutions of the inverse problems for 
 	their respective noise levels.}
 	\label{tab:condition_number}
 \end{table}
 
 
 
-\subsection{Example 2: Inversion for the initial condition in a diffusive transport problem}
+\subsection{Example 2: Inversion for the initial condition in an advective-diffusive transport problem}
 \label{sec:adv}
 
 Here we consider a time-dependent advection-diffusion equation in
 which we seek to infer the unknown spatially varying initial condition, $\ipar$, from noisy observation of the full state  
 at a final time, $T$. This PDE
-models diffusive transport in a domain $\advdomain \subset \R^d$, which is
+models advective-diffusive transport in a domain $\advdomain \subset \R^d$, which is
 depicted in Figure~\ref{fig:adv_inversion1}. In this case, the state, $\concentration(x,t)$, could be interpreted as the concentration of a contaminant. The problem description
-below closely follows the one in~\cite{PetraStadler11}. The domain
+below closely follows~\cite{PetraStadler11,VillaPetraGhattas21}. The domain
 boundaries $\partial \advdomain$ include the outer boundaries as well as the
 internal boundaries of the rectangles, which represent buildings.  The
 parameter-to-observable map $\iFF$ in this case maps an initial
@@ -869,7 +872,7 @@ final time.  The velocity field, $v:\advdomain \rightarrow \mathbb{R}^d$, is com
 steady-state Navier-Stokes equations for a two dimensional flow with
 Reynolds number 50, with boundary conditions $v(x)=(0,1)$ on the left boundary, $v(x)=(0,-1)$ on the right boundary, and $v(x)=(0,0)$ on the top and bottom boundaries, as in~\cite[Section 3]{PetraStadler11}. We use a checkerboard image for the initial condition (Figure~\ref{fig:adv_initial_condition}) and add $5\%$ multiplicative noise to generate synthetic observations at the final time, $T$. The initial condition, velocity field, noisy observations, and reconstructed initial condition are shown in Figure~\ref{fig:adv_inversion1}. We use $\kappa=3.2$e${-1}$ and $T=1.0$ for all results, except for Table \ref{tab:adv_convergence} and Figure~\ref{tbl:adv_vary_kappa_tf} where we vary $\kappa$ and $T$.
 
-In Table~\ref{tab:adv_convergence} we show the number of PCG iterations, $j$, required to solve the Newton linear system to a relative error tolerance of $\|\widehat{\mathbf{q}} - \widehat{\mathbf{q}}_j\| < 10^{-6} \|\widehat{\mathbf{q}}\|$. The solution of the Newton system to which we compare, $\widehat{\mathbf{q}}$, is found via another PCG iteration with a relative residual tolerance of $10^{-11}$. We show results for $T$ ranging from $0.5$ to $2.0$ and $\kappa$ ranging from $10^{-4}$ to $10^{-3}$ using the PSF-based preconditioners with $1$, $5$, and $25$ batches, regularization preconditioning, and no preconditioning. The results show that PSF-based preconditioning outperforms regularization preconditioning and no preconditioning in all cases except one. The exception is $T=2.0$ and $\kappa=1.0$e${-3}$, in which PSF(1) performs slightly worse than regularization preconditioning but better than no preconditioning. Adding more batches yields better results, and the impact of adding more batches is more pronounced here than in the ice sheet example. For example, in the mid-range values $T=1.0$ and $\kappa=3.2$e${-4}$, PSF(1), PSF(5), and PSF(25) require $1.3\times$, $2.3\times$, and $5.1\times$ fewer PCG iterations, respectively, as compared to no preconditioning, and greater improvements as compared to regularization preconditioning. The PSF preconditioners perform best in the high rank regime where $T$ is small, which makes sense given that short simulation times yield more localized impulse responses (see Figure~\ref{tab:adv_convergence}). For example, for $\kappa=3.2$e${-4}$ using the PSF(5) preconditioner yields 140, 202, and 379 iterations for $T=0.5$, $1.0$, and $2.0$, respectively. The performance of the PSF preconditioners as a function of $\kappa$ does not have as clear of a trend. Reducing $\kappa$ makes the impulse responses thinner and hence easier to fit in batches, but also increases the complexity of the impulse response shapes, which may reduce the accuracy of the RBF interpolation. The greatest improvements are seen for $T=0.5$ and $\kappa=1$e${-3}$, for which PSF(25) requires roughly $10\times$ fewer PCG iterations than no preconditioning, and roughly $20\times$ fewer iterations than regularization preconditioning.
+In Table~\ref{tab:adv_convergence} we show the number of PCG iterations, $j$, required to solve the Newton linear system to a relative error tolerance of $\|\widehat{\mathbf{q}} - \widehat{\mathbf{q}}_j\| < 10^{-6} \|\widehat{\mathbf{q}}\|$. The solution of the Newton system to which we compare, $\widehat{\mathbf{q}}$, is found via another PCG iteration with a relative residual tolerance of $10^{-11}$. We show results for $T$ ranging from $0.5$ to $2.0$ and $\kappa$ ranging from $10^{-4}$ to $10^{-3}$ using the PSF-based preconditioners with $1$, $5$, and $25$ batches, regularization preconditioning, and no preconditioning. The results show that PSF-based preconditioning outperforms regularization preconditioning and no preconditioning in all cases except one. The exception is $T=2.0$ and $\kappa=1.0$e${-3}$, in which PSF (1) performs slightly worse than regularization preconditioning but better than no preconditioning. Adding more batches yields better results, and the impact of adding more batches is more pronounced here than in the ice sheet example. For example, in the mid-range values $T=1.0$ and $\kappa=3.2$e${-4}$, PSF (1), PSF (5), and PSF (25) require $1.3\times$, $2.3\times$, and $5.1\times$ fewer PCG iterations, respectively, as compared to no preconditioning, and greater improvements as compared to regularization preconditioning. The PSF preconditioners perform best in the high rank regime where $T$ is small, which makes sense given that short simulation times yield more localized impulse responses (see Figure~\ref{tab:adv_convergence}). For example, for $\kappa=3.2$e${-4}$ using the PSF (5) preconditioner yields 140, 202, and 379 iterations for $T=0.5$, $1.0$, and $2.0$, respectively. The performance of the PSF preconditioners as a function of $\kappa$ does not have as clear of a trend. Reducing $\kappa$ makes the impulse responses thinner and hence easier to fit in batches, but also increases the complexity of the impulse response shapes, which may reduce the accuracy of the RBF interpolation. The greatest improvements are seen for $T=0.5$ and $\kappa=1$e${-3}$, for which PSF (25) requires roughly $10\times$ and $20\times$ fewer PCG iterations than no preconditioning and regularization preconditioning, respectively.
 
 In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG for solving $\mathbf{H}\mathbf{x}=\mathbf{b}$, where $\mathbf{b}$ has i.i.d.\ random entries drawn from a standard Gaussian distribution. The preconditioners used, $\widetilde{\mathbf{H}}$, are the PSF-based preconditioners with $1$, $5$, or $25$ batches, the regularization Hessian, and the identity matrix (i.e., no preconditioning). The results show that PCG converges fastest with the PSF-based preconditioners, with more batches yielding faster convergence. In Figure~\ref{fig:adv_krylov_convergence} (right), we show the eigenvalues for the generalized eigenvalue problem $\mathbf{H}\mathbf{u}=\lambda \widetilde{\mathbf{H}}\mathbf{u}$, where the $\widetilde{\mathbf{H}}$ are the preconditioners stated above. With the PSF-based preconditioners the eigenvalues cluster near one, and more batches yields better clustering. With the regularization preconditioner the trailing eigenvalues cluster near one, while the leading eigenvalues are amplified.
 
@@ -904,13 +907,13 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 				\label{fig:adv_reconstruction}
 	\end{subfigure}
 	\end{center}
-	\caption{(Diffusive transport) (\ref{fig:adv_initial_condition}) True initial condition. (\ref{fig:adv_velocity}) Velocity field. Color indicates magnitude of velocity vector. (\ref{fig:adv_observations}) Noisy observations of concentration at final time. (\ref{fig:adv_reconstruction}) Reconstructed initial condition.}
+	\caption{(Advective-diffusive transport) (\ref{fig:adv_initial_condition}) True initial condition. (\ref{fig:adv_velocity}) Velocity field. Color indicates magnitude of velocity vector. (\ref{fig:adv_observations}) Noisy observations of concentration at final time. (\ref{fig:adv_reconstruction}) Reconstructed initial condition.}
 	\label{fig:adv_inversion1} 
 \end{figure} 
 
 \begin{table}
 	\begin{center}
-		{\footnotesize
+		{\small
 		\begingroup
 		\setlength{\tabcolsep}{8pt}
 		\renewcommand{\arraystretch}{1.0}
@@ -938,7 +941,7 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 		\endgroup
 		}
 	\end{center}
-	\caption{(Diffusive transport) Number of PCG iterations required to solve the Newton linear system to tolerance $||\widehat{\mathbf{q}}_j - \widehat{\mathbf{q}}|| < 10^{-6}||\widehat{\mathbf{q}}||$, where $\widehat{\mathbf{q}}_j$ is the $j$th iterate, and $\widehat{\mathbf{q}}$ is the solution of the Newton linear system. Iteration counts are shown for a variety of different diffusion parameters $\kappa$, simulation times $T$, and preconditioners.}
+	\caption{(Advective-diffusive transport) Number of PCG iterations required to solve the Newton linear system to tolerance $||\widehat{\mathbf{q}}_j - \widehat{\mathbf{q}}|| < 10^{-6}||\widehat{\mathbf{q}}||$, where $\widehat{\mathbf{q}}_j$ is the $j$th iterate, and $\widehat{\mathbf{q}}$ is the solution of the Newton linear system. Iteration counts are shown for a variety of different diffusion parameters $\kappa$, simulation times $T$, and preconditioners.}
 	\label{tab:adv_convergence}
 \end{table}
 
@@ -961,7 +964,7 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 			& \includegraphics[scale=0.12, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-3.png}
 		\end{tabular}
 	}
-	\caption{(Diffusive transport) Impulse responses for small and large diffusion parameters $\kappa$ and simulation times $T$.}
+	\caption{(Advective-diffusive transport) Impulse responses for small and large diffusion parameters $\kappa$ and simulation times $T$.}
 	\label{tbl:adv_vary_kappa_tf}
 \end{figure}
 
@@ -975,7 +978,7 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 		\centering
 		\includegraphics[scale=0.9]{adv_geigs_figure.pdf}
 	\end{subfigure}
-	\caption{(Diffusive transport) Left: convergence history for solving $\mathbf{H} \mathbf{x} = \mathbf{b}$ using PCG, where $\mathbf{b}$ has i.i.d.\ random entries drawn from the standard Gaussian distribution. Right: generalized eigenvalues for generalized eigenvalue problem $\mathbf{H} \mathbf{u}_{k}=\lambda_{k} \mathbf{\preconditioner} \mathbf{u}_{k}$. Here $\mathbf{H}$ is the Hessian and the preconditioner, $\mathbf{\preconditioner}$, is the PSF approximation for 1, 5, or 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
+	\caption{(Advective-diffusive transport) Left: convergence history for solving $\mathbf{H} \mathbf{x} = \mathbf{b}$ using PCG, where $\mathbf{b}$ has i.i.d.\ random entries drawn from the standard Gaussian distribution. Right: generalized eigenvalues for generalized eigenvalue problem $\mathbf{H} \mathbf{u}_{k}=\lambda_{k} \mathbf{\preconditioner} \mathbf{u}_{k}$. Here $\mathbf{H}$ is the Hessian and the preconditioner, $\mathbf{\preconditioner}$, is the PSF approximation for 1, 5, or 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
 	\label{fig:adv_krylov_convergence}
 \end{figure} 
 
@@ -983,7 +986,7 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 \section{Conclusions}
 \label{sec:conclusions}
 
-We presented an efficient matrix-free PSF method for approximating operators with locally supported non-negative integral kernels. The method requires access to the operator only via application of the operator to a small number of vectors. The idea of the method is to compute batches of impulse responses by applying the operator to Dirac combs of scattered point sources, then interpolate these impulse responses to approximate entries of the operator's integral kernel. The interpolation is based on a new principle we call ``local mean displacement invariance,'' which generalizes classical local translation invariance. The ability to quickly approximate arbitrary integral kernel entries permits us to form an H-matrix approximation of the operator. Fast H-matrix arithmetic is then used to perform further linear algebra operations that cannot be performed easily with the original operator, such as matrix factorization and inversion. The supports of the impulse responses are estimated to be contained in ellipsoids, which are determined a-priori via a moment method that involves applying the operator to a small number of polynomial functions. Point source locations for the impulse response batches are chosen using a greedy ellipsoid packing procedure, in which we choose as many impulse responses per batch as possible, while ensuring that the corresponding ellipsoids do not overlap. We applied the method to approximate the Gauss-Newton Hessians in an ice sheet flow inverse problem governed by the Stokes PDE, and a diffusive transport inverse problem governed by an advection-diffusion PDE. We saw that preconditioners based on the proposed approximation cluster the eigenvalues of the preconditioned Hessian near one, and allow us to solve the inverse problems using roughly $5\times$--$10\times$ fewer PDE solves. 
+We presented an efficient matrix-free PSF method for approximating operators with locally supported non-negative integral kernels. The method requires access to the operator only via application of the operator to a small number of vectors. The idea of the method is to compute batches of impulse responses by applying the operator to Dirac combs of scattered point sources, then interpolate these impulse responses to approximate entries of the operator's integral kernel. The interpolation is based on a new principle we call ``local mean displacement invariance,'' which generalizes classical local translation invariance. The ability to quickly approximate arbitrary integral kernel entries permits us to form an H-matrix approximation of the operator. Fast H-matrix arithmetic is then used to perform further linear algebra operations that cannot be performed easily with the original operator, such as matrix factorization and inversion. The supports of the impulse responses are estimated to be contained in ellipsoids, which are determined a-priori via a moment method that involves applying the operator to a small number of polynomial functions. Point source locations for the impulse response batches are chosen using a greedy ellipsoid packing procedure, in which we choose as many impulse responses per batch as possible, while ensuring that the corresponding ellipsoids do not overlap. We applied the method to approximate the Gauss-Newton Hessians in an ice sheet flow inverse problem governed by a linear Stokes PDE, and an advective-diffusive transport inverse problem governed by an advection-diffusion PDE. We saw that preconditioners based on the proposed approximation cluster the eigenvalues of the preconditioned Hessian near one, and allow us to solve the inverse problems using roughly $5\times$--$10\times$ fewer PDE solves. 
 For larger domains with more observations, the rank of the data misfit Hessian will increase, while the locality of impulse responses will remain the same. Hence, we expect the speedup will be even greater for such problems. Although the method we presented is not applicable to all Hessians, it is applicable to many Hessians of practical interest. For these Hessians, the proposed method offers a \emph{data scalable} alternative to conventional low rank approximation, due to the ability to form high rank approximations of an operator using a small number of operator applications, and thus PDE solves.
 
 
