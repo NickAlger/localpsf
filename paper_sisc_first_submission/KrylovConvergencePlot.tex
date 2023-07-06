@@ -1,0 +1,27 @@
+\begin{figure}[H]
+\begin{center} 
+\begin{tikzpicture}[baseline, trim axis right]
+\begin{axis}[width=0.99\textwidth, height=0.75\textwidth,
+            ymode=log,
+            ymin=1e-11,
+            ymax=2,
+            xmax=750,
+            xtick={0, 100, 200, 300, 400, 500, 600, 700},
+            xlabel={$k$, CG iteration},
+            ylabel={$||r_{k}||_{2}/||r_{0}||_{2}$, relative residual norm},
+			legend pos=north east,
+]
+\addlegendentry{None}
+\addplot[dash dot, line width=0.5mm] table {cg_relres_none.dat};
+\addlegendentry{Reg}
+\addplot[dotted, line width=0.5mm] table {cg_relres_reg.dat};
+\addlegendentry{PSF (1)}
+\addplot[blue, line width=0.5mm] table {cg_relres_p1.dat};
+\addlegendentry{PSF (5)}
+\addplot[red, line width=0.5mm] table {cg_relres_p5.dat};
+\addlegendentry{PSF (25)}
+\addplot[purple, line width=0.5mm] table {cg_relres_p25.dat};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\end{figure}
