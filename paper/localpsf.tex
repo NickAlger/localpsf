@@ -53,7 +53,7 @@
 
 % REQUIRED
 \begin{keywords}
- 	data scalability, Hessian, hierarchical matrix, matrix-free, operator approximation, PDE constrained inverse problems, point spread function, product convolution, local translation invariance, impulse response, moment methods, high-rank
+ 	data scalability, Hessian, hierarchical matrix, high-rank, impulse response, local translation invariance, matrix-free, moment methods, operator approximation, PDE constrained inverse problems, point spread function, product convolution  
 \end{keywords}
 
 % REQUIRED
@@ -129,7 +129,7 @@ In distributed parameter inverse problems governed by PDEs, one seeks to infer a
 Conventionally, the inverse problem is formulated using either a deterministic framework~\cite{AsterBorchersThurber18,BanksKunisch89,Vogel02},
 or a Bayesian probabilistic framework~\cite{KaipioSomersalo05,Stuart10a,Tarantola05}. In the deterministic framework, one solves an optimization problem to find the parameter that best fits the observations, subject to appropriate regularization~\cite{EnglHankeNeubauer96,Vogel02}. In the probabilistic framework, Bayes' theorem combines the observations with prior information to form a posterior distribution over the space of all possible parameter fields, and computations are performed to extract statistical information about the parameter from this posterior. The Hessian of the objective function with respect to the parameter in the determinstic optimization problem and the Hessian of the negative log posterior in the Bayesian setting are equal or approximately equal under typical noise, regularization, and prior models, so we refer to both of these Hessians as ``the Hessian.'' The Hessian consists of a data misfit term (the \emph{data misfit Hessian}), which depends on a discrepancy between the observations and the associated model predictions, and a regularization or prior term (the \emph{regularization Hessian}) which does not depend on the observations. For more details on the Hessian, see~\cite{Alger19,GhattasWillcox21,VillaPetraGhattas21}. 
 
-Hessian approximations and preconditioners are highly desirable because the Hessian is central to efficient solution of inverse problems in both the deterministic and Bayesian settings. When solving the deterministic optimization problem with Newton-type methods, the Hessian is the coefficient operator for the linear system that must be solved or approximately solved at every Newton iteration. Good Hessian preconditioners reduce the number of iterations required to solve these Newton linear systems with the conjugate gradient method~\cite{Saad03}. In the Bayesian setting, the inverse of the Hessian is the covariance of a local Gaussian approximation of the posterior. This Gaussian distribution can be used directly as an approximation of the posterior, or it can be used as a proposal for Markov chain Monte-Carlo methods for drawing samples from the posterior. For instance, see~\cite{KimEtAl21,PetraEtAl14} and the references therein. 
+Hessian approximations and preconditioners are highly desirable because the Hessian is central to efficient solution of inverse problems in both the deterministic and Bayesian settings. When solving the deterministic optimization problem with Newton-type methods, the Hessian is the coefficient operator for the linear system that must be solved or approximately solved at every Newton iteration. Good Hessian preconditioners reduce the number of iterations required to solve these Newton linear systems with the conjugate gradient method~\cite{Saad03}. In the Bayesian setting, the inverse of the Hessian is the covariance of a local Gaussian approximation of the posterior. This Gaussian distribution can be used directly as an approximation of the posterior, or it can be used as a proposal for Markov chain Monte-Carlo methods for drawing samples from the posterior. For instance, see~\cite{KimEtAl23,PetraEtAl14} and the references therein. 
 
 Owing to the implicit dependence of predicted observations on the parameter, entries of the Hessian are not easily accessible. Rather, the Hessian may be applied to a vector via a computational process that involves solving a pair of forward and adjoint PDEs which are linearizations of the original PDE~\cite{GhattasWillcox21}
 %,Gunzburger03}
@@ -596,8 +596,8 @@ We use the proposed method to approximate the Newton (or Gauss-Newton) Hessians
 in inverse problems governed by PDEs which model steady state ice
 sheet flow~\cite{PetraEtAl12} (Section~\ref{sec:ice}) and transport
 and flow of a contaminant~\cite{PetraStadler11}
-(Section~\ref{sec:adv}). These inverse problems are described in Sections~\ref{sec:ice} and~\ref{sec:adv}, respectively.
-To reconstruct the unknown parameter fields, denoted $q$, the inverse problems are formulated as nonlinear least squares
+(Section~\ref{sec:adv}). These inverse problems are described in detail in their respective sections.
+In both cases, to reconstruct the unknown parameter fields, denoted $q$, the inverse problems are formulated as nonlinear least squares
 optimization problems, whose objective functions consist of a data misfit term
 (between the observations and model output) and a bi-Laplacian
 regularization term following~\cite{VillaPetraGhattas21}. The
