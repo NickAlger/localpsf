@@ -78,13 +78,13 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 \begin{figure}
 	\begin{subfigure}{0.49\textwidth}
 		\centering
-		\includegraphics[scale=0.4]{impulse_batch1.png}
+		\includegraphics[scale=0.3]{impulse_batch1.png}
 		\caption{One impulse response batch}
 		\label{fig:batches_intro}
 	\end{subfigure}
 	\begin{subfigure}{0.49\textwidth}
 		\centering
-		\includegraphics[scale=0.8]{mean_displacement_invariance.pdf}
+		\includegraphics[scale=0.7]{mean_displacement_invariance.pdf}
 		\caption{Local mean displacement invariance}
 		\label{fig:mean_displacement_invariance}
 	\end{subfigure}
@@ -632,7 +632,7 @@ approximations are indicated by ``PSF ($\nbatch$)'', where $\nbatch$ is the numb
 stiffness and mass matrices, which are sparse. Therefore, we form
 H-matrix representations of these matrices and combine them into a H-matrix approximation of the regularization term in the Hessian, $\mathbf{R}_H$, using
 standard sparse H-matrix techniques. Then, H-matrix approximations of the Gauss-Newton Hessian, 
-$$\mathbf{H}_\text{gn}\approx \widetilde{\mathbf{H}}:=\mathbf{A}_H + \mathbf{R}_H,$$
+$\mathbf{H}_\text{gn}\approx \widetilde{\mathbf{H}}:=\mathbf{A}_H + \mathbf{R}_H$,
 are formed by adding $\mathbf{A}_H$ to $\mathbf{R}_H$ using fast H-matrix arithmetic. We modify $\widetilde{\mathbf{H}}$ to be (approximately) symmetric positive semi-definite via the procedure described in Section~\ref{sec:flip_eigs}. We factor $\mathbf{\preconditioner}$
 using fast H-matrix methods, then use the factorization as a
 preconditioner. We approximate $\mathbf{H}_\text{gn}$ rather than $\mathbf{H}$ because $\mathbf{H}$ more often has negative values in its integral kernel. The numerical results show that~$\widetilde{\mathbf{H}}$ is a good preconditioner for both~$\mathbf{H}_\text{gn}$ and~$\mathbf{H}$. 
@@ -688,18 +688,18 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 	\begin{center} 
     \begin{subfigure}{0.99\textwidth}
     \begin{center} 
-	\includegraphics[scale=0.23]{meshHeight_view2_edges.png}
+	\includegraphics[scale=0.2]{meshHeight_view2_edges.png}
 	\end{center}
 	\caption{Ice sheet model geometry}
 	\label{fig:ice_mountain_mesh}
     \end{subfigure} \\
 	\begin{subfigure}{0.49\textwidth}
-		\includegraphics[scale=0.22]{mtrue_withColorBar.png}
+		\includegraphics[scale=0.2]{mtrue_withColorBar.png}
 		\caption{$\basalfriction_\text{true}$}
 		\label{fig:true_beta}
 	\end{subfigure}
 	\begin{subfigure}{0.49\textwidth}
-		\includegraphics[scale=0.22]{trueVelocity2_glyphs.png}
+		\includegraphics[scale=0.2]{trueVelocity2_glyphs.png}
 		\caption{$\velocity_\text{true}$}
 		\label{fig:stokes_velocity}
 	\end{subfigure}
@@ -713,20 +713,20 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 
 \begin{figure}
 	\begin{subfigure}{0.32\textwidth}
-		\includegraphics[scale=0.20]{mstar_0.25noise_cropped.png}
+		\includegraphics[scale=0.17]{mstar_0.25noise_cropped.png}
 	\end{subfigure}
 	\begin{subfigure}{0.32\textwidth}
-		\includegraphics[scale=0.20]{mstar_0.05noise_cropped.png}
+		\includegraphics[scale=0.17]{mstar_0.05noise_cropped.png}
 	\end{subfigure}
 	\begin{subfigure}{0.32\textwidth}
-	\includegraphics[scale=0.20]{mstar_0.01noise_cropped.png}
+	\includegraphics[scale=0.17]{mstar_0.01noise_cropped.png}
     \end{subfigure}
 	\caption{(Ice sheet) The log basal friction parameter, with color scale as in Figure~\ref{fig:true_beta}, computed from the PDE-constrained optimization problem with noise levels: $25\%$ (left), $5.0\%$ (middle), and $1.0\%$ (right).}
 	\label{fig:stokes_reconstructions} 
 \end{figure} 
 
 \begin{table}
-	{\small
+	{\footnotesize
 		\begin{center}
 			\begingroup
 			\setlength{\tabcolsep}{3pt}
@@ -787,17 +787,17 @@ solving~\eqref{Stokeseqn}, are shown in Figure~\ref{fig:true_beta_u}.
 	\label{tab:newton_convergence_table}
 \end{table}
 
-Table~\ref{tab:newton_convergence_table} shows the performance of the preconditioner for accelerating the solution of the optimization problem to reconstruct $\mathbf{q}$ from observations with $5\%$ noise. We build the PSF (5) preconditioner in the third Gauss-Newton iteration, and reuse it for all subsequent Gauss-Newton and Newton iterations. No preconditioning is used in the Gauss-Newton iterations before the PSF (5) preconditioner is built. We compare the proposed method with the most commonly used existing preconditioners: no preconditioning (NONE), and preconditioning by the regularization term in the Hessian (REG). The results show that using PSF (5) reduces the total number of Stokes PDE solves to 70, as compared to 908 for regularization preconditioning and 308 for no preconditioning. In Figure~\ref{fig:stokes_reconstructions} we show reconstructions for $1\%$, $5\%$, and $25\%$ noise.
+Table~\ref{tab:newton_convergence_table} shows the performance of the preconditioner for accelerating the solution of the optimization problem to reconstruct $\mathbf{q}$ from observations with $5\%$ noise. We build the PSF (5) preconditioner in the third Gauss-Newton iteration, and reuse it for all subsequent Gauss-Newton and Newton iterations. No preconditioning is used in the iterations before the PSF (5) preconditioner is built. We compare the proposed method with the most commonly used existing preconditioners: no preconditioning (NONE), and preconditioning by the regularization term in the Hessian (REG). The results show that using PSF (5) reduces the total number of Stokes PDE solves to 70, as compared to 908 for regularization preconditioning and 308 for no preconditioning. In Figure~\ref{fig:stokes_reconstructions} we show reconstructions for $1\%$, $5\%$, and $25\%$ noise.
 %
 %
 \begin{figure}
 	\begin{subfigure}{0.52\textwidth}
 		\centering
-		\includegraphics[scale=1.0]{stokes_pcg_convergence.pdf}
+		\includegraphics[scale=0.9]{stokes_pcg_convergence.pdf}
 	\end{subfigure}
 	\begin{subfigure}{0.47\textwidth}
 	\begin{center}
-		\includegraphics[scale=1.0]{stokes_geigs_figure.pdf}
+		\includegraphics[scale=0.9]{stokes_geigs_figure.pdf}
 	\end{center}
     \end{subfigure}
 	\caption{(Ice sheet) Left: convergence history for solving $\mathbf{H} \mathbf{x} = \mathbf{b}$ using PCG, where $\mathbf{b}$ has i.i.d.\ random entries drawn from the standard Gaussian distribution and $\mathbf{H}$ is evaluated at the solution of the inverse problem. 
@@ -818,6 +818,7 @@ In Table~\ref{tab:condition_number}, we show the condition number of the precond
 
 \begin{table}
 	\begin{center}
+			{\footnotesize
 			\begingroup
 			\setlength{\tabcolsep}{4pt}
 			\renewcommand{\arraystretch}{1.25}
@@ -831,6 +832,7 @@ In Table~\ref{tab:condition_number}, we show the condition number of the precond
 				$1.0\%$  & 5.36e+5 & 1.61e+3  & 7.17e+1   & 1.93e+1   & 9.19e+0    \\   
 			\end{tabular}
 			\endgroup
+			}
 		\end{center}
 	\caption{(Ice sheet) Condition number for $\mathbf{\preconditioner}^{-1} \mathbf{H}$ for the PSF-based preconditioners with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF(25), respectively), no preconditioner (NONE) and regularization (REG). All operators are evaluated at the soutions of the inverse problems for 
 	their respective noise levels.}
@@ -874,28 +876,28 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 	\begin{center}
 	\begin{subfigure}{0.24\textwidth}
 		\begin{center}
-		\includegraphics[scale=0.14]{true_initial_condition.png}
+		\includegraphics[scale=0.12]{true_initial_condition.png}
 	\end{center}
 				\caption{True $q$}
 				\label{fig:adv_initial_condition}
 	\end{subfigure}
 	\begin{subfigure}{0.24\textwidth}
 		\begin{center}
-		\includegraphics[scale=0.14]{wind_velocity_colorscheme3.png}
+		\includegraphics[scale=0.12]{wind_velocity_colorscheme3.png}
 		\end{center}
 				\caption{$v$}
 				\label{fig:adv_velocity}
 	\end{subfigure}
 	\begin{subfigure}{0.24\textwidth}
 		\begin{center}
-		\includegraphics[scale=0.14]{noisy_observations_T1.0_K3.2e-4.png}
+		\includegraphics[scale=0.12]{noisy_observations_T1.0_K3.2e-4.png}
 		\end{center}
 				\caption{Noisy observations}
 				\label{fig:adv_observations}
 	\end{subfigure}
 	\begin{subfigure}{0.24\textwidth}
 		\begin{center}
-		\includegraphics[scale=0.14]{reconstructed_initial_condition_T1.0_K3.2e-4.png}
+		\includegraphics[scale=0.12]{reconstructed_initial_condition_T1.0_K3.2e-4.png}
 		\end{center}
 				\caption{Reconstructed $q$}
 				\label{fig:adv_reconstruction}
@@ -907,6 +909,7 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 
 \begin{table}
 	\begin{center}
+		{\footnotesize
 		\begingroup
 		\setlength{\tabcolsep}{8pt}
 		\renewcommand{\arraystretch}{1.0}
@@ -932,6 +935,7 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 			& 1.0e-3    & 349 & 786  & 381   & 262   & 158    \\ 
 		\end{tabular}
 		\endgroup
+		}
 	\end{center}
 	\caption{(Diffusive transport) Number of PCG iterations required to solve the Newton linear system to tolerance $||\widehat{\mathbf{q}}_j - \widehat{\mathbf{q}}|| < 10^{-6}||\widehat{\mathbf{q}}||$, where $\widehat{\mathbf{q}}_j$ is the $j$th iterate, and $\widehat{\mathbf{q}}$ is the solution of the Newton linear system. Iteration counts are shown for a variety of different diffusion parameters $\kappa$, simulation times $T$, and preconditioners.}
 	\label{tab:adv_convergence}
@@ -947,13 +951,13 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 			& $T=0.5$ 
 %			& $T=1.0$ 
 			& $T=2.0$ \\
-			$\kappa=1.0$e${-4}$  & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-4.png} 
+			$\kappa=1.0$e${-4}$  & \includegraphics[scale=0.12, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-4.png} 
 %			& \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-4.png}
-			& \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-4.png} \\
+			& \includegraphics[scale=0.12, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-4.png} \\
 %			$\kappa=3.2$e${-4}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K3.2e-4.png} & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K3.2e-4.png} \\
-			$\kappa=1.0$e${-3}$ & \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-3.png} 
+			$\kappa=1.0$e${-3}$ & \includegraphics[scale=0.12, valign=c]{impulse_response_P(0.3,0.6)_T0.5_K1.e-3.png} 
 %			& \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T1.0_K1.e-3.png} 
-			& \includegraphics[scale=0.15, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-3.png}
+			& \includegraphics[scale=0.12, valign=c]{impulse_response_P(0.3,0.6)_T2.0_K1.e-3.png}
 		\end{tabular}
 	}
 	\caption{(Diffusive transport) Impulse responses for small and large diffusion parameters $\kappa$ and simulation times $T$.}
@@ -964,11 +968,11 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 \begin{figure}
 	\begin{subfigure}{0.52\textwidth}
 		\centering
-		\includegraphics[scale=1.0]{adv_pcg_convergence.pdf}
+		\includegraphics[scale=0.9]{adv_pcg_convergence.pdf}
 	\end{subfigure}
 	\begin{subfigure}{0.47\textwidth}
 		\centering
-		\includegraphics[scale=1.0]{adv_geigs_figure.pdf}
+		\includegraphics[scale=0.9]{adv_geigs_figure.pdf}
 	\end{subfigure}
 	\caption{(Diffusive transport) Left: convergence history for solving $\mathbf{H} \mathbf{x} = \mathbf{b}$ using PCG, where $\mathbf{b}$ has i.i.d.\ random entries drawn from the standard Gaussian distribution. Right: generalized eigenvalues for generalized eigenvalue problem $\mathbf{H} \mathbf{u}_{k}=\lambda_{k} \mathbf{\preconditioner} \mathbf{u}_{k}$. Here $\mathbf{H}$ is the Hessian and the preconditioner, $\mathbf{\preconditioner}$, is the PSF approximation for 1, 5, or 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
 	\label{fig:adv_krylov_convergence}
