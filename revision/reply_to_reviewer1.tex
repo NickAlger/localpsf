@@ -33,7 +33,7 @@
 
 \begin{document}
 
-\section*{Reply to the Reviewer 2:}
+\section*{Reply to the Reviewer 1:}
 
 Thanks for the careful reading and for your helpful comments and
 suggestions.  Please find below point-by-point replies (in black) to
@@ -42,216 +42,110 @@ an overview of all the changes in the paper, we also provide a
 diff-document that highlights the changes between the initial
 submission and this re-submission.\\[1ex]
 
-\referee{This article addresses an important topic in large-to-extreme-scale inverse problems. Namely, efficient approximation of the Hessian of the negative-log of the posterior in Bayesian inversion.
-Specifically, this work explores utilizing hierarchical off-diagonal low-rank (HODLR) matrix approximations of the Hessian.
-The idea is clearly presented and the manuscript is well-written, however, I believe some---I would say minor---adjustments are required before recommending acceptance for publications.
-Please see my comments below. \\}
+\referee{Many Hessian-based computational algorithms have been
+  developed to solve large-scale inverse problems constrained by
+  partial differential equations (PDEs) in the last decade, especially
+  in the context of inferring infinite-dimensional
+  parameters. However, it remains a critical computational challenge
+  to solve such inverse problems when the Hessian of the data-misfit
+  term does not have fast spectrum decay, or the Hessian is
+  high-rank. This challenge often leads to the need to solve a
+  considerable number of PDEs in many (preconditioned) CG iterations
+  with an inexact Newton-CG algorithm, one of the most advanced
+  optimization algorithms in solving infinite-dimensional inverse
+  problems.\\}
 
-\paragraph{\sc General Comments:}
+  \referee{To address this challenge, this paper proposes an
+  efficient preconditioned CG method with the preconditioner computed
+  as an approximate Hessian at some suitable parameter point, which is
+  demonstrated to significantly reduce the number of required CG
+  iterations to achieve given accuracy. The key novelty of this paper
+  is the development of an efficient hierarchical matrix approximation
+  of the Hessian using only a small number of Hessian matrix-vector
+  products, thus a small number of PDE solves. This novelty is made
+  possible by exploiting the property of the Hessian operator with
+  locally supported non-negative integral kernels. Specifically, the
+  authors propose a point spread function (PSF) approximation of the
+  Hessian by (1) computing the zeroth, first, and second-order
+  impulse response moments of the Hessian by applying its product with
+  constant, linear, and quadratic functions, (2) building local
+  ellipsoid support es- timate of the impulse response functions of
+  the Hessian based on these moments, (3) selecting sample points of
+  the impulse response from a candidate set by a greedy ellipsoid
+  packing algorithm, (4) computing the impulse responses with disjoint
+  ellipsoid in batches by applying the Hessian to Dirac combs, which
+  plays a key role in reducing the total number of Hessian
+  matrix-vector product, (5) approximating any integral kernel entries
+  by a radial basis interpolation based on the computed impulse
+  responses, and (6) building the hierarchical matrix approximation of
+  the Hessian with the radial basis interpolation of the integral
+  kernel entries before applying proper symmetrizing and flipping of
+  the negative eigenvalues to make the approximate matrix symmetric
+  positive semi-definite.\\}
+
+\referee{The PSF approximation in this paper is built for more general
+  operators than Hessian. It demonstrates the effectiveness of the
+  PSF-based method by 1 using it to build preconditioners for the
+  Hessian operator in two challenging inverse problems of basal
+  friction coefficient inversion of ice sheet flow and ini- tial
+  condition inversion of advection-dominated transport. It shows
+  significant reductions (5-10X) in the required number of PDE solves
+  compared to classical regularization-based preconditioning and no
+  preconditioning. The paper also presents a comprehensive numerical
+  study on the influence of various parameters (data noises, \# batchs,
+  diffusion coefficients, terminal times) on the effective- ness and
+  data-scalability of the proposed method, showing that the PSF-based
+  preconditioners can form good approximations of high-rank Hessians
+  using only a small number of operator applications.  The proposed
+  method is very interesting and makes a great contribution to solving
+  large-scale inverse problems with high-rank Hessians. The
+  presentation of the proposed method is concise and illustrative. The
+  numerical results are very convincing. Overall, the paper is very
+  well written.\\}
+
+\paragraph{General Comments:}
+
+\referee{I recommend to accept the paper for publication with minor
+  revisions. I suggest the authors properly address the following
+  questions to help for its better understanding and broader
+  applications.\\}
 
 \begin{enumerate} 
-\item \referee{I do not think the terms ``Gaussianization, Gaussianized, ...'' are properly utilized in this work. The term Gaussianization has been actively used, especially in the machine learning literature, to refer to transformation of non-Gaussian data/variable in to a Gaussian. This requires finding a map/transformation between the original distribution and a Gaussian, e.g., an optimal transport, or normalizing flows. The authors, however, use these terms to denote approximating a non-Gaussian distribution with a localized Gaussian, e.g., following a Laplacian approach.}
+\item \referee{The author mentioned one limitation of the proposed method:
+      the Hessian should have a local non-negative integral kernel,
+      which is not satisfied for wave inverse problems that lead to a
+      substantial amount of negative entries of the Hessian. It would
+      be interesting if the author could elaborate more details with
+      intuition or numerical evidence for this property and the
+      limitation, especially if you also use Gauss-Newton approximate
+      Hessian for the wave inverse problems as in this paper.}
 
-\noindent{We appreciate drawing our attention to the fact that our usage of ``Gaussianization, Gaussianized...'', would be unclear to many readers. We have updated our usage to ``the Laplace approximation of the posterior''.}
+\noindent{To do.}
 
-\item \referee{Re: Algorithm 2 (page 22); it would be great to discuss how $r_1, \ldots, r_{L}$ can be auto tuned. What metric can be used to automatically choose the optimal value of $L$ and then choose the rank for each level automatically.}
+\item \referee{It is interesting to see the effectiveness of the
+  approximate Hessian used as a preconditioner. It would also be very
+  interesting to see how accurate the approximate Hessian is compared
+  to a full Hessian in terms of the number of batches, ellipsoid
+  sizes, and in particular the total number of impulse responses. Can
+  you say anything about the convergence of the approximation, either
+  numerical or theoretical?}
 
-\noindent{Done, with regard to choosing the ranks $r_{1},\dots,r_{L}$. We are not aware of an automatic way to choose the optimal value of $L$ but have described the components that we believe could be used to develop such means.}
+  \noindent{To do.}
+
+ \item \referee{The paper presented a nice complexity analysis of the steps in
+    constructing the approximate Hessian, with the dominating cost
+    arising from the Hessian matrix-vector product. It would be
+    interesting to see the computational time of each step for the
+    numerical examples to provide a good sense of the complexity and
+    to support the 5-10X computational reduction by accounting also
+    the overhead beyond the PDE solves.}
+
+   \noindent{To do.}
+   
 \end{enumerate} 
 
-\paragraph{\sc Other comments:}
-\begin{enumerate}
-\item  \referee{Page 1, Line 25: ``approximation of Hessian applies...''; Hessian of what?}
-
-\noindent{We now use the more descriptive ``discretized objective functional Hessian vector-products''.}
-
-\item \referee{Page 1, Line 28--31: statement too long, maybe try splitting!}
-
-\noindent{Done.}
-
-\item \referee{Page 1, Line 29: ``sampling from Gaussian proposal distributions'' $\rightarrow$ ``sampling Gaussian distributions''.}
-
-\noindent{We have not used the exact suggested text since the sentence phrasing has been changed. We believe that ``...that provide a means to sample Gaussian distributions...'', is as close to the suggested rephrasing but which maintains consistency with the new sentence structure.}
-
-\item \referee{Page 1, Line 30: I am not sure I understand what the authors mean by ``Newton solves by direct linear methods''!}
-
-\noindent{We had intended to describe methods such as LU factorization, which is known as a direct method of linear system solution. We hope that by referencing a relevant factorization that the message intended to be communicated is now made more clear.}
-
-\item \referee{Page 1, Line 46: ``to inverse problems'' ``with inverse problems''.}
-
-\noindent{Done, thanks!}
-
-\item \referee{Page 2, Line 7: simulation... systems plays'' $\rightarrow$ ``simulations ... systems play''.}
-
-\noindent{Done.}
-
-\item \referee{Page 3, Line 17: ``generate approximate samples from a Gaussian posterior distribution for...'' $\rightarrow$ ``generate samples from an approximate Gaussian posterior for...''}
-
-\noindent{Done, but we have kept ``Gaussian posterior distribution for...''}
-
-\item \referee{Page 3, Line 22: ``including for a Greenland ice...'' $\rightarrow$ ``including a Greenland ice...''}
-
-\noindent{Done.}
-
-\item \referee{Page 3, Line 28: Add a reference; ``In this section,'' $\rightarrow$ ``In this section (2.1),''}
-
-\noindent{Done, but with the capitalization scheme used throughout the manuscript, ``In this Section (2.1),''}
-
-\item \referee{Page 3, line 44: Remove ``i.e., the data,'' as it is redundant.}
-
-\noindent{Done. We have added an additional sentence in which we explicitly state that we will later refer to $\bs{d}$ as the data instead of the more verbose observational data.}
-
-\item \referee{Page 3, Line 46--47: ``and mathematically'' $\rightarrow$ ``and is mathematically''}
-
-\noindent{Done.}
-
-\item \referee{Page 4, Lines 12--13: The authors use the term ``parameter-to-PDE-solution map'' which has not been introduced. Only the combined ``parameter-to-observable map'' has been introduced on line $10$ above. I suggest being consistent and either explicitly decompose the parameter-to-observable-map into a solution operator (solution-to-PDE-solution) and an observation operator, or just restrict usage to ``parameter-to-observable-map''. Either one or both of the solution operator and the observation operator can be nonlinear and each is associated with its own difficulties.}
-
-\noindent{Done. We have restricted usage to the ``parameter-to-observable map''.}
-
-\item \referee{Page 4, Line 27: ``it's gradient'' $\rightarrow$ ``its gradient''}
-
-\noindent{Done.}
-
-\item \referee{Page 4, Lines 28--33: This paragraph requires some
-  modification. If you can well-approximate the posterior you do not
-  necessarily need MCMC; you can even use naive MC by applying MH step
-  to samples from this Gaussian. MCMC does not generally require
-  approximating the posterior with a Gaussian, however sampling a
-  Gaussian approximation can be useful. For example in Hamiltonian
-  Monte Carlo (HMC), samples from a Gaussian approximation can be used
-  to build a mass matrix that optimizes the performance of the
-  sampler; diagonal of the mass matrix are optimally set to posterior
-  precisions (or approximations thereof). See e.g., reference
-  \cite{neal2011mcmc, attia2017reduced}.}
-
-\noindent{We agree with the reviewer, but our experience is that using
-  MCMC is still superior to using MH (or importance sampling)
-  directly, in particular in high dimensions.  We adjusted this
-  paragraph in the revised manuscript.}
-  
-%\todo{Georg, please see if you you'd like to add or change anything here.}
-
-\item \referee{Page 4, Line 38: define $_{\ell_{2}}$ presented in the previous equation}
-
-\noindent{This item has been addressed by removing any usage of $_{\ell_{2}}$.}
-
-\item \referee{Page 5, Line 38: Maybe redefine paragraph titles to add a period at the end; ``Compression'' $\rightarrow$ ``Compression.''}
-
-\noindent{Done.}
-
-\item \referee{Page 5, Line 50: replace the comma with a semicolon.}
-
-\noindent{Done.}
-
-\item \referee{Page 5, Line 60: ``algorithm is made possible''; where? add a reference/citation here!}
-
-\noindent{Done.}
-
-\item \referee{Page 6, Line 5: a period is missing after ``Approximations''}
-
-\noindent{Done.}
-
-\item \referee{Page 6, Line 6: hereafter use a different symbol for the number of oversampling vectors as $\bs{d}$ has been utilized to denote the data, despite being boldface.}
-
-\noindent{Done. We are now using the symbol $q$ to denote the number of oversampling vectors.}
-
-\item \referee{Page 6, Lines 24--30: this sentence is too long; try splitting.}
-
-\noindent{We have reformulated this sentence.}
-
-\item \referee{Page 7, Line 40: the term data-misfit Hessian has already been introduced before; remove ``i.e., the Hessian ... functional'' as it is redundant.}
-
-\noindent{Done.}
-
-\item \referee{Page 7, Line 44: remove ``of it''}
-
-\noindent{Done.}
-
-\item \referee{Page 8, Line 40: ``basis function'' $\rightarrow$ ``basis functions''}
-
-\noindent{Done.}
-
-\item \referee{Page 8, Line 51: please see my comment above about using the term ``Gaussianized''}
-
-\noindent{Noted and addressed.}
-
-\item \referee{Page 9, Line 22: I am not sure what ``means of applying'' here means!}
-
-\noindent{We have clarified the vague ``means of applying'' with ``means of computing square root and inverse square root matrix-vector products.}
-
-\item \referee{Page 9, Lines 33--40: this paragraph is redundant. This material/argument has already been introduced in Section 2.1.}
-
-\noindent{We believe that this material is important as it helps show how the example problem fits into the larger class of inverse problems, therefore we decided to keep it here.}
-
-%\todo{I (Tucker) believe that this argument could be strengthened.}
-
-\item \referee{Page 9, Line 49: ``can mathematically'' $\rightarrow$ ``can be mathematically''}
-
-\noindent{Done.}
-
-\item \referee{Page 10 I suggest using subequations for the model Equations (6)--(9)}
-
-Done.
-
-\item \referee{Page 10, Lines 16--19, 22, 43: in reference to model equations, use $\backslash$eqref instead of $\backslash$ref}
-	
-Done.
-
-\item \referee{Page 11, Line 5: see my comment above about using the term ``Gaussianizaiton''. I will not comment on this hereafter.}
-
-\noindent{Noted and addressed.}	
-
-\item \referee{Page 11, Lines 21, 28: use $\backslash$eqref in reference to model equations.}
-
-Done.
-
-\item \referee{Page 11, Line 31: ``add $1\%$ relative Gaussian noise...'': $1\%$ of what? mean true observation magnitude, $\ell_{\infty}$, ...etc.; please clarify!}
-
-\noindent{Done.}
-
-\item \referee{Page 11, Line 57: I do not believe ``approximate samples'' is a correct terminology. I suggest using ``samples from the approximate posterior''.}
-
-\noindent{This has been addressed.}
-
-\item \referee{Page 12, Figure 3 caption: something is not quite right here. The caption states that circles show representative (random measurement locations), however, lines 29-30 on page 11 say that observations are uniformly distributed. What am I missing here? }
-
-\noindent{The figure has been adjusted so that the measurement locations are now illustrated as being uniformly distributed.}
-
-\item \referee{Page 14, Line 57: there is an extra comma after ``more data''}
-
-\noindent{Done.}
-
-\item \referee{Page 15, Figure 7 caption (line 21): ``low-rank (LR)'' $\rightarrow$ ``LR'' as the acronym has already been introduced; same on line 24 of the same caption: ``low-rank'' $\rightarrow$ ``LR'' }
-
-\noindent{Done.}
-
-\item \referee{Page 15, Figure 8 caption: same as the comment above on using ``LR''}
-
-\noindent{Done.}
-
-\item \referee{Page 16, Line 5: remove the comma after ``Albany'', and remove ``so-called''}
-
-\noindent{Done.}
-
-\item \referee{Page 16, Line 30: use $\backslash$eqref in reference to Equation (3)}
-
-Done.
-
-\item \referee{Page 20, Line 29: remove the comma before ``associated to finite...''}
-
-\noindent{Done.}
-
-\item \referee{Page 23, Line  5: ``low-rank'' $\rightarrow$ ``LR'' }
-
-\noindent{Done.}
-
-\end{enumerate}
 %\bibliographystyle{unsrt}
-\bibliographystyle{iopart-num}
-\bibliography{reviewer2_references}
+%\bibliographystyle{iopart-num}
+%\bibliography{reviewer2_references}
 
-%\noindent [1]- Neal, Radford M. "MCMC using Hamiltonian dynamics." Handbook of markov chain monte carlo 2, no. 11 (2011): 2.
-
-%\noindent [2]- Attia, Ahmed, Razvan Stefanescu, and Adrian Sandu. "The reduced-order hybrid Monte Carlo sampling smoother." International Journal for Numerical Methods in Fluids 83, no. 1 (2017): 28-51.
 \end{document}
