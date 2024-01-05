@@ -1,0 +1,19 @@
+Dear Authors,
+
+We have received two reviews on your paper. A 'minor revision' is recommended. I recommend that you thoroughly address the questions raised by the reviewers and submit the paper back within two months.
+
+
+
+
+Referee #2 (Remarks to the Author):
+See attached.
+
+Referee #2 (Remarks to the Author):
+
+I have read the paper with pleasure and have the following suggestions for improvement:
+
+- Interesting work, generally well-written. Perhaps a small illustrative example with a few figures at the beginning could help understand the procedure intuitively
+- possibly interesting references for estimating Hessians in linearised seismic imaging include: https://doi.org/10.1016/j.acha.2007.06.007, https://doi.org/10.1190/1.2836323
+- How about comparison with other methods, like those proposed in [7],[52]? and you say a bit more? it is hard to conclude that your method will always outperform these methods.
+- Perhaps it is illustrative to include some 1D blurring examples to illustrate robustness of method to departure from assumptions (positivity, locality) e.g. on 'indefinite' kernels or kernels with multiple modes.
+- is code for applying the developed methods on other inverse problems available?
