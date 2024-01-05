@@ -1,0 +1,52 @@
+\documentclass{standalone}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{amsmath}
+
+% SIAM Shared Information Template
+% This is information that is shared between the main document and any
+% supplement. If no supplement is required, then this information can
+% be included directly in the main document.
+
+
+% Packages and macros go here
+\usepackage{lipsum}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{amsmath}
+\usepackage{subcaption}
+\usepackage{pgfplots}
+\usepackage{bm}
+
+
+\begin{document}
+			\begin{tikzpicture}[baseline]%, trim axis right]
+			\begin{axis}[width=0.49\linewidth, height=0.5\linewidth,
+	ymode=log,
+	ymin=1e-13,
+	ymax=2,
+	xmax=750,
+	axis x line*=bottom,
+	axis y line*=left,
+	xtick={0, 200, 400, 600},
+	title={CG convergence},
+	xlabel={$j$, CG iteration},
+	ylabel={$\|\bm{x}_j-\bm{x}\|/\|\bm{x}\|$},
+	legend style={at={(1.2,1)},anchor=north east,draw=none},
+	%legend pos=north east,
+	legend style={font=\small}
+	]
+	\addlegendentry{REG}		
+	\addplot[dotted, line width=0.5mm] table {Stokes_cg_rand_errs_reg_0.05noise.dat};
+	\addlegendentry{NONE}
+	\addplot[dash dot, line width=0.5mm] table {Stokes_cg_rand_errs_none_0.05noise.dat};
+	\addlegendentry{PSF (1)}
+	\addplot[blue, line width=0.5mm] table {Stokes_cg_rand_errs_psf1_0.05noise.dat};
+	\addlegendentry{PSF (5)}
+	\addplot[red, line width=0.5mm] table {Stokes_cg_rand_errs_psf5_0.05noise.dat};
+	\addlegendentry{PSF (25)}
+	\addplot[purple, line width=0.5mm] table {Stokes_cg_rand_errs_psf25_0.05noise.dat};
+	\end{axis}
+	\end{tikzpicture}
+\end{document}
