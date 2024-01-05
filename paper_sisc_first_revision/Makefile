@@ -17,7 +17,7 @@ $(FILE).pdf: $(FILE).tex $(BIBS)
 	pdflatex $(FILE)
 
 clean:
-	rm -f  $(FILE).pdf $(FILE).aux $(FILE).cb2 $(FILE).bbl $(FILE).blg $(FILE).log $(FILE).out $(FILE).toc $(FILE).ind $(FILE).ilg $(FILE).cb $(FILE).idx $(FILE).dvi $(FILE).ps *~
+	rm -f  $(FILE).aux $(FILE).cb2 $(FILE).bbl $(FILE).blg $(FILE).log $(FILE).out $(FILE).toc $(FILE).ind $(FILE).ilg $(FILE).cb $(FILE).idx $(FILE).dvi $(FILE).ps *~
 
 diff:
 	latexdiff $(FILE)_submitted.tex $(FILE).tex > $(FILE)_diff.tex
