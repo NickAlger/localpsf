@@ -16,8 +16,9 @@ import scipy.linalg as sla
 import scipy.sparse.linalg as spla
 import scipy.sparse as sps
 
-save_data = True
-save_figures = True
+save_data = False
+save_figures = False
+save_dense_misfit_and_regularization_Hessian = True
 
 stokes_base_dir = get_project_root() / 'numerical_examples' / 'stokes'
 
@@ -165,6 +166,11 @@ if use_dense:
     ee_reg0, _ = sla.eigh(H_dense - R_dense, R_dense)
     ee_reg = ee_reg0[-num_eigs:]
     abs_ee_reg = np.abs(ee_reg)[::-1]
+
+    if save_dense_misfit_and_regularization_Hessian:
+        np.savetxt(str(save_dir) + '/H_dense.dat', H_dense)
+        np.savetxt(str(save_dir) + '/R_dense.dat', R_dense)
+
 else:
     Rinv_linop = spla.LinearOperator((StokesIP.N, StokesIP.N), matvec = lambda x: StokesIP.apply_Rinv_numpy(x))
 
