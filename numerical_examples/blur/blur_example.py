@@ -4,6 +4,7 @@ import dolfin as dl
 import localpsf.localpsf_cg1_lumped as lpsf1
 import scipy.linalg as sla
 
+save_figures = False
 
 nx = 63
 ny = 63
@@ -24,7 +25,16 @@ def ricker(
     assert(Sigma.shape == (2, 2))
     assert(mu.shape == (2,))
 
-    pp = xx - mu.reshape((1,2))
+    rotation_center = np.array([0.5, 0.5])
+    radial_vector = (mu - rotation_center)
+    theta = 4.0 * np.arctan(radial_vector[1] / radial_vector[0])
+    # xprime = (mu - rotation_center) / np.linalg.norm(mu - rotation_center)
+    # yprime = np.array([xprime[1], -xprime[0]])
+    # Rot_matrix = np.vstack([xprime, yprime]).T
+    # theta = (np.pi / 2.0) * mu[0] * mu[1]
+    Rot_matrix = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+
+    pp = (xx - mu.reshape((1,2))) @ Rot_matrix.T #@ Rot_matrix.T
     inv_Sigma = np.linalg.inv(Sigma)
     t_squared_over_sigma_squared = np.einsum('ai,ai->a', pp, np.einsum('ij,aj->ai', inv_Sigma, pp))
     G = vol / (2.0 * np.pi * np.sqrt(np.linalg.det(Sigma))) * np.exp(-0.5 * t_squared_over_sigma_squared)
@@ -65,48 +75,75 @@ for ii in range(Vh.dim()):
     Ker[:,ii] = ricker(dof_coords, vol, dof_coords[ii,:], Sigma, a)
 
 
-p1 = np.array([0.2, 0.55])
-p2 = np.array([0.5, 0.65])
+# p1 = np.array([0.2, 0.55])
+# p2 = np.array([0.5, 0.65])
+# pp = [p1, p2]
+pp = [
+    np.array([0.2, 0.2]),
+    np.array([0.2, 0.4]),
+    np.array([0.2, 0.6]),
+    np.array([0.2, 0.8]),
+    np.array([0.4, 0.2]),
+    np.array([0.4, 0.4]),
+    np.array([0.4, 0.6]),
+    np.array([0.4, 0.8]),
+    np.array([0.6, 0.2]),
+    np.array([0.6, 0.4]),
+    np.array([0.6, 0.6]),
+    np.array([0.6, 0.8]),
+    np.array([0.8, 0.2]),
+    np.array([0.8, 0.4]),
+    np.array([0.8, 0.6]),
+    np.array([0.8, 0.8]),
+]
 
-ii1 = np.argmin(np.linalg.norm(dof_coords - p1.reshape((1,-1)), axis=1))
-ii2 = np.argmin(np.linalg.norm(dof_coords - p2.reshape((1,-1)), axis=1))
-
-# ii1=713
-# ii2=2404
 plt.matshow(Ker, cmap='binary')
-# plt.plot([ii1, ii1], [0, Ker.shape[0]], 'k', linestyle=(0,(1,1)))
-plt.plot([ii1, ii1], [0, Ker.shape[0]], 'k', linestyle='dotted')
-plt.plot([ii2, ii2], [0, Ker.shape[0]], 'k', linestyle='dotted')
 plt.ylim([Ker.shape[0], 0])
 plt.gca().set_xticks([])
 plt.gca().set_yticks([])
-plt.savefig('frog_kernel_matrix_a1.png', bbox_inches='tight')
+
+for k in range(len(pp)):
+    p = pp[k]
+    ii = np.argmin(np.linalg.norm(dof_coords - p.reshape((1, -1)), axis=1))
+    plt.plot([ii, ii], [0, Ker.shape[0]], 'k', linestyle='dotted')  if save_figures else None
+
+plt.savefig('frog_kernel_matrix_a1.png', bbox_inches='tight', dpi=300)
+
+for k in range(len(pp)):
+    p = pp[k]
+    ii = np.argmin(np.linalg.norm(dof_coords - p.reshape((1, -1)), axis=1))
+    phi = dl.Function(Vh)
+    phi.vector()[:] = Ker[:, ii].copy()
+    plt.figure()
+    cm = dl.plot(phi, cmap='binary')
+    plt.gca().set_xticks([])
+    plt.gca().set_yticks([])
+    plt.savefig('frog_impulse_response' + str(k) + '.png', bbox_inches='tight', dpi=150) if save_figures else None
 
 
-
+raise RuntimeError
+#####
 phi = dl.Function(Vh)
-phi.vector()[:] = Ker[:,ii1].copy()
+phi.vector()[:] = Ker[:,ii].copy()
 plt.figure()
 cm = dl.plot(phi, cmap='binary')
-# plt.plot(dof_coords[ii1,0], dof_coords[ii1,1], 'sk')
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
+plt.savefig('frog_impulse_response' + str(k) +'.png', bbox_inches='tight', dpi=150)
 
 phi = dl.Function(Vh)
 phi.vector()[:] = Ker[:,ii2].copy()
 plt.figure()
 cm = dl.plot(phi, cmap='binary')
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
+plt.savefig('frog_impulse_response2.png', bbox_inches='tight', dpi=150)
 
-phi = dl.Function(Vh)
-phi.vector()[:] = Ker_medium[:,ii2].copy()
-plt.figure()
-cm = dl.plot(phi, cmap='binary')
-# plt.colorbar(cm)
-# plt.title('phi')
-plt.plot(dof_coords[ii2,0], dof_coords[ii2,1], '.r')
 
 mass_lumps = dl.assemble(dl.Constant(1.0) * dl.TestFunction(Vh) * dl.dx)[:].copy()
 
 # H = mass_lumps.reshape((-1, 1)) * Ker_small * mass_lumps.reshape((1, -1))
-H = mass_lumps.reshape((-1, 1)) * Ker_large * mass_lumps.reshape((1, -1))
+H = mass_lumps.reshape((-1, 1)) * Ker * mass_lumps.reshape((1, -1))
 # H = mass_lumps.reshape((-1, 1)) * Ker_medium * mass_lumps.reshape((1, -1))
 
 apply_H = lambda X: H @ X
