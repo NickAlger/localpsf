@@ -36,9 +36,11 @@ def frog_function(
     t_squared_over_sigma_squared = np.einsum('ai,ai->a', pp, np.einsum('ij,aj->ai', inv_Sigma, pp))
     G = vol / (2.0 * np.pi * np.sqrt(np.linalg.det(Sigma))) * np.exp(-0.5 * t_squared_over_sigma_squared)
 
+    V = 2.0 + np.cos(4.0 * np.pi * np.sqrt((mu[0] - 0.5)**2 + (mu[1]-0.5)**2))
+
     cos_x_over_sigma = np.cos(pp[:,0] / (np.sqrt(Sigma[0,0]) / 2.0))
     sin_y_over_sigma = np.sin(pp[:,1] / (np.sqrt(Sigma[1,1]) / 2.0))
-    return (1.0 + a * cos_x_over_sigma * sin_y_over_sigma) * G - 1e-12 # 1e-12: undo hack workaround for hlibpro bug
+    return V * (1.0 + a * cos_x_over_sigma * sin_y_over_sigma) * G
 
 
 length_scaling = 0.5
@@ -90,6 +92,51 @@ psf_object = lpsf1.make_psf_fenics(
     tau = 3.0, display=True,
 )
 
+#### Plot moments
+
+plt.figure(figsize=(4,4))
+dl.plot(psf_object.vol(), cmap='binary', clim=[0.0, None])
+# plt.colorbar(cm)
+# plt.title(r'$V$')
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
+plt.savefig('frog_vol.png', bbox_inches='tight', dpi=400) if save_figures else None
+
+plt.figure(figsize=(4,4))
+cm = dl.plot(psf_object.mu(0), cmap='binary')
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
+plt.savefig('frog_mu0.png', bbox_inches='tight', dpi=400) if save_figures else None
+
+plt.figure(figsize=(4,4))
+dl.plot(psf_object.mu(1), cmap='binary')
+# plt.title(r'$\mu^2$')
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
+plt.savefig('frog_mu1.png', bbox_inches='tight', dpi=400) if save_figures else None
+
+plt.figure(figsize=(4,4))
+dl.plot(psf_object.Sigma(0,0), cmap='binary')
+# plt.title(r'$\Sigma^{11}$')
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
+plt.savefig('frog_Sigma00.png', bbox_inches='tight', dpi=400) if save_figures else None
+
+plt.figure(figsize=(4,4))
+dl.plot(psf_object.Sigma(0,1), cmap='binary')
+# plt.title(r'$\Sigma^{12}$')
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
+plt.savefig('frog_Sigma01.png', bbox_inches='tight', dpi=400) if save_figures else None
+
+plt.figure(figsize=(4,4))
+dl.plot(psf_object.Sigma(1,1), cmap='binary')
+# plt.title(r'$\Sigma^{22}$')
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
+plt.savefig('frog_Sigma11.png', bbox_inches='tight', dpi=400) if save_figures else None
+
+
 #### Plot ellipsoid batches without impulses
 
 bb = [0,1,2]
@@ -140,6 +187,8 @@ for b in bb:
 
     plt.savefig('frog_impulse_batch' + str(b) + '.png', bbox_inches='tight', dpi=400) if save_figures else None
 
+
+raise RuntimeError
 
 #### Plot H-matrix
 
