@@ -98,6 +98,26 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 	\label{fig:batches_and_mdi}
 \end{figure}
 
+
+\begin{figure}
+	\begin{subfigure}[b]{0.49\textwidth}
+		\centering
+		\includegraphics[scale=0.25]{kernel_impulse_illustration.pdf}
+		\caption{Kernel and impulse responses}
+		\label{fig:kernel_impulse_illustration}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.49\textwidth}
+		\centering
+		\includegraphics[scale=0.5]{frog_ellipsoid_width.pdf}
+		\caption{Impulse response support ellipsoid}
+		\label{fig:frog_ellipsoid_width}
+	\end{subfigure}
+
+	\caption{(\ref{fig:kernel_impulse_illustration}) asdf. \ref{fig:frog_ellipsoid_width}) asdf2
+	}
+	\label{fig:frog1}
+\end{figure}
+
 We use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applications. The impulse response, $\phi_x$, associated with a point, $x$, is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Then we interpolate translated and scaled versions of these impulse responses to approximate entries of the operator's integral kernel. 
 Picking the batches of points requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} they are computed. Ellipsoid estimates for the supports of all $\phi_x$ are determined a-priori via a moment method that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We are inspired by resolution analysis in seismic imaging, in which
 $\Aop^T$ is applied to a random noise function, and the width of the support $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$~\cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. The moment method that we use estimates the support of $\phi_x$ more accurately than random noise probing in resolution analysis, at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. Adding more batches yields impulse responses at more points, increasing the accuracy of the approximation at the cost of one operator application per batch.
