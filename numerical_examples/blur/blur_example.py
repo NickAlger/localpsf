@@ -284,8 +284,8 @@ for b in bb:
 
 raise RuntimeError
 
-nx = 49
-length_scaling = 0.25
+nx = 89
+length_scaling = 0.0625
 a = 1.0
 Ker, phi_function, Vh, H, mass_lumps, dof_coords = frog_setup(nx, length_scaling, a)
 
@@ -295,7 +295,7 @@ psf_object = lpsf1.make_psf_fenics(
     Vh, Vh,
     mass_lumps, mass_lumps,
     num_initial_batches=10,#0,
-    tau = 1.0, display=True,
+    tau = 3.0, display=True,
 )
 
 Ker_psf = psf_object.psf_object.psf_kernel.cpp_object.eval_integral_kernel_block(dof_coords.T, dof_coords.T)
