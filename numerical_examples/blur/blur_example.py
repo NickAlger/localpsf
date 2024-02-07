@@ -4,15 +4,11 @@ import matplotlib.gridspec as gridspec
 import dolfin as dl
 import localpsf.localpsf_cg1_lumped as lpsf1
 import scipy.linalg as sla
+from functools import partial
 from nalger_helper_functions import plot_ellipse
+from tqdm.auto import tqdm
 
 save_figures = True
-
-nx = 89
-ny = 89
-mesh = dl.UnitSquareMesh(nx, ny)
-Vh = dl.FunctionSpace(mesh, 'CG', 1)
-dof_coords = Vh.tabulate_dof_coordinates()
 
 # Frog function
 def frog_function(
@@ -35,46 +31,65 @@ def frog_function(
     t_squared_over_sigma_squared = np.einsum('ai,ai->a', pp, np.einsum('ij,aj->ai', inv_Sigma, pp))
     G = vol / (2.0 * np.pi * np.sqrt(np.linalg.det(Sigma))) * np.exp(-0.5 * t_squared_over_sigma_squared)
 
-    # V = 2.0 + np.cos(4.0 * np.pi * np.sqrt((mu[0] - 0.5)**2 + (mu[1]-0.5)**2))
-    #
-    # cos_x_over_sigma = np.cos(pp[:,0] / (np.sqrt(Sigma[0,0]) / 2.0))
-    # sin_y_over_sigma = np.sin(pp[:,1] / (np.sqrt(Sigma[1,1]) / 2.0))
-    # return V * (1.0 + a * cos_x_over_sigma * sin_y_over_sigma) * G
-
     cos_x_over_sigma = np.cos(pp[:,0] / (np.sqrt(Sigma[0,0]) / 2.0))
     sin_y_over_sigma = np.sin(pp[:,1] / (np.sqrt(Sigma[1,1]) / 2.0))
     return (1.0 + a * cos_x_over_sigma * sin_y_over_sigma) * G
 
 
-length_scaling = 1.0 # <--- Tucker: experiment with this
-vol = 1.0
-mu = np.array([0.5, 0.5])
-Sigma = length_scaling * np.array([[0.01, 0.0], [0.0, 0.0025]]) # 0.25*np.array([[0.01, 0.0], [0.0, 0.0025]])
+def frog_setup(
+        nx:             int     = 63,
+        length_scaling: float   = 1.0,
+        a:              float   = 1.0,
+):
+    ny = nx
+    mesh = dl.UnitSquareMesh(nx, ny)
+    Vh = dl.FunctionSpace(mesh, 'CG', 1)
+    dof_coords = Vh.tabulate_dof_coordinates()
+
+    vol = 1.0
+
+    Sigma = length_scaling * np.array([[0.01, 0.0], [0.0, 0.0025]]) # 0.25*np.array([[0.01, 0.0], [0.0, 0.0025]])
+
+    phi_function = lambda yy, x: frog_function(yy, vol, x, Sigma, a)
+
+    Ker = np.zeros((Vh.dim(), Vh.dim()))
+    for ii in range(Vh.dim()):
+        Ker[:,ii] = phi_function(dof_coords, dof_coords[ii,:])
+
+    mass_lumps = dl.assemble(dl.Constant(1.0) * dl.TestFunction(Vh) * dl.dx)[:].copy()
+
+    H = mass_lumps.reshape((-1, 1)) * Ker * mass_lumps.reshape((1, -1))
+
+    return Ker, phi_function, Vh, H, mass_lumps, dof_coords
+
+nearest_ind_func = lambda yy, x: np.argmin(np.linalg.norm(yy - x.reshape((1, -1)), axis=1))
+
+nx = 63
+length_scaling = 1.0
 a = 1.0
+Ker, phi_function, Vh, H, mass_lumps, dof_coords = frog_setup(nx, length_scaling, a)
+dof_coords = Vh.tabulate_dof_coordinates()
 
-rr = frog_function(dof_coords, vol, mu, Sigma, a)
+p = np.array([0.5, 0.5])
 
-f1 = dl.Function(Vh)
-f1.vector()[:] = rr
+frog1 = dl.Function(Vh)
+frog1.vector()[:] = phi_function(dof_coords, p)
 
 num_pts_1d = 500
-coords_1d = np.array([mu[0]*np.ones(num_pts_1d), np.linspace(0, 1, num_pts_1d)]).T # vertical line
+coords_1d = np.array([p[0]*np.ones(num_pts_1d), np.linspace(0, 1, num_pts_1d)]).T # vertical line
 
 plt.figure()
-cm = dl.plot(f1)
-plt.colorbar(cm)
-plt.title('f1')
+cm = dl.plot(frog1, cmap='binary')
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
+plt.title('frog1')
 plt.plot(coords_1d[:,0], coords_1d[:,1], '.r')
 
-rr_1d = frog_function(coords_1d, vol, mu, Sigma, a)
+rr_1d = phi_function(coords_1d, p)
 
 plt.figure()
 plt.plot(rr_1d)
 plt.title('rr_1d')
-
-Ker = np.zeros((Vh.dim(), Vh.dim()))
-for ii in range(Vh.dim()):
-    Ker[:,ii] = frog_function(dof_coords, vol, dof_coords[ii,:], Sigma, a)
 
 
 #### Impulse response grid plot
@@ -89,7 +104,7 @@ gs1 = gridspec.GridSpec(num_pts_x, num_pts_y)
 gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes.
 for k in range(len(pp)):
     p = pp[k]
-    ii = np.argmin(np.linalg.norm(dof_coords - p.reshape((1, -1)), axis=1))
+    ii = nearest_ind_func(dof_coords, p)
     phi = dl.Function(Vh)
     phi.vector()[:] = Ker[:, ii].copy()
     plt.subplot(gs1[k])
@@ -113,7 +128,7 @@ plt.gca().set_yticks([])
 
 for k in range(len(pp)):
     p = pp[k]
-    ii = np.argmin(np.linalg.norm(dof_coords - p.reshape((1, -1)), axis=1))
+    ii = nearest_ind_func(dof_coords, p)
     print('k=', k, ', ii=', ii)
     plt.plot([ii, ii], [0, Ker.shape[0]], 'k', linestyle='dotted', linewidth=2.0)
 
@@ -122,7 +137,7 @@ plt.savefig('frog_kernel_matrix_a1.png', bbox_inches='tight', dpi=400) if save_f
 
 for k in range(len(pp)):
     p = pp[k]
-    ii = np.argmin(np.linalg.norm(dof_coords - p.reshape((1, -1)), axis=1))
+    ii = nearest_ind_func(dof_coords, p)
     phi = dl.Function(Vh)
     phi.vector()[:] = Ker[:, ii].copy()
     plt.figure(figsize=(3.8, 3.8))
@@ -132,20 +147,11 @@ for k in range(len(pp)):
     plt.savefig('frog_impulse_response' + str(k) + '.png', bbox_inches='tight', dpi=400) if save_figures else None
 
 
-####
-
-mass_lumps = dl.assemble(dl.Constant(1.0) * dl.TestFunction(Vh) * dl.dx)[:].copy()
-
-H = mass_lumps.reshape((-1, 1)) * Ker * mass_lumps.reshape((1, -1))
-
-apply_H = lambda X: H @ X
-apply_Ht = lambda X: H.T @ X
-
-verts, cells = lpsf1.mesh_vertices_and_cells_in_CG1_dof_order(Vh)
-Vh_CG1 = lpsf1.CG1Space(verts, cells, mass_lumps)
+#### Create PSF approximation
 
 psf_object = lpsf1.make_psf_fenics(
-    apply_H, apply_Ht,
+    lambda X: H @ X,
+    lambda X: H.T @ X,
     Vh, Vh,
     mass_lumps, mass_lumps,
     tau = 3.0, display=True,
@@ -271,77 +277,52 @@ for b in bb:
 
     plt.savefig('frog_impulse_batch' + str(b) + '.png', bbox_inches='tight', dpi=400) if save_figures else None
 
-# plt.title('Impulse response batch ' + str(b))
 
-# cm = dl.plot(phi)
+#### Compute error as a function of number of batches
 
+nx = 63
+length_scaling = 0.25
+a = 1.0
+Ker, phi_function, Vh, H, mass_lumps, dof_coords = frog_setup(nx, length_scaling, a)
 
+psf_object = lpsf1.make_psf_fenics(
+    lambda X: H @ X,
+    lambda X: H.T @ X,
+    Vh, Vh,
+    mass_lumps, mass_lumps,
+    num_initial_batches=0,
+    tau = 5.0, display=True,
+)
 
-# plt.title('Impulse response batch ' + str(b))
+all_num_batches = []
+all_num_impulses = []
+all_psf_errs = []
+for k in tqdm(range(Ker.shape[1])):
+    if psf_object.psf_object.impulse_response_batches.num_sample_points >= Ker.shape[1]:
+        break
+    psf_object.add_impulse_response_batch()
+    num_batches = psf_object.num_batches
+    num_impulses = psf_object.psf_object.impulse_response_batches.num_sample_points
+    Ker_psf = psf_object.psf_object.psf_kernel.cpp_object.eval_integral_kernel_block(dof_coords.T, dof_coords.T)
+    err_psf = np.linalg.norm(Ker_psf - Ker) / np.linalg.norm(Ker)
+    all_num_batches.append(num_batches)
+    all_num_impulses.append(num_impulses)
+    all_psf_errs.append(err_psf)
+    print('num_batches=', num_batches, ', num_impulses=', num_impulses, ', err_psf=', err_psf)
 
-# cm = dl.plot(phi)
-
-raise RuntimeError
-
-# plt.savefig('frog_impulse_response' + str(k) + '.png', bbox_inches='tight', dpi=400) if save_figures else None
-
-IRB = me.psf_object.impulse_response_batches
-fig = plt.figure()
-
-phi = me.impulse_response_batch(b)
-
-start = IRB.batch2point_start[b]
-stop = IRB.batch2point_stop[b]
-pp = IRB.sample_points[start:stop, :]
-mu_batch = IRB.sample_mu[start:stop, :]
-Sigma_batch = IRB.sample_Sigma[start:stop, :, :]
-
-cm = dl.plot(phi)
-plt.colorbar(cm)
-
-plt.scatter(pp[:, 0], pp[:, 1], c='r', s=2)
-plt.scatter(mu_batch[:, 0], mu_batch[:, 1], c='k', s=2)
-
-for k in range(mu_batch.shape[0]):
-    plot_ellipse(mu_batch[k, :], Sigma_batch[k, :, :], n_std_tau=IRB.tau,
-                 facecolor='none', edgecolor='k', linewidth=1)
-
-plt.title('Impulse response batch ' + str(b))
-
-####
-
-psf_object.visualize_impulse_response_batch(0)
+plt.semilogy(all_num_impulses, all_psf_errs)
 
 plt.figure()
-cm = dl.plot(psf_object.vol())
+ii = nearest_ind_func(dof_coords, np.array([0.5, 0.5]))
+e_func = dl.Function(Vh)
+e_func.vector()[:] = Ker_psf[:,ii] - Ker[:,ii]
+cm = dl.plot(e_func, cmap='binary')
 plt.colorbar(cm)
-plt.title('vol')
 
-plt.figure()
-cm = dl.plot(psf_object.mu(0))
-plt.colorbar(cm)
-plt.title('mu(0)')
+U,ss,Vt = np.linalg.svd(Ker)
 
-plt.figure()
-cm = dl.plot(psf_object.mu(1))
-plt.colorbar(cm)
-plt.title('mu(1)')
+for r in range(1, len(ss)+1):
+err_glr = np.linalg.norm(U[:,:r] @ np.diag(ss[:r]) @ Vt[:r,:] - Ker) / np.linalg.norm(Ker)
+print('err_glr=', err_glr)
 
-plt.figure()
-cm = dl.plot(psf_object.Sigma(0,0))
-plt.colorbar(cm)
-plt.title('Sigma(0,0)')
-
-plt.figure()
-cm = dl.plot(psf_object.Sigma(0,1))
-plt.colorbar(cm)
-plt.title('Sigma(0,1)')
-
-plt.figure()
-cm = dl.plot(psf_object.Sigma(1,1))
-plt.colorbar(cm)
-plt.title('Sigma(1,1)')
-
-####
-
-# Frog example
+U_off, ss_off, Vt_off = np.linalg.svd(Ker[:2048,2048:])
