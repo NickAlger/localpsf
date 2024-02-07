@@ -26,6 +26,8 @@ def frog_function(
     theta = np.pi * (mu[0] + mu[1])
     Rot_matrix = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
 
+    bump = mu[0]*(1 - mu[0])*mu[1]*(1-mu[1])
+
     pp = (xx - mu.reshape((1,2))) @ Rot_matrix.T #@ Rot_matrix.T
     inv_Sigma = np.linalg.inv(Sigma)
     t_squared_over_sigma_squared = np.einsum('ai,ai->a', pp, np.einsum('ij,aj->ai', inv_Sigma, pp))
@@ -33,7 +35,7 @@ def frog_function(
 
     cos_x_over_sigma = np.cos(pp[:,0] / (np.sqrt(Sigma[0,0]) / 2.0))
     sin_y_over_sigma = np.sin(pp[:,1] / (np.sqrt(Sigma[1,1]) / 2.0))
-    return (1.0 + a * cos_x_over_sigma * sin_y_over_sigma) * G
+    return bump * (1.0 + a * cos_x_over_sigma * sin_y_over_sigma) * G
 
 
 def frog_setup(
@@ -280,7 +282,9 @@ for b in bb:
 
 #### Compute error as a function of number of batches
 
-nx = 63
+raise RuntimeError
+
+nx = 49
 length_scaling = 0.25
 a = 1.0
 Ker, phi_function, Vh, H, mass_lumps, dof_coords = frog_setup(nx, length_scaling, a)
@@ -290,9 +294,54 @@ psf_object = lpsf1.make_psf_fenics(
     lambda X: H.T @ X,
     Vh, Vh,
     mass_lumps, mass_lumps,
-    num_initial_batches=0,
-    tau = 5.0, display=True,
+    num_initial_batches=10,#0,
+    tau = 1.0, display=True,
 )
+
+Ker_psf = psf_object.psf_object.psf_kernel.cpp_object.eval_integral_kernel_block(dof_coords.T, dof_coords.T)
+err_psf = np.linalg.norm(Ker_psf - Ker) / np.linalg.norm(Ker)
+print('err_psf=', err_psf)
+
+ker_err_func = dl.Function(Vh)
+ker_err_vec = np.linalg.norm(Ker_psf - Ker, axis=0) / np.linalg.norm(Ker, axis=0)
+# ker_err_vec = np.linalg.norm(Ker_psf - Ker, axis=0) / (np.linalg.norm(Ker) / np.sqrt(Ker.shape[1]))
+ker_err_vec[np.linalg.norm(Ker, axis=0) == 0] = 0.0
+ker_err_func.vector()[:] = ker_err_vec
+# ker_err_func.vector()[:] = ker_err_vec > 0.03
+plt.figure()
+cm = dl.plot(ker_err_func, cmap='binary')
+plt.colorbar(cm)
+sp = psf_object.psf_object.impulse_response_batches.sample_points
+plt.plot(sp[:,0], sp[:,1], '.r')
+plt.title('ker error')
+
+
+raise RuntimeError
+
+ii = nearest_ind_func(dof_coords, np.array([0.5, 0.2]))
+e_func = dl.Function(Vh)
+e_func.vector()[:] = (Ker_psf[:,ii] - Ker[:,ii]).copy()
+plt.figure()
+cm = dl.plot(e_func, cmap='binary')
+plt.colorbar(cm)
+plt.title('phi error')
+
+phi_func = dl.Function(Vh)
+phi_func.vector()[:] = Ker[:,ii].copy()
+plt.figure()
+cm = dl.plot(phi_func, cmap='binary')
+plt.colorbar(cm)
+plt.title('phi')
+
+phi_psf_func = dl.Function(Vh)
+phi_psf_func.vector()[:] = Ker_psf[:,ii].copy()
+plt.figure()
+cm = dl.plot(phi_psf_func, cmap='binary')
+plt.colorbar(cm)
+plt.title('phi psf')
+
+
+raise RuntimeError
 
 all_num_batches = []
 all_num_impulses = []
