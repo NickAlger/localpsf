@@ -307,13 +307,13 @@ Ker_psf = psf_object.psf_object.psf_kernel.cpp_object.eval_integral_kernel_block
 err_psf = np.linalg.norm(Ker_psf - Ker) / np.linalg.norm(Ker)
 print('err_psf=', err_psf)
 
-p0 =  np.array([0.4, 0.4])
+p0 =  np.array([0.6, 0.42])
 ii = nearest_ind_func(dof_coords, p0)
 p = dof_coords[ii,:]
 
 mu_p = np.array([psf_object.mu(0)(p), psf_object.mu(1)(p)])
 
-q0 =  np.array([0.43, 0.48])
+q0 =  np.array([0.56, 0.54])
 jj = nearest_ind_func(dof_coords, q0)
 q = dof_coords[jj,:]
 
@@ -327,21 +327,17 @@ ker_err_vec = np.linalg.norm(Ker_psf - Ker, axis=0) / np.linalg.norm(Ker, axis=0
 ker_err_vec[np.linalg.norm(Ker, axis=0) == 0] = 0.0
 ker_err_func.vector()[:] = ker_err_vec
 # ker_err_func.vector()[:] = ker_err_vec > 0.03
-plt.figure()
 # cm = dl.plot(ker_err_func, cmap='binary')
 # plt.colorbar(cm)
+
+p2 = (0.95)*p + (1.0 - 0.95)*q
+q2 = (1.0 - 0.96)*p + (0.96)*q
+
+plt.figure()
 plt.plot(sp[:,0], sp[:,1], '.', c='gray', markersize=3)
-# plt.plot(p[0], p[1], 'sk', markersize=4)
-# plt.plot(q[0], q[1], 'sk', markersize=4)
-# plt.plot([p[0], q[0]], [p[1], q[1]], 'r')
-# plt.plot([p[0], q[0]], [p[1], q[1]], '.r', markersize=4)
-plt.plot([p[0], q[0]], [p[1], q[1]], 'ok', fillstyle='none', markersize=5)
-# plt.arrow(p[0], p[1], q[0]-p[0], q[1]-p[1], head_width=0.01, head_length=0.01, linewidth=1, color='r', length_includes_head=True)
-plt.annotate('', xy=(q[0],q[1]), xytext=(p[0],p[1]), arrowprops=dict(arrowstyle='->'), c='r')
-# plt.annotate('x', xy=(q[0], q[1]))
-# plt.plot(q[0], q[1], 'sk', markersize=4)
+plt.plot([p[0], q[0]], [p[1], q[1]], 'ok', fillstyle='none', markersize=6)
+plt.annotate('', xy=(q2[0],q2[1]), xytext=(p2[0],p2[1]), arrowprops=dict(arrowstyle='->'), c='r')
 plt.plot(sp[nearest_inds,0], sp[nearest_inds,1], '.k')
-# plt.title('ker error')
 plt.gca().set_xticks([])
 plt.gca().set_yticks([])
 plt.gca().set_aspect('equal')
@@ -354,7 +350,6 @@ for k in range(num_neighbors):
     sample_phi.vector()[:] = Ker[:,ii].copy()
     plt.figure()
     cm = dl.plot(sample_phi, cmap='binary')
-    # plt.colorbar(cm)
     plt.axis('off')
 
     mu_spk = np.array([psf_object.mu(0)(sp_k), psf_object.mu(1)(sp_k)])
@@ -362,7 +357,6 @@ for k in range(num_neighbors):
                           [psf_object.Sigma(1, 0)(sp_k), psf_object.Sigma(1, 1)(sp_k)]])
 
     tau = 3.0
-    # plot_ellipse(mu_p, Sigma_p, n_std_tau=tau, facecolor='none', edgecolor='k', linewidth=1)
 
     xwidth = (tau * 1.1) * np.sqrt(Sigma_spk[0, 0])
     ywidth = (tau * 1.1) * np.sqrt(Sigma_spk[1, 1])
@@ -370,9 +364,18 @@ for k in range(num_neighbors):
     plt.xlim([mu_spk[0] - xwidth, mu_spk[0] + xwidth])
     plt.ylim([mu_spk[1] - ywidth, mu_spk[1] + ywidth])
 
-    plt.plot(mu_spk[0], mu_spk[1], '*k', markersize=8)
-    plt.plot(mu_spk[0] + q[0] - mu_p[0], mu_spk[1] + q[0] - mu_p[1], 'sk', markersize=6)
+    a = mu_spk
+    delta = q - mu_p
+    b = mu_spk + delta
 
+    a2 = (0.97) * a + (1.0 - 0.97) * b
+    b2 = (1.0 - 0.98) * a + (0.98) * b
+
+    plt.plot([a[0], b[0]], [a[1], b[1]], 'ok', markerfacecolor='white', markersize=6)
+    plt.annotate('', xy=(b2[0], b2[1]), xytext=(a2[0], a2[1]), arrowprops=dict(arrowstyle='->'))
+
+    coords_string = str(sp_k[0]) + '_' + str(sp_k[1])
+    plt.savefig('frog_neighbor_impulse_' + coords_string + '_.png', dpi=300, bbox_inches='tight')
 
 
 #
