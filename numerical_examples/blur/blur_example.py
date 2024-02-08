@@ -6,6 +6,7 @@ import localpsf.localpsf_cg1_lumped as lpsf1
 import scipy.linalg as sla
 from functools import partial
 from nalger_helper_functions import plot_ellipse
+import hlibpro_python_wrapper as hpro
 from tqdm.auto import tqdm
 
 save_figures = True
@@ -377,6 +378,18 @@ for k in range(num_neighbors):
     coords_string = str(sp_k[0]) + '_' + str(sp_k[1])
     plt.savefig('frog_neighbor_impulse_' + coords_string + '_.png', dpi=300, bbox_inches='tight')
 
+#
+
+print('Making row and column cluster trees')
+ct = hpro.build_cluster_tree_from_pointcloud(dof_coords, cluster_size_cutoff=32)
+
+print('Making block cluster trees')
+bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
+
+bct.visualize('frog_bct.eps')
+
+
+raise RuntimeError
 
 #
 
