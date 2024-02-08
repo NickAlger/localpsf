@@ -24,10 +24,10 @@ def geometric_sort_helper(
 
 def geometric_sort(
     points: np.ndarray, # shape=(num_pts, spatial_dimension)
-) -> np.ndarray[int]: # sort_inds, len=num_pts
+) -> np.ndarray: # sort_inds, len=num_pts
     num_pts, dim = points.shape
     sort_inds: np.ndarray = np.arange(num_pts)
-    geometric_sort_helper( 0, num_pts, 0, dim, points.copy(), sort_inds ) # modifies sort_inds
+    geometric_sort_helper(0, num_pts, 0, dim, points.copy(), sort_inds) # modifies sort_inds
     return sort_inds
 
 
