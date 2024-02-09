@@ -73,8 +73,6 @@ via a black box computational procedure,
 but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the maps in~\eqref{eq:eval_maps} may require solving a subproblem that involves PDEs, or performing other costly computations. By ``non-negative integral kernel,'' we mean that entries of the integral kernel are non-negative numbers; this is not the same as positive semi-definiteness of $\Aop$.
 
 
-
-
 \begin{figure}
 	\begin{subfigure}[b]{0.49\textwidth}
 		\centering
@@ -98,12 +96,98 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 	\label{fig:batches_and_mdi}
 \end{figure}
 
+\begin{figure}
+	\begin{center}
+		%	\begin{subfigure}[b]{0.58\textwidth}
+		%		\centering
+		\includegraphics[scale=0.35]{kernel_impulse_illustration2.pdf}
+		%%		\caption{Kernel and impulse responses}
+		%		\label{fig:kernel_impulse_illustration}
+		%	\end{subfigure}
+		%	\begin{subfigure}[b]{0.41\textwidth}
+		%		\centering
+		%		\includegraphics[scale=0.55]{frog_ellipsoid_width2.pdf}
+		%%		\caption{Impulse response support ellipsoid}
+		%		\label{fig:frog_ellipsoid_width}
+		%	\end{subfigure}
+	\end{center}
+	
+	\caption{left kernel and impulse responses. right impulse response support ellipsoid
+	}
+	\label{fig:frog_kernel_impulse_responses}
+\end{figure}
 
-We use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applications. The impulse response, $\phi_x$, associated with a point, $x$, is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Then we interpolate translated and scaled versions of these impulse responses to approximate entries of the operator's integral kernel. 
-Picking the batches of points requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} they are computed. Ellipsoid estimates for the supports of all $\phi_x$ are determined a-priori via a moment method that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We are inspired by resolution analysis in seismic imaging, in which
-$\Aop^T$ is applied to a random noise function, and the width of the support $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$~\cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. The moment method that we use estimates the support of $\phi_x$ more accurately than random noise probing in resolution analysis, at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. Adding more batches yields impulse responses at more points, increasing the accuracy of the approximation at the cost of one operator application per batch.
 
-The proposed operator approximation method may be categorized as a PSF method that is loosely based on ``product convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others) in which the convolution kernels are constructed from sampling impulse responses of the operator to scattered point sources:~\cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,EscandeWeiss15,EscandeWeiss22,EscandeWeiss12,FishEtAl96,NagyOleary98,ZhuLiFomelEtAl16}. For background on PC and PSF methods, we recommend the following papers: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. The proposed method improves upon existing PC methods in the following ways: (1) While PC approximations are based on an assumption of local translation invariance, the method we propose is based on a more general assumption we call ``local mean displacement invariance'' (Section~\ref{sec:local_mean_displacement_invariance} and Figure~\ref{fig:mean_displacement_invariance}), which improves the interpolation of the impulse responses. (2) In our previous work~\cite{AlgerEtAl19}, we chose point sources optimally via a sequential adaptive procedure. However, in that work each point source required a separate operator application, making the previous method expensive when a large number of impulse responses is desired. In this paper, we use a new moment method (Section \ref{sec:intromoments}) which permits computation of many impulse responses (e.g., 50) per operator application. (3) The method we propose never evaluates computed impulse responses outside of their domain of definition. This eliminates boundary artifacts which plague conventional PC methods.
+We use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applications. The impulse response, $\phi_x$, associated with a point, $x$, is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Batches of impulse responses may be thought of intuitively as sets of ``columns'' of the kernel (Figure \ref{fig:frog_kernel_impulse_responses}). To choose the batches, we form ellipsoid estimates for the supports of all $\phi_x$ via a moment method (Figure~\ref{fig:frog_moments_ellipsoid}) that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We then use a greedy ellipsoid packing algorithm (Figure~\ref{fig:frog_batches}) to maximize the number of impulse responses per batch.
+% which requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} they are computed. 
+Then we interpolate translated and scaled versions of these impulse responses to approximate entries of the operator's integral kernel (Figure~\ref{fig:hmatrix_neighbors_frog}). Adding more batches yields impulse responses at more points, increasing the accuracy of the approximation at the cost of one operator application per batch (Figure~\ref{fig:frog_column_errors}). 
+
+
+\begin{figure}
+	\begin{subfigure}[b]{0.65\textwidth}
+		\centering
+		\includegraphics[scale=0.22]{frog_moments3.pdf}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.34\textwidth}
+		\centering
+		\includegraphics[scale=0.44]{frog_ellipsoid_width2.pdf}
+		%		\label{fig:frog_ellipsoid_width}
+	\end{subfigure}
+	\caption{asdf3
+	}
+	\label{fig:frog_moments_ellipsoid}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.3]{frog_batches3.pdf}
+	\caption{asdf4
+	}
+	\label{fig:frog_batches}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.2]{frog_hmatrix_knn_impulse3.pdf}	
+	\caption{asdfg
+	}
+	\label{fig:hmatrix_neighbors_frog}
+\end{figure}
+
+
+\begin{figure}
+	\begin{subfigure}[b]{0.30\textwidth}
+		\centering
+		\includegraphics[scale=0.35]{frog_column_errors_psf5.png}
+		%		\caption{PSF(5)}
+		\label{fig:blur_error_psf5}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.30\textwidth}
+		\centering
+		\includegraphics[scale=0.35]{frog_column_errors_psf10.png}
+		%		\caption{PSF(10)}
+		\label{fig:blur_error_psf10}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.30\textwidth}
+		\centering
+		\includegraphics[scale=0.35]{frog_column_errors_psf20.png}
+		%		\caption{PSF(20)}
+		\label{fig:blur_error_psf20}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.08\textwidth}
+		\centering
+		\includegraphics[scale=0.35]{frog_colorbar_edited1.pdf}
+		%			\label{fig:blur_colorbar}
+	\end{subfigure}
+	
+	\caption{columnwise error plots for kernel reconstruction left 5, center 10, right 20
+	}
+	\label{fig:frog_column_errors}
+\end{figure}
+
+
+The proposed operator approximation method may be categorized as a PSF method that is loosely based on ``product convolution'' (PC) approximations, which are approximations of an operator by weighted sums of convolution operators with spatially varying weights. PC and PSF methods have a long history dating back several decades. We note the following papers (among many others) in which the convolution kernels are constructed from sampling impulse responses of the operator to scattered point sources:~\cite{Adorf94,AlgerEtAl19,BigotEscandeWeiss19,EscandeWeiss15,EscandeWeiss22,EscandeWeiss12,FishEtAl96,NagyOleary98,ZhuLiFomelEtAl16}. For background on PC and PSF methods, we recommend the following papers: \cite{DenisEtAl15,EscandeWeiss17,GentileCourbinMeylan13}. The proposed method improves upon existing PC methods in the following ways: (1) While PC approximations are based on an assumption of local translation invariance, the method we propose is based on a more general assumption we call ``local mean displacement invariance'' (Section~\ref{sec:local_mean_displacement_invariance} and Figure~\ref{fig:mean_displacement_invariance}), which improves the interpolation of the impulse responses. (2) In our previous work~\cite{AlgerEtAl19}, we chose point sources optimally via a sequential adaptive procedure. However, in that work each point source required a separate operator application, making the previous method expensive when a large number of impulse responses is desired. In this paper, we use a new moment method (Section \ref{sec:intromoments}) which permits computation of many impulse responses (e.g., 50) per operator application. We are inspired by resolution analysis in seismic imaging, in which
+$\Aop^T$ is applied to a random noise function, and the width of the support $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$~\cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. The moment method that we use estimates the support of $\phi_x$ more accurately than random noise probing in resolution analysis, at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. (3) {\color{red} The method we propose never evaluates computed impulse responses outside of their domain of definition. This eliminates boundary artifacts which plague conventional PC methods.}
 
 
 %\begin{figure}
@@ -148,85 +232,6 @@ In this paper, we also form an H-matrix Hessian approximation. However, to reduc
 
 One limitation of our method is that not all data misfit Hessians satisfy the local non-negative integral kernel properties. We note, in particular, that the wave inverse problem data misfit Hessian has a substantial proportion of negative entries in its integral kernel. In this case more specialized techniques based on pseudodifferential operator theory have been developed, e.g., \cite{DemanetEtAl12,HerrmannMoghaddamStolk08,Symes08}. However, many data misfit Hessians of practical interest do satisfy the local non-negative integral kernel properties (either exactly or approximately), and the proposed method is targeted at approximating these Hessians.
 
-
-\begin{figure}
-	\begin{center}
-	\begin{subfigure}[b]{0.58\textwidth}
-		\centering
-		\includegraphics[scale=0.275]{kernel_impulse_illustration2.pdf}
-%		\caption{Kernel and impulse responses}
-		\label{fig:kernel_impulse_illustration}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.41\textwidth}
-		\centering
-		\includegraphics[scale=0.55]{frog_ellipsoid_width2.pdf}
-%		\caption{Impulse response support ellipsoid}
-		\label{fig:frog_ellipsoid_width}
-	\end{subfigure}
-	\end{center}
-	
-	\caption{left kernel and impulse responses. right impulse response support ellipsoid
-	}
-	\label{fig:frog1}
-\end{figure}
-
-
-
-
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.28]{frog_moments2.pdf}	
-	\caption{asdf3
-	}
-	\label{fig:frog2}
-\end{figure}
-
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.3]{frog_batches3.pdf}	
-	\caption{asdf4
-	}
-	\label{fig:frog3}
-\end{figure}
-
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.2]{frog_hmatrix_knn_impulse3.pdf}	
-	\caption{asdfg
-	}
-	\label{fig:frog4}
-\end{figure}
-
-
-\begin{figure}
-	\begin{subfigure}[b]{0.30\textwidth}
-		\centering
-		\includegraphics[scale=0.35]{frog_column_errors_psf5.png}
-%		\caption{PSF(5)}
-		\label{fig:blur_error_psf5}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.30\textwidth}
-		\centering
-		\includegraphics[scale=0.35]{frog_column_errors_psf10.png}
-%		\caption{PSF(10)}
-		\label{fig:blur_error_psf10}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.30\textwidth}
-		\centering
-		\includegraphics[scale=0.35]{frog_column_errors_psf20.png}
-%		\caption{PSF(20)}
-		\label{fig:blur_error_psf20}
-		\end{subfigure}
-			\begin{subfigure}[b]{0.08\textwidth}
-			\centering
-			\includegraphics[scale=0.35]{frog_colorbar_edited1.pdf}
-			\label{fig:blur_colorbar}
-		\end{subfigure}
-
-	\caption{columnwise error plots for kernel reconstruction left 5, center 10, right 20
-	}
-	\label{fig:frog5}
-\end{figure}
 
 \section{Preliminaries}
 
