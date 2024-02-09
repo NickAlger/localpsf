@@ -161,18 +161,18 @@ Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation matrix by
 \begin{figure}
 	\begin{subfigure}[b]{0.49\textwidth}
 		\centering
-		\includegraphics[scale=0.2]{kernel_impulse_illustration2.pdf}
-		\caption{Kernel and impulse responses}
+		\includegraphics[scale=0.25]{kernel_impulse_illustration2.pdf}
+%		\caption{Kernel and impulse responses}
 		\label{fig:kernel_impulse_illustration}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.49\textwidth}
 		\centering
-		\includegraphics[scale=0.4]{frog_ellipsoid_width2.pdf}
-		\caption{Impulse response support ellipsoid}
+		\includegraphics[scale=0.5]{frog_ellipsoid_width2.pdf}
+%		\caption{Impulse response support ellipsoid}
 		\label{fig:frog_ellipsoid_width}
 	\end{subfigure}
 	
-	\caption{(\ref{fig:kernel_impulse_illustration}) asdf. \ref{fig:frog_ellipsoid_width}) asdf2
+	\caption{left kernel and impulse responses. right impulse response support ellipsoid
 	}
 	\label{fig:frog1}
 \end{figure}
@@ -182,7 +182,7 @@ Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation matrix by
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.2]{frog_moments2.pdf}	
+	\includegraphics[scale=0.25]{frog_moments2.pdf}	
 	\caption{asdf3
 	}
 	\label{fig:frog2}
@@ -190,7 +190,7 @@ Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation matrix by
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.25]{frog_batches2.pdf}	
+	\includegraphics[scale=0.3]{frog_batches3.pdf}	
 	\caption{asdf4
 	}
 	\label{fig:frog3}
@@ -198,7 +198,7 @@ Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation matrix by
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.2]{frog_hmatrix_knn_impulse2.png}	
+	\includegraphics[scale=0.2]{frog_hmatrix_knn_impulse3.pdf}	
 	\caption{asdfg
 	}
 	\label{fig:frog4}
@@ -209,23 +209,28 @@ Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation matrix by
 	\begin{subfigure}[b]{0.30\textwidth}
 		\centering
 		\includegraphics[scale=0.35]{frog_column_errors_psf5.png}
-		\caption{PSF(5)}
+%		\caption{PSF(5)}
 		\label{fig:blur_error_psf5}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.30\textwidth}
 		\centering
 		\includegraphics[scale=0.35]{frog_column_errors_psf10.png}
-		\caption{PSF(10)}
+%		\caption{PSF(10)}
 		\label{fig:blur_error_psf10}
 	\end{subfigure}
-	\begin{subfigure}[b]{0.37\textwidth}
+	\begin{subfigure}[b]{0.30\textwidth}
 		\centering
-		\includegraphics[scale=0.35]{frog_column_errors_psf20_colorbar.png}
-		\caption{PSF(20)}
+		\includegraphics[scale=0.35]{frog_column_errors_psf20.png}
+%		\caption{PSF(20)}
 		\label{fig:blur_error_psf20}
-	\end{subfigure}
-	
-	\caption{columnwise error plots for kernel reconstruction
+		\end{subfigure}
+			\begin{subfigure}[b]{0.08\textwidth}
+			\centering
+			\includegraphics[scale=0.35]{frog_colorbar_edited1.pdf}
+			\label{fig:blur_colorbar}
+		\end{subfigure}
+
+	\caption{columnwise error plots for kernel reconstruction left 5, center 10, right 20
 	}
 	\label{fig:frog5}
 \end{figure}
