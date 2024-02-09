@@ -99,51 +99,6 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 \end{figure}
 
 
-\begin{figure}
-	\begin{subfigure}[b]{0.49\textwidth}
-		\centering
-		\includegraphics[scale=0.25]{kernel_impulse_illustration2.pdf}
-		\caption{Kernel and impulse responses}
-		\label{fig:kernel_impulse_illustration}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.49\textwidth}
-		\centering
-		\includegraphics[scale=0.5]{frog_ellipsoid_width.pdf}
-		\caption{Impulse response support ellipsoid}
-		\label{fig:frog_ellipsoid_width}
-	\end{subfigure}
-
-	\caption{(\ref{fig:kernel_impulse_illustration}) asdf. \ref{fig:frog_ellipsoid_width}) asdf2
-	}
-	\label{fig:frog1}
-\end{figure}
-
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.25]{frog_moments2.pdf}	
-	\caption{asdf3
-	}
-	\label{fig:frog2}
-\end{figure}
-
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.3]{frog_batches2.pdf}	
-	\caption{asdf4
-	}
-	\label{fig:frog3}
-\end{figure}
-
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.24]{frog_hmatrix_knn_impulse2.png}	
-	\caption{Frog kernel: $\Phi(y,x) = $
-	}
-	\label{fig:frog4}
-\end{figure}
-
-
-
 We use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applications. The impulse response, $\phi_x$, associated with a point, $x$, is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Then we interpolate translated and scaled versions of these impulse responses to approximate entries of the operator's integral kernel. 
 Picking the batches of points requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} they are computed. Ellipsoid estimates for the supports of all $\phi_x$ are determined a-priori via a moment method that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We are inspired by resolution analysis in seismic imaging, in which
 $\Aop^T$ is applied to a random noise function, and the width of the support $\phi_x$ is estimated to be the autocorrelation length of the resultant function near $x$~\cite{FichtnerLeeuwen15,TrampertFichtnerRitsema13}. The moment method that we use estimates the support of $\phi_x$ more accurately than random noise probing in resolution analysis, at the cost of the additional constraint that $\Aop$ has a non-negative integral kernel. Adding more batches yields impulse responses at more points, increasing the accuracy of the approximation at the cost of one operator application per batch.
@@ -193,6 +148,85 @@ In this paper, we also form an H-matrix Hessian approximation. However, to reduc
 
 One limitation of our method is that not all data misfit Hessians satisfy the local non-negative integral kernel properties. We note, in particular, that the wave inverse problem data misfit Hessian has a substantial proportion of negative entries in its integral kernel. In this case more specialized techniques based on pseudodifferential operator theory have been developed, e.g., \cite{DemanetEtAl12,HerrmannMoghaddamStolk08,Symes08}. However, many data misfit Hessians of practical interest do satisfy the local non-negative integral kernel properties (either exactly or approximately), and the proposed method is targeted at approximating these Hessians.
 
+
+\section{Illustration of the method on a spatially variant blur operator}
+
+Before delving into technical details, we illustrate the method on a spatially variant blurring operator with the following integral kernel:
+$$\Phi(y,x) = (1 - a f(y,x)) g(x) \exp \left(-\frac{1}{2}h^T(y,x) C^{-1} h(y,x)\right).$$ 
+Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation matrix by angle $\theta(x) = (x^1 + x^2) \pi / 2$, $C = L^2 \operatorname{diag}(c_1, c_2)$, $g(x) = x^1(1-x^1)x^2(1-x^2)$,  and $f(x,y) = \cos\left(p^1(y,x) / \sqrt{c_1 / 2.0}\right) \sin\left(p^2(y,x) / \sqrt{c_2 / 2.0}\right)$ for some constants $a, L, c_1, c_2$. We use $a=1.0$, $L^2=1.0$, $c_1=0.01$, and $c_2=0.0025$. Using this kernel, the impulse responses, $\phi_x$, are bumpy blobs that are centered roughly at $x$, and are rotated and scaled in a manner that depends on $x$ (see Figure \ref{fig:frog1}). The constant $L$ controls how wide the blob is, and $a$ controls the bumpiness. With $a=0$, $\phi_x$ is a Gaussian. As $a$ increases, $\phi_x$ becomes more bumpy. When $a > 1$, the integral kernel contains negative values, which violates the assumptions of our method. In the numerical results section we will vary $a$ and $L$, even allowing $a>1$ to test the robustness of the method to violations of the non-negative kernel assumption. Note that for this operator, using our method is unnecessary because entries of the kernel are given directly via a formula. The purpose of this example is to illustrate and test the method on an operator which is known exactly and may be easily visualized.
+
+
+\begin{figure}
+	\begin{subfigure}[b]{0.49\textwidth}
+		\centering
+		\includegraphics[scale=0.25]{kernel_impulse_illustration2.pdf}
+		\caption{Kernel and impulse responses}
+		\label{fig:kernel_impulse_illustration}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.49\textwidth}
+		\centering
+		\includegraphics[scale=0.5]{frog_ellipsoid_width.pdf}
+		\caption{Impulse response support ellipsoid}
+		\label{fig:frog_ellipsoid_width}
+	\end{subfigure}
+	
+	\caption{(\ref{fig:kernel_impulse_illustration}) asdf. \ref{fig:frog_ellipsoid_width}) asdf2
+	}
+	\label{fig:frog1}
+\end{figure}
+
+
+
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.25]{frog_moments2.pdf}	
+	\caption{asdf3
+	}
+	\label{fig:frog2}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.3]{frog_batches2.pdf}	
+	\caption{asdf4
+	}
+	\label{fig:frog3}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.24]{frog_hmatrix_knn_impulse2.png}	
+	\caption{asdfg
+	}
+	\label{fig:frog4}
+\end{figure}
+
+
+\begin{figure}
+	\begin{subfigure}[b]{0.30\textwidth}
+		\centering
+		\includegraphics[scale=0.4]{frog_column_errors_psf5.png}
+		\caption{PSF(5)}
+		\label{fig:blur_error_psf5}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.30\textwidth}
+		\centering
+		\includegraphics[scale=0.4]{frog_column_errors_psf10.png}
+		\caption{PSF(10)}
+		\label{fig:blur_error_psf10}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.38\textwidth}
+		\centering
+		\includegraphics[scale=0.4]{frog_column_errors_psf20_colorbar.png}
+		\caption{PSF(20)}
+		\label{fig:blur_error_psf20}
+	\end{subfigure}
+	
+	\caption{columnwise error plots for kernel reconstruction
+	}
+	\label{fig:frog5}
+\end{figure}
 
 \section{Preliminaries}
 
