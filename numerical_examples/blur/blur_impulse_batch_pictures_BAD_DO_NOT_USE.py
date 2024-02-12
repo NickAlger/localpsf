@@ -7,6 +7,8 @@ import scipy.linalg as sla
 from nalger_helper_functions import plot_ellipse
 import hlibpro_python_wrapper as hpro
 
+raise RuntimeError
+
 save_figures = True
 
 nx = 63
