@@ -112,11 +112,16 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 		%	\end{subfigure}
 	\end{center}
 	
-	\caption{left kernel and impulse responses. right impulse response support ellipsoid
+	\caption{Left: Matrix created by evaluating the integral kernel $\Phi$ for $\Aop$ (Equation~\ref{eq:kernel_representation}) at all pairs of mesh vertices. This illustration is for the integral kernel given in Equation~\ref{eq:frog_kernel} in Section~\ref{sec:frog}. Dark colors indicate large entries and light colors indicate small entries. Rows and columns are ordered according to a kd-tree hierarchical clustering. Right: Impulse responses
+%	$\phi_{x_1}=\Phi(~\cdot~, x_1)$ and $\phi_{x_1}=\Phi(~\cdot~, x_2)$
+	associated with points $x_1,x_2\in \Omega$, shown by the two dotted vertical lines. Intuitively, one may think of impulse responses as ``columns'' of the integral kernel.
 	}
 	\label{fig:frog_kernel_impulse_responses}
 \end{figure}
 
+x1 = (0.5, 0.5)
+y = (y1, y2)
+Phi((y1, y2), (x1, x2)) = Phi(y,x)
 
 We use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applications. The impulse response, $\phi_x$, associated with a point, $x$, is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Batches of impulse responses may be thought of intuitively as sets of ``columns'' of the kernel (Figure \ref{fig:frog_kernel_impulse_responses}). To choose the batches, we form ellipsoid estimates for the supports of all $\phi_x$ via a moment method (Figure~\ref{fig:frog_moments_ellipsoid}) that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We then use a greedy ellipsoid packing algorithm (Figure~\ref{fig:frog_batches}) to maximize the number of impulse responses per batch.
 % which requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} they are computed. 
@@ -133,7 +138,7 @@ Then we interpolate translated and scaled versions of these impulse responses to
 		\includegraphics[scale=0.44]{frog_ellipsoid_width2.pdf}
 		%		\label{fig:frog_ellipsoid_width}
 	\end{subfigure}
-	\caption{asdf3
+	\caption{Left: Impulse response moments: scaling factor ($V$), mean ($\mu$), and covariance ($\Sigma$). For each point $x \in \Omega$, the quantity $V(x)$ is the integral of $\phi_x$ over $\Omega$, $\mu(x)$ is the location that $\phi_x$ is centered at, and $\Sigma(x)$ is a matrix with eigenvectors and eigenvalues that characterize the width of $\phi_x$ (see Section~\ref{sec:intromoments}). Right: Ellipsoid support for an impulse response.  This ellipsoid is the set of points within $\tau$ standard deviations of the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$. The scaling factor $V(x)$ characterizes the magnitude of $\phi_x$.
 	}
 	\label{fig:frog_moments_ellipsoid}
 \end{figure}
@@ -141,7 +146,13 @@ Then we interpolate translated and scaled versions of these impulse responses to
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.3]{frog_batches3.pdf}
-	\caption{asdf4
+	\caption{Illustration of the process to compute one impulse response batch. Impulse response moments are first used to form ellipsoid shaped estimates of the supports of impulse responses (Equation~\ref{eq:support_ellipsoid}). Then, an ellipsoid packing problem is solved to choose batches of non-overlapping support ellipsoids (Section~\ref{sec:sample_point_selection}). 
+%		Note that we do not need to compute the impulse response in order to know its support ellipsoid. 
+	Finally, $\Aop$ is applied to a Dirac comb associated with the points $x_i$, which correspond to the ellipsoids (Section~\ref{sec:get_impulse_response}). The process is repeated to form more batches.
+%		
+%		Impulse response moments are used to choose batches of non-overlapping impulse responses by solving an ellipsoid packing problem using a greedy algorithm. Batches of impulse responses 
+%		
+%		Moments of the impulse responses used to form ellipsoid shaped a-priori estimates for the supports of the impulse responses.
 	}
 	\label{fig:frog_batches}
 \end{figure}
@@ -149,7 +160,9 @@ Then we interpolate translated and scaled versions of these impulse responses to
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.2]{frog_hmatrix_knn_impulse3.pdf}	
-	\caption{asdfg
+	\caption{Left: H-matrix structure for $\Aker$. Computing an entry of this matrix requires evaluating the integral kernel, $\Phi(y,x)$, at a pair of points $(y,x) \in \Omega \times \Omega$.  Center: Kernel evaluation points $x$ and $y$ (black circles),  sample points for the approximation (light gray and black dots), and the $k_n$ sample points, $x'$, that are nearest to $x$ (black dots). Right: Known impulse response at $x'$. Using radial basis function interpolation, the desired kernel entry is approximated as a weighted linear combination of translated and scaled versions of impulse responses at the points $x'$ (Section~\ref{sec:approximate_kernel_entries}).
+%		the values $\phi_{x’}(y - \spatialmean(x) + \spatialmean(x’))$ for these nearby points $x'$.
+%	Right:  Illustration of the radial basis function interpolation method used to approximate $\Aker(y,x)$ by a weighted linear combination of the values $\frac{\spatialvol(x)}{\spatialvol(x’)}\phi_{x’}(y - \spatialmean(x) + \spatialmean(x’))$ for a small number of sample points near $x$. The weights are determined by radial basis function (RBF) interpolation. Right: The impulse response centered at $x’$.
 	}
 	\label{fig:hmatrix_neighbors_frog}
 \end{figure}
@@ -180,7 +193,8 @@ Then we interpolate translated and scaled versions of these impulse responses to
 		%			\label{fig:blur_colorbar}
 	\end{subfigure}
 	
-	\caption{columnwise error plots for kernel reconstruction left 5, center 10, right 20
+	\caption{Relative error, $||\Phi(\cdot,x) - \widetilde{\Phi}(\cdot,x)||/||\Phi(\cdot,x)||$, in the approximation of the ``column'' of the integral kernel associated with $x$, using 5 (left), 10 (center) and 20 (right) impulse response batches. Sample points are indicated by black dots. The error associated with the point $x$ is the shade of the image at location $x$, with white indicating zero error and black indicating $100\%$ error. At the sample points, the error is zero. The further the point $x$ is from the samples points, the larger the error. Adding more batches yields a more accurate approximation.
+%		columnwise error plots for kernel reconstruction left 5, center 10, right 20
 	}
 	\label{fig:frog_column_errors}
 \end{figure}
@@ -727,9 +741,13 @@ using fast H-matrix methods, then use the factorization as a
 preconditioner. We approximate $\mathbf{H}_\text{gn}$ rather than $\mathbf{H}$ because $\mathbf{H}$ more often has negative values in its integral kernel. The numerical results show that~$\widetilde{\mathbf{H}}$ is a good preconditioner for both~$\mathbf{H}_\text{gn}$ and~$\mathbf{H}$. 
 
 \subsection{Example 1: Spatially variant blur}
+\label{sec:frog}
 
 Before delving into technical details, we provide an overview of the method. Along the way, we illustrate steps using a spatially variant blur example, in which the integral kernel is given as follows:
-$$\Phi(y,x) = (1 - a f(y,x)) g(x) \exp \left(-\frac{1}{2}h^T(y,x) C^{-1} h(y,x)\right).$$ 
+\begin{equation}
+\label{eq:frog_kernel}
+\Phi(y,x) = (1 - a f(y,x)) g(x) \exp \left(-\frac{1}{2}h^T(y,x) C^{-1} h(y,x)\right).
+\end{equation} 
 Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation matrix by angle $\theta(x) = (x^1 + x^2) \pi / 2$, $C = L^2 \operatorname{diag}(c_1, c_2)$, $g(x) = x^1(1-x^1)x^2(1-x^2)$,  and $f(x,y) = \cos\left(p^1(y,x) / \sqrt{c_1 / 2.0}\right) \sin\left(p^2(y,x) / \sqrt{c_2 / 2.0}\right)$ for some constants $a, L, c_1, c_2$. In this section we use $a=1.0$, $L^2=1.0$, $c_1=0.01$, and $c_2=0.0025$. Using this kernel, the impulse response $\phi_x$ is a bumpy blob that is centered near $x$, and is rotated and scaled in a manner that depends on $x$ (see Figure \ref{fig:frog1}). The constant $L$ controls how wide the blob is, and $a$ controls the bumpiness. With $a=0$, $\phi_x$ is a Gaussian. As $a$ increases, $\phi_x$ becomes more bumpy. When $a > 1$, the integral kernel contains negative values, which violates the assumptions of our method. Note that for this operator, using our method is unnecessary because entries of the kernel are given directly via a formula. The purpose of this example is to illustrate the method using an operator which is known exactly and may be easily visualized.
 
 
