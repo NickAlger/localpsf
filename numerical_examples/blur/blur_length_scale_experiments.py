@@ -14,12 +14,16 @@ from tqdm.auto import tqdm
 max_batches = 100
 nx = 63
 a = 1.0 # <-- How bumpy? Use 1.0, which is maximum bumpiness without negative numbers
-all_length_scalings = [1.0 / (t**2) for t in [1.0, 2.0, 3.0]]
+all_length_scalings = [1.0 / (t**2) for t in [1.0, 2.0, 3.0]][::-1]
+all_error_levels = [0.2, 0.1, 0.05]
 # length_scaling = 1./(3.0**2) #1.0
 
 all_all_num_batches = []
 all_all_num_impulses = []
 all_all_fro_errors = []
+all_ss = []
+all_all_glr_ranks_fro = []
+all_all_glr_ranks_2 = []
 for length_scaling in all_length_scalings:
     print('length_scaling=', length_scaling)
     Ker, phi_function, Vh, H, mass_lumps, dof_coords, kdtree_sort_inds = frog_setup(nx, length_scaling, a)
@@ -27,7 +31,27 @@ for length_scaling in all_length_scalings:
     Ker_reordered = Ker[:, kdtree_sort_inds][kdtree_sort_inds,:]
     dof_coords_reordered = dof_coords[kdtree_sort_inds,:]
 
-    #
+    #### Global low rank
+
+    _,ss,_ = np.linalg.svd(Ker)
+    all_ss.append(ss)
+    norm_ker_fro = np.linalg.norm(Ker)
+
+    all_glr_ranks_fro = []
+    for rtol in all_error_levels:
+        glr_num_fro = np.sum((norm_ker_fro**2 - np.cumsum(ss**2)) > rtol * norm_ker_fro**2)
+        all_glr_ranks_fro.append(glr_num_fro)
+        print('rtol=', rtol, ', glr_num_fro=', glr_num_fro)
+    all_all_glr_ranks_fro.append(all_glr_ranks_fro)
+
+    all_glr_ranks_2 = []
+    for rtol in all_error_levels:
+        glr_num_2 = np.sum(ss > rtol * np.max(ss))
+        all_glr_ranks_2.append(glr_num_2)
+        print('rtol=', rtol, ', glr_num_2=', glr_num_2)
+    all_all_glr_ranks_2.append(all_glr_ranks_2)
+
+    #### PSF
 
     psf_object = lpsf1.make_psf_fenics(
         lambda X: H @ X,
@@ -56,6 +80,9 @@ for length_scaling in all_length_scalings:
         all_fro_errors.append(err_psf)
         all_num_batches.append(num_batches)
         all_num_impulses.append(num_impulses)
+
+        if err_psf < 0.04:
+            break
 
     all_all_num_batches.append(all_num_batches)
     all_all_num_impulses.append(all_num_impulses)
