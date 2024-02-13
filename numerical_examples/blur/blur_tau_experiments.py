@@ -11,11 +11,11 @@ import hlibpro_python_wrapper as hpro
 from tqdm.auto import tqdm
 
 
-max_batches = 50
+max_batches = 45
 nx = 63
 a = 1.0 # <-- How bumpy? Use 1.0, which is maximum bumpiness without negative numbers
 length_scaling = 1.0 / (2.0**2)
-all_tau = [1.5, 3.0, 4.5]
+all_tau = [2.0, 2.5, 3.0, 3.5, 4.0]
 
 np.savetxt('all_tau.txt', all_tau)
 
