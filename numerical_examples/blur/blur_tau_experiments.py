@@ -66,3 +66,18 @@ for tau in all_tau:
     np.savetxt('all_num_impulses_tau='    +str(tau)+'.txt', all_num_impulses)
     np.savetxt('all_fro_errors_tau='      +str(tau)+'.txt', all_fro_errors)
 
+
+plt.figure()
+leg = []
+# for k in range(len(all_tau)):
+for k in [0,1,2,4]:
+    plt.semilogy(all_all_num_batches[k], all_all_fro_errors[k])
+    leg.append(r'$\tau$='+str(all_tau[k]))
+# plt.legend(['tau='+str(t) for t in all_tau])
+plt.legend(leg)
+plt.ylim(1e-2, 1e0)
+plt.xlim(1, 30)
+plt.xlabel('#batches')
+plt.ylabel(r'$||\Phi - \widetilde{\Phi}||/||\Phi||$')
+plt.title(r'Convergence for different $\tau$')
+plt.savefig('frog_tau_comparison.pdf', bbox_inches='tight', dpi=300)
