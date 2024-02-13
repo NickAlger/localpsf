@@ -119,10 +119,6 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 	\label{fig:frog_kernel_impulse_responses}
 \end{figure}
 
-x1 = (0.5, 0.5)
-y = (y1, y2)
-Phi((y1, y2), (x1, x2)) = Phi(y,x)
-
 We use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applications. The impulse response, $\phi_x$, associated with a point, $x$, is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Batches of impulse responses may be thought of intuitively as sets of ``columns'' of the kernel (Figure \ref{fig:frog_kernel_impulse_responses}). To choose the batches, we form ellipsoid estimates for the supports of all $\phi_x$ via a moment method (Figure~\ref{fig:frog_moments_ellipsoid}) that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We then use a greedy ellipsoid packing algorithm (Figure~\ref{fig:frog_batches}) to maximize the number of impulse responses per batch.
 % which requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} they are computed. 
 Then we interpolate translated and scaled versions of these impulse responses to approximate entries of the operator's integral kernel (Figure~\ref{fig:hmatrix_neighbors_frog}). Adding more batches yields impulse responses at more points, increasing the accuracy of the approximation at the cost of one operator application per batch (Figure~\ref{fig:frog_column_errors}). 
@@ -750,6 +746,33 @@ Before delving into technical details, we provide an overview of the method. Alo
 \end{equation} 
 Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation matrix by angle $\theta(x) = (x^1 + x^2) \pi / 2$, $C = L^2 \operatorname{diag}(c_1, c_2)$, $g(x) = x^1(1-x^1)x^2(1-x^2)$,  and $f(x,y) = \cos\left(p^1(y,x) / \sqrt{c_1 / 2.0}\right) \sin\left(p^2(y,x) / \sqrt{c_2 / 2.0}\right)$ for some constants $a, L, c_1, c_2$. In this section we use $a=1.0$, $L^2=1.0$, $c_1=0.01$, and $c_2=0.0025$. Using this kernel, the impulse response $\phi_x$ is a bumpy blob that is centered near $x$, and is rotated and scaled in a manner that depends on $x$ (see Figure \ref{fig:frog1}). The constant $L$ controls how wide the blob is, and $a$ controls the bumpiness. With $a=0$, $\phi_x$ is a Gaussian. As $a$ increases, $\phi_x$ becomes more bumpy. When $a > 1$, the integral kernel contains negative values, which violates the assumptions of our method. Note that for this operator, using our method is unnecessary because entries of the kernel are given directly via a formula. The purpose of this example is to illustrate the method using an operator which is known exactly and may be easily visualized.
 
+\begin{table}
+	\begin{center}
+		{\small
+		\begingroup
+		\setlength{\tabcolsep}{8pt}
+		\renewcommand{\arraystretch}{1.0}
+		\begin{tabular}{c| c | c c c c c}
+						& Error tol.    & rank     	&	\#matvecs PSF   & \#matvecs HODLR \\ 
+			\hline 
+						& 20\%    		& 37 		& 6+5  				&  \\ 
+			$L=1$ 		& 10\%    		& 67 		& 6+9  				&  \\ 
+						& 5\% 			& 100  		& 6+17   			&  \\ 
+			\hline
+						& 20\%    		& 143		& 6+2  				&  \\ 
+			$L=1/2$ 	& 10\%    		& 256 		& 6+4  				&  \\ 
+						& 5\% 			& 377  		& 6+6   			&  \\ 
+			\hline
+						& 20\%    		& 294 		& 6+1				&  \\ 
+			$L=1/3$ 	& 10\%    		& 525 		& 6+2  				&  \\ 
+						& 5\% 			& 767  		& 6+2   			&  \\ 
+		\end{tabular}
+		\endgroup
+	}
+	\end{center}
+	\caption{(Spatially variant blur)}
+	\label{tab:frog_psf_vs_hodlr_vs_glr}
+\end{table}
 
 \subsection{Example 2: Inversion for the basal friction coefficient in an ice sheet flow problem}
 \label{sec:ice}

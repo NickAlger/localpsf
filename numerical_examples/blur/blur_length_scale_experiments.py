@@ -14,9 +14,12 @@ from tqdm.auto import tqdm
 max_batches = 100
 nx = 63
 a = 1.0 # <-- How bumpy? Use 1.0, which is maximum bumpiness without negative numbers
-all_length_scalings = [1.0 / (t**2) for t in [1.0, 2.0, 3.0]][::-1]
+all_length_scalings = [1.0 / (t**2) for t in [1.0, 2.0, 3.0]]
 all_error_levels = [0.2, 0.1, 0.05]
 # length_scaling = 1./(3.0**2) #1.0
+
+np.savetxt('all_length_scalings.txt', all_length_scalings)
+np.savetxt('all_error_levels.txt', all_error_levels)
 
 all_all_num_batches = []
 all_all_num_impulses = []
@@ -33,7 +36,7 @@ for length_scaling in all_length_scalings:
 
     #### Global low rank
 
-    _,ss,_ = np.linalg.svd(Ker)
+    _, ss, _ = np.linalg.svd(Ker)
     all_ss.append(ss)
     norm_ker_fro = np.linalg.norm(Ker)
 
@@ -63,6 +66,12 @@ for length_scaling in all_length_scalings:
         num_neighbors=10
     )
 
+    # print('Making row and column cluster trees')
+    # ct = hpro.build_cluster_tree_from_pointcloud(dof_coords, cluster_size_cutoff=32)
+    #
+    # print('Making block cluster trees')
+    # bct = hpro.build_block_cluster_tree(ct, ct, admissibility_eta=2.0)
+
     all_num_batches = []
     all_num_impulses = []
     all_fro_errors = []
@@ -70,6 +79,14 @@ for length_scaling in all_length_scalings:
         psf_object.add_impulse_response_batch()
         num_batches = psf_object.psf_object.impulse_response_batches.num_batches
         num_impulses = psf_object.psf_object.impulse_response_batches.num_sample_points
+
+        # H_psf_hmatrix, Ker_psf_hmatrix = psf_object.construct_hmatrices(bct)
+        #
+        # Ker_psf = np.zeros(Ker.shape)
+        # for ii in range(Ker_psf.shape[1]):
+        #     ei = np.zeros(Ker_psf.shape[1])
+        #     ei[ii] = 1.0
+        #     Ker_psf[:,ii] = Ker_psf_hmatrix * ei
 
         Ker_psf = psf_object.psf_object.psf_kernel.cpp_object.eval_integral_kernel_block(dof_coords.T, dof_coords.T)
         err_psf = np.linalg.norm(Ker_psf - Ker) / np.linalg.norm(Ker)
@@ -81,23 +98,18 @@ for length_scaling in all_length_scalings:
         all_num_batches.append(num_batches)
         all_num_impulses.append(num_impulses)
 
-        if err_psf < 0.04:
+        if err_psf < np.min(all_error_levels):
             break
 
     all_all_num_batches.append(all_num_batches)
     all_all_num_impulses.append(all_num_impulses)
     all_all_fro_errors.append(all_fro_errors)
 
-    #### Plot two impulse responses individually, and kernel with the corresponding columns indicated
+    np.savetxt('all_num_batches_L='     +str(length_scaling)+'.txt', all_num_batches)
+    np.savetxt('all_num_impulses_L='    +str(length_scaling)+'.txt', all_num_impulses)
+    np.savetxt('all_fro_errors_L='      +str(length_scaling)+'.txt', all_fro_errors)
+    np.savetxt('frog_singular_values_L='+str(length_scaling)+'.txt', ss)
+    np.savetxt('all_glr_ranks_fro_L='   +str(length_scaling)+'.txt', all_glr_ranks_fro)
+    np.savetxt('all_glr_ranks_2_L='     +str(length_scaling)+'.txt', all_glr_ranks_2)
 
-    p = np.array([0.2, 0.45])
-
-    ii = nearest_ind_func(dof_coords, p)
-    phi = dl.Function(Vh)
-    phi.vector()[:] = Ker[:, ii].copy()
-    plt.figure(figsize=(3.8, 3.8))
-    cm = dl.plot(phi, cmap='binary')
-    plt.gca().set_xticks([])
-    plt.gca().set_yticks([])
-    plt.title('length_scaling=', length_scaling)
 
