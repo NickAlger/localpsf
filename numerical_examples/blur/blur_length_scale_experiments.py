@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as typ
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import dolfin as dl
@@ -23,10 +24,50 @@ do_PSF = False
 np.savetxt('all_length_scalings.txt', all_length_scalings)
 np.savetxt('all_error_levels.txt', all_error_levels)
 
+
+def compute_rsvd_applies(A: np.ndarray, tol: float) -> int: # helper function
+    big_Omega = np.random.randn(A.shape[1], A.shape[1])
+    big_Y = A @ big_Omega
+    big_Q, big_R = np.linalg.qr(big_Y)
+    # assert(np.linalg.norm(big_R - np.triu(big_R)) < 1e-10 * np.linalg.norm(big_R)) # make sure there was no pivoting
+
+    big_B = big_Q.T @ A
+
+    def rsvd_error(k: int) -> float:
+        Q = big_Q[:, :k]
+        B = big_B[:k, :]
+        err_rsvd = np.linalg.norm(Q @ B - Ker) / np.linalg.norm(Ker)
+        # print('k=', k, ', err_rsvd=', err_rsvd)
+        return err_rsvd
+
+    k0 = 0
+    k1 = A.shape[1]
+    err0 = rsvd_error(k0)
+    err1 = rsvd_error(k1)
+    k = int((k1 + k0) / 2)
+    while k0 < k and k < k1:
+        err = rsvd_error(k)
+        print('k0=', k0, ', err0=', err0)
+        print('k=', k, ', err=', err)
+        print('k1=', k1, ', err1=', err1)
+        print()
+        if err < tol:
+            k1 = k
+            err1 = err
+        else:
+            k0 = k
+            err0 = err
+        k = int((k1 + k0) / 2)
+
+    rank = k1
+    num_applies_rsvd = 2 * rank
+    return num_applies_rsvd
+
 all_all_num_batches = []
 all_all_num_impulses = []
 all_all_fro_errors = []
 all_ss = []
+all_all_rsvd_applies = []
 all_all_glr_ranks_fro = []
 all_all_glr_ranks_2 = []
 for length_scaling in all_length_scalings:
@@ -41,6 +82,13 @@ for length_scaling in all_length_scalings:
     _, ss, _ = np.linalg.svd(Ker)
     all_ss.append(ss)
     norm_ker_fro = np.linalg.norm(Ker)
+
+    all_rsvd_applies = []
+    for rtol in all_error_levels:
+        rsvd_num_applies = compute_rsvd_applies(Ker, rtol)
+        all_rsvd_applies.append(rsvd_num_applies)
+        print('rtol=', rtol, ', rsvd_num_applies=', rsvd_num_applies)
+    all_all_rsvd_applies.append(all_rsvd_applies)
 
     all_glr_ranks_fro = []
     for rtol in all_error_levels:
@@ -57,6 +105,7 @@ for length_scaling in all_length_scalings:
     all_all_glr_ranks_2.append(all_glr_ranks_2)
 
     np.savetxt('frog_singular_values_L='+str(length_scaling)+'.txt', ss)
+    np.savetxt('all_rsvd_applies_L=' + str(length_scaling) + '.txt', all_rsvd_applies)
     np.savetxt('all_glr_ranks_fro_L='   +str(length_scaling)+'.txt', all_glr_ranks_fro)
     np.savetxt('all_glr_ranks_2_L='     +str(length_scaling)+'.txt', all_glr_ranks_2)
 
@@ -116,4 +165,5 @@ for length_scaling in all_length_scalings:
         np.savetxt('all_fro_errors_L='      +str(length_scaling)+'.txt', all_fro_errors)
 
 
-
+# all_all_rsvd_applies
+# Out[3]: [[354, 522, 674], [1318, 1918, 2454], [2622, 3734, 4662]]

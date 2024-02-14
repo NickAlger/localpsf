@@ -754,26 +754,26 @@ Discuss why PSF does better with smaller $L$.
 
 \begin{table}
 	\begin{center}
-		{\small
-		\begingroup
-		\setlength{\tabcolsep}{8pt}
-		\renewcommand{\arraystretch}{1.0}
-		\begin{tabular}{c| c | c c c c c}
-						& Error tol.    &	\#applies PSF   & \#applies HODLR 	& rank \\ 
-			\hline 
-						& 20\%    		& 11  				& 592				& 111  \\ 
-			$L=1$ 		& 10\% 			& 15  				& 772				& 178  \\ 
-						& 5\% 			& 23   				& 924				& 244 \\ 
-			\hline
-						& 20\%    		& 8  				& 852 				& 417 \\ 
-			$L=1/2$ 	& 10\%    		& 10  				& 1144				& 665 \\ 
-						& 5\% 	  		& 12   				& 1404				& 903 \\ 
-			\hline
-						& 20\%    	 	& 7					& 932				& 845  \\ 
-			$L=1/3$ 	& 10\%    		& 8  				& 1264 				& 1321  \\ 
-						& 5\% 			& 8   				& 1520 				& 1759  \\ 
-		\end{tabular}
-		\endgroup
+	{\small
+	\begingroup
+	\setlength{\tabcolsep}{8pt}
+	\renewcommand{\arraystretch}{1.0}
+	\begin{tabular}{c| c | c c c c c}
+				& Error tol.    &	\#applies PSF   & \#applies HODLR 	& \#applies RSVD	& rank \\ 
+	\hline 
+				& 20\%    		& 11  				& 592				& 354				& 111  \\ 
+	$L=1$ 		& 10\% 			& 15  				& 772				& 522				& 178  \\ 
+				& 5\% 			& 23   				& 924				& 674				& 244 \\ 
+	\hline
+				& 20\%    		& 8  				& 852 				& 1318				& 417 \\ 
+	$L=1/2$ 	& 10\%    		& 10  				& 1144				& 1918				& 665 \\ 
+				& 5\% 	  		& 12   				& 1404				& 2452				& 903 \\ 
+	\hline
+				& 20\%    	 	& 7					& 932				& 2622				& 845  \\ 
+	$L=1/3$ 	& 10\%    		& 8  				& 1264 				& 3734				& 1321  \\ 
+				& 5\% 			& 8   				& 1520 				& 4662				& 1759  \\ 
+	\end{tabular}
+	\endgroup
 	}
 	\end{center}
 	\caption{(Spatially variant blur) Comparison of cost to approximate the blur kernel from Equation \eqref{eq:frog_kernel} using the PSF method, the randomized HODLR (hierarchical off diagonal low rank) method, and GLR (global low rank) approximation using randomized SVD. The quantity $L$ scales the width of the impulse responses, hence it influences the rank of the operator. Large $L$ means low rank, and small $L$ means high rank. The second column (``Error tol'') is the relative error in the approximation of the kernel measured in the Frobenius norm, $||\Phi - \widetilde{\Phi}||_\text{Fro} / ||\Phi||_\text{Fro}$. The remaining three columns show the number of operator applies require to achieve the given error tolerance, using the PSF, HODLR, and GLR methods.}
