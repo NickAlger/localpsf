@@ -11,6 +11,7 @@ def frog_function(
     Sigma: np.ndarray, # shape=(2, 2)
     a: float, # how much negative to include. a=0: gaussian
     use_bump: bool = True,
+    rotation_rate: float = 1.0,
 ) -> np.ndarray: # shape=(N,)
     assert(xx.shape[1] == 2)
     N = xx.shape[0]
@@ -18,7 +19,7 @@ def frog_function(
     assert(mu.shape == (2,))
 
     # theta = np.pi * (mu[0] + mu[1])
-    theta = (np.pi / 2.0) * (mu[0] + mu[1])
+    theta = rotation_rate * (np.pi / 2.0) * (mu[0] + mu[1])
     Rot_matrix = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
 
     bump = mu[0]*(1 - mu[0])*mu[1]*(1-mu[1]) if use_bump else 0.0
@@ -37,6 +38,7 @@ def frog_setup(
         nx:             int     = 63,
         length_scaling: float   = 1.0,
         a:              float   = 1.0,
+        rotation_rate:  float   = 1.0,
 ):
     ny = nx
     mesh = dl.UnitSquareMesh(nx, ny)
@@ -47,7 +49,7 @@ def frog_setup(
 
     Sigma = length_scaling * np.array([[0.01, 0.0], [0.0, 0.0025]]) # 0.25*np.array([[0.01, 0.0], [0.0, 0.0025]])
 
-    phi_function = lambda yy, x: frog_function(yy, vol, x, Sigma, a)
+    phi_function = lambda yy, x: frog_function(yy, vol, x, Sigma, a, rotation_rate=rotation_rate)
 
     Ker = np.zeros((Vh.dim(), Vh.dim()))
     for ii in range(Vh.dim()):

@@ -746,6 +746,12 @@ Before delving into technical details, we provide an overview of the method. Alo
 \end{equation} 
 Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation matrix by angle $\theta(x) = (x^1 + x^2) \pi / 2$, $C = L^2 \operatorname{diag}(c_1, c_2)$, $g(x) = x^1(1-x^1)x^2(1-x^2)$,  and $f(x,y) = \cos\left(p^1(y,x) / \sqrt{c_1 / 2.0}\right) \sin\left(p^2(y,x) / \sqrt{c_2 / 2.0}\right)$ for some constants $a, L, c_1, c_2$. In this section we use $a=1.0$, $L^2=1.0$, $c_1=0.01$, and $c_2=0.0025$. Using this kernel, the impulse response $\phi_x$ is a bumpy blob that is centered near $x$, and is rotated and scaled in a manner that depends on $x$ (see Figure \ref{fig:frog1}). The constant $L$ controls how wide the blob is, and $a$ controls the bumpiness. With $a=0$, $\phi_x$ is a Gaussian. As $a$ increases, $\phi_x$ becomes more bumpy. When $a > 1$, the integral kernel contains negative values, which violates the assumptions of our method. Note that for this operator, using our method is unnecessary because entries of the kernel are given directly via a formula. The purpose of this example is to illustrate the method using an operator which is known exactly and may be easily visualized.
 
+Define HODLR. Define randomized HODLR algo. Ref to Tucker's paper and "Fast randomized eigensolver with structured LDL..."
+
+Define randomized SVD, refer to Halko Martinsson Tropp.
+
+Discuss why PSF does better with smaller $L$.
+
 \begin{table}
 	\begin{center}
 		{\small
@@ -753,24 +759,24 @@ Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation matrix by
 		\setlength{\tabcolsep}{8pt}
 		\renewcommand{\arraystretch}{1.0}
 		\begin{tabular}{c| c | c c c c c}
-						& Error tol.    & rank     	&	\#matvecs PSF   & \#matvecs HODLR \\ 
+						& Error tol.    &	\#applies PSF   & \#applies HODLR 	& rank \\ 
 			\hline 
-						& 20\%    		& 37 		& 6+5  				&  \\ 
-			$L=1$ 		& 10\%    		& 67 		& 6+9  				&  \\ 
-						& 5\% 			& 100  		& 6+17   			&  \\ 
+						& 20\%    		& 11  				& 592				& 37  \\ 
+			$L=1$ 		& 10\% 			& 15  				& 772				& 67  \\ 
+						& 5\% 			& 23   				& 924				& 100 \\ 
 			\hline
-						& 20\%    		& 143		& 6+2  				&  \\ 
-			$L=1/2$ 	& 10\%    		& 256 		& 6+4  				&  \\ 
-						& 5\% 			& 377  		& 6+6   			&  \\ 
+						& 20\%    		& 8  				& 852 				& 143 \\ 
+			$L=1/2$ 	& 10\%    		& 10  				& 1144				& 256 \\ 
+						& 5\% 	  		& 12   				& 1404				& 377 \\ 
 			\hline
-						& 20\%    		& 294 		& 6+1				&  \\ 
-			$L=1/3$ 	& 10\%    		& 525 		& 6+2  				&  \\ 
-						& 5\% 			& 767  		& 6+2   			&  \\ 
+						& 20\%    	 	& 7					& 932				& 294  \\ 
+			$L=1/3$ 	& 10\%    		& 8  				& 1264 				& 525  \\ 
+						& 5\% 			& 8   				& 1520 				& 767  \\ 
 		\end{tabular}
 		\endgroup
 	}
 	\end{center}
-	\caption{(Spatially variant blur)}
+	\caption{(Spatially variant blur) Comparison of cost to approximate the blur kernel from Equation \eqref{eq:frog_kernel} using the PSF method, the randomized HODLR (hierarchical off diagonal low rank) method, and GLR (global low rank) approximation using randomized SVD. The quantity $L$ scales the width of the impulse responses, hence it influences the rank of the operator. Large $L$ means low rank, and small $L$ means high rank. The second column (``Error tol'') is the relative error in the approximation of the kernel measured in the Frobenius norm, $||\Phi - \widetilde{\Phi}||_\text{Fro} / ||\Phi||_\text{Fro}$. The remaining three columns show the number of operator applies require to achieve the given error tolerance, using the PSF, HODLR, and GLR methods.}
 	\label{tab:frog_psf_vs_hodlr_vs_glr}
 \end{table}
 
