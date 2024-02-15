@@ -237,8 +237,9 @@ High rank Hessian approximation methods are thus needed.
 Recently there have been improvements in matrix-free H-matrix construction methods in which an operator is applied to structured random vectors, and the response of the operator to those random vectors is processed to construct an H-matrix approximation~\cite{LevittMartinsson22,LinYing11,Martinsson11,Martinsson16,MartinssonTropp20}. 
 These methods (which we do not use here) have been used to approximate Hessians in PDE constrained inverse problems~\cite{AmbartsumyanEtAl20,Hartland_2023}. 
 Although these methods are promising,
-the required number of operator applications is still large (e.g., hundreds to thousands).
-In this paper, we also form an H-matrix Hessian approximation. However, to reduce the required number of operator applications, we first form a PSF approximation of the data misfit Hessian by exploiting locality and non-negative integral kernel properties, then form the H-matrix using classical H-matrix techniques. By using this two stage approach, we reduce the number of operator applications to a few dozen at most. 
+the required number of operator applications is still large (e.g., hundreds to thousands). For example, using the method in \cite{LinYing11}, the required number of operator applies to construct an $H^1$ matrix with hierarchical rank $r$ for problems in a 2D domain discretized with a regular grid is $\#\text{levels} \cdot 64 \cdot (r + c)$, where $\#\text{levels}$ is the depth of the hierarchical partitioning, $r$ is the rank of the blocks (hierarchical rank), and $c$ is an oversampling parameter (See \cite[Section 2.4]{LinYing11}). On a $64 \times 64$ grid with depth $4$, hierarchical rank $10$, and oversampling parameter $c=5$, the works out to $4 \cdot 64 \cdot (10 + 5) = 3840$ operator applies. In Section \ref{sec:frog} see numerically that the randomized hierarchical off-diagonal low rank (HODLR) method in \cite{Martinsson16} requires hundreds to thousands of matrix-vector products to construct approximations of blur operators with modest (e.g., $10\%$) relative error.
+%while the PSF method in this paper can achieve the same level of error in one to two dozen operator applies.
+In this paper, we also form an H-matrix approximation. However, to reduce the required number of operator applications, we first form a PSF approximation of the data misfit Hessian by exploiting locality and non-negative integral kernel properties, then form the H-matrix using classical H-matrix techniques. By using this two stage approach, we reduce the number of operator applications to a few dozen at most. 
 
 One limitation of our method is that not all data misfit Hessians satisfy the local non-negative integral kernel properties. We note, in particular, that the wave inverse problem data misfit Hessian has a substantial proportion of negative entries in its integral kernel. In this case more specialized techniques based on pseudodifferential operator theory have been developed, e.g., \cite{DemanetEtAl12,HerrmannMoghaddamStolk08,Symes08}. However, many data misfit Hessians of practical interest do satisfy the local non-negative integral kernel properties (either exactly or approximately), and the proposed method is targeted at approximating these Hessians.
 
@@ -752,7 +753,6 @@ Define randomized SVD, refer to Halko Martinsson Tropp.
 
 Discuss why PSF does better with smaller $L$.
 
-[[354, 520, 674], [1316, 1916, 2456], [2624, 3734, 4660]]
 \begin{table}
 	\begin{center}
 	{\small
