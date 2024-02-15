@@ -13,7 +13,7 @@ from tqdm.auto import tqdm
 
 nx = 49
 length_scaling = 1.0
-aa = [1.0, 20.0, 17.0]
+aa = [1.0, 20.0, 27.0]
 
 for a in aa:
     Ker, phi_function, Vh, H, mass_lumps, dof_coords, kdtree_sort_inds = frog_setup(nx, length_scaling, a)
@@ -48,18 +48,25 @@ for a in aa:
     rr_1d = phi_function(coords_1d, p)
 
     plt.figure()
-    plt.plot(rr_1d)
+    plt.plot(np.zeros(rr_1d.size), '--', c='gray')
+    plt.plot(rr_1d, c='k', linewidth=2)
     plt.gca().set_xticks([])
+    plt.gca().set_yticks([])
+    plt.xlim(0, len(coords_1d))
+
     # plt.title('rr_1d')
 
     plt.savefig('frog_1d_a=' + str(a) + '.png', bbox_inches='tight', dpi=400)
 
+    vmax = np.max(np.abs(phi.vector()[:]))
+
     plt.figure()
-    cm = dl.plot(phi, cmap='binary')
+    # cm = dl.plot(phi, cmap='binary')
+    cm = dl.plot(phi, cmap='bwr', vmin=-vmax, vmax=vmax)
     plt.gca().set_xticks([])
     plt.gca().set_yticks([])
     # plt.title('frog1')
-    plt.plot(coords_1d[:,0], coords_1d[:,1], '.r')
+    plt.plot(coords_1d[:,0], coords_1d[:,1], c='k', linewidth=1)
     plt.xlim(0.3, 0.7)
     plt.ylim(0.1, 0.9)
 
@@ -68,7 +75,7 @@ for a in aa:
                         [psf_object.Sigma(1,0)(p), psf_object.Sigma(1,1)(p)]])
 
     tau=3.0
-    plot_ellipse(mu_p, Sigma_p, n_std_tau=tau, facecolor='none', edgecolor='k', linewidth=1)
+    plot_ellipse(mu_p, Sigma_p, n_std_tau=tau, facecolor='none', edgecolor='k', linewidth=2)
 
 
     plt.savefig('frog_ellipsoid_a=' + str(a) + '.png', bbox_inches='tight', dpi=400)
