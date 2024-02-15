@@ -36,10 +36,11 @@ def compute_rsvd_applies(A: np.ndarray, tol: float) -> int: # helper function
     def rsvd_error(k: int) -> float:
         Q = big_Q[:, :k]
         B = big_B[:k, :]
-        err_rsvd = np.linalg.norm(Q @ B - Ker) / np.linalg.norm(Ker)
+        err_rsvd = np.linalg.norm(Q @ B - A) / np.linalg.norm(A)
         # print('k=', k, ', err_rsvd=', err_rsvd)
         return err_rsvd
 
+    # k0--------k---------k1
     k0 = 0
     k1 = A.shape[1]
     err0 = rsvd_error(k0)
@@ -166,4 +167,6 @@ for length_scaling in all_length_scalings:
 
 
 # all_all_rsvd_applies
-# Out[3]: [[354, 522, 674], [1318, 1918, 2454], [2622, 3734, 4662]]
+# Out[3]: [[354, 520, 674], [1316, 1916, 2456], [2624, 3734, 4660]]
+
+#

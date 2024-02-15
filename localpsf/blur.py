@@ -64,3 +64,22 @@ def frog_setup(
     return Ker, phi_function, Vh, H, mass_lumps, dof_coords, kdtree_sort_inds
 
 nearest_ind_func = lambda yy, x: np.argmin(np.linalg.norm(yy - x.reshape((1, -1)), axis=1))
+
+
+def ricker_function(
+    xx: np.ndarray, # shape=(N, 2), N=nx*ny
+    mu: np.ndarray, # shape=(2,)
+    Sigma: np.ndarray, # shape=(2, 2)
+    a: float, # how much negative to include. a=0: gaussian
+) -> np.ndarray: # shape=(N,)
+    assert(xx.shape[1] == 2)
+    N = xx.shape[0]
+    assert(Sigma.shape == (2, 2))
+    assert(mu.shape == (2,))
+
+    pp = xx - mu.reshape((1,2))
+    inv_Sigma = np.linalg.inv(Sigma)
+    t_squared_over_sigma_squared = np.einsum('ai,ai->a', pp, np.einsum('ij,aj->ai', inv_Sigma, pp))
+    G = (2.0 * np.pi * np.sqrt(np.linalg.det(Sigma))) * np.exp(-0.5 * t_squared_over_sigma_squared)
+
+    return (1.0 + a * t_squared_over_sigma_squared) * G
