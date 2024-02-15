@@ -289,7 +289,37 @@ We focus on approximating operators that satisfy the following conditions:
 	\item The supports of the impulse responses $\impulseresponse_x$ are contained in localized regions.
 	\item The integral kernel is non-negative\footnote{Note that having a non-negative integral kernel is different from positive semi-definiteness. The operator $\Aop$ need not be positive semi-definite to use the proposed method, and positive semi-definite operators need not have a non-negative integral kernel.} in the sense that $$\Aker(y,x) \ge 0 \quad \text{for all} \quad (y,x) \in \Omega \times \Omega.$$
 \end{enumerate}
-The proposed method may still perform well if these conditions are relaxed slightly. It is acceptable if the support of $\impulseresponse_x$ is not perfectly contained in a localized region, so long as the bulk of the ``mass'' of $\impulseresponse_x$ is contained in a localized region. The integral kernel does not need to be non-negative for all pairs of points $(y,x) \in \Omega \times \Omega$ so long as it is non-negative for the vast majority of pairs of points $(y,x)$, and so long as the negative numbers are comparatively small. If these conditions are violated, the method will incur additional error, and depending on the severity of the violation, the proposed method may fail.
+The proposed method may still perform well if these conditions are relaxed slightly. It is acceptable if the support of $\impulseresponse_x$ is not perfectly contained in a localized region, so long as the bulk of the ``mass'' of $\impulseresponse_x$ is contained in a localized region. The integral kernel does not need to be non-negative for all pairs of points $(y,x) \in \Omega \times \Omega$ so long as it is non-negative for the vast majority of pairs of points $(y,x)$, and so long as the negative numbers are comparatively small. If these conditions are violated, the method will incur additional error, and depending on the severity of the violation, the proposed method may fail. 
+
+Location and magnitude of negatives matter. Larger negatives: bad, smaller negatives good.  Negatives closer to center: good, further from center: bad. Correlated negatives: bad, randomly distributed: good. Good Good Good Fail quick
+
+Non-local: will work, but choose few ellipsoids, so inefficient
+
+\begin{figure}
+	\centering
+	{
+		%	\setlength{\tabcolsep}{0.1em}
+		%	\renewcommand{\arraystretch}{2.0}
+		\begin{tabular}{cccc}
+	\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=1.0.png} & 
+	\includegraphics[scale=0.3, valign=c]{frog_1d_a=1.0.png} & 
+	\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.0.png} & 
+	\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.0.png} \\
+	%
+	\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=20.0.png} & 
+	\includegraphics[scale=0.3, valign=c]{frog_1d_a=20.0.png} & 
+	\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.23.png} & 
+	\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.23.png} \\
+	%
+	\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=27.0.png} & 
+	\includegraphics[scale=0.3, valign=c]{frog_1d_a=27.0.png} & 
+	\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.249.png} & 
+	\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.249.png} 
+	\end{tabular}
+	}
+	\caption{asdfasdf}
+	\label{fig:robustness_to_negatives}
+\end{figure}
 
 \subsection{Finite element discretization}
 \label{sec:finite_element_kernel}
