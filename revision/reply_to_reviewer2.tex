@@ -51,13 +51,14 @@ submission and this re-submission.\\[1ex]
   small illustrative example with a few figures at the beginning could
   help understand the procedure intuitively.}
 
-  \noindent{Frog example with a=1.
-  	Structure: local non-negative kernel
-(0) Matrix itself column highlighted, show impulse response (kernel\_impulse\_illustration.pdf)
-(1) moments. Show one impulse with ellipsoid with widths illustrated
-(2) impulse response batches
-(3) RBF interpolation (?), evaluation of entries. Columns we know, and entry we don't know. 
-(4) H-matrix (structure only)
+  \noindent{Thank you for this suggestion! We added a 2D blurring kernel example, with figures illustrating the end-to-end PSF method. These are shown in the introduction and the numerical results sections (Sections 1 and 7.1). We think that adding these illustrations helps the reader better understand the intuition behind the method.
+%  	Frog example with a=1.
+%  	Structure: local non-negative kernel
+%(0) Matrix itself column highlighted, show impulse response (kernel\_impulse\_illustration.pdf)
+%(1) moments. Show one impulse with ellipsoid with widths illustrated
+%(2) impulse response batches
+%(3) RBF interpolation (?), evaluation of entries. Columns we know, and entry we don't know. 
+%(4) H-matrix (structure only)
 }
 
 \item \referee{possibly interesting references for estimating Hessians
@@ -71,13 +72,15 @@ submission and this re-submission.\\[1ex]
   proposed in [7],[52]? and you say a bit more? it is hard to conclude
   that your method will always outperform these methods.}
 
-    \noindent{For ref 7: Ask Tucker if we could do HODLR on the
-      Hessian coming from ice mountain problem and record the number
-      of mat-vecs needed to achieve a certain accuracy, something like
-      Figure 8 in teh HODLR paper (DONE).
-      
-      Nick will do some estimates to
-      compare things with ref 52.}
+    \noindent{We added a numerical comparison of our method with the HODLR method in [7] for a blur operator in Table 2 of Section 7.1 in the revised manuscript. The results show that the HODLR method requires hundreds to thousands of operator applies to achieve modest accuracies (e.g. 10\% error) while our method requires only order 10 operator applies. In Section 2 of the revised manuscript we also added a discussion of the costs of the method proposed in [52]. We present back of the envelope calculations based on complexity estimates given in [52], showing that thousands of operator applies may be required.	
+%    	For ref 7: Ask Tucker if we could do HODLR on the
+%      Hessian coming from ice mountain problem and record the number
+%      of mat-vecs needed to achieve a certain accuracy, something like
+%      Figure 8 in teh HODLR paper (DONE).
+%      
+%      Nick will do some estimates to
+%      compare things with ref 52.
+  }
 
 \item \referee{Perhaps it is illustrative to include some 1D blurring
   examples to illustrate robustness of method to departure from
