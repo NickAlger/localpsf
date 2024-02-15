@@ -65,6 +65,7 @@ def frog_setup(
 
 nearest_ind_func = lambda yy, x: np.argmin(np.linalg.norm(yy - x.reshape((1, -1)), axis=1))
 
+#
 
 def ricker_function(
     xx: np.ndarray, # shape=(N, 2), N=nx*ny
@@ -82,4 +83,31 @@ def ricker_function(
     t_squared_over_sigma_squared = np.einsum('ai,ai->a', pp, np.einsum('ij,aj->ai', inv_Sigma, pp))
     G = (2.0 * np.pi * np.sqrt(np.linalg.det(Sigma))) * np.exp(-0.5 * t_squared_over_sigma_squared)
 
-    return (1.0 + a * t_squared_over_sigma_squared) * G
+    return (1.0 - a * t_squared_over_sigma_squared) * G
+
+
+def ricker_setup(
+        nx:             int     = 63,
+        length_scaling: float   = 1.0,
+        a:              float   = 1.0,
+):
+    ny = nx
+    mesh = dl.UnitSquareMesh(nx, ny)
+    Vh = dl.FunctionSpace(mesh, 'CG', 1)
+    dof_coords = Vh.tabulate_dof_coordinates()
+
+    Sigma = length_scaling * np.array([[0.0025, 0.0], [0.0, 0.01]]) # 0.25*np.array([[0.01, 0.0], [0.0, 0.0025]])
+
+    phi_function = lambda yy, x: ricker_function(yy, x, Sigma, a)
+
+    Ker = np.zeros((Vh.dim(), Vh.dim()))
+    for ii in range(Vh.dim()):
+        Ker[:,ii] = phi_function(dof_coords, dof_coords[ii,:])
+
+    mass_lumps = dl.assemble(dl.Constant(1.0) * dl.TestFunction(Vh) * dl.dx)[:].copy()
+
+    H = mass_lumps.reshape((-1, 1)) * Ker * mass_lumps.reshape((1, -1))
+
+    kdtree_sort_inds = geometric_sort(dof_coords)
+
+    return Ker, phi_function, Vh, H, mass_lumps, dof_coords, kdtree_sort_inds
