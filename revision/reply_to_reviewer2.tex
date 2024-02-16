@@ -87,9 +87,14 @@ submission and this re-submission.\\[1ex]
   assumptions (positivity, locality) e.g. on 'indefinite' kernels or
   kernels with multiple modes.}
 
-  \noindent{Use a 2D-deblurring problem and cook up a Hessian with
-    entries given by be some modified Gaussian and show that the error
-    increases as more negative entires are present in the kernel.}
+  \noindent{
+  	We added a numerical study investigating the robustness of the method to violations of the non-negative kernel assumption on two 2D blurring kernel examples (Figure 7). We also added a discussion of the impact of non-locality and negativity on the performance of the method (Section 3.2).
+%  	 Figure 7 gives insight into how negative numbers in the integral kernel affect the ellipsoid impulse response support estimatates.
+%  	
+%  	Use a 2D-deblurring problem and cook up a Hessian with
+%    entries given by be some modified Gaussian and show that the error
+%    increases as more negative entires are present in the kernel.
+}
 
  \item \referee{is code for applying the developed methods on other
    inverse problems available?}

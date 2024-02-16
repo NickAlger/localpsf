@@ -122,12 +122,30 @@ submission and this re-submission.\\[1ex]
       limitation, especially if you also use Gauss-Newton approximate
       Hessian for the wave inverse problems as in this paper.}
 
-\noindent{(1) Three-figure plot: Stokes, Advection/diffusion, wave impulse responses. 
+\noindent{
+	We added a numerical study investigating the robustness of the method to violations of the non-negative kernel assumption on two 2D blurring kernel examples (Figure 7). One takeaway message from this figure is that the impact of negative numbers depends strongly on the spatial configuration of these negative numbers---in the first example (columns 1 and 2 in Figure 7), the negative numbers have minimal impact on the ellipsoid impulse response support estimates, whereas in the other example (columns 3 and 4), even a small amount of negative numbers caused the ellipsoid estimate to be poor. The distribution of negative numbers for wave inverse problem Hessians is similar to that of the second example, and therefore out method is unlikely to be effective for wave Hessians. This is also the case with the Gauss-Newton Hessian.
 	
-(2) showing that the method performs poorly for the ricker example
+	Furthermore, although the component of the wave inverse problem Hessian corresponding to reflected waves is local, the component corresponding to transmission waves is not local. This non-locality also poses challenges for our method (as discussed in Section 3.2). Perhaps this issue caused by transmission waves could be addressed by frequency filtering (thereby removing the non-local component). We do not pursue this here.
 	
-Nick will try to get an impulse response for the wave
-  problem.}
+	NICK ADD PLOT
+%	
+%	In particular, we note the poor performance for the Ricker wavelet-type kernel (right two columns of Figure 7). We observed a similar configuration for the impulse responses for the Hessian and Gauss-Newton Hessian in wave inverse problems. 
+	
+
+	
+%	 The configuration of negative numbers in this example is similar The negative numbers in the integral kernel for the wave Hessian (and Gauss-Newton Hessian) are distributed in a manner similar to the Ricker wavelet-type impulse response shown in the right two columns of Figure 7.
+%	
+%	 We also added a discussion of the impact of non-locality and negativity on the performance of the method (Section 3.2).
+%	
+%	The 
+%	
+%	(1) Three-figure plot: Stokes, Advection/diffusion, wave impulse responses. 
+%	
+%(2) showing that the method performs poorly for the ricker example
+%	
+%Nick will try to get an impulse response for the wave
+%  problem.
+}
 
 \item \referee{It is interesting to see the effectiveness of the
   approximate Hessian used as a preconditioner. It would also be very
