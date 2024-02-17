@@ -132,14 +132,14 @@ submission and this re-submission.\\[1ex]
 	
 	Although the component of the wave inverse problem Hessian corresponding to reflected waves is local, the component corresponding to transmission waves is non-local, which also poses challenges for our method (as discussed in the revised version of Section 3.2). If one applied a high-pass filter to remove the transmission component, in principle the impulse responses could be localized. However, the non-negativity would still need to be addressed. 
 	
-	In Figure \ref{fig:marmousi_impulse} here (but not in the paper due to page limitations), we show an impulse response for the Gauss-Newton Hessian for the Marmousi wave inverse problem. Note that the non-local component of the impulse response causes the ellipsoid impulse response support estimate to be effectively the entire domain.
+	In Figure \ref{fig:marmousi_impulse} here (but not in the paper due to page limitations), we show an impulse response for the Gauss-Newton Hessian for the Marmousi wave inverse problem. Note that the non-local component of the impulse response shifts the mean far away from the visual ``center'' of the impulse response, and causes the ellipsoid impulse response support estimate to be effectively the entire domain.
 	
 	\begin{figure}
 		\centering
 		\includegraphics[scale=0.735]{marmousi_impulse_response_full_domain_ellipsoid_with_tau_annotations.png}
 		\includegraphics[scale=0.3975]{marmousi_impulse_response_zoomed_in.png}
 		
-		\caption{Impulse response for the Gauss-Newton Hessian for the Marmousi wave inverse problem. Data provided by Mathew Hu. On the left we show the impulse response on the whole domain. The color scale is adjusted for better visualization of the non-local transmission components. Estimated ellipsoids with $\tau\in \{1.0, 2.0, 3.0\}$  are shown. On the right we show a zoomed in impulse response, showcasing the negative numbers in the integral kernel.
+		\caption{Impulse response for the Gauss-Newton Hessian for the Marmousi wave inverse problem. On the left we show the impulse response on the whole domain. The color scale is truncated for better visualization of the non-local transmission components. The estimated mean of the impulse response is shown as a red dot. Estimated support ellipsoids with $\tau\in \{1.0, 2.0, 3.0\}$  are shown as black ellipses. On the right we show a zoomed in impulse response, showcasing the negative numbers in the integral kernel. The data for this impulse response was kindly provided to us by Mathew Hu.
 		}
 		\label{fig:marmousi_impulse}
 	\end{figure}
