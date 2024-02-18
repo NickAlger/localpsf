@@ -381,6 +381,13 @@ class PSFKernel:
     def tau(me):
         return me.IRB.tau
 
+    @property
+    def shape_parameter(me):
+        return me.cpp_object.shape_parameter
+
+    def update_shape_parameter(me, new_shape_parameter: float):
+        me.cpp_object.shape_parameter = new_shape_parameter
+
     def update_tau(me, new_tau: float):
         assert_gt(new_tau, 0.0)
         me.IRB.update_tau(new_tau)
@@ -398,11 +405,12 @@ class PSFKernel:
         return (me.V_out.ndof, me.V_in.ndof)
 
 
-def make_product_convolution_kernel(col_batches: ImpulseResponseBatches) -> PSFKernel:
+def make_product_convolution_kernel(col_batches: ImpulseResponseBatches, shape_parameter: float=3.0) -> PSFKernel:
     cpp_object = hpro.hpro_cpp.ProductConvolutionKernelRBFColsOnly(
         col_batches.cpp_object,
         list(col_batches.V_in.vertices),
         list(col_batches.V_out.vertices))
+    cpp_object.shape_parameter = shape_parameter
     return PSFKernel(col_batches, cpp_object)
 
 
@@ -488,6 +496,7 @@ def make_psf(
         tau: float = 3.0,
         num_neighbors: int = 10,
         max_candidate_points: int = None,
+        shape_parameter: float = 3.0,
         display: bool=False,
 ) -> PSFObject:
     assert_ge(num_initial_batches, 0)
@@ -552,7 +561,7 @@ def make_psf(
         num_initial_batches=num_initial_batches, tau=tau,
         num_neighbors=num_neighbors, max_candidate_points=max_candidate_points)
 
-    psf_kernel: PSFKernel = make_product_convolution_kernel(col_batches)
+    psf_kernel: PSFKernel = make_product_convolution_kernel(col_batches, shape_parameter=shape_parameter)
 
     psf_object = PSFObject(
         psf_kernel, IM, bad_vols, tiny_Sigmas, huge_Sigmas, bad_aspect_Sigmas,
@@ -729,6 +738,7 @@ def make_psf_fenics(
         tau: float = 3.0,
         num_neighbors: int = 10,
         max_candidate_points: int = None,
+        shape_parameter: float = 3.0,
         display: bool=False,
 ) -> PSFObjectFenicsWrapper:
     assert_equal(mass_lumps_in.shape, (V_in.dim(),))
@@ -743,6 +753,6 @@ def make_psf_fenics(
         smoothing_width_in=smoothing_width_in,
         smoothing_width_out=smoothing_width_out,
         num_initial_batches=num_initial_batches, tau=tau,num_neighbors=num_neighbors,
-        max_candidate_points=max_candidate_points, display=display)
+        max_candidate_points=max_candidate_points, shape_parameter=shape_parameter, display=display)
     return PSFObjectFenicsWrapper(psf_object, V_in, V_out)
 

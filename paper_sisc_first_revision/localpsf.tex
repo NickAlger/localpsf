@@ -666,9 +666,9 @@ evaluating $\eta_b\left(z_i\right)$ requires determining which mesh cell contain
 %	\label{fig:RBF_width}
 %\end{figure}
 
-The shape parameter $\epsilon$ mediates a tradeoff between accuracy and stability. Small $\epsilon$ is required for RBF interpolation with Gaussian kernels to achieve high accuracy, but small $\epsilon$ also makes RBF interpolation less robust to errors or nonsmoothness in the function being interpolated. 
+The shape parameter, $\epsilon$, mediates a tradeoff between accuracy and stability. Small $\epsilon$ is required for RBF interpolation with Gaussian kernels to achieve high accuracy, but small $\epsilon$ also makes RBF interpolation less robust to errors or nonsmoothness in the function being interpolated. 
 %This is illustrated in Figure \ref{fig:RBF_width} for a simple one dimensional interpolation problem. 
-If high accuracy is not required (for example, if the method is being used to construct a preconditioner) we recommend a conservative choice of $\epsilon=3.0$ in order to make the method more robust to nonsmoothness of the kernel, discretization error, violations of our assumptions, and issues related to boundaries. We use $\epsilon=3.0$ in our numerical results involving Hessians for this reason. In our numerical results for blur kernels, we use a smaller value of $\epsilon=0.5$ so that the RBF interpolation accuracy is not a limiting factor as we study convergence of the method.
+If high accuracy is not required (for example, if the method is being used to construct a preconditioner) we recommend a conservative choice of $\epsilon=3.0$ in order to make the method more robust to nonsmoothness of the kernel, discretization error, errors caused by violations of our assumptions, and issues related to boundaries. We use $\epsilon=3.0$ in our numerical results involving Hessians for this reason. In our numerical results for blur kernels, we use a smaller value of $\epsilon=0.5$ so that the RBF interpolation accuracy is not a limiting factor as we study convergence of the method.
 
 
 \subsection{Hierarchical matrix construction}
