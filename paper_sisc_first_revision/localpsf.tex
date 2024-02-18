@@ -247,6 +247,7 @@ Not all data misfit Hessians satisfy the local non-negative integral kernel prop
 
 
 \section{Preliminaries}
+\label{sec:prelims}
 
 Let $\Omega \subset \mathbb{R}^\gdim$ be a bounded domain (typically $\gdim=1$, $2$, or $3$). We seek to approximate integral operators $\Aop:L^2(\Omega)\rightarrow L^2(\Omega)'$ of the form
 \begin{equation}
@@ -817,15 +818,67 @@ are formed by adding $\mathbf{A}_H$ to $\mathbf{R}_H$ using fast H-matrix arithm
 using fast H-matrix methods, then use the factorization as a
 preconditioner. We approximate $\mathbf{H}_\text{gn}$ rather than $\mathbf{H}$ because $\mathbf{H}$ more often has negative values in its integral kernel. The numerical results show that~$\widetilde{\mathbf{H}}$ is a good preconditioner for both~$\mathbf{H}_\text{gn}$ and~$\mathbf{H}$. 
 
-\subsection{Example 1: Spatially variant blur}
+\subsection{Example 1: Spatially varying blurring problem}
 \label{sec:frog}
 
-Before delving into technical details, we provide an overview of the method. Along the way, we illustrate steps using a spatially variant blur example, in which the integral kernel is given as follows:
-\begin{equation}
-\label{eq:frog_kernel}
-\Phi(y,x) = (1 - a f(y,x)) g(x) \exp \left(-\frac{1}{2}h^T(y,x) C^{-1} h(y,x)\right).
-\end{equation} 
-Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation matrix by angle $\theta(x) = (x^1 + x^2) \pi / 2$, $C = L^2 \operatorname{diag}(c_1, c_2)$, $g(x) = x^1(1-x^1)x^2(1-x^2)$,  and $f(x,y) = \cos\left(p^1(y,x) / \sqrt{c_1 / 2.0}\right) \sin\left(p^2(y,x) / \sqrt{c_2 / 2.0}\right)$ for some constants $a, L, c_1, c_2$. In this section we use $a=1.0$, $L^2=1.0$, $c_1=0.01$, and $c_2=0.0025$. Using this kernel, the impulse response $\phi_x$ is a bumpy blob that is centered near $x$, and is rotated and scaled in a manner that depends on $x$ (see Figure \ref{fig:frog1}). The constant $L$ controls how wide the blob is, and $a$ controls the bumpiness. With $a=0$, $\phi_x$ is a Gaussian. As $a$ increases, $\phi_x$ becomes more bumpy. When $a > 1$, the integral kernel contains negative values, which violates the assumptions of our method. Note that for this operator, using our method is unnecessary because entries of the kernel are given directly via a formula. The purpose of this example is to illustrate the method using an operator which is known exactly and may be easily visualized.
+Here we define the PDE-free spacially varying blurring problem, used
+in Sections~\ref{sec:intro} and~\ref{sec:prelims} for visual
+illustration of various stages and aspects of the proposed method.  To
+study the influence of the presence of negative numbers in the
+integral kernel, i.e., the robustness of the proposed method to
+violations of the non-negative kernel assumption discussed in
+Section~\ref{sec:impulse_response_2}, this example is set up so that
+the impulse response, $\phi_x$, corresponding to the integral kernel
+is a bumpy blob that is centered near $x$, and is rotated and scaled
+in a manner that depends on $x$ (see Figure
+\ref{fig:frog_kernel_impulse_responses}). The closed form expression
+of the integral kernel is given by
+%
+%Before delving into technical details, we provide an overview of the
+%method. Along the way, we illustrate steps using a spatially variant
+%blur example, in which the integral kernel is given as follows:
+%\begin{equation}
+%\label{eq:frog_kernel}
+%\Phi(y,x) = (1 - a f(y,x)) x^1(1-x^1)x^2(1-x^2) \exp \left(-\frac{1}{2}h^T(y,x) C^{-1} h(y,x)\right).
+%\end{equation}
+%Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation
+%matrix by angle $\theta(x) = (x^1 + x^2) \pi / 2$, $C = L^2
+%\operatorname{diag}(c_1, c_2)$, $g(x) = x^1(1-x^1)x^2(1-x^2)$, and
+%$f(x,y) = \cos\left(p^1(y,x) / \sqrt{c_1 / 2.0}\right)
+%\sin\left(p^2(y,x) / \sqrt{c_2 / 2.0}\right)$ for some constants $a,
+%L, c_1, c_2$. In this section we use $a=1.0$, $L^2=1.0$, $c_1=0.01$,
+%and $c_2=0.0025$.
+%
+\begin{align}
+\label{eq:example_frog_kernel}
+\Phi(y,x) = (1 - a f(y,x)) g(x) \exp \left(-\frac{1}{2}(h(y,x)^T
+C^{-1} h(y,x) \right),
+\end{align}
+where $f(y,x) = \cos\left(h^1(y,x) / \sqrt{c_1 /
+  2}\right)\sin\left(h^2(y,x) / \sqrt{c_2 / 2}\right)$, with
+$h^i(y,x)$ the $i^{th}$ component of $R(\theta(x)) (y-x)$, with
+$R(\theta(x))$ a two-dimensional rotation matrix by angle $\theta(x) =
+(x^1 + x^2) \pi / 2$, $g(x) = x^1(1-x^1)x^2(1-x^2)$, and $C = L^2
+\operatorname{diag}(c_1, c_2)$. The constant $L$ controls how wide the
+blob is (hence the support of the impulse response), $a$ controls the
+magnitude of the bumps, and $(c_1, c_2)$ control the width of the
+Gaussian. We note that when $a=0$, $\phi_x$ is a Gaussian, as $a$
+increases, $\phi_x$ becomes more bumpy. For instance, when $a > 1$,
+the integral kernel contains negative values, which violates the
+Assumption 3 (see Section~\ref{sec:conditions_2}).
+
+%The impulse response $\phi_x$ corresponding to this kernel is a bumpy
+%blob that is centered near $x$, and is rotated and scaled in a manner
+%that depends on $x$ (see Figure
+%\ref{fig:frog_kernel_impulse_responses}). The constant $L$ controls
+%how wide the blob is (hence the support of the impulse response), and
+%$a$ controls the magnitude of the bumps. 
+
+%Note that for this
+%operator, using our method is unnecessary because entries of the
+%kernel are given directly via a formula. The purpose of this example
+%is to illustrate the method using an operator which is known exactly
+%and may be easily visualized.
 
 Define HODLR. Define randomized HODLR algo. Ref to Tucker's paper and "Fast randomized eigensolver with structured LDL..."
 
