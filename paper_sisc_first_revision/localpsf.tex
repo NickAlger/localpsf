@@ -624,9 +624,8 @@ Interpolation is performed using the following radial basis function~\cite{Wendl
 \Aker(y,x) \approx \widetilde{\Aker}(y,x) := \sum_{i=1}^{\numnbr} \rbfweight_i~ \rbf\left(\|x-x_i\|\right),
 \end{equation}
 where $\rbfweight_i$ are weights, and 
-$\rbf(r):= \exp\left(-C_\text{RBF}^2\frac{r^2}{2 L^2}\right)$
-is a Gaussian kernel radial basis function. Here $L:=\diam\left(\{x_i\}_{i=1}^{\numnbr}\right)$ is the diameter of the set of sample points used in the interpolation, and $C_\text{RBF}$ is a user-defined shape parameter that controls the width of the kernel function (we use $C_\text{RBF}=3.0$).
-The vector of weights, $\rbfweight = (\rbfweight_1, \rbfweight_2, \dots, \rbfweight_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
+$\rbf(r):= \exp\left(-\frac{1}{2}\left(\epsilon\frac{r}{L}\right)^2\right)$
+is a Gaussian kernel radial basis function. Here $L:=\diam\left(\{x_i\}_{i=1}^{\numnbr}\right)$ is the diameter of the set of sample points used in the interpolation, and $\epsilon$ is a user-defined shape parameter that controls the width of the kernel function. The vector of weights, $\rbfweight = (\rbfweight_1, \rbfweight_2, \dots, \rbfweight_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
 \begin{equation}
 B \rbfweight = f,
 \end{equation}
@@ -643,6 +642,33 @@ $
 per~\eqref{eq:varphi_eval}. Note that $z_i$ is typically not a gridpoint of the mesh used to discretize the problem, even if $y$, $x$, and $x_i$ are gridpoints. Hence,
 evaluating $\eta_b\left(z_i\right)$ requires determining which mesh cell contains $z_i$, then evaluating finite element basis functions on that mesh cell. Fortunately, the mesh cell containing $z_i$ was determined as a side effect of querying the AABB tree of mesh cells when we checked whether $z_i \in \Omega$. 
 
+
+%\begin{figure}
+%	\begin{subfigure}[b]{0.24\textwidth}
+%		\centering
+%		\includegraphics[scale=0.25]{rbf_cosine_shape_parameter=1.0.pdf}
+%	\end{subfigure}
+%	\begin{subfigure}[b]{0.24\textwidth}
+%		\centering
+%		\includegraphics[scale=0.25]{rbf_cosine_shape_parameter=10.0.pdf}
+%	\end{subfigure}
+%	\begin{subfigure}[b]{0.24\textwidth}
+%		\centering
+%		\includegraphics[scale=0.25]{rbf_cosine_shape_parameter=100.0.pdf}
+%	\end{subfigure}
+%	\begin{subfigure}[b]{0.24\textwidth}
+%		\centering
+%		\includegraphics[scale=0.25]{cosine_RBF_convergence.pdf}
+%	\end{subfigure}
+%	
+%	\caption{asdf
+%	}
+%	\label{fig:RBF_width}
+%\end{figure}
+
+The shape parameter $\epsilon$ mediates a tradeoff between accuracy and stability. Small $\epsilon$ is required for RBF interpolation with Gaussian kernels to achieve high accuracy, but small $\epsilon$ also makes RBF interpolation less robust to errors or nonsmoothness in the function being interpolated. 
+%This is illustrated in Figure \ref{fig:RBF_width} for a simple one dimensional interpolation problem. 
+If high accuracy is not required (for example, if the method is being used to construct a preconditioner) we recommend a conservative choice of $\epsilon=3.0$ in order to make the method more robust to nonsmoothness of the kernel, discretization error, violations of our assumptions, and issues related to boundaries. We use $\epsilon=3.0$ in our numerical results involving Hessians for this reason. In our numerical results for blur kernels, we use a smaller value of $\epsilon=0.5$ so that the RBF interpolation accuracy is not a limiting factor as we study convergence of the method.
 
 
 \subsection{Hierarchical matrix construction}
