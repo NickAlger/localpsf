@@ -89,3 +89,8 @@ plt.xlabel('#impulse responses')
 plt.ylabel(r'$||\Phi - \widetilde{\Phi}||/||\Phi||$')
 plt.title(r'Convergence for different $\tau$')
 plt.savefig('frog_tau_comparison_by_impulse.pdf', bbox_inches='tight', dpi=300)
+
+for ii in range(len(all_tau)):
+    np.savetxt('frog_convergence_batches_tau'+str(all_tau[ii])+'.dat', np.vstack([all_num_batches[ii,:], all_fro_errors[ii,:]]).T)
+    np.savetxt('frog_convergence_impulses_tau'+str(all_tau[ii])+'.dat', np.vstack([all_num_impulses[ii, :], all_fro_errors[ii, :]]).T)
+

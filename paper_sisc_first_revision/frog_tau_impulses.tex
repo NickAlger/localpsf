@@ -1,0 +1,53 @@
+\documentclass{standalone}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{amsmath}
+
+% SIAM Shared Information Template
+% This is information that is shared between the main document and any
+% supplement. If no supplement is required, then this information can
+% be included directly in the main document.
+
+
+% Packages and macros go here
+\usepackage{lipsum}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{amsmath}
+\usepackage{subcaption}
+\usepackage{pgfplots}
+\usepackage{bm}
+
+
+\begin{document}
+	\begin{tikzpicture}[baseline]%, trim axis right]
+		\begin{axis}[width=0.49\linewidth, height=0.5\linewidth,
+		xmode=log,
+		ymode=log,
+		ymin=1e-4,
+		ymax=1e0,
+%		xmax=1000,
+		axis x line*=bottom,
+		axis y line*=left,
+%		xtick={0, 200, 400, 600,800,1000},
+		xlabel={\#impulse responses},
+		ylabel={$\|\boldsymbol{\Phi} - \widetilde{\boldsymbol{\Phi}}\|_\text{Fro} / \|\boldsymbol{\Phi}\|_\text{Fro}$},
+		title={PSF convergence (impulse responses)},
+		legend style={at={(1.2,1)},anchor=north east,draw=none},
+		legend pos=south west,
+		legend style={font=\small}
+		]
+			\addlegendentry{$\tau=2.0$}
+			\addplot[black, line width=0.5mm] table {frog_convergence_impulses_tau2.0.dat};
+			\addlegendentry{$\tau=2.5$}
+			\addplot[blue, line width=0.5mm] table {frog_convergence_impulses_tau2.5.dat};
+			\addlegendentry{$\tau=3.0$}
+			\addplot[cyan, line width=0.5mm] table {frog_convergence_impulses_tau3.0.dat};
+			\addlegendentry{$\tau=3.5$}
+			\addplot[red, line width=0.5mm] table {frog_convergence_impulses_tau3.5.dat};
+			\addlegendentry{$\tau=4.0$}
+			\addplot[purple, line width=0.5mm] table {frog_convergence_impulses_tau4.0.dat};
+		\end{axis}
+	\end{tikzpicture}
+\end{document}
