@@ -629,7 +629,7 @@ class PSFObjectFenicsWrapper:
         return me.psf_object.V_out.gdim
 
     def add_impulse_response_batch(me):
-        me.psf_object.impulse_response_batches.add_one_sample_point_batch()
+        return me.psf_object.impulse_response_batches.add_one_sample_point_batch()
 
     def impulse_response_batch(me, b: int) -> dl.Function:
         assert_le(0, b)

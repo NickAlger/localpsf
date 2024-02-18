@@ -15,7 +15,7 @@ nx = 63
 a = 1.0 # <-- How bumpy? Use 1.0, which is maximum bumpiness without negative numbers
 length_scaling = 1.0 / (2.0**2)
 all_tau = [2.0, 2.5, 3.0, 3.5, 4.0]
-all_num_batches = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+all_num_batches0 = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
 shape_parameter = 0.5
 num_neighbors = 10
 
@@ -24,11 +24,10 @@ Ker, phi_function, Vh, H, mass_lumps, dof_coords, kdtree_sort_inds = frog_setup(
 Ker_reordered = Ker[:, kdtree_sort_inds][kdtree_sort_inds,:]
 dof_coords_reordered = dof_coords[kdtree_sort_inds,:]
 
-all_num_impulses    = np.zeros((len(all_tau), len(all_num_batches)))
-all_fro_errors      = np.zeros((len(all_tau), len(all_num_batches)))
+all_num_batches     = np.zeros((len(all_tau), len(all_num_batches0)))
+all_num_impulses    = np.zeros((len(all_tau), len(all_num_batches0)))
+all_fro_errors      = np.zeros((len(all_tau), len(all_num_batches0)))
 for ii, tau in enumerate(all_tau):
-    print('tau=', tau)
-
     psf_object = lpsf1.make_psf_fenics(
         lambda X: H @ X,
         lambda X: H.T @ X,
@@ -40,9 +39,11 @@ for ii, tau in enumerate(all_tau):
         shape_parameter=shape_parameter,
     )
 
-    for jj, num_batches in enumerate(all_num_batches):
-        while psf_object.psf_object.impulse_response_batches.num_batches < num_batches:
-            psf_object.add_impulse_response_batch()
+    for jj, num_batches0 in enumerate(all_num_batches0):
+        while psf_object.psf_object.impulse_response_batches.num_batches < num_batches0:
+            new_points = psf_object.add_impulse_response_batch()
+            if not new_points:
+                break
 
         num_batches = psf_object.psf_object.impulse_response_batches.num_batches
         num_impulses = psf_object.psf_object.impulse_response_batches.num_sample_points
@@ -52,29 +53,39 @@ for ii, tau in enumerate(all_tau):
         print('err_psf=', err_psf)
         print('num_batches=', num_batches)
         print('num_impulses=', num_impulses)
+        print('tau=', tau)
 
+        all_num_batches[ii,jj] = num_batches
         all_num_impulses[ii,jj] = num_impulses
         all_fro_errors[ii,jj] = err_psf
 
-np.savetxt('all_tau.txt', all_tau)
-np.savetxt('all_num_batches.txt', all_num_batches)
-np.savetxt('all_num_impulses.txt', all_num_impulses)
-np.savetxt('all_fro_errors.txt', all_fro_errors)
+        np.savetxt('all_tau.txt', all_tau)
+        np.savetxt('all_num_batches.txt', all_num_batches)
+        np.savetxt('all_num_impulses.txt', all_num_impulses)
+        np.savetxt('all_fro_errors.txt', all_fro_errors)
 
 
-raise RuntimeError
 
 plt.figure()
 leg = []
-# for k in range(len(all_tau)):
-for k in [0,1,2,4]:
-    plt.semilogy(all_all_num_batches[k], all_all_fro_errors[k])
-    leg.append(r'$\tau$='+str(all_tau[k]))
-# plt.legend(['tau='+str(t) for t in all_tau])
+for ii, tau in enumerate(all_tau):
+    plt.loglog(all_num_batches[ii,:], all_fro_errors[ii,:])
+    leg.append(r'$\tau$='+str(tau))
 plt.legend(leg)
-plt.ylim(1e-2, 1e0)
-plt.xlim(1, 30)
+plt.ylim(None, 1e0)
 plt.xlabel('#batches')
 plt.ylabel(r'$||\Phi - \widetilde{\Phi}||/||\Phi||$')
 plt.title(r'Convergence for different $\tau$')
-plt.savefig('frog_tau_comparison.pdf', bbox_inches='tight', dpi=300)
+plt.savefig('frog_tau_comparison_by_batch.pdf', bbox_inches='tight', dpi=300)
+
+plt.figure()
+leg = []
+for ii, tau in enumerate(all_tau):
+    plt.loglog(all_num_impulses[ii,:], all_fro_errors[ii,:])
+    leg.append(r'$\tau$='+str(tau))
+plt.legend(leg)
+plt.ylim(None, 1e0)
+plt.xlabel('#impulse responses')
+plt.ylabel(r'$||\Phi - \widetilde{\Phi}||/||\Phi||$')
+plt.title(r'Convergence for different $\tau$')
+plt.savefig('frog_tau_comparison_by_impulse.pdf', bbox_inches='tight', dpi=300)
