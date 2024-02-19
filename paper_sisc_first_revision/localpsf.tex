@@ -821,18 +821,16 @@ preconditioner. We approximate $\mathbf{H}_\text{gn}$ rather than $\mathbf{H}$ b
 \subsection{Example 1: Spatially varying blurring problem}
 \label{sec:frog}
 
-Here we define the PDE-free spacially varying blurring problem, used
-in Sections~\ref{sec:intro} and~\ref{sec:prelims} for visual
-illustration of various stages and aspects of the proposed method.  To
-study the influence of the presence of negative numbers in the
-integral kernel, i.e., the robustness of the proposed method to
-violations of the non-negative kernel assumption discussed in
-Section~\ref{sec:impulse_response_2}, this example is set up so that
-the impulse response, $\phi_x$, corresponding to the integral kernel
-is a bumpy blob that is centered near $x$, and is rotated and scaled
-in a manner that depends on $x$ (see Figure
-\ref{fig:frog_kernel_impulse_responses}). The closed form expression
-of the integral kernel is given by
+Here we define a PDE-free spatially varying blurring problem, used in
+Sections~\ref{sec:intro} and~\ref{sec:prelims} for visual illustration
+of various stages and aspects of the proposed method.  To study the
+robustness of the proposed method to violations of the non-negative
+kernel assumption discussed in Section~\ref{sec:impulse_response_2},
+this example is set up so that the impulse response, $\phi_x$,
+corresponding to the integral kernel is a bumpy blob that is centered
+near $x$, and is rotated and scaled in a manner that depends on $x$
+(see Figure \ref{fig:frog_kernel_impulse_responses}). The closed form
+expression of the integral kernel is given by
 %
 %Before delving into technical details, we provide an overview of the
 %method. Along the way, we illustrate steps using a spatially variant
@@ -850,7 +848,7 @@ of the integral kernel is given by
 %and $c_2=0.0025$.
 %
 \begin{align}
-\label{eq:example_frog_kernel}
+\label{eq:frog_kernel}
 \Phi(y,x) = (1 - a f(y,x)) g(x) \exp \left(-\frac{1}{2}(h(y,x)^T
 C^{-1} h(y,x) \right),
 \end{align}
@@ -859,13 +857,13 @@ where $f(y,x) = \cos\left(h^1(y,x) / \sqrt{c_1 /
 $h^i(y,x)$ the $i^{th}$ component of $R(\theta(x)) (y-x)$, with
 $R(\theta(x))$ a two-dimensional rotation matrix by angle $\theta(x) =
 (x^1 + x^2) \pi / 2$, $g(x) = x^1(1-x^1)x^2(1-x^2)$, and $C = L^2
-\operatorname{diag}(c_1, c_2)$. The constant $L$ controls how wide the
-blob is (hence the support of the impulse response), $a$ controls the
-magnitude of the bumps, and $(c_1, c_2)$ control the width of the
-Gaussian. We note that when $a=0$, $\phi_x$ is a Gaussian, as $a$
-increases, $\phi_x$ becomes more bumpy. For instance, when $a > 1$,
-the integral kernel contains negative values, which violates the
-Assumption 3 (see Section~\ref{sec:conditions_2}).
+\operatorname{diag}(c_1, c_2)$. The constant $L$ controls the width of
+the blob, and $c_1/c_2$ controls its aspect ratio. The constant $a$
+represents deviation from a Gaussian. When $a=0$, $\phi_x$ is a
+Gaussian, and as $a$ increases, $\phi_x$ becomes non-Gaussian. When $a
+> 1$, the integral kernel contains negative values, which allows us to
+study the robustness of the PSF method to violations of Assumption 3
+(Section~\ref{sec:conditions_2}).
 
 %The impulse response $\phi_x$ corresponding to this kernel is a bumpy
 %blob that is centered near $x$, and is rotated and scaled in a manner
@@ -880,11 +878,29 @@ Assumption 3 (see Section~\ref{sec:conditions_2}).
 %is to illustrate the method using an operator which is known exactly
 %and may be easily visualized.
 
-Define HODLR. Define randomized HODLR algo. Ref to Tucker's paper and "Fast randomized eigensolver with structured LDL..."
+In Table~\ref{tab:frog_psf_vs_hodlr_vs_glr} we compare the
+computational cost to approximate the blur kernel from
+Equation~\eqref{eq:frog_kernel} using the proposed PSF method, the
+randomized HODLR (hierarchical off diagonal low rank)
+method~\cite{Martinsson16,HartlandEtAl23}, and GLR (global low rank)
+approximation using randomized SVD~\cite{HalkoMartinssonTropp11}. For
+these results we vary the quantity $L$ to scale the width of the
+impulse responses and hence the rank of the operator. For each case,
+we calculate the relative error in the approximation of the kernel
+measured in the Frobenius norm, $||\boldsymbol{\Phi} -
+\widetilde{\boldsymbol{\Phi}}||_\text{Fro} /
+||\boldsymbol{\Phi}||_\text{Fro}$ and show the number of operator
+applications required to achieve 20\%, 10\%, and 5\% relative error by
+each method. The results reveal that superior performance of the PSF
+method as compared to the HODLR and GLR methods for all cases. We note
+that as we increase the rank and decrease the error tolerance, the
+performance of the the HODLR and GLR methods deteriorates.
 
-Define randomized SVD, refer to Halko Martinsson Tropp.
+%Define HODLR. Define randomized HODLR algo. Ref to Tucker's paper and "Fast randomized eigensolver with structured LDL..."
 
-Discuss why PSF does better with smaller $L$.
+%Define randomized SVD, refer to Halko Martinsson Tropp.
+
+%Discuss why PSF does better with smaller $L$.
 
 \begin{table}
 	\begin{center}
@@ -910,7 +926,22 @@ Discuss why PSF does better with smaller $L$.
 	\endgroup
 	}
 	\end{center}
-	\caption{(Spatially variant blur) Comparison of cost to approximate the blur kernel from Equation \eqref{eq:frog_kernel} using the PSF method, the randomized HODLR (hierarchical off diagonal low rank) method, and GLR (global low rank) approximation using randomized SVD. The quantity $L$ scales the width of the impulse responses, hence it influences the rank of the operator. Large $L$ means low rank, and small $L$ means high rank. The second column (``Error tol'') is the relative error in the approximation of the kernel measured in the Frobenius norm, $||\Phi - \widetilde{\Phi}||_\text{Fro} / ||\Phi||_\text{Fro}$. The remaining three columns show the number of operator applies required to achieve the given error tolerances, using the PSF, HODLR, and GLR methods.}
+	\caption{(Spatially variant blur) Comparison of cost to
+          approximate the blur kernel from Equation
+          \eqref{eq:frog_kernel} using the PSF method, the randomized
+          HODLR (hierarchical off diagonal low rank) method, and GLR
+          (global low rank) approximation using randomized SVD. The
+          quantity $L$ scales the width of the impulse responses,
+          hence it influences the rank of the operator. Large $L$
+          means low rank, and small $L$ means high rank. The second
+          column (``Error tol'') is the relative error in the
+          approximation of the kernel measured in the Frobenius norm,
+          $||\boldsymbol{\Phi} -
+          \widetilde{\boldsymbol{\Phi}}||_\text{Fro} /
+          ||\boldsymbol{\Phi}||_\text{Fro}$. The remaining three
+          columns show the number of operator applies required to
+          achieve the given error tolerances, using the PSF, HODLR,
+          and GLR methods.}
 	\label{tab:frog_psf_vs_hodlr_vs_glr}
 \end{table}
 
