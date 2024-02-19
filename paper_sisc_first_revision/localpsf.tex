@@ -899,6 +899,9 @@ method as compared to the HODLR and GLR methods for all cases. We note
 that as we increase the rank and decrease the error tolerance, the
 performance of the the HODLR and GLR methods deteriorates.
 
+In Figure \ref{fig:PSF_tau_convergence} we show the convergence of the proposed PSF method on the blur kernel as a function of the total number of impulse responses and the number of batches. We show convergence for several ellipsoid size parameters $\tau$, ranging from $2.0$--$4.0$. We observe a roughly linear convergence rate until a limit, which depends on $\tau$, is reached. I.e., the relative error decreases as $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$ or $\text{constant} \times \# \text{batches}^{-1}$ until the limit is reached, then the error does not decrease any further. Increasing $\tau$ lowers this limit, allowing the method to achieve higher accuracy. Before this limit is reached, the convergence rate is the same for all $\tau$ as a function the number of impulse responses. This means that the convergence is faster for smaller $\tau$ as a function of the number of batches, since smaller $\tau$ means more impulse responses per batch.
+
+
 %Define HODLR. Define randomized HODLR algo. Ref to Tucker's paper and "Fast randomized eigensolver with structured LDL..."
 
 %Define randomized SVD, refer to Halko Martinsson Tropp.
