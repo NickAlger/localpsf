@@ -485,7 +485,7 @@ E_x := \{x' \in \Omega: (x' - \spatialmean(x))^T \spatialcov(x)^{-1} (x' - \spat
 \end{equation}
 %
 %
-where $\tau$ is a fixed constant (see Figure \ref{fig:frog_moments_ellipsoid}). The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$. The quantity $\tau$ is a parameter that must be chosen appropriately. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section~\ref{sec:sample_point_selection} we will see that the cost of the proposed method depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids is better), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. In practice, we find that $\tau=3.0$ yields a reasonable balance between these competing interests, and use $\tau=3.0$ in the numerical results. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is typically conservative.
+where $\tau$ is a fixed constant (see Figure \ref{fig:frog_moments_ellipsoid}). The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$, i.e., the Gaussian distribution which has the same mean and covariance as the normalized version of $\impulseresponse_x$. The quantity $\tau$ is a parameter that must be chosen appropriately. The larger $\tau$ is, the larger the ellipsoid $E_x$ is, and the more conservative the estimate is for the support of $\impulseresponse_x$. However, in Section~\ref{sec:sample_point_selection} we will see that the cost of the proposed method depends on how many non-overlapping ellipsoids $E_x$ we can ``pack'' in the domain $\Omega$ (more ellipsoids is better), and choosing a larger value of $\tau$ means that fewer ellipsoids will fit in $\Omega$. In practice, we find that $\tau=3.0$ yields a reasonable balance between these competing interests, and use $\tau=3.0$ in all numerical results, except for Figure \ref{fig:PSF_tau_convergence}, where we study the effects of varying $\tau$. The fraction of the ``mass'' of $\impulseresponse_x$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though this bound is typically conservative.
 
 
 \subsection{Local mean displacement invariance}
@@ -881,6 +881,49 @@ study the robustness of the PSF method to violations of Assumption 3
 %is to illustrate the method using an operator which is known exactly
 %and may be easily visualized.
 
+\begin{table}
+	\begin{center}
+		{\small
+			\begingroup
+			\setlength{\tabcolsep}{8pt}
+			\renewcommand{\arraystretch}{1.0}
+			\begin{tabular}{c| c | c c c c c}
+				& Error tol.    &	\#applies PSF   & \#applies HODLR 	& \#applies RSVD 	\\%& rank \\ 
+				\hline 
+				& 20\%    		& 11  				& 592				& 354				\\%& 111  \\ 
+				$L=1$ 		& 10\% 			& 15  				& 772				& 520				\\%& 178  \\ 
+				& 5\% 			& 23   				& 924				& 674				\\%& 244 \\ 
+				\hline
+				& 20\%    		& 8  				& 852 				& 1316				\\%& 417 \\ 
+				$L=1/2$ 	& 10\%    		& 10  				& 1144				& 1916				\\%& 665 \\ 
+				& 5\% 	  		& 12   				& 1404				& 2456				\\%& 903 \\ 
+				\hline
+				& 20\%    	 	& 7					& 932				& 2624				\\%& 845  \\ 
+				$L=1/3$ 	& 10\%    		& 8  				& 1264 				& 3734				\\%& 1321  \\ 
+				& 5\% 			& 8   				& 1520 				& 4660				\\%& 1759  \\ 
+			\end{tabular}
+			\endgroup
+		}
+	\end{center}
+	\caption{(Blur) Comparison of cost to
+		approximate the blur kernel from Equation
+		\eqref{eq:frog_kernel} using the PSF method, the randomized
+		HODLR (hierarchical off diagonal low rank) method, and GLR
+		(global low rank) approximation using randomized SVD. The
+		quantity $L$ scales the width of the impulse responses,
+		hence it influences the rank of the operator. Large $L$
+		means low rank, and small $L$ means high rank. The second
+		column (``Error tol'') is the relative error in the
+		approximation of the kernel measured in the Frobenius norm,
+		$||\boldsymbol{\Phi} -
+		\widetilde{\boldsymbol{\Phi}}||_\text{Fro} /
+		||\boldsymbol{\Phi}||_\text{Fro}$. The remaining three
+		columns show the number of operator applies required to
+		achieve the given error tolerances, using the PSF, HODLR,
+		and GLR methods.}
+	\label{tab:frog_psf_vs_hodlr_vs_glr}
+\end{table}
+
 In Table~\ref{tab:frog_psf_vs_hodlr_vs_glr} we compare the
 computational cost to approximate the blur kernel from
 Equation~\eqref{eq:frog_kernel} using the proposed PSF method, the
@@ -899,58 +942,6 @@ method as compared to the HODLR and GLR methods for all cases. We note
 that as we increase the rank and decrease the error tolerance, the
 performance of the the HODLR and GLR methods deteriorates.
 
-In Figure \ref{fig:PSF_tau_convergence} we show the convergence of the proposed PSF method on the blur kernel as a function of the total number of impulse responses and the number of batches. We show convergence for several ellipsoid size parameters $\tau$, ranging from $2.0$--$4.0$. We observe a roughly linear convergence rate until a limit, which depends on $\tau$, is reached. I.e., the relative error decreases as $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$ or $\text{constant} \times \# \text{batches}^{-1}$ until the limit is reached, then the error does not decrease any further. Increasing $\tau$ lowers this limit, allowing the method to achieve higher accuracy. Before this limit is reached, the convergence rate is the same for all $\tau$ as a function the number of impulse responses. This means that the convergence is faster for smaller $\tau$ as a function of the number of batches, since smaller $\tau$ means more impulse responses per batch. In summary, taking $\tau$ larger makes the method converge more slowly, but allows it to eventually achieve a lower level of error.
-
-
-%Define HODLR. Define randomized HODLR algo. Ref to Tucker's paper and "Fast randomized eigensolver with structured LDL..."
-
-%Define randomized SVD, refer to Halko Martinsson Tropp.
-
-%Discuss why PSF does better with smaller $L$.
-
-\begin{table}
-	\begin{center}
-	{\small
-	\begingroup
-	\setlength{\tabcolsep}{8pt}
-	\renewcommand{\arraystretch}{1.0}
-	\begin{tabular}{c| c | c c c c c}
-				& Error tol.    &	\#applies PSF   & \#applies HODLR 	& \#applies RSVD 	\\%& rank \\ 
-	\hline 
-				& 20\%    		& 11  				& 592				& 354				\\%& 111  \\ 
-	$L=1$ 		& 10\% 			& 15  				& 772				& 520				\\%& 178  \\ 
-				& 5\% 			& 23   				& 924				& 674				\\%& 244 \\ 
-	\hline
-				& 20\%    		& 8  				& 852 				& 1316				\\%& 417 \\ 
-	$L=1/2$ 	& 10\%    		& 10  				& 1144				& 1916				\\%& 665 \\ 
-				& 5\% 	  		& 12   				& 1404				& 2456				\\%& 903 \\ 
-	\hline
-				& 20\%    	 	& 7					& 932				& 2624				\\%& 845  \\ 
-	$L=1/3$ 	& 10\%    		& 8  				& 1264 				& 3734				\\%& 1321  \\ 
-				& 5\% 			& 8   				& 1520 				& 4660				\\%& 1759  \\ 
-	\end{tabular}
-	\endgroup
-	}
-	\end{center}
-	\caption{(Spatially variant blur) Comparison of cost to
-          approximate the blur kernel from Equation
-          \eqref{eq:frog_kernel} using the PSF method, the randomized
-          HODLR (hierarchical off diagonal low rank) method, and GLR
-          (global low rank) approximation using randomized SVD. The
-          quantity $L$ scales the width of the impulse responses,
-          hence it influences the rank of the operator. Large $L$
-          means low rank, and small $L$ means high rank. The second
-          column (``Error tol'') is the relative error in the
-          approximation of the kernel measured in the Frobenius norm,
-          $||\boldsymbol{\Phi} -
-          \widetilde{\boldsymbol{\Phi}}||_\text{Fro} /
-          ||\boldsymbol{\Phi}||_\text{Fro}$. The remaining three
-          columns show the number of operator applies required to
-          achieve the given error tolerances, using the PSF, HODLR,
-          and GLR methods.}
-	\label{tab:frog_psf_vs_hodlr_vs_glr}
-\end{table}
-
 \begin{figure}
 	\begin{subfigure}{0.52\textwidth}
 		\begin{center}
@@ -962,9 +953,39 @@ In Figure \ref{fig:PSF_tau_convergence} we show the convergence of the proposed 
 			\includegraphics[scale=1.0]{frog_tau_batches.pdf}
 		\end{center}
 	\end{subfigure}
-	\caption{Relative error in the PSF approximation of the kernel, $||\boldsymbol{\Phi} - \widetilde{\boldsymbol{\Phi}}||_\text{Fro}/||\boldsymbol{\Phi}||_\text{Fro}$, for different ellipsoid size parameters, $\tau$. Left: Relative error vs. the total number of impulse responses used in the approximation. Right: Relative error vs. the number of impulse response batches. The dashed gray lines show linear convergence rates, i.e., $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$ on the left, and  $\text{constant} \times \# \text{batches}^{-1}$ on the right.}
+	\caption{(Blur) Relative error 
+		%		in the PSF approximation of the kernel
+		%	$||\boldsymbol{\Phi} - \widetilde{\boldsymbol{\Phi}}||_\text{Fro}/||\boldsymbol{\Phi}||_\text{Fro}$,
+		for different ellipsoid size parameters, $\tau$, vs. the total number of impulse responses (left), and the number of batches (right). 
+		%	Left: Relative error vs. the total number of impulse responses used in the approximation. Right: Relative error vs. the number of impulse response batches. 
+		The dashed gray lines show linear convergence rates, i.e., $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$ on the left, and  $\text{constant} \times \# \text{batches}^{-1}$ on the right.}
 	\label{fig:PSF_tau_convergence}
 \end{figure} 
+
+In Figure \ref{fig:PSF_tau_convergence} we show the convergence of the proposed PSF method on the blur kernel as a function of the total number of impulse responses (left), and the number of batches (right). We show convergence for several ellipsoid size parameters $\tau$, ranging from $2.0$--$4.0$. The results in Figure \ref{fig:PSF_tau_convergence} (left) show that the relative error decreases as $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$
+% or $\text{constant} \times \# \text{batches}^{-1}$, 
+suggesting linear convergence. The linear convergence stalls at a limit which depends on $\tau$. Increasing $\tau$ lowers this limit, allowing the method to achieve higher accuracy. 
+In Figure \ref{fig:PSF_tau_convergence} (right), the results show that before this limit is reached, the convergence is faster for smaller $\tau$ in terms of the number of batches. This is expected because smaller $\tau$ results in more impulse responses per batch. Larger $\tau$ causes the method converge more slowly than smaller $\tau$, but with larger $\tau$ the method stalls at a lower level of error than it does with smaller $\tau$ (see, e.g., $\tau=4.0$ vs. $\tau=2.5$). 
+
+%----
+%, but allows the method to eventually achieve a lower level of error.
+%
+%----
+%
+%For smaller $\tau$ regime, we observe faster convergence
+%
+%Before this limit is reached, the convergence rate is the same for all $\tau$ as a function the number of impulse responses. This means that the convergence is faster for smaller $\tau$ as a function of the number of batches, since smaller $\tau$ means more impulse responses per batch. In summary, taking $\tau$ larger makes the method converge more slowly, but allows it to eventually achieve a lower level of error.
+
+
+%Define HODLR. Define randomized HODLR algo. Ref to Tucker's paper and "Fast randomized eigensolver with structured LDL..."
+
+%Define randomized SVD, refer to Halko Martinsson Tropp.
+
+%Discuss why PSF does better with smaller $L$.
+
+
+
+
 
 \subsection{Example 2: Inversion for the basal friction coefficient in an ice sheet flow problem}
 \label{sec:ice}

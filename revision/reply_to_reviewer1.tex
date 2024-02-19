@@ -126,9 +126,9 @@ submission and this re-submission.\\[1ex]
       Hessian for the wave inverse problems as in this paper.}
 
 \noindent{
-	We added a numerical study investigating the robustness of the method to violations of the non-negative kernel assumption on two 2D blurring kernel examples (Figure 7). We also added a discussion of the impact of non-locality and negativity on the performance of the method (Section 3.2).
+	We added a numerical study investigating the robustness of the method to violations of the non-negative kernel assumption on two two-dimensional blurring kernel examples (Figure 7). We also added a discussion of the impact of non-locality and negativity on the performance of the method (Section 3.2).
 	
-	One takeaway message from Figure 7 is that the impact of negative numbers depends strongly on the spatial configuration of these negative numbers---in the first example (columns 1 and 2 in Figure 7), the negative numbers have minimal impact on the ellipsoid impulse response support estimates, whereas in the second example (columns 3 and 4), even a small amount of negative numbers causes the impulse response support estimate to be poor. The configuration of negative numbers for the integral kernel in wave inverse problem Hessians (including Gauss-Newton Hessians) is similar to that of the second example, and therefore our method is unlikely to be effective for wave Hessians. 
+	One takeaway message from Figure 7 is that the impact of negative numbers depends strongly on the spatial configuration of these negative numbers---in the first example (columns~1 and~2 in Figure~7), the negative numbers have minimal impact on the ellipsoid impulse response support estimates, whereas in the second example (columns~3 and~4), even a small amount of negative numbers causes the impulse response support estimate to be poor. The configuration of negative numbers for the integral kernel in wave inverse problem Hessians (including Gauss-Newton Hessians) is similar to that of the second example, and therefore our method is unlikely to be effective for wave Hessians. 
 	
 	Although the component of the wave inverse problem Hessian corresponding to reflected waves is local, the component corresponding to transmission waves is non-local, which also poses challenges for our method (as discussed in the revised version of Section 3.2). If one applied a high-pass filter to remove the transmission component, in principle the impulse responses could be localized. However, the non-negativity would still need to be addressed. 
 	
@@ -141,7 +141,7 @@ submission and this re-submission.\\[1ex]
 		\includegraphics[scale=0.735]{marmousi_impulse_response_full_domain_ellipsoid_with_tau_annotations.png}
 		\includegraphics[scale=0.3975]{marmousi_impulse_response_zoomed_in.png}
 		
-		\caption{Impulse response for the Gauss-Newton Hessian for the Marmousi wave inverse problem. On the left we show the impulse response on the whole domain. The color scale is truncated for better visualization of the non-local transmission components. The estimated mean of the impulse response is shown as a red dot. Estimated support ellipsoids with $\tau\in \{1.0, 2.0, 3.0\}$  are shown as black ellipses. On the right we show a zoomed in impulse response, showcasing the negative numbers in the integral kernel. The data for this impulse response was kindly provided to us by Mathew Hu.
+		\caption{Impulse response for the Gauss-Newton Hessian for the Marmousi wave inverse problem. On the left we show the impulse response on the whole domain. The color scale is truncated for better visualization of the non-local transmission components. The estimated mean of the impulse response is shown as a red dot. Estimated support ellipsoids with $\tau\in \{1.0, 2.0, 3.0\}$  are shown as black ellipses. On the right we show a zoomed in impulse response, showcasing the negative numbers in the integral kernel. The data for this impulse response was kindly provided to us by Mathew Hu (UT Austin).
 		}
 		\label{fig:marmousi_impulse}
 	\end{figure}
@@ -179,7 +179,14 @@ submission and this re-submission.\\[1ex]
   numerical or theoretical?}
 
   \noindent{
-  	In Figure 8 in the revised manuscript we added a convergence study for the blur kernel example. We show the convergence of the proposed PSF method as a function of the total number of impulse responses and the number of batches, for several ellipsoid size parameters $\tau$ ranging from $2.0$--$4.0$. We observe a roughly linear convergence rate until a limit, which depends on $\tau$, is reached. The larger $\tau$ is, the smaller the limit is on the achievable error. Before this limit, the error decreases at roughly the same rate for all $\tau$ in terms of the number of impulse responses. This means that the error decreases faster for smaller $\tau$ as a function of the number of batches, since smaller $\tau$ means more impulse responses per batch. Basically, taking $\tau$ larger makes the method converge more slowly, but allows it to eventually achieve a lower level of error. We added a discussion of this convergence study in Section 7.1 of the revised manuscript.
+  	In Figure 8 in the revised manuscript we added a convergence study for one of the blur kernel examples. We show the convergence of the proposed PSF method as a function of the total number of impulse responses and the number of batches, for several ellipsoid size parameters $\tau$ ranging from $2.0$--$4.0$. We observe a roughly linear convergence rate until a limit, which depends on $\tau$, is reached. The larger $\tau$ is, the smaller the limit is on the achievable error. Before this limit, the error decreases at roughly the same rate for all $\tau$ in terms of the number of impulse responses. This means that the error decreases faster for smaller $\tau$ as a function of the number of batches, since smaller $\tau$ means more impulse responses per batch. Basically, with larger $\tau$ the method converge more slowly than with smaller $\tau$, but larger $\tau$ allows the method to eventually achieve a lower level of error. We added a discussion of this convergence study in Section 7.1 of the revised manuscript.
+  	
+  	Although the method can achieve high accuracy, we would like to emphasize that it is targeted at achieving modest accuracies (e.g., $5\%$ error) to build preconditioners for problems that are challenging for existing methods. In Table 2 in the revised manuscript, following the other reviewer's suggestion, we added a comparison of the computational cost
+  	(measured in operator applies) to approximate the kernel in one of the spatially
+  	varying blurring kernel examples. We compare the results using the proposed PSF method,
+  	the randomized HODLR (hierarchical off diagonal low rank) method,
+  	and GLR (global low rank) approximation using randomized SVD. The
+  	results show an overwhelming computational gain.
   	
 %  	 I.e., the relative error decreases as $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$ or $\text{constant} \times \# \text{batches}^{-1}$ until the limit is reached, then the error does not decrease any further. Increasing $\tau$ lowers this limit, allowing the method to achieve higher accuracy. Before this limit is reached, the convergence rate is the same for all $\tau$ as a function the number of impulse responses. 
   	
@@ -197,28 +204,26 @@ submission and this re-submission.\\[1ex]
    cost arising from the Hessian matrix-vector product. It would be
    interesting to see the computational time of each step for the
    numerical examples to provide a good sense of the complexity and to
-   support the 5-10X computational reduction by accounting also the
-   overhead beyond the PDE solves.}
+   support the 5--10X computational reduction by accounting also the
+   overhead beyond the PDE solves.
+}
 
-   \noindent{We agree with the reviewer that there is an ``overhead''
-     beyond the PDE applies. However, for all numerical tests we
-     present in this paper, this cost was small compared to
-     PDE-applies. This is due to the need for a relatively small
-     number of sample points ($m$) in all batches. Since we have not
-     invested time to optimize our codes for performance, it would be
-     perhaps misleading to report profilingtiming information. When
-     $m$ is very large, one can reduce this cost with more involved
-     computational geometry methods. This was beyond the scope of our
-     work.
-
-     In the revised manuscript, following the other reviewer's
-     suggestion, we added a comparison of the computational cost
-     (measured in operator applies) to approximate the spacially
-     varying blurring kernel example using the proposed PSF method,
-     the randomized HODLR (hierarchical off diagonal low rank) method,
-     and GLR (global low rank) approximation using randomized SVD. The
-     results show an overwhelming computational gain for this
-     particular example.}
+   \noindent{This is a fair point. We agree with the reviewer that there is an overhead
+     beyond the PDE solves. However, since we have not optimized our codes for performance, it would be
+     perhaps misleading to report profiling/timing information. Nevertheless, for all numerical tests we
+     present in this paper, the cost to build the H-matrices (item (2) in Section 6) was small compared to
+     PDE solves (item (1) in Section 6). The further H-matrix linear algebra operations (item (3) in Section 6), as implemented in the HLIBPro library, were less costly than the PDE solves, but their costs were not negligible. In particular, enforcing positive definiteness of the H-matrix via the procedure presented in Section 5.5 was costly. Because of the polylog linear complexity of H-matrix operations, for large-scale problems these H-matrix overhead costs would eventually become insignificant compared to the PDE solves.
+%     
+%     However, for all numerical tests we
+%     present in this paper, this cost was small compared to
+%     PDE-applies. This is due to the need for a relatively small
+%     number of sample points ($m$) in all batches. Since we have not
+%     invested time to optimize our codes for performance, it would be
+%     perhaps misleading to report profiling-timing information. When
+%     $m$ is very large, one can reduce this cost with more involved
+%     computational geometry methods. This was beyond the scope of our
+%     work.
+}
    
 \end{enumerate} 
 
