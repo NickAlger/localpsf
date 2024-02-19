@@ -179,13 +179,18 @@ submission and this re-submission.\\[1ex]
   numerical or theoretical?}
 
   \noindent{
-  	Figure 6 illustrates how the error decreases with increasing numbers of batches and therefore impulse responses. ALSO TABLE 4 CONDITION NUMBER
+  	In Figure 8 in the revised manuscript we added a convergence study for the blur kernel example. We show the convergence of the proposed PSF method as a function of the total number of impulse responses and the number of batches, for several ellipsoid size parameters $\tau$ ranging from $2.0$--$4.0$. We observe a roughly linear convergence rate until a limit, which depends on $\tau$, is reached. The larger $\tau$ is, the smaller the limit is on the achievable error. Before this limit, the error decreases at roughly the same rate for all $\tau$ in terms of the number of impulse responses. This means that the error decreases faster for smaller $\tau$ as a function of the number of batches, since smaller $\tau$ means more impulse responses per batch. Basically, taking $\tau$ larger makes the method converge more slowly, but allows it to eventually achieve a lower level of error. We added a discussion of this convergence study in Section 7.1 of the revised manuscript.
   	
-  	Frog example with a=1. Error vs \#batches, for different tau. Also do a plot with \#impulses on the x-axis.
+%  	 I.e., the relative error decreases as $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$ or $\text{constant} \times \# \text{batches}^{-1}$ until the limit is reached, then the error does not decrease any further. Increasing $\tau$ lowers this limit, allowing the method to achieve higher accuracy. Before this limit is reached, the convergence rate is the same for all $\tau$ as a function the number of impulse responses. 
   	
-  	Nick will try to create a plot that shows some error
-    (e.g. Frob norm, cond number) as a function of number of impulse
-    responses.}
+%  	Figure 6 illustrates how the error decreases with increasing numbers of batches and therefore impulse responses. ALSO TABLE 4 CONDITION NUMBER
+%  	
+%  	Frog example with a=1. Error vs \#batches, for different tau. Also do a plot with \#impulses on the x-axis.
+%  	
+%  	Nick will try to create a plot that shows some error
+%    (e.g. Frob norm, cond number) as a function of number of impulse
+%    responses.
+}
 
  \item \referee{The paper presented a nice complexity analysis of the
    steps in constructing the approximate Hessian, with the dominating
