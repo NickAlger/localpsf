@@ -60,11 +60,13 @@
 \section{Introduction}
 \label{sec:intro}
 
-We present an efficient \emph{matrix-free} point spread function (PSF) method for approximating operators $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$ that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, and $L^2(\Omega)'$ is the space of real-valued continuous linear functionals on $L^2(\Omega)$. By ``non-negative integral kernel,'' we mean that entries of $\Aop$'s integral kernel (defined in Equation \ref{eq:kernel_representation}) are non-negative numbers; this is not the same as positive semi-definiteness of $\Aop$. Such operators appear as, for example, Hessians in optimization and inverse problems governed by partial differential equations (PDEs)~\cite{BorziSchulz11,Delosreyes15,HinzePinnauUlbrichUlbrich08}, 
+We present an efficient \emph{matrix-free} point spread function (PSF) method for approximating operators $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$ that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, and $L^2(\Omega)'$ is the space of real-valued continuous linear functionals on $L^2(\Omega)$. By ``non-negative integral kernel,'' we mean that entries of $\Aop$'s integral kernel 
+%(defined in Equation \ref{eq:kernel_representation})
+are non-negative numbers; this is not the same as positive semi-definiteness of $\Aop$. Such operators appear as, for example, Hessians in optimization and inverse problems governed by partial differential equations (PDEs)~\cite{BorziSchulz11,Delosreyes15,HinzePinnauUlbrichUlbrich08}, 
 %AntilEtAl18
 Schur complements in Schur complement methods for solving partial differential equations and Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps)~\cite{ChanMathew94,SmithBjorstadGropp96,ToselliWidlund04}, covariance operators in spatial statistics~\cite{ChenStein21,GentonKeyesTurkiyyah18,GeogaEtAl20,LindgrenRueLindstrom11}, and blurring operators in imaging~\cite{DenisEtAl11,NagyOleary98}. 
 
-Here ``matrix-free'' means that we may apply $\Aop$ and its transpose\footnote{Recall that $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(w) = \left(\Aop^T w\right)(u)$ for all $u,w \in L^2(\Omega)$, where $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$, and similar for operations with $\Aop^T$. }, $\Aop^T$, to functions,
+Here, ``matrix-free'' means that we may apply $\Aop$ and its transpose\footnote{Recall that $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(w) = \left(\Aop^T w\right)(u)$ for all $u,w \in L^2(\Omega)$, where $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$, and similar for operations with $\Aop^T$. }, $\Aop^T$, to functions,
 \begin{equation}
 \label{eq:eval_maps}
 u \mapsto\Aop u \qquad \text{and} \qquad w \mapsto \Aop^T w,
@@ -508,7 +510,7 @@ We use approximation~\eqref{eq:translate4}, which is the same as~\eqref{eq:trans
 \section{Operator approximation algorithm}
 \label{sec:method}
 
-Here we provide an overview of the operator approximation algorithm. Then, in the subsections of this section (Sections \ref{sec:sample_point_selection}--\ref{sec:flip_eigs}) we present the technical details of the algorithm that were not already covered in Section \ref{sec:prerequisites}.
+Here we provide an overview of the operator approximation algorithm. Then, in the subsections (Sections \ref{sec:sample_point_selection}--\ref{sec:flip_eigs}) we present technical details of the algorithm that were not already covered in Section \ref{sec:prerequisites}.
 
 %\subsection{Algorithm overview}
 %\label{sec:algorithm_overview}
@@ -669,7 +671,7 @@ evaluating $\eta_b\left(z_i\right)$ requires determining which mesh cell contain
 
 The shape parameter, $\epsilon$, mediates a tradeoff between accuracy and stability. Small $\epsilon$ is required for RBF interpolation with Gaussian kernels to achieve high accuracy, but small $\epsilon$ also makes RBF interpolation less robust to errors or nonsmoothness in the function being interpolated. 
 %This is illustrated in Figure \ref{fig:RBF_width} for a simple one dimensional interpolation problem. 
-If high accuracy is not required (for example, if the method is being used to construct a preconditioner) we recommend a conservative choice of $\epsilon=3.0$ in order to make the method more robust to nonsmoothness of the kernel, discretization error, errors caused by violations of our assumptions, and issues related to boundaries. We use $\epsilon=3.0$ in our numerical results involving Hessians for this reason. In our numerical results for blur kernels, we use a smaller value of $\epsilon=0.5$ so that the RBF interpolation accuracy is not a limiting factor as we study convergence of the method.
+For our numerical results involving Hessians in inverse problems governed by PDEs (Sections~\ref{sec:ice}~and~\ref{sec:adv}), high accuracy is not required because the method is used to construct a preconditioner. Hence, for these Hessian approximations we use a conservative choice of $\epsilon=3.0$ to ensure robustness. For our numerical results for blur kernels (Section~\ref{sec:frog}), we use a smaller value of $\epsilon=0.5$ so that the RBF interpolation accuracy is not a limiting factor as we study convergence of the method.
 
 
 \subsection{Hierarchical matrix construction}
@@ -821,16 +823,17 @@ preconditioner. We approximate $\mathbf{H}_\text{gn}$ rather than $\mathbf{H}$ b
 \subsection{Example 1: Spatially varying blurring problem}
 \label{sec:frog}
 
-Here we define a PDE-free spatially varying blurring problem, used in
-Sections~\ref{sec:intro} and~\ref{sec:prelims} for visual illustration
-of various stages and aspects of the proposed method.  To study the
-robustness of the proposed method to violations of the non-negative
-kernel assumption discussed in Section~\ref{sec:impulse_response_2},
-this example is set up so that the impulse response, $\phi_x$,
-corresponding to the integral kernel is a bumpy blob that is centered
+Here we define a PDE-free spatially varying blurring problem, in which the impulse response, $\phi_x$,
+is a bumpy blob that is centered
 near $x$, and is rotated and scaled in a manner that depends on $x$
-(see Figure \ref{fig:frog_kernel_impulse_responses}). The closed form
-expression of the integral kernel is given by
+(see Figure \ref{fig:frog_kernel_impulse_responses}). This blurring problem is used in
+Sections~\ref{sec:intro} and~\ref{sec:prelims} to visually illustrate
+various stages and aspects of the proposed method, and robustness (or lack thereof) of the proposed method to violations of the non-negative kernel assumption (Section~\ref{sec:conditions_2}). In this section, the blurring problem is used to compare the proposed method to hierarchical off-diagonal low rank (HODLR) and global low rank (GLR) methods, to study convergence of the method, and to investigate the effect of the ellipsoid size parameter $\tau$.
+%To study the
+%robustness of the proposed method to violations of the non-negative
+%kernel assumption discussed in Section~\ref{sec:impulse_response_2},
+The closed form
+expression for the integral kernel is given by
 %
 %Before delving into technical details, we provide an overview of the
 %method. Along the way, we illustrate steps using a spatially variant
@@ -856,7 +859,7 @@ where $f(y,x) = \cos\left(h^1(y,x) / \sqrt{c_1 /
   2}\right)\sin\left(h^2(y,x) / \sqrt{c_2 / 2}\right)$, with
 $h^i(y,x)$ the $i^{th}$ component of $R(\theta(x)) (y-x)$, with
 $R(\theta(x))$ a two-dimensional rotation matrix by angle $\theta(x) =
-(x^1 + x^2) \pi / 2$, $g(x) = x^1(1-x^1)x^2(1-x^2)$, and $C = L^2
+(x^1 + x^2) \pi / 2$, $g(x) = x^1(1-x^1)x^2(1-x^2)$, and with $C = L^2
 \operatorname{diag}(c_1, c_2)$. The constant $L$ controls the width of
 the blob, and $c_1/c_2$ controls its aspect ratio. The constant $a$
 represents deviation from a Gaussian. When $a=0$, $\phi_x$ is a
@@ -891,7 +894,7 @@ measured in the Frobenius norm, $||\boldsymbol{\Phi} -
 \widetilde{\boldsymbol{\Phi}}||_\text{Fro} /
 ||\boldsymbol{\Phi}||_\text{Fro}$ and show the number of operator
 applications required to achieve 20\%, 10\%, and 5\% relative error by
-each method. The results reveal that superior performance of the PSF
+each method. The results reveal superior performance of the PSF
 method as compared to the HODLR and GLR methods for all cases. We note
 that as we increase the rank and decrease the error tolerance, the
 performance of the the HODLR and GLR methods deteriorates.
@@ -956,7 +959,7 @@ performance of the the HODLR and GLR methods deteriorates.
 			\includegraphics[scale=1.0]{frog_tau_batches.pdf}
 		\end{center}
 	\end{subfigure}
-	\caption{Relative error in the PSF approximation of the kernel, $||\boldsymbol{\Phi} - \widetilde{\boldsymbol{\Phi}}||_\text{Fro}/||\boldsymbol{\Phi}||_\text{Fro}$, for different ellipsoid size parameters, $\tau$. Left: Relative error vs. the total number of impulse responses used in the approximation. Right: Relative error vs. the number of impulse response batches. The dashed gray lines show linear convergence rates, i.e., $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$ on the left, and  $\text{constant} \times \left(\# \text{batches}\right)^{-1}$ on the right.}
+	\caption{Relative error in the PSF approximation of the kernel, $||\boldsymbol{\Phi} - \widetilde{\boldsymbol{\Phi}}||_\text{Fro}/||\boldsymbol{\Phi}||_\text{Fro}$, for different ellipsoid size parameters, $\tau$. Left: Relative error vs. the total number of impulse responses used in the approximation. Right: Relative error vs. the number of impulse response batches. The dashed gray lines show linear convergence rates, i.e., $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$ on the left, and  $\text{constant} \times \# \text{batches}^{-1}$ on the right.}
 	\label{fig:PSF_tau_convergence}
 \end{figure} 
 
