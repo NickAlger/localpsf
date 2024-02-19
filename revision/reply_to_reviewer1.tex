@@ -187,16 +187,33 @@ submission and this re-submission.\\[1ex]
     (e.g. Frob norm, cond number) as a function of number of impulse
     responses.}
 
- \item \referee{The paper presented a nice complexity analysis of the steps in
-    constructing the approximate Hessian, with the dominating cost
-    arising from the Hessian matrix-vector product. It would be
-    interesting to see the computational time of each step for the
-    numerical examples to provide a good sense of the complexity and
-    to support the 5-10X computational reduction by accounting also
-    the overhead beyond the PDE solves.}
+ \item \referee{The paper presented a nice complexity analysis of the
+   steps in constructing the approximate Hessian, with the dominating
+   cost arising from the Hessian matrix-vector product. It would be
+   interesting to see the computational time of each step for the
+   numerical examples to provide a good sense of the complexity and to
+   support the 5-10X computational reduction by accounting also the
+   overhead beyond the PDE solves.}
 
-   \noindent{Nick will time one of the examples in the
-     advection-diffusion.}
+   \noindent{We agree with the reviewer that there is an ``overhead''
+     beyond the PDE applies. However, for all numerical tests we
+     present in this paper, this cost was small compared to
+     PDE-applies. This is due to the need for a relatively small
+     number of sample points ($m$) in all batches. Since we have not
+     invested time to optimize our codes for performance, it would be
+     perhaps misleading to report profilingtiming information. When
+     $m$ is very large, one can reduce this cost with more involved
+     computational geometry methods. This was beyond the scope of our
+     work.
+
+     In the revised manuscript, following the other reviewer's
+     suggestion, we added a comparison of the computational cost
+     (measured in operator applies) to approximate the spacially
+     varying blurring kernel example using the proposed PSF method,
+     the randomized HODLR (hierarchical off diagonal low rank) method,
+     and GLR (global low rank) approximation using randomized SVD. The
+     results show an overwhelming computational gain for this
+     particular example.}
    
 \end{enumerate} 
 
