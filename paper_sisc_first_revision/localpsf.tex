@@ -510,10 +510,9 @@ We use approximation~\eqref{eq:translate4}, which is the same as~\eqref{eq:trans
 \section{Operator approximation algorithm}
 \label{sec:method}
 
-Here we provide an overview of the operator approximation algorithm. Then, in the subsections (Sections \ref{sec:sample_point_selection}--\ref{sec:flip_eigs}) we present technical details of the algorithm that were not already covered in Section \ref{sec:prerequisites}.
-
-%\subsection{Algorithm overview}
-%\label{sec:algorithm_overview}
+Before presenting the technical details of the algorithm in Sections \ref{sec:sample_point_selection}--\ref{sec:flip_eigs}, we first provide an overview.
+%Here we provide an overview of the operator approximation algorithm. 
+%Then, in the subsections (Sections \ref{sec:sample_point_selection}--\ref{sec:flip_eigs}) we present technical details of the algorithm that were not already covered in Section \ref{sec:prerequisites}.
 
 We use~\eqref{eq:vol_mean_var} to compute $\spatialvol$, $\spatialmean$, and $\spatialcov$ by applying $\Aop^T$ to polynomial functions. Then we use~\eqref{eq:support_ellipsoid} to form ellipsoid shaped estimates for the support of the $\phi_x$'s, \emph{without} computing them (see Figure \ref{fig:frog_moments_ellipsoid}). This allows us to compute large numbers of $\impulseresponse_{x_i}$ in ``batches,'' $\eta_b$ (see Figures~\ref{fig:batches_intro}~and~\ref{fig:frog_batches}). We compute one batch, denoted $\eta_b$, by applying $\Aop$ to a weighted sum of point sources (Dirac comb) associated with a batch, $S_b$, of points $x_i$ scattered throughout $\Omega$ (Section~\ref{sec:get_impulse_response}). The batch of points, $S_b$, is chosen via a greedy ellipsoid packing algorithm so that, for $x_i,x_j \in S_b$, the support ellipsoid for $\impulseresponse_{x_i}$ and the support ellipsoid for $\impulseresponse_{x_j}$ do not overlap if $i \neq j$ (Section~\ref{sec:sample_point_selection}). Because these supports do not overlap (or do not overlap much), we can post process $\eta_b$ to recover the functions $\impulseresponse_{x_i}$ associated with all points $x_i \in S_b$. With one application of $\Aop$, we recover many $\impulseresponse_{x_i}$ (Section~\ref{sec:get_impulse_response}). The process is repeated until a desired number of batches is reached.
 
