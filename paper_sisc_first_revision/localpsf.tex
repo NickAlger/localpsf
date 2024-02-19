@@ -882,7 +882,7 @@ In Table~\ref{tab:frog_psf_vs_hodlr_vs_glr} we compare the
 computational cost to approximate the blur kernel from
 Equation~\eqref{eq:frog_kernel} using the proposed PSF method, the
 randomized HODLR (hierarchical off diagonal low rank)
-method~\cite{Martinsson16,HartlandEtAl23}, and GLR (global low rank)
+method~\cite{Martinsson16,Hartland_2023}, and GLR (global low rank)
 approximation using randomized SVD~\cite{HalkoMartinssonTropp11}. For
 these results we vary the quantity $L$ to scale the width of the
 impulse responses and hence the rank of the operator. For each case,
@@ -944,6 +944,21 @@ performance of the the HODLR and GLR methods deteriorates.
           and GLR methods.}
 	\label{tab:frog_psf_vs_hodlr_vs_glr}
 \end{table}
+
+\begin{figure}
+	\begin{subfigure}{0.52\textwidth}
+		\begin{center}
+			\includegraphics[scale=1.0]{frog_tau_impulses.pdf}
+		\end{center}
+	\end{subfigure}
+	\begin{subfigure}{0.47\textwidth}
+		\begin{center}
+			\includegraphics[scale=1.0]{frog_tau_batches.pdf}
+		\end{center}
+	\end{subfigure}
+	\caption{Relative error in the PSF approximation of the kernel, $||\boldsymbol{\Phi} - \widetilde{\boldsymbol{\Phi}}||_\text{Fro}/||\boldsymbol{\Phi}||_\text{Fro}$, for different ellipsoid size parameters, $\tau$. Left: Relative error vs. the total number of impulse responses used in the approximation. Right: Relative error vs. the number of impulse response batches. The dashed gray lines show linear convergence rates, i.e., $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$ on the left, and  $\text{constant} \times \left(\# \text{batches}\right)^{-1}$ on the right.}
+	\label{fig:PSF_tau_convergence}
+\end{figure} 
 
 \subsection{Example 2: Inversion for the basal friction coefficient in an ice sheet flow problem}
 \label{sec:ice}

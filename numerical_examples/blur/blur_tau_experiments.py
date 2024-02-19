@@ -64,13 +64,15 @@ for ii, tau in enumerate(all_tau):
         np.savetxt('all_num_impulses.txt', all_num_impulses)
         np.savetxt('all_fro_errors.txt', all_fro_errors)
 
-
+fro_errs_batches_theory = 0.15 / np.array(all_num_batches[-1,:])
 
 plt.figure()
 leg = []
 for ii, tau in enumerate(all_tau):
     plt.loglog(all_num_batches[ii,:], all_fro_errors[ii,:])
     leg.append(r'$\tau$='+str(tau))
+plt.loglog(all_num_batches[-1,:], fro_errs_batches_theory, '--', c='gray')
+leg.append(r'$const \times \# batches^{-1}$')
 plt.legend(leg)
 plt.ylim(None, 1e0)
 plt.xlabel('#batches')
@@ -78,11 +80,16 @@ plt.ylabel(r'$||\Phi - \widetilde{\Phi}||/||\Phi||$')
 plt.title(r'Convergence for different $\tau$')
 plt.savefig('frog_tau_comparison_by_batch.pdf', bbox_inches='tight', dpi=300)
 
+
+fro_errs_impulses_theory = 10*0.15 / np.array(all_num_impulses[-1,:])
+
 plt.figure()
 leg = []
 for ii, tau in enumerate(all_tau):
     plt.loglog(all_num_impulses[ii,:], all_fro_errors[ii,:])
     leg.append(r'$\tau$='+str(tau))
+plt.loglog(all_num_impulses[-1,:], fro_errs_impulses_theory, '--', c='gray')
+leg.append(r'$const \times \left(\# impulse~responses\right)^{-1}$')
 plt.legend(leg)
 plt.ylim(None, 1e0)
 plt.xlabel('#impulse responses')
@@ -94,3 +101,5 @@ for ii in range(len(all_tau)):
     np.savetxt('frog_convergence_batches_tau'+str(all_tau[ii])+'.dat', np.vstack([all_num_batches[ii,:], all_fro_errors[ii,:]]).T)
     np.savetxt('frog_convergence_impulses_tau'+str(all_tau[ii])+'.dat', np.vstack([all_num_impulses[ii, :], all_fro_errors[ii, :]]).T)
 
+np.savetxt('frog_convergence_rate_batches.dat', np.vstack([all_num_batches[-1,:], fro_errs_batches_theory]).T)
+np.savetxt('frog_convergence_rate_impulses.dat', np.vstack([all_num_impulses[-1,:], fro_errs_impulses_theory]).T)

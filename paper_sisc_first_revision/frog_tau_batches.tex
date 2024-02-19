@@ -39,15 +39,16 @@
 %		legend style={font=\small}
 		]
 %			\addlegendentry{$\tau=2.0$}
-			\addplot[black, line width=0.5mm] table {frog_convergence_batches_tau2.0.dat};
+			\addplot[olive, line width=0.5mm] table {frog_convergence_batches_tau2.0.dat};
 %			\addlegendentry{$\tau=2.5$}
 			\addplot[blue, line width=0.5mm] table {frog_convergence_batches_tau2.5.dat};
 %			\addlegendentry{$\tau=3.0$}
 			\addplot[cyan, line width=0.5mm] table {frog_convergence_batches_tau3.0.dat};
 %			\addlegendentry{$\tau=3.5$}
-			\addplot[purple, line width=0.5mm] table {frog_convergence_batches_tau3.5.dat};
+			\addplot[black, line width=0.5mm] table {frog_convergence_batches_tau3.5.dat};
 %			\addlegendentry{$\tau=4.0$}
 			\addplot[red, line width=0.5mm] table {frog_convergence_batches_tau4.0.dat};
+			\addplot[dashed, color=gray, line width=0.5mm] table {frog_convergence_rate_batches.dat};
 		\end{axis}
 	\end{tikzpicture}
 \end{document}

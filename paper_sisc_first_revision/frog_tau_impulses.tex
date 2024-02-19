@@ -34,20 +34,22 @@
 		xlabel={\#impulse responses},
 		ylabel={$\|\boldsymbol{\Phi} - \widetilde{\boldsymbol{\Phi}}\|_\text{Fro} / \|\boldsymbol{\Phi}\|_\text{Fro}$},
 		title={PSF convergence (impulse responses)},
-		legend style={at={(1.2,1)},anchor=north east,draw=none},
-		legend pos=south west,
-		legend style={font=\small}
+		legend style={at={(0.5,0.5)},anchor=north east,draw=none},
+%		legend pos=south west,
+		legend style={font=\small,fill=none}
 		]
 			\addlegendentry{$\tau=2.0$}
-			\addplot[black, line width=0.5mm] table {frog_convergence_impulses_tau2.0.dat};
+			\addplot[olive, line width=0.5mm] table {frog_convergence_impulses_tau2.0.dat};
 			\addlegendentry{$\tau=2.5$}
 			\addplot[blue, line width=0.5mm] table {frog_convergence_impulses_tau2.5.dat};
 			\addlegendentry{$\tau=3.0$}
 			\addplot[cyan, line width=0.5mm] table {frog_convergence_impulses_tau3.0.dat};
 			\addlegendentry{$\tau=3.5$}
-			\addplot[purple, line width=0.5mm] table {frog_convergence_impulses_tau3.5.dat};
+			\addplot[black, line width=0.5mm] table {frog_convergence_impulses_tau3.5.dat};
 			\addlegendentry{$\tau=4.0$}
 			\addplot[red, line width=0.5mm] table {frog_convergence_impulses_tau4.0.dat};
+%			\addlegendentry{$\text{const} \times \left(\# \text{impulse responses}\right)$}
+			\addplot[dashed, color=gray, line width=0.5mm] table {frog_convergence_rate_impulses.dat};
 		\end{axis}
 	\end{tikzpicture}
 \end{document}
