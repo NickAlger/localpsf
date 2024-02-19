@@ -301,6 +301,33 @@ It is acceptable if the support of $\impulseresponse_x$ is not perfectly contain
 
 %The integral kernel does not need to be non-negative for all pairs of points $(y,x) \in \Omega \times \Omega$ (Assumption 3) so long as it is non-negative for the vast majority of pairs of points $(y,x)$, and so long as the negative numbers are comparatively small. 
 
+\begin{figure}
+	\centering
+	{
+		%	\setlength{\tabcolsep}{0.1em}
+		%	\renewcommand{\arraystretch}{2.0}
+		\begin{tabular}{cccc}
+			\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=1.0.png} & 
+			\includegraphics[scale=0.3, valign=c]{frog_1d_a=1.0.png} & 
+			\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.0.png} & 
+			\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.0.png} \\
+			%
+			\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=20.0.png} & 
+			\includegraphics[scale=0.3, valign=c]{frog_1d_a=20.0.png} & 
+			\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.23.png} & 
+			\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.23.png} \\
+			%
+			\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=27.0.png} & 
+			\includegraphics[scale=0.3, valign=c]{frog_1d_a=27.0.png} & 
+			\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.249.png} & 
+			\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.249.png} 
+		\end{tabular}
+	}
+	\caption{Illustration of the influence of negative numbers in the integral kernel on the robustness of the ellipsoid estimates for the supports of impulse responses. Left two columns: Blur kernel given in Equation \ref{eq:frog_kernel}. Right two columns: Ricker wavelet-type kernel given by $\Aker(y,x) = (1 - a \gamma)\exp\left(-\gamma/2\right)$, where $\gamma=(y-x)^T \Sigma^{-1} (y-x)$, and $\Sigma=\operatorname{diag}\left(0.0025, 0.01\right)$. Ordered from top to bottom, the results are obtained with $a\in\{1.0, 20.0, 27.0\}$ for the left two columns, and $a\in \{0.0, 0.23, 0.249\}$ for the right two columns. Columns 1 and 3: impulse responses with estimated support ellipsoids indicated by the black ellipses. Red and blue represent positive and negative numbers in the integral kernel, respectively. Columns 2 and 4: one-dimensional slice along the horizontal line indicated in the two-dimensional plots. The dashed gray line is at zero.
+	}
+	\label{fig:robustness_to_negatives}
+\end{figure}
+
 If there are negative numbers in the integral kernel (violating Assumption 3), the ellipsoid estimation procedure may incur errors or fail, leading to poor performance or failure of the proposed method. In Figure \ref{fig:robustness_to_negatives} we investigate the robustness of the ellipsoid support estimation procedure to violations of Assumption 3. We study two integral kernel examples, both of which are parameterized by a quantity that controls how negative the kernels are. We make the following observations:
 \begin{itemize}
 	\item The larger and more numerous the negative numbers are, the more inaccurate the ellipsoid support estimate is.
@@ -315,32 +342,7 @@ For the kernel in the left two columns of Figure \ref{fig:robustness_to_negative
 %
 %Non-local: will work, but choose few ellipsoids, so inefficient
 
-\begin{figure}
-	\centering
-	{
-		%	\setlength{\tabcolsep}{0.1em}
-		%	\renewcommand{\arraystretch}{2.0}
-		\begin{tabular}{cccc}
-	\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=1.0.png} & 
-	\includegraphics[scale=0.3, valign=c]{frog_1d_a=1.0.png} & 
-	\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.0.png} & 
-	\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.0.png} \\
-	%
-	\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=20.0.png} & 
-	\includegraphics[scale=0.3, valign=c]{frog_1d_a=20.0.png} & 
-	\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.23.png} & 
-	\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.23.png} \\
-	%
-	\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=27.0.png} & 
-	\includegraphics[scale=0.3, valign=c]{frog_1d_a=27.0.png} & 
-	\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.249.png} & 
-	\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.249.png} 
-	\end{tabular}
-	}
-	\caption{Illustration of the influence of negative numbers in the integral kernel on the robustness of the ellipsoid estimates for the supports of impulse responses. Left two columns: Blur kernel given in Equation \ref{eq:frog_kernel}. Right two columns: Ricker wavelet-type kernel given by $\Aker(y,x) = (1 - a \gamma)\exp\left(-\gamma/2\right)$, where $\gamma=(y-x)^T \Sigma^{-1} (y-x)$, and $\Sigma=\operatorname{diag}\left(0.0025, 0.01\right)$. Ordered from top to bottom, the results are obtained with $a\in\{1.0, 20.0, 27.0\}$ for the left two columns, and $a\in \{0.0, 0.23, 0.249\}$ for the right two columns. Columns 1 and 3: impulse responses with estimated support ellipsoids indicated by the black ellipses. Red and blue represent positive and negative numbers in the integral kernel, respectively. Columns 2 and 4: one-dimensional slice along the horizontal line indicated in the two-dimensional plots. The dashed gray line is at zero.
-	}
-	\label{fig:robustness_to_negatives}
-\end{figure}
+
 
 \subsection{Finite element discretization}
 \label{sec:finite_element_kernel}
@@ -770,11 +772,11 @@ In summary, computing all the necessary ingredients to evaluate kernel entries o
 \label{sec:numerical_results}
 
 
-We use the proposed method to approximate the Newton (or Gauss-Newton) Hessians
+We use the proposed method to approximate the integral kernel in a blur problem (Section~\ref{sec:frog}), and the Newton (or Gauss-Newton) Hessians
 in inverse problems governed by PDEs which model steady state ice
 sheet flow~\cite{PetraEtAl12} (Section~\ref{sec:ice}) and advective-diffusive transport of a contaminant~\cite{PetraStadler11}
 (Section~\ref{sec:adv}). These inverse problems are described in detail in their respective sections.
-In both cases, to reconstruct the unknown parameter fields, denoted $q$, the inverse problems are formulated as nonlinear least squares
+In both inverse problems, to reconstruct the unknown parameter fields, denoted $q$, the inverse problems are formulated as nonlinear least squares
 optimization problems, whose objective functions consist of a data misfit term
 (between the observations and model output) and a bi-Laplacian
 regularization term following~\cite{VillaPetraGhattas21}. The
