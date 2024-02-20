@@ -331,7 +331,7 @@ If there are negative numbers in the integral kernel (violating Assumption 3), t
 \begin{itemize}
 	\item The larger and more numerous the negative numbers are, the more inaccurate the ellipsoid support estimate is.
 	\item The further away from the center of the ellipsoid the negative numbers are, the more influence they have on the quality of the ellipsoid support estimate. This is because moment formulas (Equations \ref{eq:define_mean} and \ref{eq:define_cov}) assign more weight to entries in the kernel that are further from the center.
-	\item Negative numbers in the integral kernel affect the ellipsoid estimation method more if they are isolated, and less if they are balanced by nearby positive numbers.
+	\item Negative numbers affect the ellipsoid estimation method more if they are isolated, and less if they are balanced by nearby positive numbers.
 	\item As kernels become more negative, the ellipsoid estimation performs well up to a certain threshold that depends on the spatial distribution of negative and positive entries. After that threshold is crossed, the estimation rapidly transitions to performing poorly and ultimately failing.
 \end{itemize} 
 %The location of the negative numbers also affects the accuracy of the ellipsoid estimates substantially, but in a more complicated manner. 
@@ -431,7 +431,7 @@ denote the spatially varying scaling factor, and for $i,j=1,\dots,\gdim$ define 
 %
 %
 where $\spatialmean^i(x)$ and $y^i$ denote the $i^\text{th}$ components of the vectors $\spatialmean(x)$ and $y$, respectively, and $\spatialcov^{ij}(x)$ denotes the $(i,j)$ entry of the matrix $\spatialcov(x)$.
-The vector $\spatialmean(x)\in \mathbb{R}^\gdim$ and the matrix $\spatialcov(x) \in \mathbb{R}^{\gdim \times \gdim}$ are the mean and covariance of the normalized version of $\impulseresponse_x$, respectively. 
+The quantities $\spatialmean(x)\in \mathbb{R}^\gdim$ and $\spatialcov(x) \in \mathbb{R}^{\gdim \times \gdim}$ are the mean and covariance of the normalized version of $\impulseresponse_x$, respectively. 
 
 The direct approach to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ is to apply $\Aop$ to a point source centered at $x$ to obtain $\impulseresponse_x$, per~\eqref{eq:impulse_response_delta_action}. Then one can post process $\impulseresponse_x$ to determine $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$. However, this direct approach is not feasible because our algorithm for picking sample points (Section \ref{sec:sample_point_selection} and Figure \ref{fig:frog_batches}) needs to know $V(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ before we compute $\phi_x$. Computing $\phi_x$ in order to determine $V(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ would be extremely computationally expensive, and defeat the purpose of the PSF-based method, which is to reduce the computational cost by computing impulse responses in batches. Fortunately, it is possible to compute $\spatialvol(x)$, $\spatialmean(x)$, and $\spatialcov(x)$ indirectly, \emph{for all points $x\in\Omega$ simultaneously}, by applying $\Aop^T$ to one constant function, $\gdim$ linear functions, and $\gdim(\gdim+1)/2$ quadratic functions (e.g., 6 total operator applications in two spatial dimensions and 10 in three spatial dimensions). This may be motivated by analogy to matrices. If $\mathbf{A}\in \mathbb{R}^{\fedim \times \fedim}$ is a matrix with $i^\text{th}$ column $\mathbf{a}_i$ and $\mathbf{w} \in \mathbb{R}^\fedim$, then
 \begin{equation*}
@@ -627,8 +627,8 @@ Interpolation is performed using the following radial basis function~\cite{Wendl
 \Aker(y,x) \approx \widetilde{\Aker}(y,x) := \sum_{i=1}^{\numnbr} \rbfweight_i~ \rbf\left(\|x-x_i\|\right),
 \end{equation}
 where $\rbfweight_i$ are weights, and 
-$\rbf(r):= \exp\left(-\frac{1}{2}\left(\epsilon\frac{r}{L}\right)^2\right)$
-is a Gaussian kernel radial basis function. Here, $L:=\diam\left(\{x_i\}_{i=1}^{\numnbr}\right)$ is the diameter of the set of sample points used in the interpolation, and $\epsilon$ is a user-defined shape parameter that controls the width of the kernel function. The vector of weights, $\rbfweight = (\rbfweight_1, \rbfweight_2, \dots, \rbfweight_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
+$\rbf(r):= \exp\left(-\frac{1}{2}\left(C_\text{RBF}\frac{r}{r_0}\right)^2\right)$
+is a Gaussian kernel radial basis function. Here, $r_0:=\diam\left(\{x_i\}_{i=1}^{\numnbr}\right)$ is the diameter of the set of sample points used in the interpolation, and $C_\text{RBF}$ is a user-defined shape parameter that controls the width of the kernel function. The vector of weights, $\rbfweight = (\rbfweight_1, \rbfweight_2, \dots, \rbfweight_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
 \begin{equation}
 B \rbfweight = f,
 \end{equation}
@@ -669,9 +669,9 @@ evaluating $\eta_b\left(z_i\right)$ requires determining which mesh cell contain
 %	\label{fig:RBF_width}
 %\end{figure}
 
-The shape parameter, $\epsilon$, mediates a tradeoff between accuracy and stability. Small $\epsilon$ is required for RBF interpolation with Gaussian kernels to achieve high accuracy, but small $\epsilon$ also makes RBF interpolation less robust to errors or nonsmoothness in the function being interpolated. 
+The shape parameter, $C_\text{RBF}$, mediates a tradeoff between accuracy and stability. Small $C_\text{RBF}$ is required for RBF interpolation with Gaussian kernels to achieve high accuracy, but small $C_\text{RBF}$ also makes RBF interpolation less robust to errors or nonsmoothness in the function being interpolated. 
 %This is illustrated in Figure \ref{fig:RBF_width} for a simple one dimensional interpolation problem. 
-For our numerical results involving Hessians in inverse problems governed by PDEs (Sections~\ref{sec:ice}~and~\ref{sec:adv}), high accuracy is not required because the PSF-based method is used to construct a preconditioner. Hence, for these Hessian approximations we use a conservative choice of $\epsilon=3.0$ to ensure robustness. For our numerical results for the blur problem example (Section~\ref{sec:frog}), we use a smaller value of $\epsilon=0.5$ so that the RBF interpolation accuracy is not a limiting factor as we study convergence of the PSF-based method.
+For our numerical results involving Hessians in inverse problems governed by PDEs (Sections~\ref{sec:ice}~and~\ref{sec:adv}), high accuracy is not required because the PSF-based method is used to construct a preconditioner. Hence, for these Hessian approximations we use a conservative choice of $C_\text{RBF}=3.0$ to ensure robustness. For our numerical results for the blur problem example (Section~\ref{sec:frog}), we use a smaller value of $C_\text{RBF}=0.5$ so that the RBF interpolation accuracy is not a limiting factor as we study convergence of the PSF-based method.
 
 
 \subsection{Hierarchical matrix construction}
@@ -925,10 +925,10 @@ study the robustness of the PSF-based method to violations of Assumption 3
 \end{table}
 
 In Table~\ref{tab:frog_psf_vs_hodlr_vs_glr} we compare the
-computational cost to approximate the blur kernel from
+cost to approximate the blur kernel from
 Equation~\eqref{eq:frog_kernel} using the PSF-based method, the
 randomized HODLR (hierarchical off diagonal low rank)
-method~\cite{Martinsson16,Hartland_2023} with 8 hierarchical levels, and GLR (global low rank)
+method~\cite{Martinsson16,Hartland_2023} with 8 levels, and GLR (global low rank)
 approximation using double-pass randomized SVD~\cite{HalkoMartinssonTropp11}. For
 these results we vary the quantity $L$ to scale the width of the
 impulse responses and hence the rank of the operator. For each case,
