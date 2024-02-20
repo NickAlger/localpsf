@@ -156,7 +156,7 @@ Then we interpolate translated and scaled versions of these impulse responses to
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.2]{frog_hmatrix_knn_impulse3.pdf}	
+	\includegraphics[scale=0.18]{frog_hmatrix_knn_impulse3.pdf}	
 	\caption{Left: H-matrix structure for $\Aker$. Computing an entry of this matrix requires evaluating the integral kernel, $\Phi(y,x)$, at a pair of points $(y,x) \in \Omega \times \Omega$.  Center: Kernel evaluation points $x$ and $y$ (black circles),  sample points for the approximation (light gray and black dots), and the $k_n$ sample points, $x'$, that are nearest to $x$ (black dots). Right: Known impulse response at $x'$. Using radial basis function interpolation, the desired kernel entry is approximated as a weighted linear combination of translated and scaled versions of impulse responses at the points $x'$ (Section~\ref{sec:approximate_kernel_entries}).
 %		the values $\phi_{x’}(y - \spatialmean(x) + \spatialmean(x’))$ for these nearby points $x'$.
 %	Right:  Illustration of the radial basis function interpolation method used to approximate $\Aker(y,x)$ by a weighted linear combination of the values $\frac{\spatialvol(x)}{\spatialvol(x’)}\phi_{x’}(y - \spatialmean(x) + \spatialmean(x’))$ for a small number of sample points near $x$. The weights are determined by radial basis function (RBF) interpolation. Right: The impulse response centered at $x’$.
