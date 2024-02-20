@@ -1,0 +1,21 @@
+ -------------------------------------------
+ What is the decisive advance in this paper?
+-------------------------------------------
+ 
+The decisive advance in this paper is a new method for computing a large number of impulse responses per operator application within a point spread function (PSF) method. This is done by using a new moment method to estimate impulse response supports by applying the operator to a small number of polynomial functions, then solving an ellipsoid packing problem via a greedy algorithm. Our numerical results demonstrate that the proposed method outperforms conventional approaches, and that the method can approximate high rank Hessians with a small number of operator applies. 
+ 
+-------------------------------------------
+Why is the method considered in the paper of significant and broad interest to the readers of SISC?
+-------------------------------------------
+ 
+The method can be used to approximate operators with locally supported non-negative integral kernels. Such operators appear, e.g., as Hessians in optimization and inverse problems governed by PDEs, Schur complements and Poincare Steklov operators (e.g., Dirichlet-to-Neumann maps) in Schur complement methods and domain decomposition methods, covariance operators in spatial statistics, and blurring operators in imaging. These operators are of broad interest to the readers of SISC.
+ 
+ -------------------------------------------
+What are the new and original aspects of the paper that set it apart from the existing work in this field (including previous related work by the authors)?
+-------------------------------------------
+ 
+This work builds on our previous work (Alger Et. Al.SISC 2019 and Hartland Et. Al. Inverse Problems 2023). Novel contributions of the paper include the moment method for forming a-priori ellipsoid-shaped estimates for the supports of impulse responses, and the use of these estimates within an ellipsoid packing procedure to compute large numbers of impulse responses cheaply. The improved interpolation method based on ``local mean displacement invariance'' is also novel. 
+ 
+ 
+ 
+ 
