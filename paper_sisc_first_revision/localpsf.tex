@@ -771,11 +771,12 @@ In summary, computing all the necessary ingredients to evaluate kernel entries o
 \label{sec:numerical_results}
 
 
-We use the PSF-based method to approximate the integral kernel in a blur problem (Section~\ref{sec:frog}), and the Newton (or Gauss-Newton) Hessians
+We use the PSF-based method to approximate the Newton (or Gauss-Newton) Hessians
 in inverse problems governed by PDEs which model steady state ice
 sheet flow~\cite{PetraEtAl12} (Section~\ref{sec:ice}) and advective-diffusive transport of a contaminant~\cite{PetraStadler11}
-(Section~\ref{sec:adv}). These inverse problems are described in detail in their respective sections.
-In both inverse problems, to reconstruct the unknown parameter fields, denoted $q$, the inverse problems are formulated as nonlinear least squares
+(Section~\ref{sec:adv}), and to approximate the integral kernel in a blur problem that is not based on PDEs (Section~\ref{sec:frog}). These problems are described in detail in their respective sections. 
+
+In both PDE-based inverse problems (Sections~\ref{sec:ice} and~\ref{sec:adv}), to reconstruct the unknown parameter fields, denoted $q$, the inverse problems are formulated as nonlinear least squares
 optimization problems, whose objective functions consist of a data misfit term
 (between the observations and model output) and a bi-Laplacian
 regularization term following~\cite{VillaPetraGhattas21}. The
@@ -820,174 +821,8 @@ are formed by adding $\mathbf{A}_H$ to $\mathbf{R}_H$ using fast H-matrix arithm
 using fast H-matrix methods, then use the factorization as a
 preconditioner. We approximate $\mathbf{H}_\text{gn}$ rather than $\mathbf{H}$ because $\mathbf{H}$ more often has negative values in its integral kernel. The numerical results show that~$\widetilde{\mathbf{H}}$ is a good preconditioner for both~$\mathbf{H}_\text{gn}$ and~$\mathbf{H}$. 
 
-\subsection{Example 1: Spatially varying blurring problem}
-\label{sec:frog}
 
-Here, we define a PDE-free spatially varying blur problem, in which the impulse response, $\phi_x$,
-is a bumpy blob that is centered
-near $x$, and is rotated and scaled in a manner that depends on $x$
-(see Figure \ref{fig:frog_kernel_impulse_responses}). This blur problem is used in
-Sections~\ref{sec:intro} and~\ref{sec:prelims} to visually illustrate
-various stages and aspects of the PSF-based method, and robustness (or lack thereof) of the PSF-based method to violations of the non-negative kernel assumption (Section~\ref{sec:conditions_2}). In this section, the blur problem is used to compare the PSF-based method to hierarchical off-diagonal low rank (HODLR) and global low rank (GLR) methods, to study convergence of the PSF-based method, and to investigate the effect of the ellipsoid size parameter $\tau$.
-%To study the
-%robustness of the proposed method to violations of the non-negative
-%kernel assumption discussed in Section~\ref{sec:impulse_response_2},
-The closed form
-expression for the integral kernel is given by
-%
-%Before delving into technical details, we provide an overview of the
-%method. Along the way, we illustrate steps using a spatially variant
-%blur example, in which the integral kernel is given as follows:
-%\begin{equation}
-%\label{eq:frog_kernel}
-%\Phi(y,x) = (1 - a f(y,x)) x^1(1-x^1)x^2(1-x^2) \exp \left(-\frac{1}{2}h^T(y,x) C^{-1} h(y,x)\right).
-%\end{equation}
-%Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation
-%matrix by angle $\theta(x) = (x^1 + x^2) \pi / 2$, $C = L^2
-%\operatorname{diag}(c_1, c_2)$, $g(x) = x^1(1-x^1)x^2(1-x^2)$, and
-%$f(x,y) = \cos\left(p^1(y,x) / \sqrt{c_1 / 2.0}\right)
-%\sin\left(p^2(y,x) / \sqrt{c_2 / 2.0}\right)$ for some constants $a,
-%L, c_1, c_2$. In this section we use $a=1.0$, $L^2=1.0$, $c_1=0.01$,
-%and $c_2=0.0025$.
-%
-\begin{align}
-\label{eq:frog_kernel}
-\Phi(y,x) = (1 - a f(y,x)) g(x) \exp \left(-\frac{1}{2}(h(y,x)^T
-C^{-1} h(y,x) \right),
-\end{align}
-where $f(y,x) = \cos\left(h^1(y,x) / \sqrt{c_1 /
-  2}\right)\sin\left(h^2(y,x) / \sqrt{c_2 / 2}\right)$, with
-$h^i(y,x)$ the $i^{th}$ component of $R(\theta(x)) (y-x)$, with
-$R(\theta(x))$ a two-dimensional rotation matrix by angle $\theta(x) =
-(x^1 + x^2) \pi / 2$, $g(x) = x^1(1-x^1)x^2(1-x^2)$, and with $C = L^2
-\operatorname{diag}(c_1, c_2)$. The constant $L$ controls the width of
-the blob, and $c_1/c_2$ controls its aspect ratio. The constant $a$
-represents deviation from a Gaussian. When $a=0$, $\phi_x$ is a
-Gaussian, and as $a$ increases, $\phi_x$ becomes non-Gaussian. When $a
-> 1$, the integral kernel contains negative values, which allows us to
-study the robustness of the PSF-based method to violations of Assumption 3
-(Section~\ref{sec:conditions_2}).
-
-%The impulse response $\phi_x$ corresponding to this kernel is a bumpy
-%blob that is centered near $x$, and is rotated and scaled in a manner
-%that depends on $x$ (see Figure
-%\ref{fig:frog_kernel_impulse_responses}). The constant $L$ controls
-%how wide the blob is (hence the support of the impulse response), and
-%$a$ controls the magnitude of the bumps. 
-
-%Note that for this
-%operator, using our method is unnecessary because entries of the
-%kernel are given directly via a formula. The purpose of this example
-%is to illustrate the method using an operator which is known exactly
-%and may be easily visualized.
-
-\begin{table}
-	\begin{center}
-		{\small
-			\begingroup
-			\setlength{\tabcolsep}{8pt}
-			\renewcommand{\arraystretch}{1.0}
-			\begin{tabular}{c| c | c c c c c}
-				& Error tol.    &	\#applies PSF   & \#applies HODLR 	& \#applies RSVD 	\\%& rank \\ 
-				\hline 
-								& 20\%    		& 11  				& 592				& 354				\\%& 111  \\ 
-				$L=1$ 			& 10\% 			& 16  				& 772				& 520				\\%& 178  \\ 
-								& 5\% 			& 22   				& 924				& 674				\\%& 244 \\ 
-				\hline
-								& 20\%    		& 8  				& 852 				& 1316				\\%& 417 \\ 
-				$L=1/2$ 		& 10\%    		& 9  				& 1144				& 1916				\\%& 665 \\ 
-								& 5\% 	  		& 12   				& 1404				& 2456				\\%& 903 \\ 
-				\hline
-								& 20\%    	 	& 7					& 932				& 2624				\\%& 845  \\ 
-				$L=1/3$ 		& 10\%    		& 8  				& 1264 				& 3734				\\%& 1321  \\ 
-								& 5\% 			& 8   				& 1520 				& 4660				\\%& 1759  \\ 
-			\end{tabular}
-			\endgroup
-		}
-	\end{center}
-	\caption{(Blur) Comparison of cost to
-		approximate the blur kernel from Equation
-		\eqref{eq:frog_kernel} using the PSF-based method, the randomized
-		HODLR (hierarchical off diagonal low rank) method, and GLR
-		(global low rank) approximation using randomized SVD. The
-		quantity $L$ scales the width of the impulse responses,
-		hence it influences the rank of the operator. Large $L$
-		means low rank, and small $L$ means high rank. The second
-		column (``Error tol'') is the relative error in the
-		approximation of the kernel measured in the Frobenius norm,
-		$||\boldsymbol{\Phi} -
-		\widetilde{\boldsymbol{\Phi}}||_\text{Fro} /
-		||\boldsymbol{\Phi}||_\text{Fro}$. The remaining three
-		columns show the number of operator applies required to
-		achieve the given error tolerances, using the PSF, HODLR,
-		and GLR methods.}
-	\label{tab:frog_psf_vs_hodlr_vs_glr}
-\end{table}
-
-In Table~\ref{tab:frog_psf_vs_hodlr_vs_glr} we compare the
-cost to approximate the blur kernel from
-Equation~\eqref{eq:frog_kernel} using the PSF-based method, the
-randomized HODLR (hierarchical off diagonal low rank)
-method~\cite{Martinsson16,Hartland_2023} with 8 levels, and GLR (global low rank)
-approximation using double-pass randomized SVD~\cite{HalkoMartinssonTropp11}. For
-these results we vary the quantity $L$ to scale the width of the
-impulse responses and hence the rank of the operator. For each case,
-we calculate the relative error in the approximation of the kernel
-measured in the Frobenius norm, $||\boldsymbol{\Phi} -
-\widetilde{\boldsymbol{\Phi}}||_\text{Fro} /
-||\boldsymbol{\Phi}||_\text{Fro}$ and show the number of operator
-applications required to achieve 20\%, 10\%, and 5\% relative error by
-each method. The results reveal superior performance of the PSF
-method as compared to the HODLR and GLR methods for all cases. We note
-that as we increase the rank and decrease the error tolerance, the
-performance of the HODLR and GLR methods deteriorates.
-
-\begin{figure}
-	\begin{subfigure}{0.52\textwidth}
-		\begin{center}
-			\includegraphics[scale=1.0]{frog_tau_impulses.pdf}
-		\end{center}
-	\end{subfigure}
-	\begin{subfigure}{0.47\textwidth}
-		\begin{center}
-			\includegraphics[scale=1.0]{frog_tau_batches.pdf}
-		\end{center}
-	\end{subfigure}
-	\caption{(Blur) Relative error 
-		%		in the PSF approximation of the kernel
-		%	$||\boldsymbol{\Phi} - \widetilde{\boldsymbol{\Phi}}||_\text{Fro}/||\boldsymbol{\Phi}||_\text{Fro}$,
-		for different ellipsoid size parameters, $\tau$, vs. the total number of impulse responses (left), and the number of batches (right). 
-		%	Left: Relative error vs. the total number of impulse responses used in the approximation. Right: Relative error vs. the number of impulse response batches. 
-		The dashed gray lines show linear convergence rates, i.e., $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$ on the left, and  $\text{constant} \times \# \text{batches}^{-1}$ on the right.}
-	\label{fig:PSF_tau_convergence}
-\end{figure} 
-
-In Figure \ref{fig:PSF_tau_convergence} we show the convergence of the PSF-based method on the blur kernel as a function of the total number of impulse responses (left), and the number of batches (right). We show convergence for several ellipsoid size parameters $\tau$, ranging from $2.0$--$4.0$. The results in Figure \ref{fig:PSF_tau_convergence} (left) show that the relative error decreases as $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$
-% or $\text{constant} \times \# \text{batches}^{-1}$, 
-suggesting linear convergence. The linear convergence stalls at a limit that depends on $\tau$. Increasing $\tau$ lowers this limit, allowing the PSF-based method to achieve higher accuracy. 
-In Figure \ref{fig:PSF_tau_convergence} (right), the results show that before this limit is reached, the convergence is faster for smaller $\tau$ in terms of the number of batches. This is expected because smaller $\tau$ results in more impulse responses per batch. Larger $\tau$ causes the PSF-based method to converge more slowly than smaller $\tau$, but with larger $\tau$ the PSF-based method stalls at a lower level of error than it does with smaller $\tau$ (see, e.g., $\tau=4.0$ vs. $\tau=2.5$). 
-
-%----
-%, but allows the method to eventually achieve a lower level of error.
-%
-%----
-%
-%For smaller $\tau$ regime, we observe faster convergence
-%
-%Before this limit is reached, the convergence rate is the same for all $\tau$ as a function the number of impulse responses. This means that the convergence is faster for smaller $\tau$ as a function of the number of batches, since smaller $\tau$ means more impulse responses per batch. In summary, taking $\tau$ larger makes the method converge more slowly, but allows it to eventually achieve a lower level of error.
-
-
-%Define HODLR. Define randomized HODLR algo. Ref to Tucker's paper and "Fast randomized eigensolver with structured LDL..."
-
-%Define randomized SVD, refer to Halko Martinsson Tropp.
-
-%Discuss why PSF does better with smaller $L$.
-
-
-
-
-
-\subsection{Example 2: Inversion for the basal friction coefficient in an ice sheet flow problem}
+\subsection{Example 1: Inversion for the basal friction coefficient in an ice sheet flow problem}
 \label{sec:ice}
 
 For this example, we consider a sheet of ice flowing down a mountain (see Figure~\ref{fig:ice_mountain_mesh}). Given observations of the tangential component of the ice velocity on the top surface of the ice, we invert for the logarithm of the unknown spatially varying basal friction Robin coefficient field, which governs the resistance to sliding along the base of the ice sheet. 
@@ -1194,7 +1029,7 @@ In Table~\ref{tab:condition_number}, we show the condition number of the precond
 
 
 
-\subsection{Example 3: Inversion for the initial condition in an advective-diffusive transport problem}
+\subsection{Example 2: Inversion for the initial condition in an advective-diffusive transport problem}
 \label{sec:adv}
 
 Here, we consider a time-dependent advection-diffusion equation in
@@ -1330,6 +1165,171 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 	\caption{(Advective-diffusive transport) Left: Convergence history for solving $\mathbf{H} \mathbf{x} = \mathbf{b}$ using PCG, where $\mathbf{b}$ has i.i.d.\ random entries drawn from the standard Gaussian distribution. Right: Generalized eigenvalues for generalized eigenvalue problem $\mathbf{H} \mathbf{u}_{k}=\lambda_{k} \mathbf{\preconditioner} \mathbf{u}_{k}$. Here, $\mathbf{H}$ is the Hessian and the preconditioner, $\mathbf{\preconditioner}$, is the PSF-based approximation for 1, 5, or 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
 	\label{fig:adv_krylov_convergence}
 \end{figure} 
+
+
+\subsection{Example 3: Spatially varying blurring problem}
+\label{sec:frog}
+
+Here, we define a PDE-free spatially varying blur problem, in which the impulse response, $\phi_x$,
+is a bumpy blob that is centered
+near $x$, and is rotated and scaled in a manner that depends on $x$
+(see Figure \ref{fig:frog_kernel_impulse_responses}). This blur problem is used in
+Sections~\ref{sec:intro} and~\ref{sec:prelims} to visually illustrate
+various stages and aspects of the PSF-based method, and robustness (or lack thereof) of the PSF-based method to violations of the non-negative kernel assumption (Section~\ref{sec:conditions_2}). In this section, the blur problem is used to compare the PSF-based method to hierarchical off-diagonal low rank (HODLR) and global low rank (GLR) methods, to study convergence of the PSF-based method, and to investigate the effect of the ellipsoid size parameter $\tau$.
+%To study the
+%robustness of the proposed method to violations of the non-negative
+%kernel assumption discussed in Section~\ref{sec:impulse_response_2},
+The closed form
+expression for the integral kernel is given by
+%
+%Before delving into technical details, we provide an overview of the
+%method. Along the way, we illustrate steps using a spatially variant
+%blur example, in which the integral kernel is given as follows:
+%\begin{equation}
+%\label{eq:frog_kernel}
+%\Phi(y,x) = (1 - a f(y,x)) x^1(1-x^1)x^2(1-x^2) \exp \left(-\frac{1}{2}h^T(y,x) C^{-1} h(y,x)\right).
+%\end{equation}
+%Here, $h(y,x) = R(\theta(x)) (y-x)$, $R(\theta(x))$ is the 2D rotation
+%matrix by angle $\theta(x) = (x^1 + x^2) \pi / 2$, $C = L^2
+%\operatorname{diag}(c_1, c_2)$, $g(x) = x^1(1-x^1)x^2(1-x^2)$, and
+%$f(x,y) = \cos\left(p^1(y,x) / \sqrt{c_1 / 2.0}\right)
+%\sin\left(p^2(y,x) / \sqrt{c_2 / 2.0}\right)$ for some constants $a,
+%L, c_1, c_2$. In this section we use $a=1.0$, $L^2=1.0$, $c_1=0.01$,
+%and $c_2=0.0025$.
+%
+\begin{align}
+\label{eq:frog_kernel}
+\Phi(y,x) = (1 - a f(y,x)) g(x) \exp \left(-\frac{1}{2}(h(y,x)^T
+C^{-1} h(y,x) \right),
+\end{align}
+where $f(y,x) = \cos\left(h^1(y,x) / \sqrt{c_1 /
+	2}\right)\sin\left(h^2(y,x) / \sqrt{c_2 / 2}\right)$, with
+$h^i(y,x)$ the $i^{th}$ component of $R(\theta(x)) (y-x)$, with
+$R(\theta(x))$ a two-dimensional rotation matrix by angle $\theta(x) =
+(x^1 + x^2) \pi / 2$, $g(x) = x^1(1-x^1)x^2(1-x^2)$, and with $C = L^2
+\operatorname{diag}(c_1, c_2)$. The constant $L$ controls the width of
+the blob, and $c_1/c_2$ controls its aspect ratio. The constant $a$
+represents deviation from a Gaussian. When $a=0$, $\phi_x$ is a
+Gaussian, and as $a$ increases, $\phi_x$ becomes non-Gaussian. When $a
+> 1$, the integral kernel contains negative values, which allows us to
+study the robustness of the PSF-based method to violations of Assumption 3
+(Section~\ref{sec:conditions_2}).
+
+%The impulse response $\phi_x$ corresponding to this kernel is a bumpy
+%blob that is centered near $x$, and is rotated and scaled in a manner
+%that depends on $x$ (see Figure
+%\ref{fig:frog_kernel_impulse_responses}). The constant $L$ controls
+%how wide the blob is (hence the support of the impulse response), and
+%$a$ controls the magnitude of the bumps. 
+
+%Note that for this
+%operator, using our method is unnecessary because entries of the
+%kernel are given directly via a formula. The purpose of this example
+%is to illustrate the method using an operator which is known exactly
+%and may be easily visualized.
+
+\begin{table}
+	\begin{center}
+		{\small
+			\begingroup
+			\setlength{\tabcolsep}{8pt}
+			\renewcommand{\arraystretch}{1.0}
+			\begin{tabular}{c| c | c c c c c}
+				& Error tol.    &	\#applies PSF   & \#applies HODLR 	& \#applies RSVD 	\\%& rank \\ 
+				\hline 
+				& 20\%    		& 11  				& 592				& 354				\\%& 111  \\ 
+				$L=1$ 			& 10\% 			& 16  				& 772				& 520				\\%& 178  \\ 
+				& 5\% 			& 22   				& 924				& 674				\\%& 244 \\ 
+				\hline
+				& 20\%    		& 8  				& 852 				& 1316				\\%& 417 \\ 
+				$L=1/2$ 		& 10\%    		& 9  				& 1144				& 1916				\\%& 665 \\ 
+				& 5\% 	  		& 12   				& 1404				& 2456				\\%& 903 \\ 
+				\hline
+				& 20\%    	 	& 7					& 932				& 2624				\\%& 845  \\ 
+				$L=1/3$ 		& 10\%    		& 8  				& 1264 				& 3734				\\%& 1321  \\ 
+				& 5\% 			& 8   				& 1520 				& 4660				\\%& 1759  \\ 
+			\end{tabular}
+			\endgroup
+		}
+	\end{center}
+	\caption{(Blur) Comparison of cost to
+		approximate the blur kernel from Equation
+		\eqref{eq:frog_kernel} using the PSF-based method, the randomized
+		HODLR (hierarchical off diagonal low rank) method, and GLR
+		(global low rank) approximation using randomized SVD. The
+		quantity $L$ scales the width of the impulse responses,
+		hence it influences the rank of the operator. Large $L$
+		means low rank, and small $L$ means high rank. The second
+		column (``Error tol'') is the relative error in the
+		approximation of the kernel measured in the Frobenius norm,
+		$||\boldsymbol{\Phi} -
+		\widetilde{\boldsymbol{\Phi}}||_\text{Fro} /
+		||\boldsymbol{\Phi}||_\text{Fro}$. The remaining three
+		columns show the number of operator applies required to
+		achieve the given error tolerances, using the PSF, HODLR,
+		and GLR methods.}
+	\label{tab:frog_psf_vs_hodlr_vs_glr}
+\end{table}
+
+In Table~\ref{tab:frog_psf_vs_hodlr_vs_glr} we compare the
+cost to approximate the blur kernel from
+Equation~\eqref{eq:frog_kernel} using the PSF-based method, the
+randomized HODLR (hierarchical off diagonal low rank)
+method~\cite{Martinsson16,Hartland_2023} with 8 levels, and GLR (global low rank)
+approximation using double-pass randomized SVD~\cite{HalkoMartinssonTropp11}. For
+these results we vary the quantity $L$ to scale the width of the
+impulse responses and hence the rank of the operator. For each case,
+we calculate the relative error in the approximation of the kernel
+measured in the Frobenius norm, $||\boldsymbol{\Phi} -
+\widetilde{\boldsymbol{\Phi}}||_\text{Fro} /
+||\boldsymbol{\Phi}||_\text{Fro}$ and show the number of operator
+applications required to achieve 20\%, 10\%, and 5\% relative error by
+each method. The results reveal superior performance of the PSF
+method as compared to the HODLR and GLR methods for all cases. We note
+that as we increase the rank and decrease the error tolerance, the
+performance of the HODLR and GLR methods deteriorates.
+
+\begin{figure}
+	\begin{subfigure}{0.52\textwidth}
+		\begin{center}
+			\includegraphics[scale=1.0]{frog_tau_impulses.pdf}
+		\end{center}
+	\end{subfigure}
+	\begin{subfigure}{0.47\textwidth}
+		\begin{center}
+			\includegraphics[scale=1.0]{frog_tau_batches.pdf}
+		\end{center}
+	\end{subfigure}
+	\caption{(Blur) Relative error 
+		%		in the PSF approximation of the kernel
+		%	$||\boldsymbol{\Phi} - \widetilde{\boldsymbol{\Phi}}||_\text{Fro}/||\boldsymbol{\Phi}||_\text{Fro}$,
+		for different ellipsoid size parameters, $\tau$, vs. the total number of impulse responses (left), and the number of batches (right). 
+		%	Left: Relative error vs. the total number of impulse responses used in the approximation. Right: Relative error vs. the number of impulse response batches. 
+		The dashed gray lines show linear convergence rates, i.e., $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$ on the left, and  $\text{constant} \times \# \text{batches}^{-1}$ on the right.}
+	\label{fig:PSF_tau_convergence}
+\end{figure} 
+
+In Figure \ref{fig:PSF_tau_convergence} we show the convergence of the PSF-based method on the blur kernel as a function of the total number of impulse responses (left), and the number of batches (right). We show convergence for several ellipsoid size parameters $\tau$, ranging from $2.0$--$4.0$. The results in Figure \ref{fig:PSF_tau_convergence} (left) show that the relative error decreases as $\text{constant} \times \left(\# \text{impulse responses}\right)^{-1}$
+% or $\text{constant} \times \# \text{batches}^{-1}$, 
+suggesting linear convergence. The linear convergence stalls at a limit that depends on $\tau$. Increasing $\tau$ lowers this limit, allowing the PSF-based method to achieve higher accuracy. 
+In Figure \ref{fig:PSF_tau_convergence} (right), the results show that before this limit is reached, the convergence is faster for smaller $\tau$ in terms of the number of batches. This is expected because smaller $\tau$ results in more impulse responses per batch. Larger $\tau$ causes the PSF-based method to converge more slowly than smaller $\tau$, but with larger $\tau$ the PSF-based method stalls at a lower level of error than it does with smaller $\tau$ (see, e.g., $\tau=4.0$ vs. $\tau=2.5$). 
+
+%----
+%, but allows the method to eventually achieve a lower level of error.
+%
+%----
+%
+%For smaller $\tau$ regime, we observe faster convergence
+%
+%Before this limit is reached, the convergence rate is the same for all $\tau$ as a function the number of impulse responses. This means that the convergence is faster for smaller $\tau$ as a function of the number of batches, since smaller $\tau$ means more impulse responses per batch. In summary, taking $\tau$ larger makes the method converge more slowly, but allows it to eventually achieve a lower level of error.
+
+
+%Define HODLR. Define randomized HODLR algo. Ref to Tucker's paper and "Fast randomized eigensolver with structured LDL..."
+
+%Define randomized SVD, refer to Halko Martinsson Tropp.
+
+%Discuss why PSF does better with smaller $L$.
+
 
 
 \section{Conclusions}
