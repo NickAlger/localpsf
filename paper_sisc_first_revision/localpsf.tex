@@ -713,7 +713,7 @@ for a small number of positive shifts $\mu_i$. We solve these linear systems by 
 \label{sec:overall_cost}
 
 The computational cost of the PSF-based method may be divided into the costs to perform the following tasks: (1) Computing impulse response moments and batches (Lines 1 and 4 in Algorithm \ref{alg:construct_Atilde}); (2) Building the H-matrix (Lines 5 and 6 in Algorithm \ref{alg:construct_Atilde}); (3) Performing linear algebra operations with the H-matrix. This may optionally include the symmetric positive semi-definite modifications described in Section \ref{sec:flip_eigs}. In target applications, (1) is the dominant cost because applying $\Aop$ to a vector requires an expensive computational procedure such as solving a PDE, and (1) is the only step that requires applying $\Aop$ to vectors.
-All operations that do not require applications of $\Aop$ to vectors are polylog linear, and therefore scalable, in the size of the problem, $N$.
+All operations that do not require applications of $\Aop$ to vectors are polylog linear (i.e., $O(N \log(N)^b)$ for some $b$), and therefore scalable, in the size of the problem, $N$.
 We now describe these costs in detail. For convenience, Table~\ref{tab:vars} lists variable symbols and their approximate sizes.
 
 \begin{table}
