@@ -239,7 +239,7 @@ High rank Hessian approximation methods are thus needed.
 Recently there have been improvements in matrix-free H-matrix construction methods in which an operator is applied to structured random vectors, and the response of the operator to those random vectors is processed to construct an H-matrix approximation~\cite{LevittMartinsson22,LinYing11,Martinsson11,Martinsson16,MartinssonTropp20}. 
 These methods (which we do not use here) have been used to approximate Hessians in PDE constrained inverse problems~\cite{AmbartsumyanEtAl20,Hartland_2023}. 
 Although these methods are promising,
-the required number of operator applications is still large (e.g., hundreds to thousands). For example, using the method in \cite{LinYing11}, the required number of operator applies to construct an $H^1$ matrix with hierarchical rank $r$ for problems in a 2D domain discretized with a regular grid is $\#\text{levels} \cdot 64 \cdot (r + c)$, where $\#\text{levels}$ is the depth of the hierarchical partitioning, $r$ is the rank of the blocks (hierarchical rank), and $c$ is an oversampling parameter (see \cite[Section 2.4]{LinYing11}). On a $64 \times 64$ grid with depth $4$, hierarchical rank $10$, and oversampling parameter $c=5$, this works out to $4 \cdot 64 \cdot (10 + 5) = 3840$ operator applies. In Section \ref{sec:frog} see numerically that the randomized hierarchical off-diagonal low rank (HODLR) method in \cite{Martinsson16} requires hundreds to thousands of matrix-vector products to construct approximations of the integral kernel for a blur problem example with modest (e.g., $10\%$) relative error.
+the required number of operator applications is still large (e.g., hundreds to thousands). For example, using the method in \cite{LinYing11}, the required number of operator applies to construct an $H^1$ matrix with hierarchical rank $r$ for problems in a 2D domain discretized with a regular grid is $\#\text{levels} \cdot 64 \cdot (r + c)$, where $\#\text{levels}$ is the depth of the hierarchical partitioning, $r$ is the rank of the blocks (hierarchical rank), and $c$ is an oversampling parameter (see \cite[Section 2.4]{LinYing11}). On a $64 \times 64$ grid with depth $4$, hierarchical rank $10$, and oversampling parameter $c=5$, this works out to $4 \cdot 64 \cdot (10 + 5) = 3840$ operator applies. In Section \ref{sec:frog}, we see numerically that the randomized hierarchical off-diagonal low rank (HODLR) method in \cite{Martinsson16} requires hundreds to thousands of matrix-vector products to construct approximations of the integral kernel for a blur problem example with modest (e.g., $10\%$) relative error.
 %while the PSF method in this paper can achieve the same level of error in one to two dozen operator applies.
 Matrix-free H-matrix construction is currently an active area of research, hence these costs may decrease as new algorithms are developed.
 In this paper, we also form an H-matrix approximation. However, to reduce the required number of operator applications, we first form a PSF approximation of the data misfit Hessian by exploiting locality and non-negative integral kernel properties, then form the H-matrix using classical techniques. Using this two stage approach, we reduce the number of operator applications to a few dozen at most. 
@@ -890,17 +890,17 @@ study the robustness of the proposed method to violations of Assumption 3
 			\begin{tabular}{c| c | c c c c c}
 				& Error tol.    &	\#applies PSF   & \#applies HODLR 	& \#applies RSVD 	\\%& rank \\ 
 				\hline 
-				& 20\%    		& 11  				& 592				& 354				\\%& 111  \\ 
-				$L=1$ 		& 10\% 			& 15  				& 772				& 520				\\%& 178  \\ 
-				& 5\% 			& 23   				& 924				& 674				\\%& 244 \\ 
+								& 20\%    		& 11  				& 592				& 354				\\%& 111  \\ 
+				$L=1$ 			& 10\% 			& 16  				& 772				& 520				\\%& 178  \\ 
+								& 5\% 			& 22   				& 924				& 674				\\%& 244 \\ 
 				\hline
-				& 20\%    		& 8  				& 852 				& 1316				\\%& 417 \\ 
-				$L=1/2$ 	& 10\%    		& 10  				& 1144				& 1916				\\%& 665 \\ 
-				& 5\% 	  		& 12   				& 1404				& 2456				\\%& 903 \\ 
+								& 20\%    		& 8  				& 852 				& 1316				\\%& 417 \\ 
+				$L=1/2$ 		& 10\%    		& 9  				& 1144				& 1916				\\%& 665 \\ 
+								& 5\% 	  		& 12   				& 1404				& 2456				\\%& 903 \\ 
 				\hline
-				& 20\%    	 	& 7					& 932				& 2624				\\%& 845  \\ 
-				$L=1/3$ 	& 10\%    		& 8  				& 1264 				& 3734				\\%& 1321  \\ 
-				& 5\% 			& 8   				& 1520 				& 4660				\\%& 1759  \\ 
+								& 20\%    	 	& 7					& 932				& 2624				\\%& 845  \\ 
+				$L=1/3$ 		& 10\%    		& 8  				& 1264 				& 3734				\\%& 1321  \\ 
+								& 5\% 			& 8   				& 1520 				& 4660				\\%& 1759  \\ 
 			\end{tabular}
 			\endgroup
 		}
