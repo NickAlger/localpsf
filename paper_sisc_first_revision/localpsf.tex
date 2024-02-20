@@ -60,7 +60,7 @@
 \section{Introduction}
 \label{sec:intro}
 
-We present an efficient \emph{matrix-free} point spread function (PSF) method for approximating operators $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$ that have locally supported non-negative integral kernels. Here $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, and $L^2(\Omega)'$ is the space of real-valued continuous linear functionals on $L^2(\Omega)$. By ``non-negative integral kernel,'' we mean that entries of $\Aop$'s integral kernel 
+We present an efficient \emph{matrix-free} point spread function (PSF) method for approximating operators $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$ that have locally supported non-negative integral kernels. Here, $\Omega \subset \mathbb{R}^\gdim$ is a bounded domain, and $L^2(\Omega)'$ is the space of real-valued continuous linear functionals on $L^2(\Omega)$. By ``non-negative integral kernel,'' we mean that entries of $\Aop$'s integral kernel 
 %(defined in Equation \ref{eq:kernel_representation})
 are non-negative numbers; this is not the same as positive semi-definiteness of $\Aop$. Such operators appear, for instance, as Hessians in optimization and inverse problems governed by partial differential equations (PDEs)~\cite{BorziSchulz11,Delosreyes15,HinzePinnauUlbrichUlbrich08}, 
 %AntilEtAl18
@@ -91,8 +91,8 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 %		\centering
 %		\includegraphics[scale=0.34]{impulse_batch3.png}
 %	\end{subfigure}
-	\caption{(\ref{fig:batches_intro}) One batch, $\eta_b$, of normalized impulse responses, $\impulseresponse_{x}$, that arise from applying $\Aop$ to a weighted sum of scattered point sources (see Section \ref{sec:get_impulse_response}). Here $\Aop$ is the ice sheet inverse problem data misfit Gauss-Newton Hessian described in Section~\ref{sec:numerical_results}. 
-	Black stars are point source locations. Shading shows the magnitude of the normalized impulse responses (darker means larger function values). Dashed gray ellipses are estimated impulse response support ellipsoids based on the moment method in Section \ref{sec:intromoments}. The large circle is $\partial \Omega$. (\ref{fig:mean_displacement_invariance}) Illustration of impulse responses, $\impulseresponse_x$ and $\impulseresponse_{x'}$, corresponding to points $x$ and $x'$. The operator $\Aop$ is locally mean displacement invariant (Section \ref{sec:local_mean_displacement_invariance}) if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \spatialmean(x) + \spatialmean(x')\right)$ when $x$ is close to $x'$. Here $\spatialmean(z)$ denotes the mean (center of mass) of $\phi_z$.
+	\caption{(\ref{fig:batches_intro}) One batch, $\eta_b$, of normalized impulse responses, $\impulseresponse_{x}$, that arise from applying $\Aop$ to a weighted sum of scattered point sources (see Section \ref{sec:get_impulse_response}). Here, $\Aop$ is the ice sheet inverse problem data misfit Gauss-Newton Hessian described in Section~\ref{sec:numerical_results}. 
+	Black stars are point source locations. Shading shows the magnitude of the normalized impulse responses (darker means larger function values). Dashed gray ellipses are estimated impulse response support ellipsoids based on the moment method in Section \ref{sec:intromoments}. The large circle is $\partial \Omega$. (\ref{fig:mean_displacement_invariance}) Illustration of impulse responses, $\impulseresponse_x$ and $\impulseresponse_{x'}$, corresponding to points $x$ and $x'$. The operator $\Aop$ is locally mean displacement invariant (Section \ref{sec:local_mean_displacement_invariance}) if $\impulseresponse_{x}(y) \approx \impulseresponse_{x'}\left(y - \spatialmean(x) + \spatialmean(x')\right)$ when $x$ is close to $x'$. Here, $\spatialmean(z)$ denotes the mean (center of mass) of $\phi_z$.
 	}
 	\label{fig:batches_and_mdi}
 \end{figure}
@@ -354,7 +354,7 @@ $
 u_h(x) = \sum_{i=1}^\fedim \mathbf{u}_i \febasis_i(x).
 $
 Linear functionals $\rho_h \in V_h'$ have coefficient dual vectors $\boldsymbol{\rho}\in \mathbb{R}^\nsamplepts_{\massmatrix^{-1}}$, with entries $\boldsymbol{\rho}_i = \rho_h(\febasis_i)$ for $i=1,\dots,\nsamplepts$.
-Here $\massmatrix \in \mathbb{R}^{\fedim \times \fedim}$ denotes the sparse finite element mass matrix which has entries $\massmatrix_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) \mathrm{d}x$ for $i,j=1,\dots,\fedim$.
+Here, $\massmatrix \in \mathbb{R}^{\fedim \times \fedim}$ denotes the sparse finite element mass matrix which has entries $\massmatrix_{ij}=\int_\Omega \febasis_i(x) \febasis_j(x) \mathrm{d}x$ for $i,j=1,\dots,\fedim$.
 The space $\mathbb{R}^\fedim_\massmatrix$ is $\mathbb{R}^\fedim$ with the inner product $(\mathbf{u},\mathbf{w})_\massmatrix := \mathbf{u}^T \massmatrix \mathbf{w}$, and $\mathbb{R}^\fedim_{\massmatrix^{-1}}$ is the analogous space with $\massmatrix^{-1}$ replacing $\massmatrix$. Direct calculation shows that $\mathbb{R}^\fedim_\massmatrix$ and $\mathbb{R}^\fedim_{\massmatrix^{-1}}$ are isomorphic to $V_h$ and $V_h'$ as Hilbert spaces, respectively.
 
 After discretization, the operator $\Aop:L^2(\Omega) \rightarrow L^2(\Omega)'$ is replaced by an operator $A_h:V_h \rightarrow V_h'$, which becomes an operator
@@ -475,7 +475,7 @@ Hence, we compute $\spatialvol(x)$ for all $x$ simultaneously by applying $\Aop^
 	\spatialcov^{ij} =& \left(\Aop^T Q^{ij}\right)^* / \spatialvol - \spatialmean^i\cdot \spatialmean^j
 	\end{align}
 \end{subequations}
-for $i,j=1,\dots, \gdim$. Here $u/w$ denotes pointwise division, $\left(u/w\right)(x) = u(x)/w(x)$, and $u\cdot w$ denotes pointwise multiplication, $(u \cdot w)(x) = u(x)w(x)$.
+for $i,j=1,\dots, \gdim$. Here, $u/w$ denotes pointwise division, $\left(u/w\right)(x) = u(x)/w(x)$, and $u\cdot w$ denotes pointwise multiplication, $(u \cdot w)(x) = u(x)w(x)$.
 
 We approximate the support of $\impulseresponse_x$ with the ellipsoid
 %
@@ -564,7 +564,7 @@ We start with a finite set of candidate points $\candidatepts$ and build $\point
 Once $\candidatepoint_i$ is selected, we remove $\candidatepoint_i$ from $\candidatepts$. Then we perform the following checks:
 \begin{enumerate}
 	\item We check whether $\candidatepoint_i$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_{\candidatepoint_i} \cap E_{\candidatepoint_j} = \{\}$ for all $\candidatepoint_j \in \pointbatch_k$.
-	\item We make sure that $\spatialvol(\candidatepoint_i)$ is not too small, by checking whether $\spatialvol(\candidatepoint_i) > \epsilon_V \spatialvol_\text{max}$. Here $\spatialvol_\text{max}$ is the largest value of $\spatialvol(\candidatepoint_j)$ over all points $q$ in the initial set of candidate points, and $\epsilon_V$ is a small threshold parameter (we use $\epsilon_V=10^{-5}$).
+	\item We make sure that $\spatialvol(\candidatepoint_i)$ is not too small, by checking whether $\spatialvol(\candidatepoint_i) > \epsilon_V \spatialvol_\text{max}$. Here, $\spatialvol_\text{max}$ is the largest value of $\spatialvol(\candidatepoint_j)$ over all points $q$ in the initial set of candidate points, and $\epsilon_V$ is a small threshold parameter (we use $\epsilon_V=10^{-5}$).
 	\item We make sure that all eigenvalues of $\spatialcov(\candidatepoint_i)$ are positive, and the aspect ratio of $E_{\candidatepoint_i}$ (square root of the ratio of the largest eigenvalue of $\spatialcov(\candidatepoint_i)$ to the smallest) is bounded by a constant $1/\epsilon_\Sigma$ (we use $1/\epsilon_\Sigma=20$). Negative integral kernel entries due to discretization error can cause $\spatialcov(\candidatepoint_i)$ to be indefinite or highly ill-conditioned.
 \end{enumerate}
 If $\candidatepoint_i$ passes these checks 
@@ -605,7 +605,7 @@ Each point source, $\delta_{x_i}$, is scaled by $1/\spatialvol(x_i)$ so that the
 \subsection{Approximate integral kernel entries}
 \label{sec:approximate_kernel_entries}
 
-Here we describe how to rapidly evaluate arbitrary entries of an approximation to the integral kernel by performing radial basis function interpolation of translated and scaled versions of nearby known impulse responses. In Section~\ref{sec:h_matrix_construction_short} we use this procedure for rapidly evaluating kernel entries to construct the H-matrix approximation of $\mathbf{A}$.
+Here, we describe how to rapidly evaluate arbitrary entries of an approximation to the integral kernel by performing radial basis function interpolation of translated and scaled versions of nearby known impulse responses. In Section~\ref{sec:h_matrix_construction_short} we use this procedure for rapidly evaluating kernel entries to construct the H-matrix approximation of $\mathbf{A}$.
 
 Given $(y,x)\in \Omega \times \Omega$, let
 $
@@ -616,7 +616,7 @@ and define
 \label{eq:fxyxp}
 f_i := \frac{\spatialvol(x)}{\spatialvol(x_i)}\phi_{x_i}\left(z_i\right)
 \end{equation}
-for $i=1,\dots,\numnbr$, where $\{x_i\}_{i=1}^{\numnbr}$ are the $\numnbr$ nearest sample points to $x$, excluding points $x_i$ for which $z_i \notin \Omega$. Here $\numnbr$ is a small user-defined parameter, e.g., $\numnbr=10$. We find the $\numnbr$ nearest sample points to $x$ by querying a precomputed kd-tree~\cite{Bentley75} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree)~\cite{Ericson04} of the mesh cells used to discretize the problem. 
+for $i=1,\dots,\numnbr$, where $\{x_i\}_{i=1}^{\numnbr}$ are the $\numnbr$ nearest sample points to $x$, excluding points $x_i$ for which $z_i \notin \Omega$. Here, $\numnbr$ is a small user-defined parameter, e.g., $\numnbr=10$. We find the $\numnbr$ nearest sample points to $x$ by querying a precomputed kd-tree~\cite{Bentley75} of all sample points.  We check whether $z_i \in \Omega$ by querying a precomputed axis aligned bounding box tree (AABB tree)~\cite{Ericson04} of the mesh cells used to discretize the problem. 
 Note that $\phi_{x_i}\left(z_i\right)$ is well-defined because $z_i \in \Omega$, and $\frac{\spatialvol(x)}{\spatialvol(x_i)}$ is well-defined because the sample point choosing procedure in Section~\ref{sec:sample_point_selection} ensures that $\spatialvol(x_i)>0$. Per the discussion in Section~\ref{sec:local_mean_displacement_invariance}, we expect $\Aker(y,x) \approx f_i$ for $i=1,\dots,\numnbr$. The closer $x_i$ is to $x$, the better we expect the approximation to be. We therefore approximate $\Aker(y,x)$ by interpolating the (point,value) pairs
 $
 \left\{\left(x_i, f_i\right)\right\}_{i=1}^{\numnbr}
@@ -628,7 +628,7 @@ Interpolation is performed using the following radial basis function~\cite{Wendl
 \end{equation}
 where $\rbfweight_i$ are weights, and 
 $\rbf(r):= \exp\left(-\frac{1}{2}\left(\epsilon\frac{r}{L}\right)^2\right)$
-is a Gaussian kernel radial basis function. Here $L:=\diam\left(\{x_i\}_{i=1}^{\numnbr}\right)$ is the diameter of the set of sample points used in the interpolation, and $\epsilon$ is a user-defined shape parameter that controls the width of the kernel function. The vector of weights, $\rbfweight = (\rbfweight_1, \rbfweight_2, \dots, \rbfweight_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
+is a Gaussian kernel radial basis function. Here, $L:=\diam\left(\{x_i\}_{i=1}^{\numnbr}\right)$ is the diameter of the set of sample points used in the interpolation, and $\epsilon$ is a user-defined shape parameter that controls the width of the kernel function. The vector of weights, $\rbfweight = (\rbfweight_1, \rbfweight_2, \dots, \rbfweight_{\numnbr})^T$, is found as the solution to the $\numnbr \times \numnbr$ linear system
 \begin{equation}
 B \rbfweight = f,
 \end{equation}
@@ -681,10 +681,10 @@ We form an H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by forming a
 $
 \mathbf{A}_H = \massmatrix \mathbf{\Aker}_H \massmatrix.
 $
-Here we use a diagonal lumped mass matrix, so these matrix-matrix multiplications are trivial. If a non-diagonal mass matrix is used, one may form a H-matrix representation of the mass matrix, then perform the matrix-matrix multiplications in \eqref{eq:boldA} using H-matrix methods.
+Here, we use a diagonal lumped mass matrix, so these matrix-matrix multiplications are trivial. If a non-diagonal mass matrix is used, one may form a H-matrix representation of the mass matrix, then perform the matrix-matrix multiplications in \eqref{eq:boldA} using H-matrix methods.
 We use H1 matrices in the numerical results, but any other H-matrix format could be used instead. For more details on H-matrices, see~\cite{Hackbusch15}. 
 
-We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package~\cite{Kriemann08}. For details about the algorithms used for geometrical clustering, H-matrix construction, and H-matrix operations in HLIBpro, we refer the reader to~\cite{BormGrasedyckHackbusch03,GrasedyckKriemannLeBorne08,Kriemann13}. Although $\mathbf{\Aker}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Aker}_H$ only requires evaluation of $O(\hrank \fedim \log \fedim)$ kernel entries $\mathbf{\Aker}_{ij} = \widetilde{\Aker}(\fepoint_i, \fepoint_j)$ (see \cite{BebendorfRjasanow03}), and these entries are computed via the radial basis function interpolation method described in Section~\ref{sec:approximate_kernel_entries}. Here $\hrank$ is the rank of the highest rank block in the H-matrix. 
+We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package~\cite{Kriemann08}. For details about the algorithms used for geometrical clustering, H-matrix construction, and H-matrix operations in HLIBpro, we refer the reader to~\cite{BormGrasedyckHackbusch03,GrasedyckKriemannLeBorne08,Kriemann13}. Although $\mathbf{\Aker}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Aker}_H$ only requires evaluation of $O(\hrank \fedim \log \fedim)$ kernel entries $\mathbf{\Aker}_{ij} = \widetilde{\Aker}(\fepoint_i, \fepoint_j)$ (see \cite{BebendorfRjasanow03}), and these entries are computed via the radial basis function interpolation method described in Section~\ref{sec:approximate_kernel_entries}. Here, $\hrank$ is the rank of the highest rank block in the H-matrix. 
 We emphasize that the dense matrix $\mathbf{\Aker}$ is never formed. 
 
 
@@ -801,7 +801,7 @@ $\mathbf{\searchdir}$, are obtained by solving
 \end{equation}
 %
 wherein we choose the initial guess as the discretization of the constant
-function $q_0$. Here $\mathbf{g}$, $\mathbf{H}$ and $\mathbf{H}_\text{gn}$ are
+function $q_0$. Here, $\mathbf{g}$, $\mathbf{H}$ and $\mathbf{H}_\text{gn}$ are
 the discretized gradient, Hessian, and Gauss-Newton Hessian of the
 inverse problem objective function, respectively, evaluated at the current Newton iterate.
 To ensure positive definiteness of the Hessian we use
@@ -823,7 +823,7 @@ preconditioner. We approximate $\mathbf{H}_\text{gn}$ rather than $\mathbf{H}$ b
 \subsection{Example 1: Spatially varying blurring problem}
 \label{sec:frog}
 
-Here we define a PDE-free spatially varying blur problem, in which the impulse response, $\phi_x$,
+Here, we define a PDE-free spatially varying blur problem, in which the impulse response, $\phi_x$,
 is a bumpy blob that is centered
 near $x$, and is rotated and scaled in a manner that depends on $x$
 (see Figure \ref{fig:frog_kernel_impulse_responses}). This blur problem is used in
@@ -1021,7 +1021,7 @@ We employ a Newtonian constitutive law, $\stress(v, p)= 2\eta
 \dot{\strain}(v) -I\pressure$,
 where $\stress$ is the stress tensor and
 $\dot{\strain}(v)= \frac{1}{2}\left(
-\nabla\velocity+\nabla\velocity^{\top} \right)$ is the strain rate tensor~\cite{IsaacEtAl15}. Here $\eta$ is the viscosity and $I$ is the identity operator. 
+\nabla\velocity+\nabla\velocity^{\top} \right)$ is the strain rate tensor~\cite{IsaacEtAl15}. Here, $\eta$ is the viscosity and $I$ is the identity operator. 
 %Glen's exponent has been chosen to be one, which provides for a linear Stokes model. 
 Note that while the PDE is linear, the parameter-to-solution map, $\basalfriction \mapsto (\velocity, \pressure)$, is nonlinear.
 
@@ -1155,7 +1155,7 @@ Table~\ref{tab:newton_convergence_table} shows the performance of the preconditi
     \end{subfigure}
 	\caption{(Ice sheet) Left: Convergence history for solving $\mathbf{H} \mathbf{x} = \mathbf{b}$ using PCG, where $\mathbf{b}$ has i.i.d.\ random entries drawn from the standard Gaussian distribution and $\mathbf{H}$ is evaluated at the solution of the inverse problem. 
 	Results in these figures are shown for the PSF-based preconditioners with 1, 5, and 25 batches (PSF (1), PSF (5), and PSF (25), respectively), regularization preconditioning (REG), and no preconditioning (NONE). The preconditioner is constructed using $\mathbf{H}_\text{gn}$.
-	Right: Generalized eigenvalues for generalized eigenvalue problem $\mathbf{H} \mathbf{u}_{k}=\lambda_{k} \mathbf{\preconditioner} \mathbf{u}_{k}$. Here $\mathbf{H}$ is the Hessian and the matrices $\mathbf{\preconditioner}$ are the same Hessian approximations used in the left sub-figure, with NONE corresponding to the identity matrix.}
+	Right: Generalized eigenvalues for generalized eigenvalue problem $\mathbf{H} \mathbf{u}_{k}=\lambda_{k} \mathbf{\preconditioner} \mathbf{u}_{k}$. Here, $\mathbf{H}$ is the Hessian and the matrices $\mathbf{\preconditioner}$ are the same Hessian approximations used in the left sub-figure, with NONE corresponding to the identity matrix.}
 	\label{fig:krylov_convergence}
 \end{figure} 
 %
@@ -1197,7 +1197,7 @@ In Table~\ref{tab:condition_number}, we show the condition number of the precond
 \subsection{Example 3: Inversion for the initial condition in an advective-diffusive transport problem}
 \label{sec:adv}
 
-Here we consider a time-dependent advection-diffusion equation in
+Here, we consider a time-dependent advection-diffusion equation in
 which we seek to infer the unknown spatially varying initial condition, $\ipar$, from noisy observation of the full state  
 at a final time, $T$. This PDE
 models advective-diffusive transport in a domain $\advdomain \subset \R^d$, which is
@@ -1327,7 +1327,7 @@ In Figure~\ref{fig:adv_krylov_convergence} (left) we show the convergence of PCG
 		\centering
 		\includegraphics[scale=0.9]{adv_geigs_figure.pdf}
 	\end{subfigure}
-	\caption{(Advective-diffusive transport) Left: Convergence history for solving $\mathbf{H} \mathbf{x} = \mathbf{b}$ using PCG, where $\mathbf{b}$ has i.i.d.\ random entries drawn from the standard Gaussian distribution. Right: Generalized eigenvalues for generalized eigenvalue problem $\mathbf{H} \mathbf{u}_{k}=\lambda_{k} \mathbf{\preconditioner} \mathbf{u}_{k}$. Here $\mathbf{H}$ is the Hessian and the preconditioner, $\mathbf{\preconditioner}$, is the PSF approximation for 1, 5, or 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
+	\caption{(Advective-diffusive transport) Left: Convergence history for solving $\mathbf{H} \mathbf{x} = \mathbf{b}$ using PCG, where $\mathbf{b}$ has i.i.d.\ random entries drawn from the standard Gaussian distribution. Right: Generalized eigenvalues for generalized eigenvalue problem $\mathbf{H} \mathbf{u}_{k}=\lambda_{k} \mathbf{\preconditioner} \mathbf{u}_{k}$. Here, $\mathbf{H}$ is the Hessian and the preconditioner, $\mathbf{\preconditioner}$, is the PSF approximation for 1, 5, or 25 batches (PSF (1), PSF (5), and PSF (25), respectively), the regularization Hessian (REG), or the identity matrix (NONE).}
 	\label{fig:adv_krylov_convergence}
 \end{figure} 
 

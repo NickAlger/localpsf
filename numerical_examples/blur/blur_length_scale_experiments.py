@@ -17,9 +17,11 @@ nx = 63
 a = 1.0 # <-- How bumpy? Use 1.0, which is maximum bumpiness without negative numbers
 all_length_scalings = [1.0 / (t**2) for t in [1.0, 2.0, 3.0]]
 all_error_levels = [0.2, 0.1, 0.05]
+shape_parameter = 0.5
 # length_scaling = 1./(3.0**2) #1.0
 
-do_PSF = False
+do_PSF = True
+do_others = False
 
 np.savetxt('all_length_scalings.txt', all_length_scalings)
 np.savetxt('all_error_levels.txt', all_error_levels)
@@ -80,35 +82,36 @@ for length_scaling in all_length_scalings:
 
     #### Global low rank
 
-    _, ss, _ = np.linalg.svd(Ker)
-    all_ss.append(ss)
-    norm_ker_fro = np.linalg.norm(Ker)
+    if do_others:
+        _, ss, _ = np.linalg.svd(Ker)
+        all_ss.append(ss)
+        norm_ker_fro = np.linalg.norm(Ker)
 
-    all_rsvd_applies = []
-    for rtol in all_error_levels:
-        rsvd_num_applies = compute_rsvd_applies(Ker, rtol)
-        all_rsvd_applies.append(rsvd_num_applies)
-        print('rtol=', rtol, ', rsvd_num_applies=', rsvd_num_applies)
-    all_all_rsvd_applies.append(all_rsvd_applies)
+        all_rsvd_applies = []
+        for rtol in all_error_levels:
+            rsvd_num_applies = compute_rsvd_applies(Ker, rtol)
+            all_rsvd_applies.append(rsvd_num_applies)
+            print('rtol=', rtol, ', rsvd_num_applies=', rsvd_num_applies)
+        all_all_rsvd_applies.append(all_rsvd_applies)
 
-    all_glr_ranks_fro = []
-    for rtol in all_error_levels:
-        glr_num_fro = np.sum((norm_ker_fro**2 - np.cumsum(ss**2)) > rtol**2 * norm_ker_fro**2)
-        all_glr_ranks_fro.append(glr_num_fro)
-        print('rtol=', rtol, ', glr_num_fro=', glr_num_fro)
-    all_all_glr_ranks_fro.append(all_glr_ranks_fro)
+        all_glr_ranks_fro = []
+        for rtol in all_error_levels:
+            glr_num_fro = np.sum((norm_ker_fro**2 - np.cumsum(ss**2)) > rtol**2 * norm_ker_fro**2)
+            all_glr_ranks_fro.append(glr_num_fro)
+            print('rtol=', rtol, ', glr_num_fro=', glr_num_fro)
+        all_all_glr_ranks_fro.append(all_glr_ranks_fro)
 
-    all_glr_ranks_2 = []
-    for rtol in all_error_levels:
-        glr_num_2 = np.sum(ss > rtol * np.max(ss))
-        all_glr_ranks_2.append(glr_num_2)
-        print('rtol=', rtol, ', glr_num_2=', glr_num_2)
-    all_all_glr_ranks_2.append(all_glr_ranks_2)
+        all_glr_ranks_2 = []
+        for rtol in all_error_levels:
+            glr_num_2 = np.sum(ss > rtol * np.max(ss))
+            all_glr_ranks_2.append(glr_num_2)
+            print('rtol=', rtol, ', glr_num_2=', glr_num_2)
+        all_all_glr_ranks_2.append(all_glr_ranks_2)
 
-    np.savetxt('frog_singular_values_L='+str(length_scaling)+'.txt', ss)
-    np.savetxt('all_rsvd_applies_L=' + str(length_scaling) + '.txt', all_rsvd_applies)
-    np.savetxt('all_glr_ranks_fro_L='   +str(length_scaling)+'.txt', all_glr_ranks_fro)
-    np.savetxt('all_glr_ranks_2_L='     +str(length_scaling)+'.txt', all_glr_ranks_2)
+        np.savetxt('frog_singular_values_L='+str(length_scaling)+'.txt', ss)
+        np.savetxt('all_rsvd_applies_L=' + str(length_scaling) + '.txt', all_rsvd_applies)
+        np.savetxt('all_glr_ranks_fro_L='   +str(length_scaling)+'.txt', all_glr_ranks_fro)
+        np.savetxt('all_glr_ranks_2_L='     +str(length_scaling)+'.txt', all_glr_ranks_2)
 
     #### PSF
     if do_PSF:
@@ -119,7 +122,8 @@ for length_scaling in all_length_scalings:
             mass_lumps, mass_lumps,
             num_initial_batches=0,
             tau=3.0, display=True,
-            num_neighbors=10
+            num_neighbors=10,
+            shape_parameter=shape_parameter,
         )
 
         # print('Making row and column cluster trees')
