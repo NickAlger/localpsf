@@ -296,7 +296,7 @@ The PSF-based method may still perform well if these conditions are relaxed slig
 
 %If these conditions are violated, the method will incur additional error, and depending on the severity of the violation, the proposed method may fail. 
 
-It is acceptable if the support of $\impulseresponse_x$ is not perfectly contained in a localized region (violating Assumption 2), so long as the bulk of the ``mass'' of $\impulseresponse_x$ is contained in a localized region. In principle, the PSF-based method can be applied even if the impulse responses are not localized. However, in this case only a small number of impulse responses can be computed per batch, which means more batches, and hence more operator applies, are needed to form an accurate approximation.
+It is acceptable if the support of $\impulseresponse_x$ is not perfectly contained in a localized region (violating Assumption 2), so long as the bulk of the ``mass'' of $\impulseresponse_x$ is contained in a localized region. In principle, the PSF-based method can be applied even if the impulse responses are widely dispersed. However, in this case only a small number of impulse responses can be computed per batch, which means more batches, and hence more operator applies, are needed to form an accurate approximation.
 
 %The integral kernel does not need to be non-negative for all pairs of points $(y,x) \in \Omega \times \Omega$ (Assumption 3) so long as it is non-negative for the vast majority of pairs of points $(y,x)$, and so long as the negative numbers are comparatively small. 
 
