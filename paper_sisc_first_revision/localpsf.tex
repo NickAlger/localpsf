@@ -392,7 +392,7 @@ which implies
 \label{eq:boldA}
 	\mathbf{A} = \massmatrix \mathbf{\Aker} \massmatrix.
 \end{equation}
-Broadly, we will construct an H-matrix approximation of $\mathbf{A}$ by forming a H-matrix approximation of $\boldsymbol{\Aker}$, then multiplying $\boldsymbol{\Aker}$ by $\massmatrix$ (or a lumped mass version of $\massmatrix$) on the left and right using H-matrix methods. Classical H-matrix construction methods require access to arbitrary matrix entries $\mathbf{\Aker}_{ij}$, but these matrix entries are not easily accessible. The bulk of the PSF-based method is therefore dedicated to forming approximations of these matrix entries that can be evaluated rapidly.
+Broadly, we will construct an H-matrix approximation of $\mathbf{A}$ by forming an H-matrix approximation of $\boldsymbol{\Aker}$, then multiplying $\boldsymbol{\Aker}$ by $\massmatrix$ (or a lumped mass version of $\massmatrix$) on the left and right using H-matrix methods. Classical H-matrix construction methods require access to arbitrary matrix entries $\mathbf{\Aker}_{ij}$, but these matrix entries are not easily accessible. The bulk of the PSF-based method is therefore dedicated to forming approximations of these matrix entries that can be evaluated rapidly.
 
 \paragraph{Lumped mass matrix} At the continuum level, $\Aker$ is assumed to be non-negative. However, entries of $\boldsymbol{\Aker}$ involve inverse mass matrices, which typically contain negative numbers. 
 We therefore recommend replacing the mass matrix, $\massmatrix$, with a positive diagonal \emph{lumped mass} approximation. 
@@ -681,7 +681,7 @@ We form an H-matrix approximation $\mathbf{A}_H \approx \mathbf{A}$ by forming a
 $
 \mathbf{A}_H = \massmatrix \mathbf{\Aker}_H \massmatrix.
 $
-Here, we use a diagonal lumped mass matrix, so these matrix-matrix multiplications are trivial. If a non-diagonal mass matrix is used, one may form a H-matrix representation of the mass matrix, then perform the matrix-matrix multiplications in \eqref{eq:boldA} using H-matrix methods.
+Here, we use a diagonal lumped mass matrix, so these matrix-matrix multiplications are trivial. If a non-diagonal mass matrix is used, one may form an H-matrix representation of the mass matrix, then perform the matrix-matrix multiplications in \eqref{eq:boldA} using H-matrix methods.
 We use H1 matrices in the numerical results, but any other H-matrix format could be used instead. For more details on H-matrices, see~\cite{Hackbusch15}. 
 
 We form $\mathbf{\Aker}_H$ using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package~\cite{Kriemann08}. For details about the algorithms used for geometrical clustering, H-matrix construction, and H-matrix operations in HLIBpro, we refer the reader to~\cite{BormGrasedyckHackbusch03,GrasedyckKriemannLeBorne08,Kriemann13}. Although $\mathbf{\Aker}$ is a dense $\fedim \times \fedim$ matrix, constructing $\mathbf{\Aker}_H$ only requires evaluation of $O(\hrank \fedim \log \fedim)$ kernel entries $\mathbf{\Aker}_{ij} = \widetilde{\Aker}(\fepoint_i, \fepoint_j)$ (see \cite{BebendorfRjasanow03}), and these entries are computed via the radial basis function interpolation method described in Section~\ref{sec:approximate_kernel_entries}. Here, $\hrank$ is the rank of the highest rank block in the H-matrix. 
@@ -813,7 +813,7 @@ iteration, which is terminated early based on the Eisenstat-Walker \cite{Eisenst
 We use the framework described in this paper to generate Hessian preconditioners. We build H-matrix approximations, $\mathbf{A}_H$, of the data misfit Gauss-Newton Hessian (the term in $\mathbf{H}_\text{gn}$ that arises from the data misfit). The 
 approximations are indicated by ``PSF ($\nbatch$)'', where $\nbatch$ is the number of impulse response batches used to build the approximation. The Hessian of the regularization term is a combination of
 stiffness and mass matrices, which are sparse. Therefore, we form
-H-matrix representations of these matrices and combine them into a H-matrix approximation of the regularization term in the Hessian, $\mathbf{R}_H$, using
+H-matrix representations of these matrices and combine them into an H-matrix approximation of the regularization term in the Hessian, $\mathbf{R}_H$, using
 standard sparse H-matrix techniques. Then, H-matrix approximations of the Gauss-Newton Hessian, 
 $\mathbf{H}_\text{gn}\approx \widetilde{\mathbf{H}}:=\mathbf{A}_H + \mathbf{R}_H$,
 are formed by adding $\mathbf{A}_H$ to $\mathbf{R}_H$ using fast H-matrix arithmetic. We modify $\widetilde{\mathbf{H}}$ to be (approximately) symmetric positive semi-definite via the procedure described in Section~\ref{sec:flip_eigs}. We factor $\mathbf{\preconditioner}$
