@@ -44,7 +44,7 @@
 
 % REQUIRED
 \begin{abstract}
-	We present an efficient matrix-free point spread function (PSF) method for approximating operators that have locally supported non-negative integral kernels. The method computes impulse responses of the operator at scattered points, and interpolates these impulse responses to approximate entries of the integral kernel. To compute impulse responses efficiently, we apply the operator to Dirac combs associated with batches of point sources, which are chosen by solving an ellipsoid packing problem. The ability to rapidly evaluate kernel entries allows us to construct a hierarchical matrix (H-matrix) approximation of the operator. Further matrix computations are then performed with fast H-matrix methods. This end-to-end procedure is illustrated on a blur problem. We demonstrate the PSF-based method's effectiveness by using it to build preconditioners for the Hessian operator arising in two inverse problems governed by partial differential equations (PDEs): inversion for the basal friction coefficient in an ice sheet flow problem and for the initial condition in an advective-diffusive transport problem. While for many ill-posed inverse problems the Hessian of the data misfit term exhibits a low rank structure, and hence a low rank approximation is suitable, for many problems of practical interest the numerical rank of the Hessian is still large. The Hessian impulse responses on the other hand typically become more local as the numerical rank increases, which benefits the PSF-based method. Numerical results reveal that the PSF-based preconditioner clusters the spectrum of the preconditioned Hessian near one, yielding roughly $5\times$--$10\times$ reductions in the required number of PDE solves, as compared to classical regularization-based preconditioning and no preconditioning. We also present a comprehensive numerical study for the influence of various parameters (that control the shape of the impulse responses and the rank of the Hessian) on the effectiveness of the advection-diffusion Hessian approximation. The results show that the PSF-based preconditioners are able to form good approximations of high-rank Hessians using only a small number of operator applications.
+	We present an efficient matrix-free point spread function (PSF) method for approximating operators that have locally supported non-negative integral kernels. The proposed method computes impulse responses of the operator at scattered points, and interpolates these impulse responses to approximate entries of the integral kernel. To compute impulse responses efficiently, we apply the operator to Dirac combs associated with batches of point sources, which are chosen by solving an ellipsoid packing problem. The ability to rapidly evaluate kernel entries allows us to construct a hierarchical matrix (H-matrix) approximation of the operator. Further matrix computations are then performed with fast H-matrix methods. This end-to-end procedure is illustrated on a blur problem. We demonstrate the proposed method's effectiveness by using it to build preconditioners for the Hessian operator arising in two inverse problems governed by partial differential equations (PDEs): inversion for the basal friction coefficient in an ice sheet flow problem and for the initial condition in an advective-diffusive transport problem. While for many ill-posed inverse problems the Hessian of the data misfit term exhibits a low rank structure, and hence a low rank approximation is suitable, for many problems of practical interest the numerical rank of the Hessian is still large. The Hessian impulse responses on the other hand typically become more local as the numerical rank increases, which benefits the proposed method. Numerical results reveal that the preconditioner clusters the spectrum of the preconditioned Hessian near one, yielding roughly $5\times$--$10\times$ reductions in the required number of PDE solves, as compared to classical regularization-based preconditioning and no preconditioning. We also present a comprehensive numerical study for the influence of various parameters (that control the shape of the impulse responses and the rank of the Hessian) on the effectiveness of the advection-diffusion Hessian approximation. The results show that the proposed method is able to form good approximations of high-rank Hessians using only a small number of operator applications.
 \end{abstract}
 
 % REQUIRED
@@ -64,15 +64,14 @@ We present an efficient \emph{matrix-free} point spread function (PSF) method fo
 %(defined in Equation \ref{eq:kernel_representation})
 are non-negative numbers; this is not the same as positive semi-definiteness of $\Aop$. Such operators appear as, for example, Hessians in optimization and inverse problems governed by partial differential equations (PDEs)~\cite{BorziSchulz11,Delosreyes15,HinzePinnauUlbrichUlbrich08}, 
 %AntilEtAl18
-Schur complements in Schur complement methods for solving partial differential equations and Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps)~\cite{ChanMathew94,SmithBjorstadGropp96,ToselliWidlund04}, covariance operators in spatial statistics~\cite{ChenStein21,GentonKeyesTurkiyyah18,GeogaEtAl20,LindgrenRueLindstrom11}, and blurring operators in imaging~\cite{DenisEtAl11,NagyOleary98}. 
-
-Here, ``matrix-free'' means that we may apply $\Aop$ and its transpose\footnote{Recall that $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(w) = \left(\Aop^T w\right)(u)$ for all $u,w \in L^2(\Omega)$, where $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$, and similar for operations with $\Aop^T$. }, $\Aop^T$, to functions,
+Schur complements in Schur complement methods for solving partial differential equations and Poincare-Steklov operators in domain decomposition methods (e.g., Dirichlet-to-Neumann maps)~\cite{ChanMathew94,SmithBjorstadGropp96,ToselliWidlund04}, covariance operators in spatial statistics~\cite{ChenStein21,GentonKeyesTurkiyyah18,GeogaEtAl20,LindgrenRueLindstrom11}, and blurring operators in imaging~\cite{DenisEtAl11,NagyOleary98}. Here, ``matrix-free'' means that we may apply $\Aop$ and its transpose\footnote{Recall that $\Aop^T:L^2(\Omega)\rightarrow L^2(\Omega)'$ is the unique operator satisfying $\left(\Aop u\right)(w) = \left(\Aop^T w\right)(u)$ for all $u,w \in L^2(\Omega)$, where $\Aop u \in L^2(\Omega)'$ is the result of applying $\Aop$ to $u\in L^2(\Omega)$, and $\left(\Aop u\right)(w)$ is the result of applying that linear functional to $w \in L^2(\Omega)$, and similar for operations with $\Aop^T$. }, $\Aop^T$, to functions,
 \begin{equation}
 \label{eq:eval_maps}
 u \mapsto\Aop u \qquad \text{and} \qquad w \mapsto \Aop^T w,
 \end{equation} 
 via a black box computational procedure, 
-but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the maps in~\eqref{eq:eval_maps} may require solving a subproblem that involves PDEs, or performing other costly computations. Matrix-free does not mean that matrices are never used; our approximation is ultimately converted into a hierarchical matrix (H-matrix), a compressed matrix format that permits fast and scalable linear algebra operations. 
+but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the maps in~\eqref{eq:eval_maps} may require solving a subproblem that involves PDEs, or performing other costly computations. 
+%Matrix-free does not mean that matrices are never used; our approximation is ultimately converted into a hierarchical matrix (H-matrix), a compressed matrix format that permits fast and scalable linear algebra operations. 
 
 
 \begin{figure}
@@ -102,7 +101,7 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 	\begin{center}
 		%	\begin{subfigure}[b]{0.58\textwidth}
 		%		\centering
-		\includegraphics[scale=0.35]{kernel_impulse_illustration2.pdf}
+		\includegraphics[scale=0.3]{kernel_impulse_illustration2.pdf}
 		%%		\caption{Kernel and impulse responses}
 		%		\label{fig:kernel_impulse_illustration}
 		%	\end{subfigure}
@@ -114,16 +113,16 @@ but cannot easily access entries of $\Aop$'s integral kernel. Evaluating the map
 		%	\end{subfigure}
 	\end{center}
 	
-	\caption{Left: Matrix created by evaluating the integral kernel $\Phi$ for $\Aop$ (Equation~\ref{eq:kernel_representation}) at all pairs of mesh vertices. This illustration is for the integral kernel given in Equation~\ref{eq:frog_kernel} in Section~\ref{sec:frog}. Dark colors indicate large entries and light colors indicate small entries. Rows and columns are ordered according to a kd-tree hierarchical clustering. Right: Impulse responses
+	\caption{Left: Matrix created by evaluating the integral kernel $\Phi$ for $\Aop$ (Equation~\ref{eq:kernel_representation}) at all pairs of mesh vertices. This illustration is for the integral kernel in Equation~\ref{eq:frog_kernel}. Dark colors indicate large entries and light colors indicate small entries. Rows and columns are ordered according to a kd-tree hierarchical clustering. Right: Impulse responses
 %	$\phi_{x_1}=\Phi(~\cdot~, x_1)$ and $\phi_{x_1}=\Phi(~\cdot~, x_2)$
 	associated with points $x_1,x_2\in \Omega$, shown by the two dotted vertical lines. Intuitively, one may think of impulse responses as ``columns'' of the integral kernel.
 	}
 	\label{fig:frog_kernel_impulse_responses}
 \end{figure}
 
-The idea of the proposed PSF-based method is to use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applications. The impulse response, $\phi_x$, associated with a point, $x$, is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Batches of impulse responses may be thought of intuitively as sets of ``columns'' of the kernel (Figure \ref{fig:frog_kernel_impulse_responses}). To choose the batches, we form ellipsoid estimates for the supports of all $\phi_x$ via a moment method (Figure~\ref{fig:frog_moments_ellipsoid}) that involves applying $\Aop^T$ to a small number of polynomial functions (see Section~\ref{sec:intromoments}). We then use a greedy ellipsoid packing algorithm (Figure~\ref{fig:frog_batches}) to maximize the number of impulse responses per batch.
+The idea of the proposed method is to use \emph{impulse response interpolation} to form a high rank approximation of $\Aop$ using a small number of operator applications. The impulse response, $\phi_x$, associated with a point, $x$, is the Riesz representation\footnote{Recall that the Riesz representative of a functional $\rho \in L^2(\Omega)'$ with respect to the $L^2$ inner product is the unique function $\rho^* \in L^2(\Omega)$ such that $\rho(w) = \left(\rho^*,w\right)_{L^2(\Omega)}$ for all $w \in L^2(\Omega)$.} of the linear functional that results from applying $\Aop$ to a delta distribution (i.e., point source, impulse) centered at $x$. We compute batches of impulse responses by applying $\Aop$ to weighted sums of delta distributions associated with batches of points scattered throughout the domain (see Figure~\ref{fig:batches_intro}). Batches of impulse responses may be thought of intuitively as sets of ``columns'' of the kernel (Figure \ref{fig:frog_kernel_impulse_responses}). To choose the batches, we form ellipsoid estimates for the supports of all $\phi_x$ via a moment method (Figure~\ref{fig:frog_moments_ellipsoid}) that involves applying $\Aop^T$ to a small number of polynomials (see Section~\ref{sec:intromoments}). We then use a greedy ellipsoid packing algorithm (Figure~\ref{fig:frog_batches}) to maximize the number of impulse responses per batch.
 % which requires us to estimate the supports of the impulse responses $\phi_x$ \emph{before} they are computed. 
-Then we interpolate translated and scaled versions of these impulse responses to approximate entries of the operator's integral kernel (Figure~\ref{fig:hmatrix_neighbors_frog}). Adding more batches yields impulse responses at more points, increasing the accuracy of the approximation at the cost of one operator application per batch (Figure~\ref{fig:frog_column_errors}). 
+Then we interpolate translated and scaled versions of these impulse responses to approximate entries of the operator's integral kernel (Figure~\ref{fig:hmatrix_neighbors_frog}). Adding more batches yields impulse responses at more points, increasing the approximation accuracy at the cost of one operator application per batch (Figure~\ref{fig:frog_column_errors}). 
 
 
 \begin{figure}
@@ -136,7 +135,7 @@ Then we interpolate translated and scaled versions of these impulse responses to
 		\includegraphics[scale=0.44]{frog_ellipsoid_width2.pdf}
 		%		\label{fig:frog_ellipsoid_width}
 	\end{subfigure}
-	\caption{Left: Impulse response moments: scaling factor ($V$), mean ($\mu$), and covariance ($\Sigma$). For each point $x \in \Omega$, the quantity $V(x)$ is the integral of $\phi_x$ over $\Omega$, $\mu(x)$ is the location that $\phi_x$ is centered at, and $\Sigma(x)$ is a matrix with eigenvectors and eigenvalues that characterize the width of $\phi_x$ (see Section~\ref{sec:intromoments}). Right: Ellipsoid support for an impulse response.  This ellipsoid is the set of points within $\tau$ standard deviations of the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$. The scaling factor $V(x)$ characterizes the magnitude of $\phi_x$.
+	\caption{Left: Impulse response moments: scaling factor ($V$), mean ($\mu$), and covariance ($\Sigma$). For each point $x \in \Omega$, the quantity $V(x)$ is the integral of $\phi_x$ over $\Omega$, $\mu(x)$ is the location that $\phi_x$ is centered at, and $\Sigma(x)$ is a matrix with eigenvectors and eigenvalues that characterize the width of the support of $\phi_x$ about $\mu(x)$ (see Section~\ref{sec:intromoments}). Right: Ellipsoid support for an impulse response.  This ellipsoid is the set of points within $\tau$ standard deviations of the mean of the Gaussian distribution with mean $\spatialmean(x)$ and covariance $\spatialcov(x)$. The scaling factor $V(x)$ characterizes the magnitude of $\phi_x$.
 	}
 	\label{fig:frog_moments_ellipsoid}
 \end{figure}
@@ -169,25 +168,25 @@ Then we interpolate translated and scaled versions of these impulse responses to
 \begin{figure}
 	\begin{subfigure}[b]{0.30\textwidth}
 		\centering
-		\includegraphics[scale=0.35]{frog_column_errors_psf5.png}
+		\includegraphics[scale=0.32]{frog_column_errors_psf5.png}
 		%		\caption{PSF(5)}
 		\label{fig:blur_error_psf5}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.30\textwidth}
 		\centering
-		\includegraphics[scale=0.35]{frog_column_errors_psf10.png}
+		\includegraphics[scale=0.32]{frog_column_errors_psf10.png}
 		%		\caption{PSF(10)}
 		\label{fig:blur_error_psf10}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.30\textwidth}
 		\centering
-		\includegraphics[scale=0.35]{frog_column_errors_psf20.png}
+		\includegraphics[scale=0.32]{frog_column_errors_psf20.png}
 		%		\caption{PSF(20)}
 		\label{fig:blur_error_psf20}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.08\textwidth}
 		\centering
-		\includegraphics[scale=0.35]{frog_colorbar_edited1.pdf}
+		\includegraphics[scale=0.32]{frog_colorbar_edited1.pdf}
 		%			\label{fig:blur_colorbar}
 	\end{subfigure}
 	
@@ -219,7 +218,7 @@ The work and memory required to perform these operations for an $\fedim \times \
 \section{Why we need more efficient approximations of high rank Hessians}
 \label{sec:hessian}
 
-While the PSF-based method in this paper may be used to approximate any operator that has a locally supported non-negative integral kernel, we are primarily motivated by approximation of high-rank Hessians in distributed parameter inverse problems governed by PDEs. In this section, we provide a brief background on this topic, and explain why existing Hessian approximation methods are not satisfactory.
+While the method proposed in this paper may be used to approximate any operator that has a locally supported non-negative integral kernel, we are primarily motivated by approximation of high-rank Hessians in distributed parameter inverse problems governed by PDEs. In this section, we provide a brief background on this topic, and explain why existing Hessian approximation methods are not satisfactory.
 
 In distributed parameter inverse problems governed by PDEs, one seeks to infer an unknown spatially varying parameter field from limited observations of a state variable that depends on the parameter implicitly through the solution of a PDE. 
 Conventionally, the inverse problem is formulated using either a deterministic framework~\cite{BanksKunisch89,Vogel02},
@@ -307,20 +306,20 @@ It is acceptable if the support of $\impulseresponse_x$ is not perfectly contain
 		%	\setlength{\tabcolsep}{0.1em}
 		%	\renewcommand{\arraystretch}{2.0}
 		\begin{tabular}{cccc}
-			\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=1.0.png} & 
-			\includegraphics[scale=0.3, valign=c]{frog_1d_a=1.0.png} & 
-			\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.0.png} & 
-			\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.0.png} \\
+			\includegraphics[scale=0.25, valign=c]{frog_ellipsoid_a=1.0.png} & 
+			\includegraphics[scale=0.25, valign=c]{frog_1d_a=1.0.png} & 
+			\includegraphics[scale=0.25, valign=c]{ricker_ellipsoid_a=0.0.png} & 
+			\includegraphics[scale=0.25, valign=c]{ricker_1d_a=0.0.png} \\
 			%
-			\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=20.0.png} & 
-			\includegraphics[scale=0.3, valign=c]{frog_1d_a=20.0.png} & 
-			\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.23.png} & 
-			\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.23.png} \\
+			\includegraphics[scale=0.25, valign=c]{frog_ellipsoid_a=20.0.png} & 
+			\includegraphics[scale=0.25, valign=c]{frog_1d_a=20.0.png} & 
+			\includegraphics[scale=0.25, valign=c]{ricker_ellipsoid_a=0.23.png} & 
+			\includegraphics[scale=0.25, valign=c]{ricker_1d_a=0.23.png} \\
 			%
-			\includegraphics[scale=0.3, valign=c]{frog_ellipsoid_a=27.0.png} & 
-			\includegraphics[scale=0.3, valign=c]{frog_1d_a=27.0.png} & 
-			\includegraphics[scale=0.3, valign=c]{ricker_ellipsoid_a=0.249.png} & 
-			\includegraphics[scale=0.3, valign=c]{ricker_1d_a=0.249.png} 
+			\includegraphics[scale=0.25, valign=c]{frog_ellipsoid_a=27.0.png} & 
+			\includegraphics[scale=0.25, valign=c]{frog_1d_a=27.0.png} & 
+			\includegraphics[scale=0.25, valign=c]{ricker_ellipsoid_a=0.249.png} & 
+			\includegraphics[scale=0.25, valign=c]{ricker_1d_a=0.249.png} 
 		\end{tabular}
 	}
 	\caption{Illustration of the influence of negative numbers in the integral kernel on the robustness of the ellipsoid estimates for the supports of impulse responses. Left two columns: Blur kernel given in Equation \ref{eq:frog_kernel}. Right two columns: Ricker wavelet-type kernel given by $\Aker(y,x) = (1 - a \gamma)\exp\left(-\gamma/2\right)$, where $\gamma=(y-x)^T \Sigma^{-1} (y-x)$, and $\Sigma=\operatorname{diag}\left(0.0025, 0.01\right)$. Ordered from top to bottom, the results are obtained with $a\in\{1.0, 20.0, 27.0\}$ for the left two columns, and $a\in \{0.0, 0.23, 0.249\}$ for the right two columns. Columns 1 and 3: impulse responses with estimated support ellipsoids indicated by the black ellipses. Red and blue represent positive and negative numbers in the integral kernel, respectively. Columns 2 and 4: one-dimensional slice along the horizontal line indicated in the two-dimensional plots. The dashed gray line is at zero.
@@ -336,7 +335,7 @@ If there are negative numbers in the integral kernel (violating Assumption 3), t
 	\item As kernels become more negative, the ellipsoid estimation performs well up to a certain threshold that depends on the spatial distribution of negative and positive entries. After that threshold is crossed, the estimation rapidly transitions to performing poorly and ultimately failing.
 \end{itemize} 
 %The location of the negative numbers also affects the accuracy of the ellipsoid estimates substantially, but in a more complicated manner. 
-For the kernel in the left two columns of Figure \ref{fig:robustness_to_negatives}, negative numbers are interspersed with positive numbers, allowing us to include a large amount of negative numbers in the integral kernel before the proposed method fails. For the kernel in the right two columns, the ellipsoid estimate fails with tiny amounts of negative numbers because the negative numbers are far away from the mean and not balanced by positive numbers at similar distances and angles. In the bottom two rows, we see the aforementioned threshold effect, in which the proposed method rapidly transitions from performing reasonably well to performing poorly with only a small change to the integral kernel. 
+For the kernel in the left two columns of Figure \ref{fig:robustness_to_negatives}, negative numbers are interspersed with positive numbers, allowing us to include a large amount of negative numbers before the proposed method fails. For the kernel in the right two columns, the ellipsoid estimate fails with tiny amounts of negative numbers because the negative numbers are far away from the mean and not balanced by positive numbers at similar distances and angles. In the bottom two rows, we see the aforementioned threshold effect, in which the proposed method rapidly transitions from performing reasonably well to performing poorly with only a small change to the integral kernel. 
 
 %Location and magnitude of negatives matter. Larger negatives: bad, smaller negatives good.  Negatives closer to center: good, further from center: bad. Correlated negatives: bad, randomly distributed: good. Good Good Good Fail quick
 %
@@ -766,7 +765,7 @@ where $a,b \in \{0,1,2,3\}$ are constants which depend on the type of H-matrix u
 For our numerical results involving Hessians (Sections~\ref{sec:ice} and~\ref{sec:adv}), we use one matrix-matrix addition to add the H-matrix approximation of the data misfit term in the Hessian to the regularization term in the Hessian.
 Symmetrizing $\mathbf{A}_H$ requires one matrix-matrix addition. Flipping negative eigenvalues to be positive requires a handful (typically around 5) of matrix-matrix additions and matrix factorizations to factor the required shifted linear systems, and a number of factorized solves that is proportional to the number of erroneous negative eigenvalues.
 
-In summary, computing all the necessary ingredients to evaluate kernel entries of the PSF approximation requires a handful of operator applications (e.g., $6+\nbatch$ operator applications in two dimensions, or $10+\nbatch$ operator applications in three dimensions, with $\nbatch$ typically in the range 1--25), plus comparatively cheap additional overhead costs, most notably performing ellipsoid intersection tests while choosing sample point batches. Once these ingredients are computed, no more operator applications (and thus PDE solves) are required, and approximate kernel entries can be evaluated rapidly. Constructing the H-matrix from kernel entries requires a number of elementary operations that scales polylog linearly in $N$. Using the resulting H-matrix to perform further linear algebra operations also scales polylog linearly in $N$, though the details of these costs depend heavily on the type of H-matrix and operation being performed.
+In summary, computing all the necessary ingredients to evaluate kernel entries of the PSF approximation requires a handful of operator applications (e.g., $6+\nbatch$ operator applications in two dimensions, or $10+\nbatch$ operator applications in three dimensions, with $\nbatch$ typically in the range 1--25), plus comparatively cheap additional overhead costs, most notably performing ellipsoid intersection tests while choosing sample point batches. Once these ingredients are computed, no more operator applications (and thus PDE solves) are required, and approximate kernel entries can be evaluated rapidly. Constructing the H-matrix from kernel entries requires a number of elementary operations that scales polylog linearly in $N$. Using the H-matrix to perform linear algebra operations also scales polylog linearly in $N$, though the details of these costs depend heavily on the type of H-matrix and operation being performed.
 
 \section{Numerical results}
 \label{sec:numerical_results}
@@ -929,8 +928,8 @@ In Table~\ref{tab:frog_psf_vs_hodlr_vs_glr} we compare the
 computational cost to approximate the blur kernel from
 Equation~\eqref{eq:frog_kernel} using the proposed PSF-based method, the
 randomized HODLR (hierarchical off diagonal low rank)
-method~\cite{Martinsson16,Hartland_2023}, and GLR (global low rank)
-approximation using randomized SVD~\cite{HalkoMartinssonTropp11}. For
+method~\cite{Martinsson16,Hartland_2023} with 8 hierarchical levels, and GLR (global low rank)
+approximation using double-pass randomized SVD~\cite{HalkoMartinssonTropp11}. For
 these results we vary the quantity $L$ to scale the width of the
 impulse responses and hence the rank of the operator. For each case,
 we calculate the relative error in the approximation of the kernel
