@@ -1,0 +1,392 @@
+\begin{thebibliography}{10}
+
+\bibitem{Adorf94}
+{\sc H.-M. Adorf}, {\em Towards {HST} restoration with a space-variant {PSF},
+  cosmic rays and other missing data}, in The Restoration of HST Images and
+  Spectra-II, 1994, p.~72.
+
+\bibitem{AkcelikBirosDraganescuEtAl05}
+{\sc V.~Ak\c{c}elik, G.~Biros, A.~Dr\u{a}g\u{a}nescu, O.~Ghattas, J.~Hill, and
+  B.~van Bloeman~Waanders}, {\em Dynamic data-driven inversion for terascale
+  simulations: Real-time identification of airborne contaminants}, in
+  Proceedings of SC2005, Seattle, 2005.
+
+\bibitem{AlexanderianGloorGhattas16}
+{\sc A.~Alexanderian, P.~J. Gloor, and O.~Ghattas}, {\em On {B}ayesian {A}-and
+  {D}-optimal experimental designs in infinite dimensions}, Bayesian Analysis,
+  11 (2016), pp.~671--695.
+
+\bibitem{Alger19}
+{\sc N.~Alger}, {\em Data-scalable {H}essian preconditioning for distributed
+  parameter {PDE}-constrained inverse problems}, PhD thesis, The University of
+  Texas at Austin, 2019.
+
+\bibitem{AlgerEtAl19}
+{\sc N.~Alger, V.~Rao, A.~Myers, T.~Bui-Thanh, and O.~Ghattas}, {\em Scalable
+  matrix-free adaptive product-convolution approximation for locally
+  translation-invariant operators}, SIAM Journal on Scientific Computing, 41
+  (2019), pp.~A2296--A2328.
+
+\bibitem{AlgerEtAl17}
+{\sc N.~Alger, U.~Villa, T.~Bui-Thanh, and O.~Ghattas}, {\em A data scalable
+  augmented {L}agrangian {KKT} preconditioner for large-scale inverse
+  problems}, SIAM Journal on Scientific Computing, 39 (2017), pp.~A2365--A2393.
+
+\bibitem{AmbartsumyanEtAl20}
+{\sc I.~Ambartsumyan, W.~Boukaram, T.~Bui-Thanh, O.~Ghattas, D.~Keyes,
+  G.~Stadler, G.~Turkiyyah, and S.~Zampini}, {\em Hierarchical matrix
+  approximations of {H}essians arising in inverse problems governed by {PDE}s},
+  SIAM Journal on Scientific Computing, 42 (2020), pp.~A3397--A3426.
+
+\bibitem{ArbogastBona08}
+{\sc T.~Arbogast and J.~L. Bona}, {\em Methods of Applied Mathematics},
+  University of Texas at Austin, 2008.
+\newblock Lecture notes in applied mathematics.
+
+\bibitem{BanksKunisch89}
+{\sc H.~T. Banks and K.~Kunisch}, {\em Estimation techniques for distributed
+  parameter systems}, Springer, 1989.
+
+\bibitem{BebendorfRjasanow03}
+{\sc M.~Bebendorf and S.~Rjasanow}, {\em Adaptive low-rank approximation of
+  collocation matrices}, Computing, 70 (2003), pp.~1--24.
+
+\bibitem{Bentley75}
+{\sc J.~L. Bentley}, {\em Multidimensional binary search trees used for
+  associative searching}, Communications of the ACM, 18 (1975), pp.~509--517.
+
+\bibitem{BigotEscandeWeiss19}
+{\sc J.~Bigot, P.~Escande, and P.~Weiss}, {\em Estimation of linear operators
+  from scattered impulse responses}, Applied and Computational Harmonic
+  Analysis, 47 (2019), pp.~730--758.
+
+\bibitem{BormGrasedyckHackbusch03}
+{\sc S.~B{\"o}rm, L.~Grasedyck, and W.~Hackbusch}, {\em Introduction to
+  hierarchical matrices with applications}, Engineering analysis with boundary
+  elements, 27 (2003), pp.~405--422.
+
+\bibitem{BorziSchulz11}
+{\sc A.~Borz{\`\i} and V.~Schulz}, {\em Computational optimization of systems
+  governed by partial differential equations}, SIAM, 2011.
+
+\bibitem{BuiEtAl13}
+{\sc T.~Bui-Thanh, O.~Ghattas, J.~Martin, and G.~Stadler}, {\em A computational
+  framework for infinite-dimensional {B}ayesian inverse problems {P}art {I}:
+  The linearized case, with application to global seismic inversion}, SIAM
+  Journal on Scientific Computing, 35 (2013), pp.~A2494--A2523.
+
+\bibitem{ChanMathew94}
+{\sc T.~F. Chan and T.~P. Mathew}, {\em Domain decomposition algorithms}, Acta
+  Numerica, 3 (1994), pp.~61--143.
+
+\bibitem{ChenStein21}
+{\sc J.~Chen and M.~L. Stein}, {\em Linear-cost covariance functions for
+  {G}aussian random fields}, Journal of the American Statistical Association,
+  (2021), pp.~1--18.
+
+\bibitem{Cheng05}
+{\sc H.~Cheng, Z.~Gimbutas, P.-G. Martinsson, and V.~Rokhlin}, {\em On the
+  compression of low rank matrices}, SIAM Journal on Scientific Computing, 26
+  (2005), pp.~1389--1404.
+
+\bibitem{CuiEtAl14}
+{\sc T.~Cui, J.~Martin, Y.~M. Marzouk, A.~Solonen, and A.~Spantini}, {\em
+  Likelihood-informed dimension reduction for nonlinear inverse problems},
+  Inverse Problems, 30 (2014), p.~114015.
+
+\bibitem{Delosreyes15}
+{\sc J.~C. De~los Reyes}, {\em Numerical PDE-constrained optimization},
+  Springer, 2015.
+
+\bibitem{DemanetEtAl12}
+{\sc L.~Demanet, P.-D. L{\'e}tourneau, N.~Boumal, H.~Calandra, J.~Chiu, and
+  S.~Snelson}, {\em Matrix probing: a randomized preconditioner for the
+  wave-equation {H}essian}, Applied and Computational Harmonic Analysis, 32
+  (2012), pp.~155--168.
+
+\bibitem{DenisEtAl11}
+{\sc L.~Denis, E.~Thi{\'e}baut, and F.~Soulez}, {\em Fast model of
+  space-variant blurring and its application to deconvolution in astronomy}, in
+  Image Processing (ICIP), 2011 18th IEEE International Conference on, IEEE,
+  2011, pp.~2817--2820.
+
+\bibitem{DenisEtAl15}
+{\sc L.~Denis, E.~Thi{\'e}baut, F.~Soulez, J.-M. Becker, and R.~Mourya}, {\em
+  Fast approximations of shift-variant blur}, International Journal of Computer
+  Vision, 115 (2015), pp.~253--278.
+
+\bibitem{EisenstatWalker96}
+{\sc S.~C. Eisenstat and H.~F. Walker}, {\em Choosing the forcing terms in an
+  inexact newton method}, SIAM Journal on Scientific Computing, 17 (1996),
+  pp.~16--32.
+
+\bibitem{EnglHankeNeubauer96}
+{\sc H.~W. Engl, M.~Hanke, and A.~Neubauer}, {\em Regularization of Inverse
+  Problems}, vol.~375 of Mathematics and Its Applications, Springer
+  Netherlands, 1996.
+
+\bibitem{Ericson04}
+{\sc C.~Ericson}, {\em Real-time collision detection}, Crc Press, 2004.
+
+\bibitem{EscandeWeiss15}
+{\sc P.~Escande and P.~Weiss}, {\em Sparse wavelet representations of spatially
+  varying blurring operators}, SIAM Journal on Imaging Sciences, 8 (2015),
+  pp.~2976--3014.
+
+\bibitem{EscandeWeiss17}
+{\sc P.~Escande and P.~Weiss}, {\em Approximation of integral operators using
+  product-convolution expansions}, Journal of Mathematical Imaging and Vision,
+  58 (2017), pp.~333--348.
+
+\bibitem{EscandeWeiss22}
+{\sc P.~Escande and P.~Weiss}, {\em Fast wavelet decomposition of linear
+  operators through product-convolution expansions}, IMA Journal of Numerical
+  Analysis, 42 (2022), pp.~569--596.
+
+\bibitem{EscandeWeiss12}
+{\sc P.~Escande, P.~Weiss, and F.~Malgouyres}, {\em Spatially varying blur
+  recovery. {D}iagonal approximations in the wavelet domain}, in Proceedings of
+  ICPRAM, 2013.
+
+\bibitem{FichtnerLeeuwen15}
+{\sc A.~Fichtner and T.~v. Leeuwen}, {\em Resolution analysis by random
+  probing}, Journal of Geophysical Research: Solid Earth, 120 (2015),
+  pp.~5549--5573.
+
+\bibitem{FishEtAl96}
+{\sc D.~Fish, J.~Grochmalicki, and E.~Pike}, {\em Scanning
+  singular-value-decomposition method for restoration of images with
+  space-variant blur}, JOSA A, 13 (1996), pp.~464--469.
+
+\bibitem{FlathEtAl11}
+{\sc H.~P. Flath, L.~C. Wilcox, V.~Ak{\c{c}}elik, J.~Hill, B.~van
+  Bloemen~Waanders, and O.~Ghattas}, {\em Fast algorithms for {B}ayesian
+  uncertainty quantification in large-scale linear inverse problems based on
+  low-rank partial {H}essian approximations}, SIAM Journal on Scientific
+  Computing, 33 (2011), pp.~407--432.
+
+\bibitem{Flath13}
+{\sc P.~H. Flath}, {\em Hessian-based response surface approximations for
+  uncertainty quantification in large-scale statistical inverse problems, with
+  applications to groundwater flow}, PhD thesis, The University of Texas at
+  Austin, 2013.
+
+\bibitem{GentileCourbinMeylan13}
+{\sc M.~Gentile, F.~Courbin, and G.~Meylan}, {\em Interpolating point spread
+  function anisotropy}, Astronomy \& Astrophysics, 549 (2013).
+
+\bibitem{GentonKeyesTurkiyyah18}
+{\sc M.~G. Genton, D.~E. Keyes, and G.~Turkiyyah}, {\em Hierarchical
+  decompositions for the computation of high-dimensional multivariate normal
+  probabilities}, Journal of Computational and Graphical Statistics, 27 (2018),
+  pp.~268--277.
+
+\bibitem{GeogaEtAl20}
+{\sc C.~J. Geoga, M.~Anitescu, and M.~L. Stein}, {\em Scalable {G}aussian
+  process computations using hierarchical matrices}, Journal of Computational
+  and Graphical Statistics, 29 (2020), pp.~227--237.
+
+\bibitem{GhattasWillcox21}
+{\sc O.~Ghattas and K.~Willcox}, {\em Learning physics-based models from data:
+  perspectives from inverse problems and model reduction}, Acta Numerica, 30
+  (2021), pp.~445--554.
+
+\bibitem{GilitschenskiHanebeck12}
+{\sc I.~Gilitschenski and U.~D. Hanebeck}, {\em A robust computational test for
+  overlap of two arbitrary-dimensional ellipsoids in fault-detection of
+  {K}alman filters}, in 2012 15th International Conference on Information
+  Fusion, IEEE, 2012, pp.~396--401.
+
+\bibitem{GrasedyckHackbusch03}
+{\sc L.~Grasedyck and W.~Hackbusch}, {\em Construction and arithmetics of
+  {H}-matrices}, Computing, 70 (2003), pp.~295--334.
+
+\bibitem{GrasedyckKriemannLeBorne08}
+{\sc L.~Grasedyck, R.~Kriemann, and S.~Le~Borne}, {\em Parallel black box
+  $\mathcal{H}$-{LU} preconditioning for elliptic boundary value problems},
+  Computing and visualization in science, 11 (2008), pp.~273--291.
+
+\bibitem{Hackbusch99}
+{\sc W.~Hackbusch}, {\em A sparse matrix arithmetic based on {H}-matrices.
+  {P}art {I}: Introduction to {H}-matrices}, Computing, 62 (1999), pp.~89--108.
+
+\bibitem{Hackbusch15}
+{\sc W.~Hackbusch}, {\em Hierarchical matrices: algorithms and analysis},
+  vol.~49, Springer, 2015.
+
+\bibitem{HalkoMartinssonTropp11}
+{\sc N.~Halko, P.-G. Martinsson, and J.~A. Tropp}, {\em Finding structure with
+  randomness: Probabilistic algorithms for constructing approximate matrix
+  decompositions}, SIAM review, 53 (2011), pp.~217--288.
+
+\bibitem{Hartland_2023}
+{\sc T.~Hartland, G.~Stadler, M.~Perego, K.~Liegeois, and N.~Petra}, {\em
+  Hierarchical off-diagonal low-rank approximation of hessians in inverse
+  problems, with application to ice sheet model initialization}, Inverse
+  Problems, 39 (2023), p.~085006.
+
+\bibitem{HerrmannMoghaddamStolk08}
+{\sc F.~J. Herrmann, P.~Moghaddam, and C.~C. Stolk}, {\em Sparsity-and
+  continuity-promoting seismic image recovery with curvelet frames}, Applied
+  and Computational Harmonic Analysis, 24 (2008), pp.~150--173.
+
+\bibitem{HinzePinnauUlbrichUlbrich08}
+{\sc M.~Hinze, R.~Pinnau, M.~Ulbrich, and S.~Ulbrich}, {\em Optimization with
+  PDE constraints}, vol.~23, Springer Science \& Business Media, 2008.
+
+\bibitem{IsaacEtAl15}
+{\sc T.~Isaac, N.~Petra, G.~Stadler, and O.~Ghattas}, {\em Scalable and
+  efficient algorithms for the propagation of uncertainty from data through
+  inference to prediction for large-scale problems, with application to flow of
+  the {A}ntarctic ice sheet}, Journal of Computational Physics, 296 (2015),
+  pp.~348--368.
+
+\bibitem{KaipioSomersalo05}
+{\sc J.~Kaipio and E.~Somersalo}, {\em Statistical and Computational Inverse
+  Problems}, vol.~160 of Applied Mathematical Sciences, Springer-Verlag New
+  York, 2005.
+
+\bibitem{KimEtAl23}
+{\sc K.-T. Kim, U.~Villa, M.~Parno, Y.~Marzouk, O.~Ghattas, and N.~Petra}, {\em
+  {hIPPYlib-MUQ}: A {B}ayesian inference software framework for integration of
+  data with complex predictive models under uncertainty}, ACM Transactions on
+  Mathematical Software,  (2023).
+
+\bibitem{Kriemann08}
+{\sc R.~Kriemann}, {\em {HLIB}pro user manual}, Max-Planck-Institute for
+  Mathematics in the Sciences, Leipzig, 48 (2008).
+
+\bibitem{Kriemann13}
+{\sc R.~Kriemann}, {\em {H}-{LU} factorization on many-core systems}, Computing
+  and Visualization in Science, 16 (2013), pp.~105--117.
+
+\bibitem{LehoucqEtAl98}
+{\sc R.~B. Lehoucq, D.~C. Sorensen, and C.~Yang}, {\em ARPACK users' guide:
+  solution of large-scale eigenvalue problems with implicitly restarted Arnoldi
+  methods}, vol.~6, SIAM, 1998.
+
+\bibitem{LevittMartinsson22}
+{\sc J.~Levitt and P.-G. Martinsson}, {\em Linear-complexity black-box
+  randomized compression of hierarchically block separable matrices}, arXiv
+  preprint arXiv:2205.02990,  (2022).
+
+\bibitem{LinYing11}
+{\sc L.~Lin, J.~Lu, and L.~Ying}, {\em Fast construction of hierarchical matrix
+  representation from matrix--vector multiplication}, Journal of Computational
+  Physics, 230 (2011), pp.~4071--4087.
+
+\bibitem{LindgrenRueLindstrom11}
+{\sc F.~Lindgren, H.~Rue, and J.~Lindstr{\"o}m}, {\em An explicit link between
+  {G}aussian fields and {G}aussian {M}arkov random fields: the stochastic
+  partial differential equation approach}, Journal of the Royal Statistical
+  Society: Series B (Statistical Methodology), 73 (2011), pp.~423--498.
+
+\bibitem{Martinsson11}
+{\sc P.-G. Martinsson}, {\em A fast randomized algorithm for computing a
+  hierarchically semiseparable representation of a matrix}, SIAM Journal on
+  Matrix Analysis and Applications, 32 (2011), pp.~1251--1274.
+
+\bibitem{Martinsson16}
+{\sc P.-G. Martinsson}, {\em Compressing rank-structured matrices via
+  randomized sampling}, SIAM Journal on Scientific Computing, 38 (2016),
+  pp.~A1959--A1986.
+
+\bibitem{MartinssonTropp20}
+{\sc P.-G. Martinsson and J.~A. Tropp}, {\em Randomized numerical linear
+  algebra: Foundations and algorithms}, Acta Numerica, 29 (2020), pp.~403--572.
+\newblock Section 20.
+
+\bibitem{NagyOleary98}
+{\sc J.~G. Nagy and D.~P. O'Leary}, {\em Restoring images degraded by spatially
+  variant blur}, SIAM Journal on Scientific Computing, 19 (1998),
+  pp.~1063--1082.
+
+\bibitem{NocedalWright99}
+{\sc J.~Nocedal and S.~J. Wright}, {\em Numerical Optimization}, Springer,
+  1999.
+
+\bibitem{PetraEtAl14}
+{\sc N.~Petra, J.~Martin, G.~Stadler, and O.~Ghattas}, {\em A computational
+  framework for infinite-dimensional {B}ayesian inverse problems, {P}art {II}:
+  {S}tochastic {N}ewton {MCMC} with application to ice sheet flow inverse
+  problems}, SIAM Journal on Scientific Computing, 36 (2014), pp.~A1525--A1555.
+
+\bibitem{PetraStadler11}
+{\sc N.~Petra and G.~Stadler}, {\em Model variational inverse problems governed
+  by partial differential equations}, Tech. Report 11-05, The Institute for
+  Computational Engineering and Sciences, The University of Texas at Austin,
+  2011.
+
+\bibitem{PetraEtAl12}
+{\sc N.~Petra, H.~Zhu, G.~Stadler, T.~Hughes, and O.~Ghattas}, {\em An inexact
+  {G}auss-{N}ewton method for inversion of basal sliding and rheology
+  parameters in a nonlinear {S}tokes ice sheet model}, Journal of Glaciology,
+  58 (2012), pp.~889--903,
+  \href{http://dx.doi.org/10.3189/2012JoG11J182}{doi:\nolinkurl{10.3189/2012JoG11J182}}.
+
+\bibitem{Roininen14}
+{\sc L.~Roininen, J.~M. Huttunen, and S.~Lasanen}, {\em Whittle-{M}at{\'e}rn
+  priors for {B}ayesian statistical inversion with applications in electrical
+  impedance tomography}, Inverse Problems \& Imaging, 8 (2014), p.~561.
+
+\bibitem{Saad03}
+{\sc Y.~Saad}, {\em Iterative methods for sparse linear systems}, Society for
+  Industrial and Applied Mathematics, Philadelphia, PA, second~ed., 2003.
+
+\bibitem{SmithBjorstadGropp96}
+{\sc B.~Smith, P.~Bjorstad, and W.~Gropp}, {\em Domain Decomposition Parallel
+  Multilevel Methods for Elliptic Partial Differential Equations}, Cambridge
+  University Press, 1996.
+
+\bibitem{SpantiniEtAl15}
+{\sc A.~Spantini, A.~Solonen, T.~Cui, J.~Martin, L.~Tenorio, and Y.~Marzouk},
+  {\em Optimal low-rank approximations of {B}ayesian linear inverse problems},
+  SIAM Journal on Scientific Computing, 37 (2015), pp.~A2451--A2487.
+
+\bibitem{Steihaug83}
+{\sc T.~Steihaug}, {\em Local and superlinear convergence for truncated
+  iterated projections methods}, Mathematical Programming, 27 (1983),
+  pp.~176--190.
+
+\bibitem{Stuart10a}
+{\sc A.~Stuart}, {\em Inverse problems: a {B}ayesian perspective}, Acta
+  Numerica, 19 (2010), pp.~451--559.
+
+\bibitem{Symes08}
+{\sc W.~W. Symes}, {\em Approximate linearized inversion by optimal scaling of
+  prestack depth migration}, Geophysics, 73 (2008), pp.~R23--R35.
+
+\bibitem{Tarantola05}
+{\sc A.~Tarantola}, {\em Inverse Problem Theory and Methods for Model Parameter
+  Estimation}, SIAM, Philadelphia, PA, 2005.
+
+\bibitem{ToselliWidlund04}
+{\sc A.~Toselli and O.~Widlund}, {\em Domain decomposition methods-algorithms
+  and theory}, vol.~34, Springer Science \& Business Media, 2004.
+
+\bibitem{TrampertFichtnerRitsema13}
+{\sc J.~Trampert, A.~Fichtner, and J.~Ritsema}, {\em Resolution tests
+  revisited: the power of random numbers}, Geophysical Journal International,
+  192 (2013), pp.~676--680.
+
+\bibitem{VillaPetraGhattas21}
+{\sc U.~Villa, N.~Petra, and O.~Ghattas}, {\em {hIPPY}lib: an extensible
+  software framework for large-scale inverse problems governed by {PDE}s:
+  {P}art {I}: deterministic inversion and linearized {B}ayesian inference}, ACM
+  Transactions on Mathematical Software, 47 (2021), pp.~1--34.
+
+\bibitem{Vogel02}
+{\sc C.~R. Vogel}, {\em {C}omputational {M}ethods for {I}nverse {P}roblems},
+  Frontiers in Applied Mathematics, Society for Industrial and Applied
+  Mathematics (SIAM), Philadelphia, PA, 2002.
+
+\bibitem{Wendland04}
+{\sc H.~Wendland}, {\em Scattered data approximation}, vol.~17, Cambridge
+  University Press, 2004.
+
+\bibitem{ZhuLiFomelEtAl16}
+{\sc H.~Zhu, S.~Li, S.~Fomel, G.~Stadler, and O.~Ghattas}, {\em A {B}ayesian
+  approach to estimate uncertainty for full waveform inversion with a priori
+  information from depth migration}, Geophysics, 81 (2016), pp.~R307--R323.
+
+\end{thebibliography}

@@ -1,0 +1,199 @@
+% SIAM Shared Information Template
+% This is information that is shared between the main document and any
+% supplement. If no supplement is required, then this information can
+% be included directly in the main document.
+
+
+% Packages and macros go here
+\usepackage{lipsum}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{amsmath}
+\usepackage{subcaption}
+\usepackage{pgfplots}
+
+
+%\usepackage{amsmath,amsthm}
+%\usepackage[noend]{algorithmic}
+%\usepackage{algorithmic}
+\usepackage[algo2e, ruled, noend, linesnumbered]{algorithm2e}
+%\usepackage[algo2e, ruled, vlined]{algorithm2e}
+\usepackage{bm}
+\ifpdf
+  \DeclareGraphicsExtensions{.eps,.pdf,.png,.jpg}
+\else
+  \DeclareGraphicsExtensions{.eps}
+\fi
+
+\usepackage{placeins}
+\usepackage{multirow}
+
+\usepackage{booktabs}
+\usepackage{tikz}
+%\usepackage{tabularray}
+\usepackage[export]{adjustbox}
+
+% Add a serial/Oxford comma by default.
+\newcommand{\creflastconjunction}{, and~}
+\newcommand{\nor}[1]{\left\|#1\right\|}
+
+%\newcommand{\vertcentered}[1]{\begin{tabular}{l} #1 \end{tabular}}
+
+% Used for creating new theorem and remark environments
+\newsiamremark{remark}{Remark}
+\newsiamremark{hypothesis}{Hypothesis}
+\crefname{hypothesis}{Hypothesis}{Hypotheses}
+\newsiamthm{claim}{Claim}
+\newsiamthm{prop}{Proposition}
+\newsiamthm{defn}{Definition}
+\newsiamthm{thm}{Theorem}
+\newsiamthm{cor}{Corollary}
+\newsiamthm{lem}{Lemma}
+
+
+\newcommand{\norm}[1]{\|#1\|}
+
+
+% Sets running headers as well as PDF title and authors
+\headers{High-rank PSF Hessian approximation}{N. Alger, T. Hartland, N. Petra, and O. Ghattas}
+
+% Title. If the supplement option is on, then "Supplementary Material"
+% is automatically inserted before the title.
+%\title{Matrix-free point spread function approximation of operators with locally supported non-negative integral kernels, with application to Hessians in PDE constrained inverse problems\thanks{Submitted to the editors DATE.
+%\funding{This research was supported by the National Science Foundation under Grant No. DMS-1840265 and CAREER-1654311, DOD grant FA9550-21-1-0084, and DOE grants DE-SC0021239 and DE-SC0019303.}}}
+\title{Point spread function approximation of high rank Hessians with locally supported non-negative integral kernels\thanks{To appear in SIAM Journal on Scientific Computing (SISC).\funding{This research was supported by the National Science Foundation under Grant No. DMS-1840265 and CAREER-1654311, DOD grant FA9550-21-1-0084, and DOE grants DE-SC0021239 and DE-SC0019303.}}}
+
+
+% Authors: full names plus addresses.
+\author{Nick Alger\thanks{Oden Institute for Computational Engineering and Sciences, The University of Texas at Austin, Austin, TX 
+  (\email{nalger@oden.utexas.edu}).}
+\and Tucker Hartland\thanks{Department of Applied Mathematics, University of California, Merced, Merced, CA. 
+	(\email{thartland@ucmerced.edu}, \email{npetra@ucmerced.edu}).}
+\and Noemi Petra\footnotemark[3]
+%\footnotemark[1].}
+%\thanks{Department of Applied Mathematics, University of California, Merced, Merced, CA. (\email{npetra@ucmerced.edu}).}
+\and Omar Ghattas\thanks{Oden Institute for Computational Engineering and Sciences and Walker Department of Mechanical Engineering, The University of Texas at Austin, Austin, TX 
+	(\email{omar@oden.utexas.edu}).}}
+
+\newcommand{\Aop}{\mathcal{A}}
+\newcommand{\AopPc}{\mathcal{A}_\text{pc}}
+\newcommand{\AopPcMesh}{\mathcal{A}_\text{pc}^h}
+
+\newcommand{\Aker}{\Phi}
+\newcommand{\AkerPc}{\Phi_\text{pc}}
+\newcommand{\AkerPcMesh}{\Phi_\text{pc}^h}
+
+\newcommand{\AkerPcMat}{\mathbf{\Phi}_\text{pc}}
+
+\newcommand{\Amat}{\mathbf{A}}
+\newcommand{\AmatPc}{\mathbf{A}_\text{pc}}
+\newcommand{\AmatPcSym}{\mathbf{A}_\text{pc}^\text{sym}}
+\newcommand{\AmatPcSymPlus}{\mathbf{A}_\text{pc}^{\text{sym}+}}
+
+\newcommand{\diraccomb}{\xi}
+\newcommand{\combresponse}{\eta}
+\newcommand{\weakadmconst}{C}
+\newcommand{\horizinterpolant}{\theta}
+\newcommand{\interpolatedvalues}{b}
+\newcommand{\firstgreens}{G}
+\newcommand{\secondgreens}{F}
+\newcommand{\impulseresponse}{\phi}
+\newcommand{\convkernel}{\varphi}
+\newcommand{\febasis}{\psi}
+\newcommand{\ratfct}{R}
+\newcommand{\ratpole}{\omega}
+\newcommand{\ratcoeff}{c}
+\newcommand{\massmatrix}{\mathbf{M}}
+\newcommand{\spatialvol}{V}
+\newcommand{\spatialmean}{\mu}
+\newcommand{\spatialcov}{\Sigma}
+\newcommand{\genericdistribution}{\rho}
+\newcommand{\pointbatch}{S}
+\newcommand{\pointinteractionmatrix}{S}
+\newcommand{\gdim}{d}
+\newcommand{\fedim}{N}
+\newcommand{\convrank}{r}
+\newcommand{\hrank}{k_h}
+\newcommand{\nbatch}{n_b}
+\newcommand{\numnbr}{k_{n}}
+\newcommand{\ratord}{l}
+\newcommand{\nsamplepts}{m}
+\newcommand{\ptsonebatch}{s}
+\newcommand{\classicalrank}{r}
+\newcommand{\secondgreenscoeff}{\beta}
+\newcommand{\constcoeff}{\alpha}
+\newcommand{\colcluster}{\mathtt{c}}
+\newcommand{\rowcluster}{\mathtt{r}}
+\newcommand{\icedomain}{\mathcal{D}}
+\newcommand{\basalfriction}{{q}}
+\newcommand{\normalvec}{\nu}
+\newcommand{\searchdir}{{\widehat{\basalfriction}}}
+\newcommand{\preconditioner}{\widetilde{H}}
+\newcommand{\candidatepts}{X}
+\newcommand{\eigenvectormatrix}{P}
+\newcommand{\candidatepoint}{x}
+\newcommand{\velocity}{v}
+\newcommand{\pressure}{p}
+\newcommand{\rbfweight}{c}
+\newcommand{\stress}{\sigma}
+\newcommand{\tangentop}{T}
+\newcommand{\strain}{\varepsilon}
+\newcommand{\bodyforce}{f}
+\newcommand{\observations}{y}
+\newcommand{\rbf}{\varphi}
+\newcommand{\fepoint}{p}
+\newcommand{\stokesrobincoeff}{{s}}
+\newcommand{\regrobincoeff}{{s}}
+\newcommand{\regrhs}{{f}}
+
+\newcommand*{\vertbar}{\rule[-1ex]{0.5pt}{2.5ex}}
+\newcommand*{\horzbar}{\rule[.5ex]{2.5ex}{0.5pt}}
+
+\newcommand{\genericvec}{\bm{x}}
+\newcommand{\concentration}{c} % NOTE: CHECK for collisions!!!
+\newcommand{\advdomain}{\Omega}
+
+\usepackage{amsopn}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\interpolate}{Interpolate}
+\DeclareMathOperator{\Span}{span}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\vol}{vol}
+\DeclareMathOperator{\avg}{avg}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\dist}{dist}
+\DeclareMathOperator{\diam}{diam}
+\DeclareMathOperator{\nbrs}{nbrs}
+
+\newcommand{\computediracresponse}[1]{\text{compute\_dirac\_comb\_response}\left( #1 \right)}
+\newcommand{\ellipsoidsintersect}[2]{\text{ellipsoids\_intersect}\left( #1, #2 \right)}
+\newcommand{\choosebatch}[1]{\text{choose\_sample\_point\_batch}\left( #1 \right)}
+\newcommand{\computekernelentries}[2]{\text{compute\_approximate\_kernel\_entries}\left( #1 , #2 \right)}
+\newcommand{\computeweightingentries}[1]{\text{compute\_weighting\_function\_entries}\left( #1 \right)}
+
+\DeclareFontFamily{U}{wncy}{}
+\DeclareFontShape{U}{wncy}{m}{n}{<->wncyr10}{}
+\DeclareSymbolFont{mcy}{U}{wncy}{m}{n}
+\DeclareMathSymbol{\Sh}{\mathord}{mcy}{"58} 
+
+\SetEndCharOfAlgoLine{}
+%\SetKwIF{If}{ElseIf}{Else}{if}{}{else if}{else}{end if}
+
+%\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+%\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+\newcommand{\iFF}{\mathcal{F}}
+\newcommand{\D}{\mathcal{D}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\ipar}{\basalfriction} % make parameters consistent across problems
+
+\makeatletter
+\let\ftype@table\ftype@figure
+\makeatother
+
+%%% Local Variables: 
+%%% mode:latex
+%%% TeX-master: "ex_article"
+%%% End: 
