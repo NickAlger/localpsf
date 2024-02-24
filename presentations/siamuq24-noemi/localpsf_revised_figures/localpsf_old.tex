@@ -1,0 +1,1944 @@
+% SIAM Article Template
+\documentclass[review,onefignum,onetabnum]{siamart190516}
+
+% Information that is shared between the article and the supplement
+% (title and author information, macros, packages, etc.) goes into
+% ex_shared.tex. If there is no supplement, this file can be included
+% directly.
+
+\input{localpsf_shared}
+
+% Optional PDF information
+\ifpdf
+\hypersetup{
+  pdftitle={Fast matrix-free approximation of smoothly varying blur operators, with application to Hessians in PDE-constrained inverse problems with highly informative data},
+  pdfauthor={N. Alger, N. Petra, and O. Ghattas}
+}
+\fi
+
+% The next statement enables references to information in the
+% supplement. See the xr-hyperref package for details.
+
+\externaldocument{localpsf_supplement}
+
+% FundRef data to be entered by SIAM
+%<funding-group specific-use="FundRef">
+%<award-group>
+%<funding-source>
+%<named-content content-type="funder-name"> 
+%</named-content> 
+%<named-content content-type="funder-identifier"> 
+%</named-content>
+%</funding-source>
+%<award-id> </award-id>
+%</award-group>
+%</funding-group>
+
+\begin{document}
+
+\maketitle
+
+% REQUIRED
+\begin{abstract}
+  We present an efficient matrix-free method for approximating locally translation invariant operators that have locally supported non-negative integral kernels. The idea of the method is to compute impulse responses of the operator at a collection of scattered points, then interpolate these computed impulse responses to approximate impulse responses at other arbitrary points. This results in a product-convolution approximation, which we convert to hierarchical matrix format. Once the approximation is represented in hierarchical matrix format, we perform matrix inversion and other matrix operations using fast hierarchical matrix arithmetic. Impulse responses are computed by applying the operator to a small number of Dirac comb ``batches'' of point sources. A key innovation of our method is a matrix-free procedure for choosing as many points as possible per batch, while ensuring that the supports of the impulse responses within each batch do not overlap. We apply the method to approximate Hessians in large-scale PDE-constrained inverse problem with highly informative data. Numerical results demonstrate that our method substantially outperforms existing state-of-the-art Hessian approximation methods which are based on low-rank approximation. Our method is able to form high quality approximations of high rank Hessians using only a small number of Hessian matrix-vector products.
+%  Within each Dirac comb, the point sources must be spaced sufficiently far apart so that the impulse responses to those point sources do not overlap. We estimate the required spacing of point sources by applying the operator to a small number of constant, linear, and quadratic functions, then postprocessing the results.
+\end{abstract}
+
+% REQUIRED
+\begin{keywords}
+  example, \LaTeX
+\end{keywords}
+
+% REQUIRED
+\begin{AMS}
+  68Q25, 68R10, 68U05
+\end{AMS}
+
+\section{Introduction}
+
+We present a fast matrix free method for approximating locally translation-invariant operators, $\mathcal{A}$, that have locally supported non-negative integral kernels. Such operators arise, for example, as Schur complements in reduced space methods for solving partial differential equations (PDEs), and as Hessians in distributed parameter PDE-constrained inverse problems.
+
+Let $\Omega \subset \mathbb{R}^d$ be a bounded domain in dimension $d=1$, $2$, or $3$, and let $\mathcal{A}:L^2(\Omega)\rightarrow L^2(\Omega)'$ be an integral operator of the form
+\begin{equation}
+\label{eq:kernel_representation}
+(\mathcal{A}u)(v) := \int_\Omega \int_\Omega v(y) A(y,x) u(x) dx dy,
+\end{equation}
+with integral kernel $A:\Omega \times \Omega \rightarrow \mathbb{R}$. We focus on operators of this form which have the following properties:
+\begin{description}
+\item[Matrix-free:] One cannot easily access kernel entries $A(y,x)$. Access to $\mathcal{A}$ is available only through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors. That is, evaluation of the functions
+\begin{equation*}
+	u \mapsto\mathcal{A}u \quad \text{and} \quad v \mapsto\mathcal{A}^Tv.
+\end{equation*} 
+\item[Non-negative kernel:] For all $(y,x) \in \Omega \times \Omega$, we have
+\begin{equation*}
+	A(y,x) \ge 0.
+\end{equation*}
+\item[Local support:] $A(y, x)$ is supported near $y=x$.
+\item[Local translation invariance:] If $h$ is not too large, then
+\begin{equation}
+	\label{eq:local_translation_invariance}
+	A(y+h, x+h) \approx A(y,x).
+\end{equation}
+\end{description}
+Local translation invariance is illustrated in Figure FIG. 
+%We qualify the degree of local translation invariance with the words ``perfectly'', ``highly'', and ``poorly''.
+%\begin{itemize}
+%\item If equality holds in \eqref{eq:local_translation_invariance} for all $x$, $y$, and $h$, then we say $\mathcal{A}$ is \emph{perfectly translation invariant}. 
+%\item If the discrepancy between left hand side and right hand side of \eqref{eq:local_translation_invariance} is small for a large set of points $x$, $y$, and $h$, then we say that $\mathcal{A}$ is \emph{highly locally translation invariant}. 
+%\item If the discrepancy between left hand side and right hand side of \eqref{eq:local_translation_invariance} is large, or if the discrepancy is only small for a small set of $x$, $y$, and $h$, then we say that $\mathcal{A}$ is \emph{poorly locally translation invariant}.
+%\end{itemize} 
+If $\mathcal{A}$ were perfectly translation invariant (i.e., if equality held in \eqref{eq:local_translation_invariance} for all $x$, $y$, $h$) then it is straightforward to show that $\mathcal{A}$ would be a convolution operator, and the convolution kernel, $\varphi_x$, would be given by
+\begin{equation}
+\label{eq:convolution_kernel}
+	\varphi_x(y) := A(y+x,x).
+\end{equation}
+The function $\varphi_x$ is the result of applying $\mathcal{A}$ to a point source, $\delta_x$, at some fixed point $x \in \Omega$, then translating the resulting impulse response function to re-center it at zero instead of $x$. Locally translation invariant operators act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies as $x$ changes. We therefore approximate $\mathcal{A}$ by a spatially varying weighted sum of convolution operators of the form
+\begin{equation}
+\label{eq:product_convolution}
+	\left(\mathcal{A}u\right)(v) \approx \left(\widetilde{\mathcal{A}}u\right)(v) := \left( v,~ \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right) \right)_{L^2(\Omega)},
+\end{equation}
+where $f \cdot g$ denotes pointwise multiplication, $f \ast g$ denotes convolution, and $\left(f, g\right)_{L^2(\Omega)}$ denotes the $L^2$ inner product on $\Omega$, for functions $f,g \in L^2(\Omega)$. Here
+\begin{itemize}
+	\item The local convolution kernels, $\varphi_i := \varphi_{x_i}$, are given by formula \eqref{eq:convolution_kernel}, but with $x$ replaced by $x_i$.
+	\item $\{x_i\}_{i=1}^r \subset \Omega$ is a collection of points scattered throughout the domain.
+	\item The functions $w_i$ are spatially varying weighting functions that are used to interpolate the convolution kernels $\varphi_i$.
+\end{itemize}
+Approximations of the form \eqref{eq:product_convolution} are known as \emph{product-convolution} approximations, because the action of each term in the sum consists of a pointwise product, followed by a convolution. The more locally translation invariant an operator is (i.e., the smaller the discrepancy between the left hand side and right hand side in \eqref{eq:local_translation_invariance}), the smaller the number of terms that are required in \eqref{eq:product_convolution} to achieve an accurate product-convolution approximation. 
+
+\subsection{Overview of the method}
+
+Our operator approximation method is defined by how we compute the convolution kernels, $\varphi_i$, how we choose the points, $x_i$, what weighting functions, $w_i$, that we use, and how we use the resulting product-convolution approximation to perform linear algebra operations such as solving linear systems. In this section we summarize the answers to these questions; we will provide detailed answers to these questions in Section \ref{sec:method} and Section \ref{sec:using_approximation}.
+
+We compute one ``batch'' of $\varphi_i$'s by applying $\mathcal{A}$ to a sum of point sources, $\delta_{x_i},$ at many points $x_i$ (a ``Dirac comb''). That is, we compute
+\begin{equation*}
+	\eta := \sum_{i=1}^m A(~\cdot~, x_i) = \left\langle \mathcal{A}, \sum_{i=1}^m \delta_{x_i} \right\rangle^*.
+\end{equation*}
+Here $\sum_{i=1}^m \delta_{x_i}$ is the Dirac comb distribution, and $\left\langle \mathcal{A}, \sum_{i=1}^m \delta_{x_i} \right\rangle^*$ denotes the Riesz representation of the application of $\mathcal{A}$ to the Dirac comb. In computations, this amounts to computing $\boldsymbol{\eta} = \mathbf{M}^{-1}\mathbf{A} \mathbf{M}^{-1} \left(\sum_{i=1}^m \boldsymbol{\delta}_{x_i}\right)$, where $\boldsymbol{\eta}$, $\mathbf{A}$, and $\boldsymbol{\delta}_{x_i}$ are discretized versions of $\eta$, $A$, and $\delta_{x_i}$, respectively, and $\mathbf{M}$ is a mass matrix. The batch of points $x_i$ are chosen so that the support of $\left\langle \mathcal{A}, \delta_{x_i}\right\rangle^*$ and the support of $\left\langle \mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap (or do not overlap much) if $i \neq j$. Since the impulse responses do not overlap, we may post-process $\eta$ to recover $\varphi_i$ for all of the points $x_i$ in the batch---by applying $\mathcal{A}$ to one distribution, we recover many $\varphi_i$. This is illustrated in Figure FIG. The process is repeated to get more batches of $\varphi_i$'s, until the approximation is sufficiently accurate or a maximum number of sample points is reached. 
+
+In order to choose the points $x_i$, we need to estimate the support of $\left\langle \mathcal{A}, \delta_{x_i}\right\rangle^*$ \emph{before} we compute it. The supports of the functions $\left\langle \mathcal{A}, \delta_{x}\right\rangle^*$ are estimated a-priori, for all $x \in \Omega$ simultaneously, via a procedure that involves applying $\mathcal{A}^T$ to a small number of specially chosen functions (three functions if $d=1$, six if $d=2$, ten if $d=3$), then post processing the results (Section \ref{eq:mean_and_covariance_estimation}). This procedure is the only part of the paper that requires non-negativity of the integral kernel. 
+
+We choose the weighting functions, $w_i$, to be the solutions to the following optimization problems:
+\begin{equation}
+\label{eq:wi_optimization_problem_intro}
+\begin{aligned}
+\min_{w_i \in H^2(\Omega)} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
+\text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
+\end{aligned}
+\end{equation}
+Here $\Delta$ is the Laplacian on $\Omega$ with pure Neumann boundary conditions, and the right hand side of the constraint, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$. Since the Laplacian measures local deviation from flatness [CITE JACOBSEN], the function $w_i$ is the flattest function, in a least-squares sense, that takes the value one at the sample point $x_i$, and the value zero at the other sample points $x_j$, $i \neq j$. Computing the weighting functions $w_i$ requires solving two Poisson PDEs per weighting function, and these PDEs are solved cheaply using multigrid. We call this interpolation scheme \emph{Poisson interpolation}. The advantage of Poisson interpolation over other interpolation methods, most notably radial basis function interpolation [cite Escande etc], is that Poisson interpolation incorporates information about the domain geometry when constructing the weighting functions. This is illustrated in Figure FIG. 
+
+%A small number of terms in \eqref{eq:product_convolution} are required to accurately approximate a highly locally translation invariant operator, while a large number of terms are required to accurately approximate a poorly locally translation invariant operator.
+
+Once the $\varphi_i$ and $w_i$ are computed, we convert $\widetilde{\mathcal{A}}$ to hierarchical matrix (H-matrix) format. Let $\widetilde{A}$ denote the integral kernel associated with $\widetilde{\mathcal{A}}$. While $A(y,x)$ is not easily computable, $\widetilde{A}(y,x)$ is given by the formula
+\begin{equation}
+\label{eq:kernel_entries}
+	\widetilde{A}(y,x) = \sum_{i=1}^r \varphi_i(y-x) w_i(x).
+\end{equation}
+Formula \eqref{eq:kernel_entries} allows us to construct a H-matrix representation of $\widetilde{\mathcal{A}}$ using the conventional adaptive cross H-matrix construction method, in which one forms low-rank approximations of blocks of the matrix by sampling rows and columns of those blocks [CITE]. Once in H-matrix format, fast H-matrix arithmetic is used to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations.
+
+\subsection{Motivation: PDE constrained inverse problems with highly informative data}
+\label{sec:PDE_hessian_motivation}
+
+Our motivation for this work is approximation of Hessians in distributed parameter inverse problems governed by partial differential equations (PDEs). That is, inverse problems in which one seeks to reconstruct an unknown parameter field, $m$, from noisy observations, 
+\begin{equation*}
+y=f(m,u(m)) + \text{noise},
+\end{equation*}
+which depend on  a state variable $u$. In turn, $u$ depends on $m$ implicitly through the solution of a PDE, 
+\begin{equation}
+\label{eq:state_pde}
+0=g(m,u).
+\end{equation}
+Here $u(m)$ denotes the solution of the PDE \eqref{eq:state_pde} as a function of $m$.
+%
+%That is, inverse problems in which one seeks to reconstruct an unknown parameter field, $m$, from noisy measurements,
+%\begin{equation*}
+%	y = B(m,u) + \xi,
+%\end{equation*}
+%of a state variable, $u$, which depends on $m$ indirectly through the solution of a PDE,
+%\begin{equation}
+%\label{eq:state_equation}
+%	0=F(m,u).	
+%\end{equation}
+%Here $\xi$ is the noise. The observations $y$ are known, while $m$, $u$, and $\xi$ are unknown. In the deterministic setting, the inverse problem of finding $m$ is commonly framed as a least squares minimization problem
+%\begin{equation}
+%\label{eq:minimization_problem}
+%	\min_m \quad J_d(m) + R(m),
+%\end{equation}
+%where
+%\begin{equation*}
+%	J_d(m) := \frac{1}{2}\|y - B(m,u(m))\|_{\Gamma}^2
+%\end{equation*}
+%is a data misfit term, $\Gamma$ is the noise covariance, $R(m)$ is a regularization term, and $u(m)$ denotes the solution $u$ of the PDE \eqref{eq:state_equation} as a function of $m$, . 
+%
+%Approximation of the Hessian,
+%\begin{equation*}
+%	\mathcal{H} = \mathcal{H}_d + \mathcal{H}_R := \frac{d^2 J_d}{dm^2} + \frac{d^2 R}{dm^2},
+%\end{equation*}
+In the deterministic approach to inverse problems, one typically finds $m$ as the solution to the minimization problem 
+\begin{equation}
+\label{eq:minimization_problem}
+\min_m \quad \frac{1}{2}\|y - f(m,u(m))\|_W^2 + R(m),
+\end{equation}
+where $\|\cdot\|_W$ is weighted norm which depends on the noise covariance, and $R(m)$ is a regularization term. Approximation of the Hessian of the objective function, $\mathcal{H}$, allows for fast solution of \eqref{eq:minimization_problem} via Newton-type methods. Hessian approximations are also central to many methods for uncertainty quantification in Bayesian statistical approaches to the inverse problem, because $\mathcal{H}^{-1}$ locally approximates the Bayesian posterior covariance for $m$. 
+We only have access to $\mathcal{H}$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary linear PDEs.
+
+%The regularization term in the Hessian, $\mathcal{H}_R := \frac{d^2 R}{dm^2}$, is typically an elliptic differential operator, and is therefore easy to work with. The data misfit term, $\mathcal{H}_d = \frac{d^2 J}{dm^2}$, is difficult to work with. The data misfit term $\mathcal{H}_d$ is not directly accessible because it depends on $u$, which depends on $m$ implicitly through the solution of the PDE \eqref{eq:state_equation}. 
+%
+%We only have access to $\mathcal{H}_d$ via its action on an arbitrary vectors $v$, i.e., evaluation of the map $v \mapsto \mathcal{H} v$. Evaluating $v \mapsto \mathcal{H} v$ is an expensive process that involves solving two auxiliary PDEs. We show how to evaluate $v \mapsto \mathcal{H} v$ in Appendix ADSF.
+
+The most popular existing Hessian approximation methods are based on forming a low rank approximation of the data misfit term in the Hessian, or the data misfit term preconditioned by the prior term [CITE LOTS OF STUFF]. Either the Lanczos method or the randomized singular value decomposition [CITE RSVD] are used to perform the low rank approximation using only matrix-vector products. These methods suffer from a ``data predicament''---as more informative data is used in the inversion, the numerical rank of the data misfit term in the Hessian grows, so more matrix-vector products are required to form the aforementioned low rank approximation. The ideal scenario from a scientific perspective (highly informative data) is the worst case scenario from a computational perspective (large computational cost) [CITE MY DISSERTATION]. 
+%In our numerical results, we show that our operator approximation method can efficiently approximate the data misfit term in the Hessian in certain PDE constrained inverse problems. 
+The method in this paper offers a \emph{data-scalable} alternative to conventional low-rank Hessian approximation methods, because high-rank approximations of an operator can be formed using a small number of matrix-vector products.
+
+\subsection{Existing work}
+
+In general, product-convolution approximations take the form shown in \eqref{eq:product_convolution}, but $\varphi_i$ and $w_i$ may be arbitrary functions. Product-convolution approximations have been used in a wide variety of fields going back several decades [CITE BIG LIST].
+For background on product-convolution approximations, we recommend reading the following papers: [CITES, INCLUDE ESCANDE SCATTERED]. 
+
+We build upon the class of product convolution approximations in which the functions, $\varphi_i$, are impulse responses of $\mathcal{A}$ to point sources at a collection of points $x_i$ [CITE BIG LIST]. 
+%The primary question in methods of this type are how to choose the points $x_i$, and how to choose the weighting functions $w_i$.
+A popular choice for methods in this class is to choose the points $x_i$ to be nodes in a regular grid, and interpolate the functions $\varphi_i$ with piecewise linear interpolation [CITE NAGY], or splines [CITE SPLINES]. With a regular grid, a large number of points $x_i$ is typically required to achieve an accurate product-convolution approximation. This is computationally prohibitive in our applications, because computing the functions $\varphi_i$ requires one matrix vector product with $\mathcal{A}$ for each point $x_i$, and these matrix vector products are computationally costly. In our previous work, we reduced the computational cost by starting with a coarse grid of points $x_i$, then adaptively refining the grid in the regions where the error in the approximation is large [CITE, CITE MY PAPER]. But even with adaptive refinement, many matrix vector products with $\mathcal{A}$ may be required. In this paper, rather than using adaptive refinement, we instead reduce the computational cost by picking points $x_i$ such that many $\varphi_i$ are computed with each matrix vector product. We do this by taking advantage of the fact that the functions $\varphi_i$ are locally supported; existing methods typically do not require this local support property.
+
+Our method of estimating the support of the functions $\varphi_i$ was inspired by resolution analysis in seismic imaging [CITE]. In resolution analysis, $\mathcal{A}$ is the Hessian for a seismic inverse problem, and the width of $\varphi_p$ is used to estimate of the minimum length scale on which features of the parameter can be inferred near the point $p$. If the width of $\varphi_p$ is ten meters, then features of the parameter near $p$ can be accurately inferred from data if those features are larger than roughly ten meters in size. In [CITE], the width of $\varphi_p$ is estimated to be the local autocorrelation length of the function $\mathcal{A}^T \zeta$ near $p$, where $\zeta$ is a random noise funtion. In this paper, rather than probing $\mathcal{A}^T$ with random noise functions, we use specific constant, linear, and quadratic functions. Our method estimates the support of $\varphi_p$ more accurately than resolution analysis, but our method requires that $\mathcal{A}$ has a positive integral kernel, while the resolution analysis method does not have this requirement.
+
+%The goal of these existing papers is to pick points $x_i$ so that the required the number of $\varphi_i$ is minimized. Our goal here is to minimize the required number of matrix vector products with $\mathcal{H}$.
+
+%We do this by taking advantage of the local support property of $\mathcal{A}$.
+
+%SVIR low rank: sample columns of matrix
+
+%Pros and cons of different point picking strategies depend on the application of interest.
+
+%In astronomy image deblurring applications, the point source positions typically correspond to locations of stars in an image, which are fixed. 
+
+%In [CITE], Escande and Weiss explored the idea of approximating linear operators from scattered impulse responses using a product-convolution scheme of the same form as \eqref{eq:product_convolution}. 
+
+
+
+
+
+%In our previous work [CITE MY PAPER], we choose the point locations with an adaptive grid. However,  
+
+%Nagy's paper: breaking domain into regular grid, using piecewise linear interpolation.
+
+
+Matrix-vector products with product-convolution approximations can be performed using the fast Fourier transform if the problem is discretized on a regular grid [CITE]. The product-convolution approximation can then replace the original operator when using Krylov methods to solve linear systems with the original operator as the coefficient operator [CITE]. However, for complex geometries, problems are rarely discretized using regular grids, so we cannot easily use the fast Fourier transform. Furthermore, in big-data inverse problems the Hessian is typically ill-conditioned, so the required number of Krylov iterations is large. Thus, after constructing the product-convolution approximation, it is desirable to convert the product-convolution approximation to other matrix formats that are amenable to fast linear algebra operations. Wavelet compression methods have been used for this purpose [CITE WAVELETS]. Here we follow our previous work [CITE MY PAPER], in which we convert the product-convolution approximation to H-matrix format. 
+
+Conventional H-matrix construction methods require access to matrix entries of the matrix being approximated, and therefore cannot be used to efficiently form H-matrix approximations of operators that are only available through matrix-vector products. There are matrix-free methods for H-matrix approximation [CITE LEXING PAPER, CITE MARTINSSON, CITE OTHERS], and these methods have been used to form H-matrix compressions of Hessians in PDE constrained inverse problems [CITE ILONA, CITE NOEMI/TUCKER HODLR]. While these matrix-free H-matrix construction methods are asymptotically scalable in theory, the required number of matrix vector products can be large in practice. 
+
+
+Product-convolution type approximations of Hessians have been used in a seismic inverse problem in [CITE GEORG], and in an advection-diffusion inverse problem in [CITE MY PAPER]. In [DEMANET SEISMIC], matrix probing [DEMANET MATRIX] is used to approximate the Hessian in a seismic inverse problem as the sum of simple pseudodifferential operators. Although it is not explicitly mentioned, the approximation in [DEMANET SEISMIC] could be interpreted as a convolution-product interpolation, which is like a product-convolution approximation, except the order of pointwise multiplications and convolutions is reversed in \eqref{eq:product_convolution}.
+
+%H-matrices for Hessians: Ilonas paper with KAUST people
+
+%Demanet matrix probing can be interpreted as convolution-product.
+
+%Resolution analysis: uses matvecs with random functions to estimate spatial covariance. Was inspiration for us.
+
+%Getting many impulse responses at once (batching). 
+
+%Geometry-aware weighting functions vs radial basis functions. Kriging.
+
+
+
+
+
+
+%\subsection{Operator access levels}
+%
+%
+%%In order to solve inverse or optimization problems governed by PDEs, we need to solve linear systems with the Hessian as the coefficient matrix [cite cite]. In order to do this efficiently, we have access to only Hessian-vector products. That is, we have the ability to compute the functions $x \mapsto \mathcal{H} x$ and $x \mapsto \mathcal{H}^T x$ for arbitrary vectors $x$. Therefore 
+%
+%A linear operator may be classified by the way in which we may access the operator. 
+%
+%
+%\begin{itemize}
+%	\item \emph{Level 1:} A matrix representation of the operator, $\mathbf{A}$, is stored in memory in dense or sparse format.
+%	\item \emph{Level 2:} We can efficiently compute arbitrary matrix entries $\mathbf{A}_{ij}$ at will, but the matrix $\mathbf{A}$ is not stored in memory.
+%	\item \emph{Level 3:} Access to $\mathbf{A}$ is only available through an algorithm that computes matrix-vector products $\mathbf{u} \mapsto \mathbf{A}\mathbf{u}$ and $\mathbf{u} \mapsto \mathbf{A}^T \mathbf{u}$.
+%\end{itemize}
+%In large-scale scientific computing, 
+%
+%
+%As discussed in Section \ref{sec:PDE_hessian_motivation}, in inverse problems governed by PDEs, matrix entries of the Hessian are not easily computable since getting one entry would require computing an entire column of the Hessian, then throwing away all but one entry in the column. Computing a single column costs at least two PDE solves. Many such entries are needed to approximate the Hessian in inverse problems with highly informative data (i.e., for Hessians with large numerical rank) [cite cite].
+%
+% of the implicit definition of $u(m)$. 
+%
+%Hierarchical matrices (H, H2, HSS, HBS, HODLR), quantized tensor trains, hierarchical interpolative factorization, STRUMPACK (LBNL), 
+%
+%Level 1: not relevant in large-scale problems
+%State clearly: we do not use Level 1 at all.
+%This paper: Level 3 -> Level 2
+%H-matrix: solve on level 2
+%
+%%\subsection{Existing work}
+%%
+%%
+%%\begin{itemize}
+%%	\item CITE ESCANDE, others, for a reviews of the subject.
+%%	\item Resolution analysis seismic papers: try to figure out size of $\varphi_x$ by matvec with random function, post-processing to get autocorrelation length. They did the constant matvec volume thing. Their goal is to get a sense of local length scales that can be resolved in the inverse problem. They do not build preconditioner
+%%	\item Escande Weiss scattered response paper. They interpolate scattered impulse responses using radial basis functions and study how the geometry of the points affects the approximation accuracy. Matrix-free / getting many points at once is not a concern of them. The applications they consider one has direct access to the impulse response, e.g., through formula for the kernel. 
+%%	\item Imaging problems: ``matvec'' requires performing an experiment
+%%	\item pseudodifferential operator equivalence
+%%	\item Laundry list of applications
+%%	\item scattered impulse response of escande weiss paper: radial basis functions for approximation in $y$. How to determine if the impulse responses are far enough away from each other?
+%%	\item my convolution paper: compute impulse responses one at a time, one impulse response per matvec: too slow! Here we compute many impulse responses using only 1 matvec.
+%%	\item uniformity of smoothness condition
+%%\end{itemize}
+
+
+\section{Constructing the approximation}
+\label{sec:method}
+This section describes how we compute the convolution kernels, $\varphi_i$, and weighting functions, $w_i$, for the product-convolution approximation, $\widetilde{\mathcal{A}} \approx \mathcal{A}$, given in \eqref{eq:product_convolution}.
+\begin{itemize}
+\item We extract $\varphi_{x_i}$ for many points $x_i$ by applying $\mathcal{A}$ to Dirac combs associated with ``batches'' of points (Section \ref{sec:get_impulse_response}). To reduce memory usage, all kernels $\varphi_i$ associated with a given batch, $b$, are stored in a single function, $\eta^b$, rather than as individual functions.
+\item We use a greedy algorithm to choose as many points as possible per batch, while ensuring that the points in each batch are not too close to each other, and are not too close to $\partial \Omega$ (Section \ref{sec:greedy_point_selection}). 
+\item We ensure that the points $x_i$ are well separated from each other by forming a-priori estimates of the supports of the functions $\langle\mathcal{A},\delta_{x}\rangle^*$ (Section \ref{eq:mean_and_covariance_estimation}). 
+\item For the weighting functions, we use the smoothest functions (in a least-squares sense) that interpolate the points $x_i$; constructing the weighting functions requires solving two Poisson PDEs per point $x_i$ (Section \ref{sec:weighting_functions}).
+\end{itemize}
+The complete algorithm for constructing $\widetilde{\mathcal{A}}$ is shown in Algorithm \ref{alg:construct_Atilde}.
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	%	\Input{Function $v \mapsto \mathcal{H}^Tv$}
+	
+	%	\mbox{}\\
+	
+	%	\Output{Spatially varying mean $\mu:\Omega \rightarrow \mathbb{R}^d$, \\ 
+	%		Spatially varying covariance $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}$}
+	%	\Begin{
+	{	
+		Compute spatially varying mean, $\mu$, and covariance, $\Sigma$, using Algorithm \ref{alg:varhpi_mean_cov}.
+		
+		\For{$b=1,2,\dots,\text{max\_batches}$}{
+			Choose a batch of sample points, $S_b$, using Algorithm \ref{alg:point_choice}
+			
+			Compute $\eta^b$ by applying $\mathcal{A}$ to the dirac comb associated with $S_b$ (Section \ref{sec:get_impulse_response})
+			
+			Compute weighting functions $w_i$ using Algorithm \ref{alg:weighting_functions_incremental}. In lines 2 and 3 of Algorithm \ref{alg:weighting_functions_incremental}, only solve for $\psi_i$ and $\theta_i$ associated with new points $x_i$ in $S_b$. The functions $\psi_i$ and $\theta_i$ associated with points in previous batches have already been computed in previous iterations of this for loop.
+		}
+		
+		%		\Return{$\mu$, $\Sigma$}
+	}
+	\caption{Construct product-convolution approximation $\widetilde{\mathcal{A}}$}
+	\label{alg:construct_Atilde}
+\end{algorithm2e}
+
+%The function $\varphi_x(y)$ is undefined when $x + y \notin \Omega$, which can occur even if $x \in \Omega$ and $y \in \Omega$. Extending $\varphi_x$ by zero makes it defined for all $y \in \mathbb{R}^d$, but this extension is only reasonable if $x$ is far enough from $\partial \Omega$ that $\varphi_x(y)$ decays to zero, as a function of $y$, before $y$ reaches $\partial \Omega$. We therefore choose exclude sample points $x_i$ if the ellipsoid associated with that point overlaps the boundary.
+
+
+
+\subsection{Estimating impulse response supports}
+\label{eq:mean_and_covariance_estimation}
+
+Since $\varphi_x$, and thus $\langle\mathcal{A},\delta_{x}\rangle^*$, is nonnegative, $\langle\mathcal{A},\delta_{x}\rangle^*$ is a scaled probability distribution. We compute the scaling factor, denoted $\alpha(x)$, for all $x$ simultaneously by applying $\mathcal{A}$ to a constant function. We then compute the spatially varying mean, $\mu(x)$, and covariance, $\Sigma(x)$ of the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$, for all $x$ simultaneously, by applying $\mathcal{A}^T$ to a small number of linear and quadratic functions. We make the approximation that the support of $\langle\mathcal{A},\delta_{x}\rangle^*$ is contained within the ellipsoid
+\begin{equation}
+\label{eq:support_ellipsoid}
+E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
+\end{equation}
+where $\tau$ is a small number of standard deviations; we use $\tau=3$. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean for the Gaussian distribution that has the same mean and covariance as the normalized version of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$. The fraction of the mass of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
+
+\begin{defn}
+	We define the spatially varying volume, $\alpha$, the scaled impulse response, $\rho_x$, the spatially varying mean, $\mu$, and the spatially varying covariance, $\Sigma$, as follows:
+	\begin{align*}
+		\alpha:\Omega \rightarrow \mathbb{R}, &\qquad \alpha(x) := \int_{\Omega} \langle\mathcal{A}, \delta_x\rangle^*(z) dz, \\
+		\rho_x:\Omega \rightarrow \mathbb{R}, &\qquad \rho_x := \langle\mathcal{A}, \delta_x\rangle^* \big/ \alpha(x), \\
+		\mu:\Omega \rightarrow \mathbb{R}^d, &\qquad \mu(x) := \int_\Omega z \rho_x(z) dz, \\
+		\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}, &\qquad\Sigma(x) := \int_\Omega (z - \mu(x))(z - \mu(x))^T \rho_x(z) dz.
+	\end{align*}
+\end{defn}
+
+%The support of $\langle\mathcal{A},\delta_{x}\rangle^*$ is estimated to be contained within a small number of standard deviations of the mean for a Gaussian distribution with the same mean and covariance as the normalized version of $\langle\mathcal{A},\delta_{x}\rangle^*$.
+
+%Let 
+%\begin{equation*}
+%	\rho_x := \langle\mathcal{A}, \delta_x\rangle^* \big/ \alpha(x)
+%\end{equation*}
+%denote the normalized version of $\langle\mathcal{A}, \delta_x\rangle^*$, where $\alpha:\Omega \rightarrow \mathbb{R}$ is the volume function
+%\begin{equation*}
+%	\alpha(x) := \int_{\Omega} \langle\mathcal{A}, \delta_x\rangle^*(z) dz.
+%\end{equation*}
+%Note that $\rho_x$ is a probability distribution on $\Omega$.
+%
+%In Proposition \ref{thm:vol_mean_cov}, we see that $\alpha(x)$ may be computed for all $x$ simultaneously by applying $\mathcal{A}^T$ to a constant function. We also see that the spatially varying mean, $\mu(x)$, and covariance, $\Sigma(x)$, of $\rho_x$, defined as
+%\begin{align*}
+%	\mu(x) :=& \int_\Omega z \rho_x(z) dz \\
+%	\Sigma(x) :=& \int_\Omega (z - \mu(x))(z - \mu(x))^T \rho_x(z) dz
+%\end{align*}
+%may be computed for all $x$ simultaneously by applying $\mathcal{A}^T$ to $d$ linear functions, and $d(d+1)/2$ quadratic functions, respectively. In Algorithm \ref{alg:varhpi_mean_cov} we describe an algorithm for computing the volume function, mean, and covariance based on the results of Proposition \ref{thm:vol_mean_cov}.
+
+
+\begin{theorem}
+	\label{thm:vol_mean_cov}
+	Let  $x^i$ denote the $i^\text{th}$ component of $x$, i.e., $x = \left(x^1, x^2, \dots, x^d\right)$, and let $C$, $\{L^i\}_{i=1}^d$, and ${\{Q^{ij}\}_{i=1}^d}_{j=1}^d$ be the following constant, linear, and quadratic functions, respectively:
+	\begin{equation*}
+		C(x) := 1, \qquad
+		L^i(x) := x^i, \qquad
+		Q^{ij}(x) = x^i x^j.
+	\end{equation*}
+	We have
+	\begin{align}
+		\alpha =& \left(\mathcal{A}^TC\right)^*, \label{eq:vol_mean_var_thm1}\\
+		\mu^i =& \left(\mathcal{A}^T L^i\right)^* / \alpha, \label{eq:vol_mean_var_thm2}\\
+		\Sigma^{ij} =& \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot\mu^j, \label{eq:vol_mean_var_thm3}
+	\end{align}
+	We write $f/g$ to denote the pointwise division of functions, $\left(f/g\right)(x) = f(x)/g(x)$, and $f\cdot g$ to denote the pointwise multiplication of functions, $(f\cdot g)(x) = f(x)g(x)$.
+\end{theorem}
+
+The proof of Theorem \ref{thm:vol_mean_cov} is shown in Appendix \ref{app:proofs}.
+
+
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+%	\Input{Function $v \mapsto \mathcal{H}^Tv$}
+		
+%	\mbox{}\\
+	
+%	\Output{Spatially varying mean $\mu:\Omega \rightarrow \mathbb{R}^d$, \\ 
+%		Spatially varying covariance $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}$}
+%	\Begin{
+	{	
+		Form constant function $C(x)=1$
+
+		$\alpha = \left(\mathcal{A}^T C\right)^*$
+		
+		\For{$i=1,2,\dots,d$}{
+			Form linear function $L^i(x) = x^i$
+			
+			$\mu^i = \left(\mathcal{A}^T L^i\right)^* / \alpha$
+		}
+		\For{$i=1,2,\dots,d$}{
+			\For{$j=1,\dots,i$}{
+				Form quadratic function $Q^{ij} = x^i x^j$
+				
+				$\Sigma^{ij} = \left(\mathcal{A}^T Q^{ij}\right)^* / \alpha - \mu^i\cdot \mu^j$
+				
+				$\Sigma^{ij} = \Sigma^{ji}$
+			
+			}
+		}
+		
+%		\Return{$\mu$, $\Sigma$}
+	}
+	\caption{Compute volume $\alpha$, mean $\mu$, and covariance $\Sigma$}
+	\label{alg:varhpi_mean_cov}
+\end{algorithm2e}
+
+
+
+\subsection{Greedy sample point selection}
+\label{sec:greedy_point_selection}
+
+% sample points $x_i$ and $x_j$ should be far enough apart from each other that the supports of $\left\langle\mathcal{A}, \delta_{x_i}\right\rangle^*$ and $\left\langle\mathcal{A}, \delta_{x_j}\right\rangle^*$ do not overlap. 
+
+%Since it is too expensive compute the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ directly, we instead estimate that the support of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ is contained in the ellipsoid
+%\begin{equation}
+%\label{eq:support_ellipsoid}
+%	E_x := \{x' \in \Omega: (x' - \mu(x))^T \Sigma(x)^{-1} (x' - \mu(x)) \le \tau^2\},
+%\end{equation}
+%where $\tau$ is a small number of standard deviations; we use $\tau=3$. The ellipsoid $E_x$ is the set of points within $\tau$ standard deviations of the mean for the Gaussian distribution that has the same mean and covariance as $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$. The fraction of the mass of $\left\langle\mathcal{A}, \delta_{x}\right\rangle^*$ residing outside of $E_x$ is less than $1/\tau^2$ by Chebyshev's inequality, though we find this bound is conservative and far less mass resides in this region in practice. 
+
+%We call $E_x$ the \emph{unit ellipsoid} with mean $\mu(x)$ and covariance $\Sigma(x)/\tau^2$.
+
+Starting from a finite set of candidate points $P$, we select batches of sample points, $S_b$, using a greedy algorithm. To build a batch $S_b$, first we initialize $S_b$ as an empty set. Then we select a candidate point $p \in P$ that is the farthest away from all points in previous sample point batches. That is, $p$ is a maximizer of the following optimization problem:
+\begin{equation*}
+\max_{p \in P} \min_{x \in S_1 \cup \dots \cup S_{b-1}} \|p - x\|.
+\end{equation*}
+Once $p$ is selected, we remove $p$ from $P$. If $p$ is sufficiently far from all of the previously chosen points in the current batch, in the sense that $E_p \cap E_q = \{\}$ for all $q \in S_b$, and if $p$ is sufficiently far from the boundary, in the sense that $E_p \cap \partial \Omega = \{\}$, then we add $p$ to $S_b$. Otherwise we discard $p$. This process repeats until there are no more points in $P$.  This is detailed in Algorithm \ref{alg:point_choice}. We determine whether $E_p \cap E_q = \{\}$ using the fast ellipsoid intersection test described in Appendix \ref{sec:fast_ellipsoid_intersection_test}.
+
+%We select a batches of sample points, $S_b$, from a finite set of candidate points $P$ using a greedy algorithm. Starting from an empty set, we build $S_b$ from candidate points $p$ from $P$, one point at a time. The current candidate point, $p$, is the point in $P$  
+
+We repeat the process to construct several batches of points $S_1, S_2, \dots$, until the number of batches exceeds a desired threshold. In our implementation, for each batch the set of candidate points $P$ is initialized as the set of all Lagrange nodes for the finite element basis functions used to discretize the problem, minus all points in previously chosen batches.
+
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwProg{Fn}{Function}{}{}
+
+	Start with a finite set of candidate points $P \subset \Omega$
+	
+	Initialize new empty batch of sample points, $S_b$
+	
+	\While{$P$ is not empty}{
+		Determine the point $p \in P$ that is farthest from all points in the previous sample point batches $S_1,\dots,S_{b-1}$
+		
+		Remove $p$ from $P$
+	
+%		\If{$\text{point\_is\_acceptable}(p, S_b)$}{
+		\If{$E_p \cap E_q \neq \{\}$ for all $q \in S_b$ and $E_p \cap \partial \Omega = \{\}$}{
+			
+			Add $p$ to $S_b$
+			
+			Remove all points $x$ satisfying $\mu(x) \in E_p$ from $P$
+		}
+	}
+
+    \SetKwFunction{FMain}{point\_is\_acceptable}
+%\SetKwProg{Fn}{Function}{:}{}
+%\Fn{\FMain{$p$, $S_b$}}{
+%	
+%	$p\text{\_is\_acceptable} \gets \text{True}$
+%	
+%	$E_p$ is the ellipsoid associated with $p$ (see \eqref{eq:support_ellipsoid})
+%	
+%	\For{$q \in S_b$}{
+%		
+%		$E_q$ is the ellipsoid associated with $q$
+%		
+%		\If{$E_p \cap E_q \neq \{\}$}{
+%			
+%			$p\text{\_is\_acceptable} \gets \text{False}$
+%			
+%			Terminate for loop
+%		}
+%	}
+%	\textbf{return} $p\text{\_is\_acceptable}$ 
+%}
+
+	\caption{Choosing one batch of sample points, $S_b$}
+	\label{alg:point_choice}
+\end{algorithm2e}
+
+
+\subsection{Batched computation of impulse responses}
+\label{sec:get_impulse_response}
+
+The \emph{Dirac comb}, $\xi_b$, associated with a batch of sample points $S_b$ is the sum of Dirac distributions (point sources) centered at the points $x_i \in S_b$. That is,
+\begin{equation*}
+	\xi^b := \sum_{x \in S_b} \delta_{x_i}.
+\end{equation*}
+For each batch $S_b$, we compute as the action of $\mathcal{A}$ on the associated Dirac comb:
+\begin{equation}
+\label{eq:dirac_comb_H_action}
+	\eta^b := \langle\mathcal{A}, \xi^b\rangle^*.
+\end{equation}
+By linearity, $\eta^b$ may be written as
+\begin{equation}
+\label{eq:phi_b}
+	\eta^b = \left\langle\mathcal{A},\sum_{x_i \in S_b} \delta_{x_i}\right\rangle^* = \sum_{x_i \in S_b} \langle\mathcal{A}, \delta_{x_i}\rangle^*.
+\end{equation}
+Since the points $x_i$ are chosen so that the support of $\langle\mathcal{A},\delta_{x_i}\rangle^*$ and the support of $\langle\mathcal{A},\delta_{x_j}\rangle^*$ do not overlap (or do not overlap much), we have
+\begin{equation}
+\label{eq:varphi_eval}
+	\varphi_{x_i}(z) = \langle\mathcal{A}, \delta_{x_i}\rangle^*(z+x_i) = \begin{cases}
+		\eta^b(z+x_i), & z+x_i \in E_{x_i} \\
+		0, & \text{otherwise}.
+		\end{cases}
+\end{equation}
+for all $x_i \in S_b$. By performing one matrix-vector product, \eqref{eq:dirac_comb_H_action}, we recover $\varphi_{x_i}$ for every point $x_i \in S_b$. To minimize memory usage, the functions $\varphi_i$ are never isolated and stored individually. Instead, we store the functions $\eta^b$, and use formula \eqref{eq:varphi_eval} to perform function evaluations $z \mapsto \varphi_i(z)$ as needed.
+%For $x_i \in X$ and $y \in \mathbb{R}^d$, we may evaluate $\varphi_{x_i}(y)$ by finding the batch $X_b$ that $x_i$ is contained in, then using \eqref{eq:varphi_eval}. 
+
+%\begin{algorithm2e}
+%	\SetAlgoNoLine
+%	\SetKwInOut{Input}{Input}
+%	\SetKwInOut{Output}{Output}
+%	\SetKwProg{Fn}{Function}{}{}
+%	\Input{Point source locations $x_1, x_2, \dots, x_m$
+%	}
+%	\Output{Response $\boldsymbol{\eta}$ of $\mathbf{A}$ to Dirac comb of point sources}
+%
+%	\BlankLine
+%
+%	Construct $\boldsymbol{\xi} \in \mathbb{R}^N_{\mathbf{M}^{-1}}, \quad \boldsymbol{\xi}_i = \sum_{j=1}^m \phi_i(x_j)$, \quad $i=1,\dots,N$
+%	
+%	$\boldsymbol{\eta} \gets \mathbf{M}^{-1} \mathbf{A}^T \mathbf{M}^{-1}\boldsymbol{\xi}$
+%
+%	\caption{Computing response $\mathbf{A}$ to Dirac comb}
+%	\label{alg:dirac_comb_response}
+%\end{algorithm2e}
+
+
+
+\subsection{Poisson interpolation weighting functions}
+\label{sec:weighting_functions}
+
+We choose the $i^\text{th}$ weighting function, $w_i(x)$, to be the solution to the following optimization problem:
+\begin{equation}
+\label{eq:wi_optimization_problem}
+\begin{aligned}
+\min_{w_i \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta w_i}_{L^2(\Omega)}^2 \\
+\text{such that} &\quad w_i(x_j) = \delta_{ij}, \quad j=1,\dots,q.
+\end{aligned}
+\end{equation}
+Here $\Delta$ is the Laplacian on $\Omega$, $\delta_{ij}$, is the Kronecker delta, which takes value one if $i=j$ and zero if $i \neq j$, and $H^2_N(\Omega)$ is the space of all functions in $H^2(\Omega)$ with Neumann zero boundary conditions. Using these weighting functions yields the ``flattest possible'' interpolation of the convolution kernels $\varphi_i$, in a least-squares sense (Theorem \ref{thm:smoothest_interpolant}). Also, these weighting functions sum to one pointwise (Proposition \ref{thm:wi_sum_to_one}). 
+
+In Algorithm \ref{alg:weighting_functions_incremental}, we show how to efficiently solve optimization problem \eqref{eq:wi_optimization_problem}, and thus compute $w_i$.  Constructing all $r$ of the functions $w_i$ requires solving the Poisson equation $2r$ times with different right hand side sources, and these Poisson PDE solves can be performed cheaply with multigrid. All of the weighting functions, $\{w_i\}_{i=1}^r$, will change if a new point, $x_{r+1}$, is added. However, the dominant computational cost in constructing the weighting functions is the solution of the Poisson PDEs, and these Poisson PDE solves can be performed incrementally---we only need to perform two new Poisson PDE solves when a new point is added, rather than $2(r+1)$ new PDE solves.
+
+It is important to note that functions in $H^2_N(\Omega)$ only have well-defined pointwise values if the spatial dimension is $d=1$, $2$, or $3$. Hence optimization problem \eqref{eq:wi_optimization_problem} is only well-defined in three spatial dimensions or fewer. When inverting for parameter fields defined on four or higher spatial dimensions, the solution to this optimization problem does not exist, and these weighting functions should not be used. Proofs for results in this section are given in Appendix \ref{app:proofs}.
+
+
+\begin{thm}[Optimal interpolation]
+	\label{thm:smoothest_interpolant}
+Let $y \in \mathbb{R}^d$, and let $u$ be the function
+\begin{equation}
+\label{eq:u_defn_in_thm}
+u(x) := \sum_{i=1}^r \varphi_i(y)w_i(x) = \widetilde{A}\left(y+x,x\right)
+\end{equation}
+where the weighting functions $w_i$ are the solutions to optimization problem \eqref{eq:wi_optimization_problem}. Then $u$ solves the optimization problem
+\begin{equation}
+\label{eq:uy_optimization_problem}
+\begin{aligned}
+\min_{u \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
+\text{such that} &\quad u(x_i) = \varphi_i(y), \quad i=1,\dots,q.
+\end{aligned}
+\end{equation}
+\end{thm}
+
+\begin{prop}[Weighting functions sum to one]
+	\label{thm:wi_sum_to_one}
+	We have
+	\begin{equation*}
+		\sum_{i=1}^r w_i(x) = 1
+	\end{equation*}
+	for all $x \in \Omega$.
+\end{prop}
+
+
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	%	\Input{Function $v \mapsto \mathcal{H}^Tv$}
+	
+	%	\mbox{}\\
+	
+	%	\Output{Spatially varying mean $\mu:\Omega \rightarrow \mathbb{R}^d$, \\ 
+	%		Spatially varying covariance $\Sigma:\Omega \rightarrow \mathbb{R}^{d \times d}$}
+	%	\Begin{
+	{	
+		\For{$i=1,2, \dots, r$}{
+			Compute $\psi_i$ as the solution to the Poisson problem
+			\begin{equation}
+			\label{eq:psi_eq}
+			\Delta \psi_i = \delta_{x_i} - C/|\Omega|, \quad \text{in }\Omega,
+			\end{equation}
+			with Neumann zero boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$. Recall $\delta_{x_i}$ is a point source (delta distribution) centered at $x_i$, $C$ is the constant function $C(x)=1$, and $|\Omega|$ is the Lebesgue measure of $\Omega$. 
+			
+			Compute $\theta_i$ as the solution to the Poisson problem
+			\begin{equation}
+			\label{eq:theta_eq}
+			\Delta \theta_i = \psi_i, \quad \text{in }\Omega,
+			\end{equation}
+			with Neumann zero boundary conditions, $\nu \cdot \nabla \psi_i = 0$ on $\partial \Omega$, and the average value zero condition, $\int_\Omega \psi_i(x) dx = 0$.
+			
+		}
+		
+		Form the $r \times r$ matrix $S$ with entries
+		\begin{equation}
+		\label{eq:defn_of_S_alg}
+		S_{ij} = \left(\psi_i, \psi_j\right)_{L^2(\Omega)}.
+		\end{equation}
+		
+		\For{$i=1,2,\dots,r$}{
+			Compute
+			\begin{equation}
+			\label{eq:definition_of_alpha_alg}
+			\alpha = \frac{\mathbf{1}^T S^{-1} e_i}{\mathbf{1}^T S^{-1} \mathbf{1}},
+			\end{equation}
+			where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one, and $e_i = (0,\dots,0,1,0,\dots,0)$ is the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero.
+			
+			Compute 
+			\begin{equation}
+			\label{eq:definition_of_mu_alg}
+			\lambda = -S^{-1} \left(e_i - \alpha \mathbf{1} \right).
+			\end{equation}
+			
+			Form the weighting function $w_i$ given by
+			\begin{equation}
+			\label{eq:definition_of_wi_alg}
+				w_i(x) = \alpha - \sum_{k=1}^r \lambda_k \theta_k(x).
+			\end{equation}
+		}
+	}
+	\caption{Compute weighting functions $w_i$, $i=1,\dots,r$.}
+	\label{alg:weighting_functions_incremental}
+\end{algorithm2e}
+
+
+
+%	
+%	The standard weak form for $\psi_j$ in \eqref{eq:psi_eq} is given by the following saddle point system for $\psi_j \in H^1(\Omega)$ and $\rho \in \mathbb{R}$:
+%	\begin{alignat}{5}
+%		-\int_\Omega \nabla \psi_j \cdot \nabla h ~dx &~+~& \rho \int_\Omega h ~dx &~=~ h(x_j) &\quad \forall h \in H^1(\Omega) \label{eq:lem_delta_eval_feq} \\
+%		\int_\Omega \psi_j ~dx & & &~=~ 0. & \nonumber
+%	\end{alignat}
+%	This follows from integration by parts, using the Neumann zero boundary conditions for $\psi_j$, and enforcing the average value zero constraint for $\psi_j$ with the Lagrange multiplier $\rho$. If $h$ is the constant function $h(x)=1$, the first equation becomes
+%	\begin{equation*}
+%		\rho \int_\Omega 1 ~ dx = 1,
+%	\end{equation*}
+%	which implies $\rho = \frac{1}{|\Omega|}$. Now suppose that $h\in H^2_N(\Omega)$. Of course, we still have $h\in H^1(\Omega)$ as well, so equation \eqref{eq:lem_delta_eval_feq} still holds. But now $h$ has additional regularity, which allows us to use integration by parts on the first term in \eqref{eq:lem_delta_eval_feq} to bring all of the derivatives onto $h$. Furthermore, $h$ has Neumann zero boundary conditions, so the boundary term that arises during integration by parts is zero. Performing this integration by parts, and substituting in the value for $\rho$, yields
+%	\begin{equation*}
+%		\int_\Omega \psi_j \Delta h ~dx + \frac{1}{|\Omega|} \int_\Omega h ~dx = h(x_j),
+%	\end{equation*}
+%	which is the desired result.
+
+
+\begin{thm}[Correctness of Algorithm \ref{alg:weighting_functions_incremental}]
+\label{thm:wi_alg_is_correct}
+	The weighting functions $w_i$ computed by Algorithm \ref{alg:weighting_functions_incremental} solve optimization problem \ref{eq:wi_optimization_problem}.
+\end{thm}
+
+
+
+
+%Since the Laplacian measures local deviation from flatness [cite Jacobsen], from \eqref{eq:uy_optimization_problem} we see that the interpolant $x \mapsto u_y(x) = \widetilde{\varphi}_x(y)$ is the ``flattest possible'' function (in a least-squares sense) that has Neumann boundary conditions and interpolates the data $\varphi_{x_i}(y)$. 
+
+
+
+
+
+
+
+% For example,
+% \begin{itemize}
+%     \item In inverse problems where the forward model is time-dependent, computing Hessian matrix-vector products requires solving time-dependent PDEs. In contrast, the Poisson equation is a stationary PDE.
+%     \item In inverse problems where the parameter being inverted for resides on a boundary, computing Hessian matrix-vector products requires solving PDEs that are defined on a higher dimensional geometric domain than the Poisson PDEs that must be solved for the interpolation.
+%     \item In multi-experiment inverse problems, data from many different ``experiments'' on the same medium are used in the inversion. Performing a Hessian matrix-vector product requires solving two PDEs \emph{per experiment}. The number of Poisson solves used to construct the weighting functions does not depend on the number of experiments.
+% \end{itemize}
+% The additional cost of Poisson interpolation is, therefore, a worthwhile investment if it allows one to achieve the same level of accuracy as other interpolation methods but with less sample points.
+
+% One may also show that the weighting functions $w_i$ sum to one pointwise.
+
+\section{Using the approximation}
+\label{sec:using_approximation}
+
+\subsection{Evaluating kernel entries of the approximation}
+\label{sec:eval_matrix_entries}
+
+We now describe how to efficiently evaluate $\widetilde{A}(y,x)$ at an arbitrary point $(x,y) \in \Omega \times \Omega$. From \eqref{eq:H_kernel_entries}, we have
+\begin{equation}
+\label{eq:eval_y_x}
+\widetilde{A}(y,x) = \sum_{i=1}^r w_i(x) \varphi_{x_i}(y-x),
+\end{equation}
+and from \eqref{eq:varphi_eval}, we have
+\begin{equation}
+\label{eq:kernel_entry_formua}
+\varphi_{x_i}(y-x) = \begin{cases}
+\eta^{b(i)}(y - x + x_i), & y - x + x_i \in E_{x_i} \\
+0, & \text{otherwise},
+\end{cases}
+\end{equation}
+where $b(i)$ denotes the batch index such that $x_i \in S^{b(i)}$. To compute $z=\widetilde{A}(y,x)$, we start with $z=0$, then loop through all batches $b$, and all sample points in each batch. For each sample point, we add one term in the sum in \eqref{eq:eval_y_x} to $z$, using \eqref{eq:kernel_entry_formua} as needed to evaluate $\varphi_{x_i}$. This is shown in Algorithm \ref{alg:eval_y_x}.
+%
+%\begin{align*}
+%	\widetilde{A}(y',x') &= \sum_{i=1}^q w_i(x') \varphi_{x_i}(y'-x') \\
+%	&= \sum_{i=1}^q w_i(x') \begin{cases}
+%		\eta^{b(i)}(\zeta_i), & \zeta_i \in E_{x_i} \\
+%		0, & \text{otherwise}
+%	\end{cases} \\
+%	&= \sum_{i=1}^q w_i(x')\Psi_{ik},
+%\end{align*}
+%where $\omega_{ik}:= w_i(x_k') = \left(\mathcal{U}_X^+ \mathcal{U}\right)_{ik}$, and 
+%\begin{equation*}
+%	\Psi_{ik} := \begin{cases}
+%		\eta^{b(i)}(\zeta_{ik}), & \zeta_{ik} \in E_{x_i}\\
+%		0, & \text{otherwise}.
+%	\end{cases}
+%\end{equation*}
+%To compute $\omega$, first we construct $\nu \in \mathbb{R}^{r \times N}$,	$\nu_{jk} := u_j(x_k)$,
+%then we set
+%\begin{equation*}
+%	\omega := \mathcal{U}_X^+ \nu.
+%\end{equation*}
+%To compute $\Psi$, we must evaluate $\eta^{b(i)}(\zeta_{ik})$ for many points $\zeta_{ik}$.
+%If the mesh used to discretize the problem is non-uniform, generally $\zeta_{ik}$ will not be a degree of freedom location, even if the points $x_k'$, $y_k'$, and $x_i$ are degree of freedom locations. Thus, evaluating $\eta^{b(i)}(\zeta_{ik})$ requires interpolation. Since it is typically more efficient to perform interpolation at many points all at once, rather than interpolating points one at a time, we precompute the set of indices
+%\begin{equation*}
+%	\chi^b := \{(i,k): \zeta_{ik} \in E_{x_i},~x_i \in X_b,~ k=1,\dots,N\}
+%\end{equation*}
+%for which the interpolation $\eta^{b(i)}(\zeta_{ik})$ must be performed. Then we compute the batch of interpolations $\eta^b\left(\zeta_{\chi^b}\right)$, and set 
+%\begin{equation*}
+%	\Psi_{\chi^b} = \eta^b\left(\zeta_{\chi^b}\right).
+%\end{equation*}
+%Here $\Psi_{\chi^b}$ is the subset of entries of $\Psi$ corresponding to indices $(i,k) \in \chi^b$, and $\eta^b\left(\zeta_{\chi^b}\right)$ is the interpolation of $\eta^b$ at all of the points $\zeta_{ik}$ corresponding to indices $(i,k) \in \chi^b$. This process is repeated for each batch $b$. All other entries of $\Psi$ are set to zero. The resulting procedure for evaluating $\widetilde{H}(y_k',x_k')$ is summarized in Algorithm \ref{alg:H_entries}.
+
+%, for each batch $X_b$ we predetermine the subset of points 
+%\begin{equation*}
+%	p_{ik} := y_k - x_k + x_i
+%	\end{equation*}
+%satisfying $p_{bik} \in E_{x_i}$ for all $x_i \in X_b$ then evaluate $\eta_b(p_{bik})$ for this subsets of points all at once. Let
+%\begin{equation*}
+%	\chi_b:=\{p_{bik}:p_{bik} \in E_{x_i}\}.
+%\end{equation*}
+%and define $\Psi \in \mathbb{R}^{q \times N}$, 
+%
+%so that
+%\begin{equation*}
+%	\widetilde{H}(y_k,x_k) = \sum_{i=1}^q w_i(x_k) \Psi_{ik}.	
+%\end{equation*}
+%We have 
+%\begin{equation*}
+%	\Psi_{ik}(\chi_b) = \sum_{b=1}^B \eta_b(p_{bik})
+%\end{equation*}
+%where $\eta_b(\chi)$ is the 
+%
+%In Algorithm asdf, we describe how to evaluate $\widetilde{H}$ at many points using this procedure.
+%
+\begin{algorithm2e}
+	\SetAlgoNoLine
+
+	$z \gets 0$
+	
+	\For{$b=1,2,\dots,\text{}max\_batches$}{
+		\For{$x_i \in S_b$}{
+			\If{$y - x + x_i \in E_{x_i}$}{
+				$z \gets z + w_i(x)\eta^b(y-x+x_i)$
+			}
+		}
+	}	
+	\caption{Compute approximate kernel entry $z = \widetilde{A}(y,x)$}
+	\label{alg:eval_y_x}
+\end{algorithm2e}
+
+%\begin{algorithm2e}
+%	\SetAlgoNoLine
+%	\SetKwInOut{Input}{Input}
+%	\SetKwInOut{Output}{Output}
+%	\SetKwProg{Fn}{Function}{}{}
+%	\Input{Pairs of points $\{(x_k',y_k')\}_{k=1}^n \subset \Omega \times \Omega$}	
+%	\Output{Approximate kernel entries $\mathbf{z} \in \mathbb{R}^n$, $\mathbf{z}_k = \widetilde{H}(y_k',x_k')$}
+%	
+%	Compute $\boldsymbol{\omega} \in \mathbb{R}^{r \times n}$, $\boldsymbol{\omega}_{i,k} = w_i(x_k')$
+%	
+%	\mbox{}\\
+%	
+%	\Fn{$\computekernelentries{\{x'_k\}_{k=1}^n}{\{y'_k\}_{k=1}^n}$}
+%	{
+%		$\boldsymbol{\omega} \gets \computeweightingentries{\{x'_k\}_{k=1}^n}$
+%		
+%		Construct $\boldsymbol{\zeta} \in \mathbb{R}^{d \times q \times n}$, ~$\boldsymbol{\zeta}[:,i,k] = y_k' - x_k' + \mathbf{X}\left[:,\mathtt{S}[i]\right]$
+%
+%		\BlankLine
+%		
+%		\BlankLine
+%		
+%		$\boldsymbol{\Psi}\gets \mathbf{0}_{q \times n}$
+%		
+%		\For{$b=1,\dots,N_B$}{
+%			$\mathtt{\chi}_b \gets \{\}$
+%			
+%			\For{$j \in \mathtt{S}_b$}{
+%				$i \gets$ index such that $\mathtt{S}[i] = j$
+%				
+%				$E_j \gets$ unit ellipsoid with mean $\boldsymbol{\mu}[:,j]$ and covariance $\boldsymbol{\Sigma}[:,:,j]/\tau^2$
+%				
+%				$\mathtt{\chi}_b \gets \mathtt{\chi}_b \cup \{(i,k) : k \in \{1,\dots,N\}, \boldsymbol{\zeta}[:,i,k] \in E_j\}$
+%				
+%			}
+%
+%			
+%			$\boldsymbol{\Psi}[\chi_b] \gets \interpolate\left(\boldsymbol{\eta}^b, \{\boldsymbol{\zeta}[:,i,k] : (i,k) \in \mathtt{\chi}^b\}\right)$
+%		
+%		}
+%	
+%		\BlankLine
+%		
+%		\BlankLine
+%		
+%		Construct $\mathbf{z} \in \mathbb{R}^n$, ~$\mathbf{z}_k = \sum_{i=1}^q \boldsymbol{\omega}_{ik} \boldsymbol{\Psi}_{ik}$
+%	
+%		\Return{$\mathbf{z}$}
+%	}
+%	\caption{Compute many approximate kernel entries $z_k = \widetilde{A}(y_k',x_k')$}
+%	\label{alg:H_entries}
+%\end{algorithm2e}
+
+\subsection{Conversion to hierarchical matrix format}
+
+In order to use the product-convolution approximation $\widetilde{\mathcal{A}}$, we convert $\widetilde{\mathcal{A}}$ to hierarchical matrix (H-matrix) format. Many classes of hierarchical matrices exist---H1, uniform H1, H2, HODLR, HSS, HBS, and more [CITES]. We use H1 matrices in our numerical results, but any of the other H-matrix formats could be used instead. The basic ideas behind H-matrices are as follows:
+\begin{itemize} 
+	\item Often, large dense matrices of practical interest may be permuted, then partitioned into blocks recursively, in such a way that many off-diagonal blocks of the matrix are numerically low rank, even if the matrix is high rank.
+	\item Recursive algorithms can take advantage of this low rank block structure to perform matrix arithmetic fast. Conventional algorithms for matrix inversion, matrix factorization, matrix-vector products, matrix-matrix products, and matrix addition require either $O(n^2)$ or $O(n^3)$ time and memory, while the aforementioned recursive algorithms can perform these matrix operations in $O(n \log^a n)$ time and memory for hierarchical matrices (here $a=0, 1, 2$, or $3$ depending on the operation and type of H-matrix).
+\end{itemize}
+For more details on H-matrices, we recommend [CITES]. 
+
+We convert $\widetilde{\mathcal{A}}$ into H1 matrix format using the standard geometrical clustering/adaptive cross method implemented within the HLIBpro software package [CITE]. Briefly, the H-matrix construction process that we use proceeds as follows. First, we construct a hierarchical partitionings of the degrees of freedom for the rows and columns of the matrix (cluster trees, Section \ref{sec:cluster_trees}). Second, we construct a hierarchical partitioning of the blocks of the matrix, in such a way that many of the blocks in the partitioning are expected to be low rank, and the remaining high rank blocks are small (block cluster tree, Section \ref{sec:block_cluster_tree}). Finally, we form low rank approximations of the blocks of the matrix that are expected to be low rank (adaptive cross approximation, Section \ref{sec:adaptive_cross}), and fill in the remaining high rank  blocks with their numerical values. The first two steps require geometric information about the spatial locations of the degrees of freedom associated with the rows and columns of the matrix, but these steps do not depend on the particular values of matrix entries. The third step requires us to evaluate $O(n \log n)$ specially-chosen matrix entries of $\widetilde{\mathcal{A}}$, which we do using the method described in Section \ref{sec:eval_matrix_entries}. In the remainder of this section we describe each of these steps in more detail.
+
+\subsubsection{Cluster trees}
+\label{sec:cluster_trees}
+
+The degrees of freedom associated with the columns of the matrix are hierarchically clustered into a \emph{cluster tree} using recursive hyperplane splitting. Since we use finite elements to discretize the problem, we associate the $i^\text{th}$ column of $\widetilde{\mathcal{A}}$ with the nodal point in $\mathbb{R}^d$ associated with the $i^\text{th}$ finite element basis function. The columns of the matrix thus correspond to a point cloud in $\mathbb{R}^d$. We split this point cloud into two equally sized \emph{child} point clouds, using a hyperplane which is perpendicular to the coordinate axis direction in which the point cloud is widest (e.g., either the $x$, $y$, or $z$ axis in $3$D). The two child point clouds are split in the same way. This splitting process repeats until the point clouds have less than a preset number of points (we use $32$ points). This hierarchical partitioning of the point cloud into smaller and smaller point clouds corresponds to a hierarchical partitioning of the columns of the matrix into smaller and smaller \emph{clusters} of columns. This hierarchical partitioning of the columns forms a binary tree, which we call a cluster tree. The root of the tree is the set of all columns, and the leaves of the tree are clusters of columns that are not subdivided any further. 
+
+A depth-first search ordering of the cluster tree leaves is then generated. When the columns of the matrix are permuted into this depth-first ordering, the columns associated with each cluster in the cluster tree are contiguous.
+
+In the same way, the degrees of freedom associated with the rows of the matrix are hierarchically clustered into another cluster tree, and an ordering for the rows is generated. In our examples, the degrees of freedom for the columns coincide with the degrees of freedom for the rows, so the cluster trees for the rows and columns are the same, but this is not required in general.
+
+\subsubsection{Block cluster tree} 
+\label{sec:block_cluster_tree}
+
+We partition the matrix into a recursive hierarchy of mostly low rank blocks called the \emph{block cluster tree}. The idea is that a block of the matrix is likely to be low rank if the point cloud associated with the rows of the block is far away from the point cloud associated with the columns of the block. This is reasonable to expect here because of the locality property of $\mathcal{A}$. Indeed, locality implies that many blocks of the matrix corresponding to far away point cloud clusters will be rank zero.
+
+After reordering the rows and columns of $\widetilde{\mathcal{A}}$ via the depth-first ordering described above, we partition the reordered version of $\widetilde{\mathcal{A}}$ into a tree of $2 \times 2$ block matrices recursively. We use a geometric admissibility condition (discussed below) to decide which blocks to subdivide, and use the cluster trees for the rows and columns to determine how to subdivide those blocks. For the first stage of subdivision, let $r_1$ and $r_2$ be the children row clusters for the root of the row cluster tree, let $c_1$ and $c_2$ be the children column clusters for the root of the column cluster tree. The matrix $\widetilde{\mathcal{A}}$ is partitioned into blocks as follows:
+\begin{equation*}
+	\begin{bmatrix}
+		\widetilde{\mathcal{A}}_{11} & \widetilde{\mathcal{A}}_{12} \\
+		\widetilde{\mathcal{A}}_{21} & \widetilde{\mathcal{A}}_{22},
+	\end{bmatrix}
+\end{equation*}
+where $\widetilde{\mathcal{A}}_{11}$ denotes the block of $\widetilde{\mathcal{A}}$ with rows $r_1$ and columns $c_1$, $\widetilde{\mathcal{A}}_{12}$ denotes the block of $\widetilde{\mathcal{A}}$ with rows $r_1$ and columns $c_2$, and so on for $\widetilde{\mathcal{A}}_{21}$ and $\widetilde{\mathcal{A}}_{22}$.
+
+We now loop through the four blocks, $\widetilde{\mathcal{A}}_{11}$, $\widetilde{\mathcal{A}}_{12}$, $\widetilde{\mathcal{A}}_{21}$, and $\widetilde{\mathcal{A}}_{22}$, and decide which blocks should be subdivided further. For the purpose of explanation, consider $\widetilde{\mathcal{A}}_{12}$. If
+\begin{equation}
+	\label{eq:weak_admissibility_cond}
+	\dist\left(r_1, c_2\right) \ge \eta \min\left(\diam\left(r_1\right), \diam\left(c_2\right)\right),
+\end{equation}
+then we mark $\widetilde{\mathcal{A}}_{12}$ as \emph{admissible} (expected to be low rank) and leave it alone. Here $\dist\left(r_1, c_2\right)$ is the Euclidean distance between the axis-aligned bounding box for the point cloud associated with the row cluster $r_1$, and the axis aligned bounding box for the point cloud associated with the column cluster $c_2$. The quantity $\diam\left(r_1\right)$ is the diameter of the axis aligned bounding box for the point cloud associated with the row cluster $r_1$, and $\diam\left(c_2\right)$ is the analogous diameter associated with the column cluster $c_2$. The quantity $\eta$ is a scalar constant; we use $\eta=2.0$. Basically, if the point clouds associated with $r_1$ and $c_2$ are far away from each other relative to their diameters, then we expect that the corresponding block of the matrix will be low rank. This process is repeated for the other blocks to determine which blocks are admissible and which are not. For us, the diagonal blocks $\widetilde{\mathcal{A}}_{11}$ and $\widetilde{\mathcal{A}}_{22}$ are not admissible because the distance between a point cloud and itself is zero. 
+
+Next, we subdivide all blocks that are not admissible and are larger than a predetermined size (we use size $32 \times 32$), using the same process that was used to subdivide $\mathcal{\widetilde{A}}$. But now we subdivide a block based on the two child row clusters and two child column clusters for the rows and columns of that block. This subdivision process continues recursively until all blocks are either admissible, or smaller than the predetermined size mentioned above. The resulting hierarchical partitioning of matrix blocks forms a tree (quad-tree in $2$D, or oct-tree in $3$D), which is called the \emph{block cluster tree}. The root of the tree is the whole matrix, internal nodes in the tree are blocks that are subdivided, and the leaves of the tree are blocks that are either expected to be low rank, or are small.
+
+%Note that the cluster trees and block cluster tree are computed using only the geometric information about the degree of freedom locations, and do not depend on the values of the matrix entries of $\widetilde{\mathcal{A}}$.
+
+\subsubsection{Adaptive cross low rank approximation of blocks}
+\label{sec:adaptive_cross}
+
+Once the block cluster tree has been constructed, low rank approximations of the admissible (low rank) blocks are formed using the adaptive cross method [CITE]. Let $X \in \mathbb{R}^{m \times m}$ be an admissible block of $\widetilde{\mathcal{A}}$. The idea of the adaptive cross method is to form a low rank approximation of $X$ by sampling a small number of rows and columns of $X$. 
+\begin{itemize}
+\item Let $C \in \mathbb{R}^{m \times r}$ be a matrix consisting of a subset of $r$ columns of $X$, such that the span of the columns in $C$ approximates the column space of $X$. 
+\item Let $R\in\mathbb{R}^{r \times m}$ be a subset of the rows of $X$, such that the span of the rows in $R$ approximates the row space of $X$.
+\item Let $U \in \mathbb{R}^{r \times r}$ be the block of $X$ consisting of the intersection of the rows from $R$ with the columns from $C$.
+\end{itemize}
+Then it is well-established that
+\begin{equation}
+\label{eq:CUR}
+	X \approx C U^+ R,
+\end{equation}
+where $U^+$ is the pseudoinverse of $U$ [CITE]. The quality of approximation \eqref{eq:CUR} depends on how well the columns of $C$ approximate the column space of $X$, and how well the rows of $R$ approximate the row space of $X$. 
+
+In the adaptive cross method, ``good'' columns, $C$, and rows, $R$, are chosen via an alternating iterative process. An initial set of columns $C$ is chosen. Keeping $C$ fixed, a set of rows $R$ is chosen so that the so that determinant of the submatrix $U$ within $C$ is as large as possible. This may be done via either the maxvol procedure [CITE GOOD SUBMATRIX], or via QR factorization. Now, keeping $R$ fixed, a set of new columns $C$ is chosen so that the submatrix $U$ within $R$ is as large as possible. This process repeats a small number of times. This results in matrices $R$ and $C$ such that the error in the approximation, \eqref{eq:CUR}, is small. The dominant cost of this procedure is the cost of computing $kr$ columns of $X$ and $kr$ rows of $X$, where $k$ is the number of alternating iterations. There is also a small linear algebra overhead cost for the determinant maximization process that is performed at each step. For more details on adaptive cross low rank approximation, see [CITE]. The key point is that the adaptive cross method allows us to form a rank-$r$ approximation of an $m \times m$ block of the matrix via a process that only requires accessing $O(mr)$ entries of that block.
+
+We use the adaptive cross method to form low rank approximations for each admissible block of $\widetilde{\mathcal{A}}$. We directly compute all entries of the small dense blocks of $\widetilde{\mathcal{A}}$ that are not admissible. This process requires us to compute $O(r^2 N \log N)$ entries of $\widetilde{\mathcal{A}}$, which is relatively cheap compared to the matrix-vector products with $\mathcal{A}$ that are required to form the product-convolution approximation $\widetilde{\mathcal{A}}$.
+
+
+\section{Interpolating impulse response samples old}
+
+We interpolate the functions $\varphi_{x_i}$ associated with the points $x_i \in S$, to generate functions $\varphi_x$ associated with new points $x \notin S$. This is done using a continuous generalization of the interpolative decomposition for matrices, wherein a select number of columns of a matrix are interpolated to fill the whole matrix. Interpolating $\varphi_x$ differs from interpolative low rank approximation of $\mathcal{A}$, which corresponds to interpolating $\langle\mathcal{A},\delta_x\rangle^*$. Because of the shifting that maps $\langle\mathcal{A}, \delta_x\rangle$ to $\varphi_x$, interpolation of $\varphi_{x_i}$ yields an approximation $\widetilde{\mathcal{A}}$ which can be high-rank. 
+
+The interpolation procedure requires a basis of smooth functions. We form this basis from smooth eigenmodes of the Laplacian on $\Omega$ with Neumann boundary conditions. The resulting approximation $\mathcal{A}$ may be interpreted as a weighted sum of convolution operators, with smooth spatially varying weighting functions. Kernel entries of the approximation, $\widetilde{A}(y,x)$, may be evaluated efficiently.
+
+\subsection{Interpolative factorization of the SVIR}
+\label{sec:interp_fact_svir}
+
+The \emph{spatially varying impulse response}, denoted $T$, is the reinterpretation of $\varphi_x(y)$ as a function of both $y$ and $x$:
+\begin{equation*}
+	T(y,x) := \varphi_x(y) = A(y+x,x).
+\end{equation*}
+Since $T(y,x)$ is smooth as a function of $x$ (Condition 1), the continuous analog of the row space of $T$ should be well-approximated by the span of a small number of orthonormal smooth functions, $\{u_k\}_{k=1}^r$. Condition 1, therefore, is equivalent to the existence of a low rank approximation $\widetilde{T}$ of $T$ of the form 
+\begin{equation}
+	\label{eq:formula_for_A}
+	T \approx \widetilde{T} = \Psi U
+\end{equation}
+where $\Psi:\mathbb{R}^d \times \{1,\dots,r\} \rightarrow \mathbb{R}$ is an unknown semi-discrete kernel with $r$ columns, and $U:\{1,\dots,r\} \times \Omega \rightarrow \mathbb{R}$ is the semi-discrete kernel with $r$ rows, such that the $i^\text{th}$ row of $U$ is the function $u_i$. That is,
+\begin{equation*}
+	U(i,x) = u_i(x).
+\end{equation*}
+The multiplication $K_1 K_2$ of kernels $K_1:X \times Y \rightarrow \mathbb{R}$ and $K_2:Y \times Z \rightarrow \mathbb{R}$ is defined as
+\begin{equation*}
+	\left(K_1 K_2\right)(x,z) := \sum_{y \in Y} K_1(x,y) K_2(y,z)
+\end{equation*}
+if $Y$ is a discrete set, and
+\begin{equation*}
+	\left(K_1 K_2\right)(x,z) := \int_Y K_1(x,y) K_2(y,z) dy	
+\end{equation*}
+if $Y\subset \mathbb{R}^d$ is a domain.
+
+The number of smooth functions, $r$, required to well-approximate $T$ using \eqref{eq:formula_for_A} can be small even if the numerical rank of $\mathcal{A}$ is large. For example, let $\varphi$ be any convolution kernel, and suppose $\mathcal{A}$ is the convolution operator $\left(\mathcal{A}v\right)^* := \varphi \ast v$. The rank of $\mathcal{A}$ can be made arbitrarily large or small by changing the convolution kernel $\varphi$. At the same time, $T=\Psi U$ holds with $r=1$, where $\Psi(x,1):= \varphi(x)$ and $U(1,x):=1$.
+
+We may determine $\Psi$ using a continuous analog of the process used to form the interpolative matrix factorization Let $S:=\{x_j\}_{j=1}^q \subset \Omega$ be the set of $q \ge r$ sample points determined by the method in Section \ref{sec:choosing_sample_points}, and define $T_S:\Omega \times \{1,\dots,q\}\rightarrow\mathbb{R}$ to be the semi-discrete kernel with $i^\text{th}$ column $\varphi_{x_i}$. That is,
+\begin{equation*}
+	T_S(y,i):= \varphi_{x_i}(y) = T(y,x_i).	
+\end{equation*}
+Further, let $U_S$ be the $r \times q$ matrix with $(i,j)$ entry given by $u_i(x_j)$, and assume that the points $x_i$ are chosen such that $U_S$ has full row rank. This is not difficult; for example, if the points $x_i$ were chosen uniformly at random then $U_S$ would have full rank almost surely. Indeed, with uniform random points, $\frac{|\Omega|}{q}\left(U_S U_S^T\right)_{ij}$ is a Monte-Carlo approximation of $\langle u_i, u_j \rangle_{L^2(\Omega)}$, where $|\Omega|$ is the total volume of the domain $\Omega$. Thus $\frac{|\Omega|}{q}\left(U_S U_S^T\right) \rightarrow I$ as $q \rightarrow \infty$, where $I$ is the identity matrix. This implies $\sigma_\text{min} \rightarrow \sqrt{q/|\Omega|}$ as $q \rightarrow \infty$, where $\sigma_\text{min}$ is the minimum singular value of $U_S$. We do not use uniform random sampling to choose the points, but the way we choose points does achieve relatively uniform coverage of the domain.
+
+Restricting the second input of both sides of the equation \eqref{eq:formula_for_A} to points in $S$, we have
+\begin{equation}
+\label{eq:A_I_equals_X_U_I}
+\widetilde{T}_S = \Psi U_S.
+\end{equation}
+Multiplying both sides of \cref{eq:A_I_equals_X_U_I} by the Moore-Penrose pseudoinverse of $U_S$, denoted $U_S^+$, and using the fact that $U_S$ has full row rank, yields
+\begin{equation}
+\label{eq:formula_for_X}
+\widetilde{T}_S U_S^+ = \Psi.
+\end{equation}
+Substituting the left hand side of \eqref{eq:formula_for_X} for $\Psi$ into \eqref{eq:formula_for_A} yields the following interpolative-type low rank factorization $\widetilde{T}$ of $T$:
+\begin{equation}
+\label{eq:interpolative_decomposition0}
+T \approx \widetilde{T} = T_S U_S^+ U.
+\end{equation}
+%We will quantify the accuracy of this approximation in Theorem \ref{thm:smooth_basis_err} in Section \ref{sec:error_estimate_adaptive_algorithm}. 
+
+%Briefly, the error will be small when (1) $\mathcal{U}$ well-approximates the row space of $\mathcal{T}$, and (2) the smallest singular value of $\mathcal{U}_X$ is not small.
+
+\subsection{Smooth basis of Laplacian eigenmodes}
+
+For the basis of smooth functions $u_i$, we use the dominant eigenfunctions of the inverse Laplacian on $\Omega$ with Neumann boundary conditions. This basis of inverse Laplacian eigenfunctions generalizes the Fourier basis to non-rectangular domains. Let $\Delta_N^{-1}$ denote the solution operator for the following PDE:
+\begin{equation}
+\label{eq:laplacian_pde}
+\begin{cases}
+-\Delta u =f, & \text{in } \Omega, \\
+n \cdot \nabla u = 0, & \text{on } \partial \Omega, \\
+\int_\Omega u dx = 0, &
+\end{cases}	
+\end{equation}
+where $\Delta$ is the Laplacian and $n$ is the normal to $\partial \Omega$. That is, $\Delta_N^{-1}$ is the map from source $f$ to PDE solution $u$. The first smooth basis function used for interpolation is the constant function $u_1(x):=1$. The remaining smooth basis functions, $u_2, u_3, \dots, u_r$, are the eigenfunctions corresponding to the $r-1$ largest eigenvalues of $\Delta_N^{-1}$. These eigenfunctions may be computed efficiently using randomized SVD \cite{HMT11}, Krylov methods such as Lanczos, power iterations with deflation, or other methods. We use randomized SVD. All of these methods require the ability to apply $\Delta_N^{-1}$ to given vectors, which amounts to solving PDE \eqref{eq:laplacian_pde} with the given vector as the right hand side source. Highly efficient multigrid schemes exist for solving this PDE.
+%; we use an algebraic multigrid implementation in PyAMG.
+
+
+\subsection{Action of the approximate operator}
+
+Defining
+\begin{equation*}
+	W := U_S^+ U,
+\end{equation*}
+we may write $\widetilde{T}$ as
+\begin{equation*}
+	\widetilde{T} = T_S W.	
+\end{equation*}
+Using the definition of $T_S$, we may write the entries of the resulting approximation to $A$ as
+\begin{equation}
+\label{eq:H_kernel_entries}
+	\widetilde{A}(y,x) = \widetilde{T}(y-x,x) = \sum_{i=1}^q w_i(x) \varphi_{x_i}(y-x) 
+\end{equation}
+where the functions $w_i(x):=W(i,x)$ are the rows of $W$, which are linear combinations of the functions $u_i$.
+%Since the Laplacian eigenfunctions $u_i$ are defined on $\Omega$, the weighting functions $w_i$ are defined on all of $\Omega$, so $T$ and $H$ are defined on $\mathbb{R}^d \times \Omega$. However, the error estimate we present in the next section will only be valid for these operators on $\mathbb{R}^d \times \Omega_I$. 
+From \eqref{eq:H_kernel_entries}, we derive the action of $\widetilde{\mathcal{A}}$ as
+\begin{align*}
+	\left(\widetilde{\mathcal{A}}u\right)(v) &= \int_\Omega \int_\Omega v(y) \widetilde{A}(y,x)u(x) dx dy \\
+	&= \int_\Omega \int_\Omega v(y) \widetilde{T}(y-x,x)u(x) dx dy \\
+	&= \int_\Omega \int_\Omega v(y) \left(\sum_{i=1}^q  \varphi_{x_i}(y-x) w_i(x)\right) u(x) dx dy \\
+	&= \int_\Omega v(y) \sum_{i=1}^q \int_\Omega \varphi_{x_i}(y-x) w_i(x) u(x) dx dy\\
+	&= \int_\Omega v(y) \left(\sum_{i=1}^q \varphi_{x_i} \ast \left(w_i \cdot u\right)\right)(y) dy,
+\end{align*}
+which implies
+\begin{equation*}
+	\left(\widetilde{\mathcal{A}} u	\right)^* = \sum_{i=1}^q \varphi_{x_i} \ast \left(w_i \cdot u\right)
+\end{equation*}
+Here $f \ast g$ denotes the convolution of the functions $f$ and $g$. Thus, $\widetilde{\mathcal{A}}$ is a weighted sum of convolution operators with smooth spatially varying weighting functions.
+
+
+
+\section{Adaptive algorithm}
+\label{sec:error_estimate_adaptive_algorithm}
+
+In this section we bound the error in the approximation to $T$ (Theorem \ref{thm:smooth_basis_err}), and use this bound to drive an adaptive algorithm (Algorithm \ref{alg:adaptive}) for constructing the approximation. 
+
+\begin{thm}
+	\label{thm:smooth_basis_err}
+	Let $\sigma_\text{min}$ be the smallest singular value of $U_S$, and let
+	\begin{equation*}
+		\gamma(q) := \sigma_\text{min} \sqrt{\frac{q}{|\Omega|}},
+	\end{equation*}
+	where $|\Omega|$ is the measure of $\Omega$. We have
+	\begin{equation*}
+		\|T - T_S U_S^+ U\|_2 \le \left(1 + \frac{|\Omega|}{\gamma(q)} \right)\|T - TU^TU\|_2,
+	\end{equation*}
+	where $\sigma_\text{min}$ is the smallest singular value of $U_S$, and $\nor{\mathcal{A}}$ is the induced norm for the operator $\mathcal{A}$.
+\end{thm}
+
+\begin{proof}
+	Let $\widehat{T} := TU^TU$, and let $\widehat{T}_S:\mathbb{R}^d \times \{1,\dots,q\} \rightarrow \mathbb{R}$ be the semi-discrete kernel defined by
+	\begin{equation*}
+		\widehat{T}_S(y,i) = \widehat{T}_S(y,x_i).
+	\end{equation*}
+	Using the triangle inequality yields
+	\begin{equation}
+		\nor{T - T_S U_S^+ U}_2 \le \nor{T - \widehat{T}_S U_S^+ U}_2 
+		+ \nor{\left(T_S - \widehat{T}_S\right) U_S^+ U}_2 \label{eq:two_bound_align}
+	\end{equation}
+	For the first term, note that $\widehat{T}_S = T U^T U_S$, so 
+	\begin{equation*}
+		\widehat{T}_S U_S^+ U = T U^T U_S U_S^+ U = T U^T U = \widehat{T}.
+	\end{equation*}
+	Thus,
+	\begin{equation}
+	\label{eq:A_nogamma}
+	\nor{T - \widehat{T}_S U_S^+ U }_2 = \nor{T - \widehat{T}}_2.
+	\end{equation}
+	We estimate the second term as:
+	\begin{equation*}
+		\nor{\left(T_S - \widehat{T}_S\right) U_S^+ U}_2 \le \nor{T_S - \widehat{T}_S}_2 \nor{U_S^+}_2 \nor{U}_2 = \frac{1}{\sigma_\text{min}} \nor{T_S - \widehat{T}_S}_2	
+	\end{equation*}	
+%	\begin{align*}
+%		\nor{\left(T_S - \widehat{T}_S\right) U_S^+ U}_2 &\le \nor{T_S - \widehat{T}_S}_2 \nor{U_S^+ U}_2 \\
+%		&\le \sqrt{q}\nor{T_S - \widehat{T}_S}_1 \nor{U_S^+ U}_2 \\
+%		&\le \sqrt{q}\nor{T_S - \widehat{T}_S}_1 \nor{U_S^+}_2 \nor{U}_2 = \frac{\sqrt{q}}{\sigma_\text{min}} \nor{T_S - \widehat{T}_S}_1. 
+%	\end{align*}
+	where we used the facts that $\nor{U_S^+}_2 = 1/\sigma_\text{min}$ and $\nor{U}_2=1$. By H\"older's inequality, we have 
+	\begin{equation*}
+		\nor{T - \widehat{T}}_{2} \le |\Omega|^{1/2} \nor{T - \widehat{T}}_{2,1}.
+	\end{equation*}
+	
+	
+	To estimate this term further, let $\delta_{x_i}^\epsilon \in L^1(\Omega)$ be an $\epsilon$-approximation to $\delta_{x_i}$ with norm $\|\delta_{x_i}^\epsilon\|_1=1$, defined as
+	\begin{equation*}
+		\delta_{x_i}^\epsilon(x) := \begin{cases}
+			1 / \vol(B_\epsilon(x_i)), & x \in B_\epsilon(x_i), \\
+			0, & \text{otherwise},
+		\end{cases}
+	\end{equation*}
+	where $B_\epsilon(x_i)$ is the ball of radius $\epsilon$ centered at $x_i$, and $\vol(B_\epsilon(x_i))$ is the volume of this ball.
+	We have
+	\begin{align*}
+		\nor{T_S - \widehat{T}_S}_1 &= \max_{i \in 1,2,\dots,q} \|T(~\cdot~,x_i) - \widehat{T}(~\cdot~,x_i)\|_1\\
+		&= \|T(~\cdot~,x_k) - \widehat{T}(~\cdot~,x_k)\|_1 \\
+		&= \lim_{\epsilon \rightarrow 0} \nor{(T-\widehat{T}) \delta_{x_k}^\epsilon}_1 \\
+		&\le \sup_{\|v\|_1=1} \nor{(T - \widehat{T}) v}_1 = \nor{T - \widehat{T}}_1,
+	\end{align*}
+	where $k$ is the index achieving the maximum in the first line. Thus
+	\begin{equation}
+	\label{eq:_gamma_A_bound}
+	\nor{\left(T_S - \widehat{T}_S\right) U_S^+ U}_2 \le \frac{\sqrt{q}}{\sigma_\text{min}}\nor{T - \widehat{T}}_1.
+	\end{equation}
+	The proposition follows from substituting bounds \eqref{eq:A_nogamma} and \eqref{eq:_gamma_A_bound} into \eqref{eq:two_bound_align}.
+\end{proof}
+
+Theorem \ref{thm:smooth_basis_err} shows that the error in our approximation depends on (1) how well the row space of $\mathcal{U}$ captures the row space of $\mathcal{T}$ (smaller $\|\mathcal{T} - \mathcal{T}\mathcal{U}^T\mathcal{U}\|$ $\implies$ less error), and (2) the minimum singular value of $\mathcal{U}_X$ (larger $\sigma_\text{min}$ $\implies$ less error). We can decrease $\|\mathcal{T} - \mathcal{T}\mathcal{U}^T\mathcal{U}\|$ by including more functions $u_i$ in $\mathcal{U}$. We can increase $\sigma_\text{min}$ by incorporating more batches of sample points $X_b$ in the approximation. But if $\sigma_\text{min}>1$, there are diminishing returns to making $\sigma_\text{min}$ bigger. By analogy to constrained optimization, $\|\mathcal{T} - \mathcal{T}\mathcal{U}^T\mathcal{U}\|$ is like an objective function to be minimized, while ensuring $\sigma_\text{min}$ is not small is like a constraint to be satisfied. We therefore increase the accuracy of the approximation by including more functions in $\mathcal{U}$, adding more batches of sample points as needed to ensure $\sigma_\text{min} > 1$.
+
+The error in the approximation for batches $1,\dots,b$ is estimated with the the error for the next batch
+\begin{equation*}
+	\mathcal{E} := \frac{\nor{\eta^{b+1} - \widetilde{\eta}^{b+1}}}{\nor{\eta^{b+1}}},
+\end{equation*}
+where $\eta^{b+1}$ and $\widetilde{\eta}^{b+1}$ are the responses of $\mathcal{H}$ and $\widetilde{\mathcal{H}}$, respectively, to the Dirac comb at the next batch $\mathtt{S}_{b+1}$ of sample points, that were not used in the approximation $\widetilde{\mathcal{H}}$ yet. Entries of $\widetilde{\eta}_{b+1}$ take the form
+\begin{equation}
+\label{eq:eta_test}
+	\widetilde{\eta}^{b+1}(y_k) = \sum_{x_j \in S_{b+1}} \widetilde{H}(y_k,x_j),
+\end{equation}
+which we compute using Algorithm \ref{alg:H_entries} for all degree of freedom locations $y_k$ for the discretization of the problem.
+If $\mathcal{E}$ is larger than a desired tolerance, we compute more eigenmodes of $\Delta_N^{-1}$ and add those modes to the basis $\mathcal{U}$. Adding more functions to $\mathcal{U}$ may change $\sigma_\text{min}$. If $\sigma_\text{min}<1$ after this change, we select new batches of sample points and incorporate them in the approximation until $\sigma_\text{min} \ge 1$ once again. This process repeats until $\mathcal{E}$ is less than the desired tolerance. Each time an additional batch is needed, we compute another batch for testing, and incorporate the batch that was previously used for testing into the approximation. Once the desired accuracy is reached, we incorporate the last batch that was used for testing into the approximation to increase the accuracy further.
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+%	\Input{Function $v \mapsto \mathcal{H}v$\\
+%		Function $v \mapsto \mathcal{H}^Tv$
+%	}
+	
+%	\mbox{}\\
+	
+%	\Output{Responses $\eta^1, \dots, \eta^b, \eta^\text{test}$ of $\mathcal{H}$ to Dirac combs \\
+%		Basis of smooth functions $u_1, \dots, u_r$ \\
+%		Interpolation pseudoinverse $\mathcal{U}_X^+$}
+	%	\Begin{
+	{
+
+		Determine $\Omega_I$ with Algorithm \ref{alg:boundary_region} 
+		
+		Compute $\mu$ and $\Sigma$ with Algorithm \ref{alg:varhpi_mean_cov} 
+		
+		Select first sample point batch $S_1$ (Section \ref{sec:choosing_sample_points})
+		
+		Compute $\eta^1$ (Section \ref{sec:get_impulse_response})
+
+		Set $S = \{\}$ and $b=0$
+		
+%		Form $\mathbf{X} \in \mathbb{R}^{d \times N}$ as the array of all degree of freedom coordinates
+%		
+%		$\mathtt{C} \gets \mathtt{I}$
+%		
+%		$b=0$
+%		
+%		$\mathtt{S}_1 \gets \choosebatch{\mathtt{C}}$ \tcp*{Algorithm \ref{alg:point_choice}}
+%		
+%		$\mathtt{C} \gets \mathtt{C} \setminus \mathtt{S}_1$
+%		
+%		$\boldsymbol{\eta}_1 \gets \computediracresponse{\mathtt{S}_1}$ \tcp*{Algorithm \ref{alg:dirac_comb_response}}
+%		
+%		$\mathtt{S} \gets \{\}$
+		
+		\For{$k=1,2,\dots,$}{
+		
+			Compute $u_k$ as the $k^\text{th}$ eigenfunction of $\Delta_N^{-1}$ 
+			
+%			\tcp{$U_S$ is the matrix with entries $\left(U_S\right)_{ij} = u_i(x_j)$ for $x_j\in S$}
+
+%			\If{$U_S$ has less columns than rows}{
+%				Select more sample point batches until $U_S$ has more columns than rows
+%				
+%				Compute functions $\eta^b$ for the new sample point batches
+%			}
+			
+			\While{$|S| < k$}{
+				
+				Set $b=b+1$
+				
+				Set $S=S\cup S_b$
+				
+				Select new sample point batch $S_{b+1}$
+				
+				Form $\eta^{b+1}$
+				
+%				Form Dirac comb $\xi^b$ associated with $S_b$ and compute $\eta^b=\mathcal{A}\xi^b$ 
+%				
+%				Add new columns to $U_S$ corresponding to points $x_j \in S_b$
+%				
+%				Add new columns to $U_S$ corresponding to points $x_j \in S_b$
+%				
+%				$b \gets b+1$
+%			
+%				$\mathtt{S} \gets \mathtt{S} \cup \mathtt{S}_b$
+%				
+%				$\mathtt{S}_{b+1} \gets \choosebatch{\mathtt{C}}$
+%				
+%				$\mathtt{C} \gets \mathtt{C} \setminus \mathtt{S}_{b+1}$
+%				
+%				$\boldsymbol{\eta}_{b+1} \gets \computediracresponse{\mathtt{S}_{b+1}}$
+				
+			}
+		
+			Compute $\widetilde{\eta}^{b+1}$ using formulas \eqref{eq:eta_test} and \eqref{eq:kernel_entry_formua}.
+			
+			\If{$\displaystyle\frac{\nor{\eta^{b+1} - \widetilde{\eta}^{b+1}}}{\nor{\eta^{b+1}}}$ is sufficiently small}{
+			
+				Terminate for loop
+			
+			}
+		
+		}
+	
+		Set $S = S \cup S_{b+1}$
+		
+		Add new columns to $U_S$ corresponding to points $x_j \in S_b$
+	
+%		$\mathtt{Q} \gets \mathtt{Q} \cup \mathtt{Q}_\text{test}$
+	
+%		\Return{$\mu, \Sigma$, $\eta^1, \dots, \eta^b, \eta^\text{test}$, $u_1, \dots, u_r$, $\mathcal{U}_X^+$}
+
+	}
+	\caption{Adaptive approximation of $\mathcal{H}$}
+	\label{alg:adaptive}
+\end{algorithm2e}
+
+\section{Hierarchical matrix construction}
+
+\section{Numerical results}
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+Some conclusions here. 
+
+\appendix
+
+
+\section{Fast ellipsoid intersection test}
+\label{sec:fast_ellipsoid_intersection_test}
+The procedure for choosing sample points relies on quickly determining whether two ellipsoids intersect. Let $E_p$ and $E_q$ be the ellipsoids defined as
+\begin{align*}
+	E_p :=& \{x : (x - \mu_p)^T \Sigma_p^{-1} (x - \mu_p) \le \tau^2\} \\
+	E_q :=& \{x : (x - \mu_q)^T \Sigma_q^{-1} (x - \mu_q) \le \tau^2\}, \\
+\end{align*}
+where $\mu_p, \mu_q \in \mathbb{R}^d$, and $\Sigma_p, \Sigma_q \in \mathbb{R}^{d \times d}$ are positive definite. Let $K$ be the following one dimensional convex function:
+\begin{equation*}
+	K(s) := 1 - \frac{1}{\tau^2} (\mu_p - \mu_q)^T \left(\frac{1}{1-s}\Sigma_p + \frac{1}{s}\Sigma_q\right)^{-1}(\mu_p - \mu_q)	
+\end{equation*}
+In CITE it is shown that $E_p \cap E_q = \{\}$ if and only if $K(s) < 0$ for some $s\in (0,1)$. We check whether $E_p$ and $E_q$ intersect by minimizing $K(s)$ on $(0,1)$. If $K(s^*) <0$ at the minimizer $s^*$, then $E_p \cap E_q = \{\}$. Otherwise $E_p \cap E_q \neq \{\}$.
+
+The function $K(s)$ may be evaluated quickly for many $s$ by pre-computing the solution to the generalized eigenvalue problem
+\begin{equation*}
+	\Sigma_p \Phi = \Sigma_q \Phi \Lambda,
+\end{equation*}
+where $\Phi \in \mathbb{R}^{d \times d}$ is the matrix of generalized eigenvectors (which may be non-orthogonal), and $\Lambda = \diag(\lambda_1,\lambda_2,\dots,\lambda_d)$ is the diagonal matrix of generalized eigenvalues $\lambda_i$. The matrix $\Phi$ simultaneously diagonalizes $\Sigma_p$ and $\Sigma_q$, in the sense that $\Phi^T\Sigma_p\Phi = \Lambda$, and $\Phi^T\Sigma_q\Phi = I$, where $I$ is the $d \times d$ identity matrix. Using this diagonalization, and some algebraic manipulations, we may write $K(s)$ as
+\begin{equation}
+\label{eq:Ks_generalized}
+K(s) = 1 - \frac{1}{\tau^2} \sum_{i=1}^d \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2,
+\end{equation}
+where $v := \Phi^T\left(\mu_p - \mu_q\right)$. We compute the generalized eigenvalue decomposition of $\Sigma_p$ and $\Sigma_q$, then minimize $K(s)$ in the form \eqref{eq:Ks_generalized} on the interval $(0,1)$ using Brent's algorithm (any fast 1 dimensional convex optimization routine may be used). The resulting algorithm for checking whether $E_p$ and $E_q$ intersect is summarized in Algorithm \ref{alg:ellipsoid_intersection_test}.
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	\SetKwProg{Fn}{Function}{}{}
+	\Input{Ellipsoid $E_p$ with mean $\mu_p$ and covariance $\Sigma_p/\tau^2$\\
+		Ellipsoid $E_q$ with mean $\mu_q$ and covariance $\Sigma_q/\tau^2$ 
+	}
+	
+	\Output{Boolean which is true if $E_p \cap E_q \neq \{\}$ and false otherwise}
+	
+	\mbox{}\\
+	
+	\Fn{$\ellipsoidsintersect{E_p}{E_q}$}
+	{
+		Solve generalized eigenvalue problem $\Sigma_p \Phi = \Sigma_q \Phi \Lambda$
+		
+		$v \gets \Phi^T\left(\mu_p - \mu_q\right)$
+		
+		$\displaystyle K^* \gets \min_{s \in (0,1)}~1 - \frac{1}{\tau^2} \sum_{i=1}^d \frac{s(1-s)}{1 + s (\lambda_i - 1)}v_i^2$
+		
+		\If{$K^* < 0$}{
+			
+			\Return{False}
+			
+		}
+		\Else{
+			
+			\Return{True}
+			
+		}
+	}
+	\caption{Determining whether two ellipsoids intersect}
+	\label{alg:ellipsoid_intersection_test}
+\end{algorithm2e}
+
+\section{Additional theory}
+\label{app:proofs}
+
+These results rely on straightforward prerequisites that we present in Lemma \ref{lem:T_is_linear}. We prove correctness of Algorithm \ref{alg:weighting_functions_incremental} in Theorem \ref{thm:wi_alg_is_correct}. Theorem \ref{thm:wi_alg_is_correct} relies on a prerequisite result which we present in Lemma \ref{lem:psi_delta_eval}.
+
+\begin{lem}[Preparation for Theorem \ref{thm:smoothest_interpolant}]
+	\label{lem:T_is_linear}
+	Let $f \in \mathbb{R}^r$. There exists a unique solution to the following optimization problem:
+	\begin{equation}
+	\label{eq:generic_optimization_initial}
+	\begin{aligned}
+	\min_{u \in H^2_N(\Omega)} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
+	\text{such that} &\quad u(x_i) = f_i, \quad i=1,\dots,r.
+	\end{aligned}
+	\end{equation}
+	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization_initial}	as a function of $f$. That is, 
+	\begin{equation*}
+	\mathcal{T}(f) := u^*,
+	\end{equation*}
+	where $u^*$ is the minimizer of \eqref{eq:generic_optimization_initial}. The operator $\mathcal{T}$ is a linear operator.
+\end{lem}
+\begin{proof}
+	asdf
+\end{proof}
+
+
+\begin{proof}[Proof of Theorem \ref{thm:smoothest_interpolant}]
+	Let $f = (\varphi_1(y), \varphi_2(y), \dots, \varphi_r(y))$ and let $e_i = (0,\dots,0,1,0,\dots,0)$ be the length $r$ vector with $i^\text{th}$ component equal to one and all other components equal to zero. The solution to optimization problem \eqref{eq:uy_optimization_problem} is given by
+	\begin{align*}
+	\mathcal{T}(f) &= \varphi_1(y) \mathcal{T}(e_1) + \varphi_2(y) \mathcal{T}(e_2) + \dots +\varphi_r(y) \mathcal{T}(e_r) \\
+	&= \varphi_1(y) w_1 + \varphi_2(y) w_2 + \dots +\varphi_r(y) w_r \\
+	&= u.
+	\end{align*}
+	In the first line we used linearity of the solution map, $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), in the second line we used the fact that $w_i = \mathcal{T}(e_i)$, and in the third line we used the definition of $u$ in \eqref{eq:u_defn_in_thm}.
+\end{proof}
+
+\begin{proof}[Proof of Proposition \ref{thm:wi_sum_to_one}]
+	By linearity of $\mathcal{T}$ (Lemma \ref{lem:T_is_linear}), we have
+	\begin{equation*}
+	\sum_{i=1}^r w_i(x) = \sum_{i=1}^r \mathcal{T}(e_i)(x) = \mathcal{T}\left(\sum_{i=1}^r e_i\right)(x) = \mathcal{T}(\mathbf{1})(x) = 1,
+	\end{equation*}
+	where $\mathbf{1} = (1,1,\dots,1)$ is the length $r$ vector which has all components equal to one. The last equality ($\mathcal{T}(\mathbf{1})(x) = 1$) holds because the constant function $C \in H^2(\Omega)$, $C(x)=1$, satisfies the constraint of optimization problem \eqref{eq:generic_optimization_initial} with $f = \mathbf{1}$, and yields the minimum possible value of zero for the objective function.
+\end{proof}
+
+\begin{lem}[Preparation for Theorem \ref{thm:wi_alg_is_correct}]
+	\label{lem:psi_delta_eval}
+	We have
+	\begin{equation}
+	\label{eq:inline_wi_lemma}
+	h(x_j) = \left(\psi_j, \Delta h\right)_{L^2(\Omega)} + \avg(h)
+	\end{equation}
+	for all $h\in H^2_N(\Omega)$, where
+	\begin{equation*}
+	\avg(h) :=	 \frac{1}{|\Omega|} \int_\Omega h ~dx,
+	\end{equation*}
+	and $|\Omega| = \int_\Omega 1 ~dx$ is the Lebesgue measure of $\Omega$.
+\end{lem}
+
+\begin{proof}
+	The result follows from multiplying \eqref{eq:psi_eq} by $h$, integrating both sides of the equation over $\Omega$, performing integration by parts to move derivatives from $\psi_j$ onto $h$, and using the Neumann zero boundary conditions for $\psi_j$ and $h$ to eliminate boundary integral terms.
+\end{proof}
+
+\begin{proof}[Proof of Theorem \ref{alg:weighting_functions_incremental}]
+	For notational convenience, in this proof we write $w$, $\lambda$, and $e$ instead of $w_i$, $\lambda_i$, and $e_i$, respectively. Here subscripts for $\lambda$, and $e$ instead denote components of those vectors. For example, here $\lambda_j$ denotes the $j^\text{th}$ component of the vector $\lambda$, which corresponds to the $j^\text{th}$ component of the vector $\lambda_i$ in Algorithm \ref{alg:weighting_functions_incremental}.
+	
+	From standard optimization theory, the solution to optimization problem \ref{eq:wi_optimization_problem} is the stationary point of the Lagrangian,
+	\begin{equation*}
+	\mathcal{L}(w,\lambda) = \frac{1}{2}\|\Delta w\|^2 + \sum_{j=1}^r \lambda_j\left(w(x_j) - e_j\right).
+	\end{equation*}
+	The plan of this proof is to show that $\nabla \mathcal{L}(w,\lambda)=0$, which will verify that $w$ solves optimization problem \ref{eq:wi_optimization_problem}.
+	
+	Using the definition of $w_i$ in \eqref{eq:definition_of_wi_alg}, we may write the gradient of $\mathcal{L}$ with respect to $\lambda_j$ as
+	\begin{equation*}
+	\nabla_{\lambda_j} \mathcal{L}(w, \lambda) = w(x_j) - e_j
+	= \alpha - \sum_{k=1}^r \lambda_k \theta_k(x_j) - e_j.
+	\end{equation*}
+	Using Lemma \ref{lem:psi_delta_eval} with $h=\theta_k$, the equation for $\theta_k$ in \eqref{eq:theta_eq}, and the definition of $S$ in \eqref{eq:defn_of_S_alg}, we have
+	\begin{align*}
+	\sum_{k=1}^r \lambda_k \theta_k(x_j) &= \sum_{k=1}^r \lambda_k \left(\psi_j, \Delta \theta_k\right)_{L^2(\Omega)}\\
+	&= \sum_{k=1}^r \lambda_k \left(\psi_j, \psi_k\right)_{L^2(\Omega)} = \left(S \lambda\right)_j.
+	\end{align*}
+	Combining all of these components of $\nabla_\lambda \mathcal{L}$ into a single vector and using the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} yields
+	\begin{align*}
+	\nabla_\lambda \mathcal{L}(w, \lambda) &= \alpha \mathbf{1} - e - S \lambda \\
+	&= \alpha \mathbf{1} - e - S \left(-S^{-1}\left(e - \alpha \mathbf{1}\right)\right) = 0.
+	\end{align*}
+	
+	Taking the directional derivative of $\mathcal{L}$ with respect to $w$ in direction $h$ and using Lemma \ref{lem:psi_delta_eval} yields
+	\begin{align}
+	\nabla_w \mathcal{L}(w, \lambda)h &= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} + \sum_{j=1}^r \lambda_j h(x_j) \nonumber \\
+	&= \left(\Delta w, \Delta h\right)_{L^2(\Omega)} + \sum_{j=1}^r \lambda_j \left(\psi_j, \Delta h\right)_{L^2(\Omega)} + \lambda_j \avg(h) \nonumber \\
+	&= \left(\Delta w + \sum_{j=1}^r \lambda_j \psi_j,~ \Delta h\right)_{L^2(\Omega)} + \avg(h) \mathbf{1}^T \lambda. \label{eq:L_w_38}
+	\end{align}
+	Using the definition of $w$ in Algorithm \ref{alg:weighting_functions_incremental}, and the fact that the Laplacian of a constant function is zero, we have
+	\begin{equation*}
+	\Delta w = -\sum_{j=1}^r \lambda_j \Delta \theta_j 
+	= -\sum_{j=1}^r \lambda_j \psi_j,
+	\end{equation*}
+	which implies that the first term in \eqref{eq:L_w_38} is zero. By the definition of $\lambda$ in \eqref{eq:definition_of_mu_alg} and $\alpha$ in \eqref{eq:definition_of_alpha_alg}, we have
+	\begin{align*}
+	\mathbf{1}^T \lambda &= -\mathbf{1}^T S^{-1} \left(e - \alpha \mathbf{1}\right) \\
+	&= -\mathbf{1}^T S^{-1} e + \alpha \mathbf{1}^T S^{-1} \mathbf{1} \\
+	&= -\mathbf{1}^T S^{-1} e + \frac{\mathbf{1}^T S^{-1} e}{\mathbf{1}^T S^{-1} \mathbf{1}} \mathbf{1}^T S^{-1} \mathbf{1} = 0,
+	\end{align*}
+	which implies that the second term in \eqref{eq:L_w_38} is zero. Thus $\nabla_w \mathcal{L}(w, \lambda) = 0$, so Algorithm \ref{alg:weighting_functions_incremental} produces the solution to optimization problem \ref{eq:wi_optimization_problem}.
+\end{proof}
+
+
+
+%\begin{proof}[Proof of Proposition \ref{prop:boundary_source}]
+%	Let $w \in L^2(\Omega)$ be arbitrary. We have
+%	\begin{align*}
+%		\langle\mathcal{A}^T, \delta_{\partial \Omega}\rangle(w) =& \int_\Omega w(y) \int_{\partial \Omega} A(y,x) dy dx \\
+%		=& \int_\Omega w(x) \int_{\partial \Omega} \varphi_x(y-x) dy dx = \left(w, z\right)_{L^2(\Omega)},
+%	\end{align*}
+%	where
+%	\begin{equation*}
+%		z(x) := \int_{\partial \Omega} \varphi_x(y-x) dy,	
+%	\end{equation*}
+%	which implies
+%	\begin{equation*}
+%		\langle\mathcal{A}^T, \delta_{\partial \Omega}\rangle^*(x) = z = \int_{\partial \Omega} \varphi_x(y-x) dy.
+%	\end{equation*}
+%	Since $\varphi_x$ is a non-negative function, the result follows from the fact that the integral of a non-negative function over a set of positive measure is zero if and only if the function is zero almost everywhere on that set.
+%\end{proof}
+
+
+\begin{proof}[Proof of Theorem \ref{thm:vol_mean_cov}]
+	Let $w \in L^2$ be arbitrary. We have
+	\begin{align*}
+		\left(w, \alpha\right)_{L^2(\Omega)} =& \int_\Omega w(x) \int_{\Omega} \langle\mathcal{A},\delta_x\rangle^*(z) dz dx\\
+		=& \int_\Omega w(x) \int_{\Omega} A(z,x) dz dx \\
+		=& \int_\Omega \int_\Omega w(x) A(z,x) C(z) dz dx \\
+		=& \left(\mathcal{A}^T C\right)(w),
+	\end{align*}
+	which implies \eqref{eq:vol_mean_var_thm1}. 
+	
+	Using similar techniques, we have
+	\begin{align*}
+		\left(w, \alpha \cdot \mu^i\right)_{L^2(\Omega)} =& \int_\Omega w(x) \alpha(x) \int_{\Omega} z^i \langle\mathcal{A},\delta_x\rangle^*(z)/\alpha(x) dz dx\\
+		=& \int_\Omega \int_\Omega w(x) L^i(z) A(z,x) dz dx \\
+		=& \left(\mathcal{A}^T L^i\right)(w),
+	\end{align*}
+	which implies \eqref{eq:vol_mean_var_thm2}. 
+	
+	To prove \eqref{eq:vol_mean_var_thm3} we use the identity
+	\begin{equation*}
+		\Sigma(x) = \int_\Omega zz^T \rho_x(z) dz - \mu(x) \mu(x)^T.
+	\end{equation*}
+	We have
+	\begin{align*}
+		\left(w, \alpha \cdot \left(\Sigma^{ij}+\mu^i \cdot \mu^j\right)\right)_{L^2(\Omega)} =& \int_\Omega w(x) \alpha(x) \int_\Omega z^i z^j \langle\mathcal{A},\delta_x\rangle^*(z) / \alpha(x) dz dx \\
+		=& \int_\Omega \int_\Omega w(x) Q^{ij}(z) A(z,x) dz dx \\
+		=& \left(\mathcal{A}Q^{ij}\right)(w),
+	\end{align*}
+	which implies \eqref{eq:vol_mean_var_thm3}.
+	
+\end{proof}
+
+\section{Discretization}
+\label{sec:discretization}
+
+Let $\phi_i$, $i=1,\dots,N$ be a set of finite element basis functions, and let
+\begin{equation*}
+V_h = \Span\left(\phi_1, \phi_2, \dots, \phi_N\right).
+\end{equation*}
+be the corresponding  finite element space approximating $L^2(\Omega)$. Here $V_h$ inherits the $L^2$ inner product, and $h$ denotes the mesh size parameter. Functions $u\in L^2(\Omega)$ are approximated by functions $u_h \in V_h$. In turn, functions $u_h\in V_h$ are represented in computations by length $N$ arrays $\mathbf{u}$, such that the array entries of $\mathbf{u}$ are the coordinates of $u_h$ in the finite element basis. That is,
+\begin{equation*}
+u(x) \approx u_h(x) = \sum_{i=1}^N \mathbf{u}_i \phi_i(x).
+\end{equation*}
+We say that the coefficient arrays $\mathbf{u}$ reside $\mathbb{R}^N_\mathbf{M}$, which is the space $\mathbb{R}^N$ with the matrix-weighted inner product $\left(\mathbf{u},\mathbf{v}\right)_\mathbf{M} := \left(\mathbf{M} \mathbf{u}\right)^T \mathbf{v}$, where
+$\mathbf{M} \in \mathbb{R}^{N \times N}$ is the \emph{mass matrix} which has entries
+\begin{equation*}
+\mathbf{M}_{ij} = \left(\phi_i, \phi_j\right)_{L^2(\Omega)} = \int_{\Omega} \phi_i(x) \phi_j(x) dx.
+\end{equation*}
+Direct calculation shows that $V_h$ is isometrically isomorphic $\mathbb{R}^N_\mathbf{M}$, in the sense that functions $u_h \in V_h$ are in bijective correspondence to coefficient vectors $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, and $\left(u_h, v_h\right)_{L^2(\Omega)} = \left(\mathbf{u},\mathbf{v}\right)_\mathbf{M}$. Likewise, the dual space of continuous linear functionals $\psi_h:V_h \rightarrow \mathbb{R}$, denoted $V_h'$, is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. All operations on functions in $V_h$ and linear functionals in $V_h'$ may therefore be performed on coefficient vectors in $\mathbb{R}^N_\mathbf{M}$ and coefficient dual vectors in $\mathbb{R}^N_{\mathbf{M}^{-1}}$. We summarize coefficient vector versions of the function space operation that are used in this paper in Appendix \ref{app:discretized_operations}.
+
+\subsection{Discretized operations}
+\label{app:discretized_operations}
+
+As described in Section \ref{sec:discretization}, a function $u_h$ in a finite element space $V_h$ may be written in terms of its vector of coefficients, $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, with respect the finite element basis $\{\phi_i\}_{i=1}^N$. Recall that $\mathbf{M}$ is the mass matrix. We have
+\begin{equation*}
+	u(x) \approx u_h(x) = \sum_{i=1}^N \mathbf{u}_i \phi_i(x).
+\end{equation*}
+The finite element function space $V_h$ is isometrically isomorphic to the coefficient space $\mathbb{R}^N_\mathbf{M}$, and the dual space $V_h'$ is isometrically isomorphic to $\mathbb{R}^N_{\mathbf{M}^{-1}}$. In computations, we perform operations with coefficient vectors in $\mathbb{R}^N_\mathbf{M}$ and coefficient dual vectors in $\mathbb{R}^N_{\mathbf{M}^{-1}}$, rather than functions in $V_h$ and functionals in $V_h'$. Here we describe how to perform common function space operations in terms of coefficient vectors and coefficient dual vectors.
+
+\begin{description}
+	\item[Coefficients of a functional:] A linear functional $\psi_h \in V_h'$ has coefficient dual vector $\boldsymbol{\psi} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$, which has entries
+	\begin{equation*}
+		\boldsymbol{\psi}_i = \psi_h(\phi_i), \quad i=1,\dots,N.
+	\end{equation*}
+	The action of a linear functional $\psi_h \in V_h'$ on a function $u_h \in V_h$ is given by
+	\begin{equation*}
+		\psi_h(v_h) = \mathbf{v}^T \boldsymbol{\psi}.
+	\end{equation*}
+	\item[Riesz representation of a functional:] Let $\psi_h \in V_h'$. We have
+	\begin{equation*} 
+		 \psi_h^* \in V_h: \quad \left(\psi_h^*, v_h\right)_{L^2(\Omega)} = \psi_h(v_h) \quad\forall v_h \in V_h \quad \Leftrightarrow \quad \boldsymbol{\psi}^* = \mathbf{M}^{-1} \boldsymbol{\psi}.
+	\end{equation*}
+	The function $\psi_h^*$ is the Riesz representation of the functional $\psi_h$, and $\boldsymbol{\psi}^* \in \mathbb{R}^N_\mathbf{M}$ is the coefficient vector of $\psi_h^*$.
+	\item[$L^2$ projection:] Let $f \in L^2(\Omega)$, and define $\mathbf{f}^* \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ to be the vector with entries
+	\begin{equation*}
+		\mathbf{f}^*_i = \int_\Omega f(x) \phi_i(x) dx, \quad i=1,\dots,N.
+	\end{equation*}
+	We have
+	\begin{equation*}
+		f_h \in V_h, \quad \left(f_h, v_h\right)_{L^2(\Omega)} = \left(f, v_h\right)_{L^2(\Omega)} \quad\forall v_h \in V_h \quad \Leftrightarrow \quad \mathbf{f} = \mathbf{M}^{-1}\mathbf{f}^*.	
+	\end{equation*}
+	The function $f_h$ is the $L^2$ projection of $f$ onto $V_h$, and $\mathbf{f} \in \mathbb{R}^N_\mathbf{M}$ is the coefficient vector of $f_h$.
+	\item[Matrix representation of an operator:] Let $\mathcal{B}_h : V_h \rightarrow V_h'$ be a linear operator, and let $\mathbf{B} \in \mathbf{R}^{N \times N}$ be the matrix with entries
+	\begin{equation*}
+		\mathbf{B}_{ij} = \left(\mathcal{B}_h \phi_j\right)(\phi_i).
+	\end{equation*}
+	The matrix $\mathbf{B}$ maps $\mathbb{R}^N_\mathbf{M} \rightarrow \mathbb{R}^N_{\mathbf{M}^{-1}}$ by matrix multiplication, and
+	\begin{equation*}
+		\psi_h = \mathcal{B}_h u_h \quad \Leftrightarrow \quad \boldsymbol{\psi} = \mathbf{B} \mathbf{u}.
+	\end{equation*}
+	\item[Transpose:] The matrix $\mathbf{B}^T$ maps $\mathbb{R}^N_\mathbf{M} \rightarrow \mathbb{R}^N_{\mathbf{M}^{-1}}$ via matrix multiplication, and
+	\begin{equation*}
+		\psi_h = \mathcal{B}_h^T u_h \quad \Leftrightarrow \quad \boldsymbol{\psi} = \mathbf{B}^T \mathbf{u}.
+	\end{equation*}
+%	\item[Implicitly defined matrix representation:]
+%	Let $\mathcal{A}_h:V_h \rightarrow V_h'$ be a finite dimensional approximation of $\mathcal{A}:L^2(\Omega) \rightarrow L^2(\Omega)'$, and let $\mathbf{A}$ be the matrix representation of $\mathcal{A}_h$. The matrix $\mathbf{A}$ is implicitly defined, in the sense that we have a algorithm to compute the matrix-vector products $\mathbf{u} \mapsto \mathbf{A}\mathbf{u}$ and $\mathbf{A}^T \mathbf{u}$ for arbitrary $\mathbf{u} \in \mathbb{R}^N_\mathbf{M}$, but we do not have direct access to matrix entries $\mathbf{A}_{ij}$. In principle, all matrix entries of $\mathbf{A}$ could be computed by applying $\mathbf{A}$ to each column of the identity matrix, but this is far too expensive to be practical.
+	\item[Distributions:] Let $\mu:C\left(\overline{\Omega}\right)\rightarrow \mathbb{R}$ be a distribution. If $\mu(\phi_i)$ is well-defined for all basis vectors $\phi_i$, then the restriction of $\mu$ to domain $V_h$ is a linear functional $\mu_h\in V_h'$. The functional $\mu_h$ has a coefficient dual vector $\boldsymbol{\mu} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ with entries $\boldsymbol{\mu}_i=\mu(\phi_i)$ for $i=1,\dots,N$. 
+	\item[Action of an operator on a distribution:] Since $V_h$ is finite-dimensional, the restriction, $\mu_h \in V_h$, of a distribution, $\mu$, has a a Riesz representation $\mu_h^* \in V_h$. Let $B_h$ be the integral kernel associated with an operator $\mathcal{B}_h:V_h \rightarrow V_h'$. For $w_h \in V_h$, we have
+	\begin{align*}
+		\langle \mathcal{B}_h, \mu_h \rangle(w) &= \int_\Omega w_h(y) \mu_h\left(B_h(y, \cdot)\right) dy \\
+		&= \int_\Omega w_h(y) \left(\int_\Omega B_h(y,x) \mu_h^*(x) dx\right) dy \\
+		&= \int_\Omega \int_\Omega w_h(y) B_h(y,x) \mu_h^*(x) dx dy = \left(\mathcal{B}_h \mu_h^*\right)(w).
+	\end{align*}
+	Going from the first to the second line we used the definition of the Riesz representation. The action of $\mathcal{B}_h$ on $\mu_h$ in the sense of distributions is therefore equal to the action of $\mathcal{B}_h$ on $\mu^*_h$ in the conventional sense. We have
+	\begin{equation*}
+		\psi_h = \langle \mathcal{B}_h, \mu_h \rangle \quad \Leftrightarrow \quad \psi_h = \mathcal{B}_h \mu_h^* \quad \Leftrightarrow \quad \boldsymbol{\psi} = \mathbf{B} \mathbf{M}^{-1} \boldsymbol{\mu}.
+	\end{equation*}
+\end{description}
+
+\subsection{Discretized mean and covariance estimation} In computations, $\alpha$, $\mu^{i}$, and $\Sigma^{ij}$ are replaced with finite element approximations $\alpha_h, \mu_h^i, \Sigma_h^{ij}\in V_h$, respectively, which have coefficient vectors $\boldsymbol{\alpha}, \boldsymbol{\mu}^{ij}, \boldsymbol{\Sigma}^{ij}\in\mathbb{R}^N_\mathbf{M}$, respectively. The functions $C$, $L^i$, and $Q^{ij}$ are replaced with their $L^2$ projections onto $V_h$, which are denoted by $C_h$, $L_h^i$, and $Q_h^{ij}$, respectively. The corresponding coefficient vectors are $\mathbf{C}$, $\mathbf{L}^i$, and $\mathbf{Q}^{ij}$, respectively. The discretized versions of \eqref{eq:vol_mean_var_thm1}, \eqref{eq:vol_mean_var_thm2}, and \eqref{eq:vol_mean_var_thm3} are
+\begin{align*}
+\boldsymbol{\alpha} &= \mathbf{M}^{-1}\mathbf{A}^T\mathbf{C} \\
+\boldsymbol{\mu}^i &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{L}^i\right) / \boldsymbol{\alpha}\\
+\boldsymbol{\Sigma}^{ij} &= \left(\mathbf{M}^{-1}\mathbf{A}^T \mathbf{Q}^{ij}\right) / \boldsymbol{\alpha} - \boldsymbol{\mu}^i\cdot \boldsymbol{\mu}^j,
+\end{align*}
+respectively. Here $\mathbf{f} \cdot \mathbf{g}$ and $\mathbf{f} / \mathbf{g}$ denote the element-wise multiplication and division of vectors, respectively.
+
+
+\subsection{Discretized sampling of impulse responses}
+In computations, the Dirac comb $\xi^b$ is replaced by its restriction to $V_h$, denoted $\xi^b \in V_h'$. The response $\eta^b$ is replaced by the finite element approximation $\eta_h^b \in V_h$. The coefficient dual vector for $\xi_h^b$ is the vector $\boldsymbol{\xi}^b \in \mathbb{R}^N_{\mathbf{M}^{-1}}$ which has entries
+\begin{equation*}
+\boldsymbol{\xi}^b_i = \sum_{x_j \in S_b} \phi_i(x_j), \quad i=1,\dots,N.
+\end{equation*}
+The coefficient vector $\boldsymbol{\eta}^b \in \mathbb{R}^N_\mathbf{M}$ for $\eta_h^b$ is given by
+\begin{equation*}
+\boldsymbol{\eta}^b = \mathbf{M}^{-1} \mathbf{A}^T \mathbf{M}^{-1}\boldsymbol{\xi}^b.
+\end{equation*}
+
+\section{old stuff}
+
+\subsection{Background: distributions}
+
+Let $\overline{\Omega}$ be the closure of $\Omega$, and let $C(\overline{\Omega})$ be the space of continuous functions mapping $\overline{\Omega}\rightarrow \mathbb{R}$. The action of $\mathcal{A}$ is extended to distributions $\mu:C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ via the formula
+\begin{equation*}
+\langle\mathcal{A},\mu\rangle(w) := \int_\Omega w(y) \mu\left(A(y, \cdot)\right) dy, 
+\end{equation*}
+where $A(y,\cdot)$ is the function $x \mapsto A(y,x)$. This is derived formally as follows:
+\begin{align*}
+\langle\mathcal{A},\mu\rangle(w) &= \int_\Omega \int_\Omega w(y) A(y,x) \textrm{``} \mu(x) \textrm{''} dx dy \\
+&= \int_\Omega w(y) \int_\Omega A(y,x) \textrm{``} \mu(x) \textrm{''} dx \\
+&= \int_\Omega w(y) \mu\left(A(y,\cdot)\right) dx.
+\end{align*}
+For example, the delta distribution $\delta_x$ is defined by $\delta_x(v) = v(x)$, the action of $\mathcal{A}$ on $\delta_x$ is given by
+\begin{equation*}
+\langle\mathcal{A},\delta_x\rangle(w)	= \int_\Omega w(y) A(y,x) dy,
+\end{equation*}
+and so the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$ is given by $\langle\mathcal{A},\delta_x\rangle^* = A(~\cdot~,x)$. That is, $\langle\mathcal{A},\delta_x\rangle^*$ is the function $y \mapsto A(y,x)$.
+
+
+\begin{defn}
+	\label{def:stiffness_mass}
+	We define $\mathcal{K}:H^2(\Omega)\rightarrow L^2(\Omega)'$ and $\mathcal{M}:L^2(\Omega) \rightarrow L^2(\Omega)'$ to be the following linear operators:
+	\begin{align*}
+	\left(\mathcal{K}u\right)(v) :=& \int_\Omega v \Delta u ~dx \\
+	\left(\mathcal{M}u\right)(v) :=& \int_\Omega u v ~dx,
+	\end{align*}
+	and $\mathcal{P}:H^2(\Omega)\rightarrow \mathbb{R}^r$ to be the following pointwise observation operator:
+	\begin{equation*}
+	(\mathcal{P}u)_i = u(x_i)
+	\end{equation*}
+	for $i=1,\dots,r$.
+\end{defn}
+
+\begin{prop}
+	\label{prop:solution_operator_is_linear}
+	Let $f \in \mathbb{R}^r$ be arbitrary. The optimization problem
+	\begin{equation}
+	\label{eq:generic_optimization_initial_old}
+	\begin{aligned}
+	\min_{u \in H^2(\Omega)} &\quad \frac{1}{2}\norm{\Delta u}_{L^2(\Omega)}^2 \\
+	\text{such that} &\quad u(x_i) = f_i, \quad i=1,\dots,r
+	\end{aligned}
+	\end{equation}
+	may be rewritten as follows:
+	\begin{equation}
+	\label{eq:generic_optimization}
+	\begin{aligned}
+	\min_{u \in H^2(\Omega)} &\quad \frac{1}{2} \left(\mathcal{K}^T\mathcal{M}^{-1}\mathcal{K}u\right)(u) \\
+	\text{such that} &\quad 
+	\mathcal{P} u = f.
+	\end{aligned}
+	\end{equation}
+\end{prop}
+
+\begin{prop}
+	There exists a unique solution to optimization problem \eqref{eq:generic_optimization}. The solution to \eqref{eq:generic_optimization}, $u^*$, and the adjoint variable for enforcing the constraint, $\lambda^*$, solve the following Karun-Kush-Tucker (KKT) system:
+	\begin{equation}
+	\label{eq:weighting_kkt}
+	\begin{bmatrix}
+	\mathcal{K}^T\mathcal{M}^{-1}\mathcal{K} & \mathcal{P}^T \\
+	\mathcal{P} & 0
+	\end{bmatrix}
+	\begin{bmatrix}
+	u^* \\ \lambda^*
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	0 \\ f
+	\end{bmatrix},
+	\end{equation}
+	where we use block-matrix notation to denote block-operators.
+\end{prop}
+
+\begin{cor}
+	\label{cor:linearity_of_solution_operator}
+	Let $\mathcal{T}:\mathbb{R}^r \rightarrow H^2(\Omega)$ denote the solution operator for optimization problem \eqref{eq:generic_optimization}	as a function of $f$. That is, 
+	\begin{equation*}
+	\mathcal{T}(f) := u^*,
+	\end{equation*}
+	where $u^*$ is the minimizer of \eqref{eq:generic_optimization}. The operator $\mathcal{T}$ is a linear operator.
+\end{cor}
+
+
+\footnote{The reason for this dependence on spatial dimension is related to the fact that the fundamental solution of the biharmonic equation is continuous in $3$ or less dimensions, but singular in $4$ or more dimensions. In the unusual scenario where one is inverting for a parameter field in $4$ or more spatial dimensions, one could use a modified Poisson interpolation where $\Delta$ is replaced with $\Delta^\alpha$ in the objective function of \eqref{eq:wi_optimization_problem}, where $\alpha>1$ is chosen so that the fundamental solution of $\Delta^{2\alpha}$ is continuous.}
+
+% $\left(\mathcal{A}u\right)(v) = \left\langle v, \varphi_p \ast u\right\rangle_{L^2(\Omega)}$. Here $f \ast g$ denotes convolution of the functions $f$ and $g$, and the convolution kernel,
+
+
+%Access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$.
+%Integral kernel representation \eqref{eq:kernel_representation} is assumed to exist,
+%e.g., by the Schwarz kernel theorem,
+%but o
+%One cannot easily access entries $A(y,x)$ of the kernel.
+
+
+% is non-negative in the sense that  $A(y,x) \ge 0$ for all $(y,x) \in \Omega \times \Omega$. 
+%Let $\mathcal{A}:L^2(\Omega)\rightarrow L^2(\Omega)'$ be the corresponding linear operator generated by currying. That is, for each $u\in L^2(\Omega)$, the linear functional $\mathcal{A}u:L^2(\Omega)\rightarrow \mathbb{R}$ is 
+%We approximate the operator $\mathcal{A}:L^2(\Omega)\rightarrow L^2(\Omega)'$ defined by
+%\begin{equation*}
+%	(\mathcal{A}u)(v) := a(v,u).
+%\end{equation*}
+%We seek to approximate operators $\mathcal{A}$ in the ``matrix free'' setting, in which access to $\mathcal{A}$ is available through application of $\mathcal{A}$ and $\mathcal{A}^T$ to arbitrary vectors, $u \mapsto\mathcal{A}u$ and $v \mapsto\mathcal{A}^Tv$. Here ($\mathcal{A}^Tv)(u) := (\mathcal{A}u)(v)$. 
+%Integral kernel representation \eqref{eq:kernel_representation} is assumed to exist,
+%e.g., by the Schwarz kernel theorem,
+%but one cannot easily access entries $A(y,x)$ of the kernel. We assume that the impulse response of $\mathcal{A}$ is locally supported in the sense that the function 
+%$y \mapsto A(y, x)$ is supported in a region near $y=x$, and we assume that $\mathcal{A}$ is locally translation invariant in the sense that
+%\begin{equation*}
+%A(y+h, x+h) \approx A(y,x),
+%\end{equation*}
+%so long as $h$ is not too large.
+
+The \emph{point spread function} (PSF) of $\mathcal{A}$ at $x\in \Omega$ is
+\begin{equation*}
+\varphi_x(y) := \langle \mathcal{A},\delta_x\rangle^*(y+x) = A(y+x,x).
+\end{equation*}
+Here $\langle \mathcal{A}, \delta_x \rangle \in L^2(\Omega)'$ is the result of applying $\mathcal{A}$ to a point source $\delta_x$ (delta distribution) centered at $x$, and $\langle\mathcal{A},\delta_x\rangle^* \in L^2(\Omega)$ is the Riesz representation of $\langle\mathcal{A},\delta_x\rangle$. The PSF, $\varphi_x$, is the result of translating $\langle\mathcal{A},\delta_x\rangle^*$ to re-center it at zero instead of $x$. Recall the Riesz representation of a linear functional $\psi \in L^2(\Omega)'$ is the unique vector $\psi^* \in L^2(\Omega)$ satisfying $\left(\psi^*, v\right)_{L^2(\Omega)} = \psi(v)$ for all $v \in \L^2(\Omega)$.
+
+%In this paper we present an efficient matrix-free method for approximating operators $\mathcal{A}$ with a product-convolution approximation, $\widetilde{A}$, of the form
+%\begin{equation*}
+%	\left(\mathcal{A}u\right) \approx \left(\widetilde{\mathcal{A}}u\right) := \sum_{i=1}^r \varphi_i \ast \left(w_i \cdot u\right)
+%\end{equation*}
+%
+%
+%PSFs that satisfy the following properties:
+%\begin{enumerate}
+%	\item $\varphi_x$ varies smoothly as a function of $x$.
+%	\item $\varphi_x(y)$ is zero (or small) when $|y|$ is large.
+%	\item $\varphi_x$ is a non-negative (or mostly non-negative) function.
+%\end{enumerate}
+%If $\varphi_x$ was constant in $x$, then $\mathcal{A}$ would be the convolution operator $\left(\mathcal{A}v\right)^* = \varphi_0 \ast v$. Operators satisfying property 1 therefore act like convolution operators locally, but the convolution kernel, $\varphi_x$, varies smoothly as $x$ changes. Operators satisfying property 2 are local, in the sense that sources at point $x$ have no impact on points far away from $x$. Operators satisfying property 3 blur inputs: their action on a point source consists of scaling the source, then spreading the energy of the scaled point source across a region nonuniformly. We call operators satisfying these properties \emph{smoothly varying blur operators}.
+
+
+
+% Computing the functions $w_i$ requires solving two Poisson PDEs for each point $x_i$, and these Poisson PDEs may be solved cheaply with multigrid.
+
+%Specifically, since the integral kernel for $\mathcal{A}$ is non-negative, $\langle\mathcal{A},\delta_x\rangle^*$ may be interpreted as a scaled probability distribution. We compute the mean and covariance of this probability distribution for all points $x \in \Omega$ simultaneously, by applying $\mathcal{A}^T$ to a small number of constant, linear, and quadratic functions. We then estimate the support of $\langle\mathcal{A},\delta_x\rangle^*$ to be contained within a small number of standard deviations of the mean of this probability distribution.
+
+
+
+%We interpret $\langle\mathcal{A},\delta_{x_i}\rangle^*$ as a scaled probability distribution, and estimate the support of $\langle\mathcal{A},\delta_{x_i}\rangle^*$ to be contained within a small number of standard deviations of the mean of this probability distribution (this is why we require a non-negative kernel).  The mean and covariance of $\langle\mathcal{A},\delta_{x}\rangle^*$ can be simultaneously computed for all points $x \in \Omega$ by applying $\mathcal{A}^T$ to a small number of constant, linear, and quadratic functions. 
+
+%The functions $w_i$ are the defined as the smoothest functions, in a certain least-squares sense, that interpolate the points $x_i$. Computing the functions $w_i$ requires solving two Poisson PDEs for each point $x_i$, and these Poisson PDEs may be solved cheaply with multigrid.
+
+%The idea of our method is to sample $\varphi_{x}$ at a collection of points $x_i$ by applying $\mathcal{A}$ to a sum of point sources at the points $x_i$ (a ``Dirac comb''). The points $x_i$ are chosen so that the support of $\langle\mathcal{A},\delta_{x_i}\rangle^*$ and the support of $\langle\mathcal{A},\delta_{x_j}\rangle^*$ do not overlap (or do not overlap much) if $i \neq j$. Since the point sources do not overlap, by applying $\mathcal{A}$ to one vector, we recover $\varphi_{x_i}$ for many points $x_i$. The process is repeated to get $\varphi_{x_i}$ at more points, until an error estimate is satisfied. The $\varphi_{x_i}$ are interpolated smoothly to construct $\varphi_x$ for arbitrary $x$, which yields an approximation $\widetilde{A}(y,x)$ to the kernel $A(y,x)$, and an approximation $\widetilde{\mathcal{A}}$ to the operator $\mathcal{A}$. While $A(y,x)$ is inaccessible, we can evaluate $\widetilde{A}(y,x)$ at arbitrary $(y,x)$ points. This allows us to construct a hierarchical matrix representation of $\widetilde{\mathcal{A}}$, which allows us to invert $\widetilde{\mathcal{A}}$, or perform other useful matrix operations, using fast hierarchical matrix arithmetic.
+
+%Properties 1 and 2 are essential to our method. Property 3 is only required in the subprocedure for estimating the support of $\langle\mathcal{A},\delta_x\rangle^*$, and may be dropped if other methods for estimating the support are available. 
+
+The approximation $\widetilde{A}(y,x)$ may not be accurate if both $x$ and $y$ are near the boundary. Other approximation methods, if available, should be considered for the block of the operator associated with boundary-boundary interactions. Nevertheless, in our numerical results we see that approximation works well for the the inverse problem considered, without any modifications to the boundary-boundary block.
+
+The solution to this system of equations is found by the following process:
+\begin{enumerate}
+	\item Compute 
+	\begin{equation*}
+	\Psi := K^+ E^T
+	\end{equation*}
+	by solving Neumann poisson problems for point source right hand sides, with point sources located at the points $x_i$, $i=1,\dots,q$.
+	\item Compute 
+	\begin{equation*}
+	\Theta := K^+ M \Psi
+	\end{equation*}
+	by solving Neumann Poisson problems with the columns of $\Psi$ as distributed sources.
+	\item Form 
+	\begin{equation*}
+	S = \Psi^T M \Psi
+	\end{equation*}.
+	\item Compute \begin{equation*}
+	\alpha = \left(\mathbf{1}^T S^{-1} \mathbf{1}\right)^{-1}\mathbf{1}^T S^{-1} \mathbf{y}.
+	\end{equation*}
+	\item Compute 
+	\begin{equation*}
+	\boldsymbol{\lambda} = -S^{-1} \left(\mathbf{y} - \alpha \mathbf{1} \right).
+	\end{equation*}
+	\item Compute
+	\begin{equation*}
+	\mathbf{u} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c}
+	\end{equation*}
+\end{enumerate}
+
+
+Consider the Pine island glacier geometry shown in Figure REF. Regions of the glacier are separated by thin inlets of ocean. With radial basis function interpolation, points on one side of the inlet inappropriately influence the interpolation on the other side of the inlet. With Poisson interpolation, the PSF samples only influence the interpolation on their own side of the inlet.
+
+\subsection{Determination of the boundary region}
+\label{sec:boundary}
+
+Define $\Omega_B \subset \Omega$ to be the set of points that are too close to $\partial \Omega$, in the sense that $x \in \Omega_B$ if $\varphi_x(y-x) \neq 0$ for some $y \in \partial \Omega$. Further, define $\Omega_I := \Omega \setminus \Omega_B$ as the set of points that are in the interior of $\Omega$ and are not too close to $\partial B$. In Proposition \ref{prop:boundary_source} we show that $\Omega_B$ can be determined by applying $\mathcal{A}^T$ to a boundary source distribution and post-processing the result. The resulting algorithm for determining $\Omega_B$ and $\Omega_I$ in the discretized setting is shown in Algorithm \ref{alg:boundary_region}.
+
+\begin{prop}
+	\label{prop:boundary_source}
+	Let $\delta_{\partial \Omega}: C\left(\overline{\Omega}\right) \rightarrow \mathbb{R}$ be the boundary source distribution defined by
+	\begin{equation}
+	\label{eq:boundary_source}
+	\delta_{\partial \Omega}(v) = \int_{\partial \Omega} v(y) dy
+	\end{equation}
+	for all $v \in C(\overline{\Omega})$. We have $\varphi_x(y-x) = 0$ for almost every $y \in \partial \Omega$ if and only if $\langle\mathcal{A}^T, \delta_{\partial \Omega}\rangle^*(x) = 0$.
+\end{prop}
+
+The proof of Proposition \ref{prop:boundary_source} is shown in Appendix \ref{app:proofs}.
+
+
+%Straightforward analysis shows that $\varphi_x(y-x) = 0$ for $y \in \partial \Omega$ almost everywhere if and only if $\left(\mathcal{A}^T \delta_{\partial \Omega}\right)(x) = 0$, where $\delta_{\partial \Omega}$ is the uniform boundary source distribution. That is, the distribution that acts on a test function $v$ by performing a surface integral of $v$ over the boundary of the domain:
+%%\begin{equation}
+%%\label{eq:boundary_source}
+%%	\delta_{\partial \Omega}(v) = \int_{\partial \Omega} v(y) dy.
+%%\end{equation}
+%We therefore compute $b  = \mathcal{A}^T \delta_{\partial \Omega}$, then identify $\Omega_B$ as the set of points $x \in \Omega$ for which $|b(x)|$ is larger than a small tolerance $\epsilon$. This is described in Algorithm \ref{alg:boundary_region}.
+
+
+\begin{algorithm2e}
+	\SetAlgoNoLine
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	{
+		
+		Construct boundary source $\boldsymbol{\delta}_{\partial \Omega} \in \mathbb{R}^N_{\mathbf{M}^{-1}}$, $\displaystyle \left(\boldsymbol{\delta}_{\partial \Omega}\right)_i = \int_{\partial \Omega} \phi_i(s) ds$, $i=1,\dots,N$
+		
+		%		\For{$i=1,\dots,N$}{
+		%			$\displaystyle \mathbf{b}_i \gets \int_{\partial \Omega} \phi_i(s) ds$
+		%		}
+		
+		$\mathbf{b} = \mathbf{M}^{-1}\mathbf{A}^T\mathbf{M}^{-1}\boldsymbol{\delta}_{\partial \Omega}$
+		
+		$\Omega_B = \{x \in \Omega : |b_h(x)| \ge \epsilon\}$
+		
+		$\Omega_I = \Omega \setminus \Omega_B$
+		
+	}
+	\caption{Compute boundary region $\Omega_B$ and interior region $\Omega_I$}
+	\label{alg:boundary_region}
+\end{algorithm2e}
+
+One should only expect $\widetilde{A}(y,x)$ to be accurate for $x \in \Omega_I$, $y \in \Omega$. If $\mathcal{A}$ is symmetric then one may overwrite potentially inaccurate entries $\widetilde{A}(y,x)$, $x \in \Omega_b$, $y \in \Omega_I$, with the accurate entries $\widetilde{A}(x,y)$. If $\mathcal{A}$ is nonsymmetric, one may form an accurate approximation of these entries by applying our procedure to $\mathcal{A}^T$. Our method will furnish an approximation $\widetilde{A}(y,x)$ for $x \in \Omega_B$, $y \in \Omega_B$ (the block of $\widetilde{H}$ corresponding to boundary-boundary interactions), but this part of the approximation is unlikely to satisfy Condition 1 ($\varphi_x$ varies smoothly as a function of $x$).
+
+
+
+\subsection{Computation of Poisson weighting functions}
+\label{sec:computation_of_weighting_functions}
+
+
+
+
+
+%Radial basis function interpolation of $\varphi_x(y)$ is cheaper per sample point because radial basis functions are given by analytic formulas. However, the cost of these Poisson PDE solves is typically cheap compared to the cost of computing the impulse response samples, $\varphi_{x_i}$. Computing the impulse response samples, $\varphi_{x_i}$, requires applying the Hessian to vectors, which in turn requires performing PDE solves of the linearized forward and ajoint equations for the inverse problem. These forward and adjoint PDE solves are typically much more expensive than Poisson PDE solves, because the Poisson equation is well-studied and easy to solve with multigrid. 
+
+After discretization, optimization problem \eqref{eq:wi_optimization_problem} becomes
+\begin{equation}
+\label{eq:discrete_poisson_optimization_1}
+\begin{aligned}
+\min_{\mathbf{w}} &\quad \frac{1}{2}\mathbf{w}^T K^T M^{-1} K \mathbf{w} \\
+\text{such that} &\quad E \mathbf{w} = \mathbf{d}.
+\end{aligned}
+\end{equation}
+Here $\mathbf{w}$ is the discretization of $w_i$, $K$ is the stiffness matrix for the discretized Poisson problem with pure Neumann boundary conditions, $M$ is the mass matrix, and $\mathbf{d}=(0,\dots,0,1,0,\dots,0)$ is the length-$q$ vector with $i^\text{th}$ entry one and all other entries zero. Furthermore, $E$ is the pointwise observation matrix defined by $\left(E\mathbf{u}\right)_j = u(x_j)$, where $u$ denotes the function represented by the vector $\mathbf{u}$. Here we dropped the subscripts $i$ from variables for notational convenience. One must solve $q$ optimization problems of the form \eqref{eq:discrete_poisson_optimization_1}; one for each $i=1,\dots,q$. 
+
+In the remainder of this section we will derive an efficient algorithm for solving \eqref{eq:discrete_poisson_optimization_1}. The algorithm (Algorithm REF) is based on explicit formula for the solution of \eqref{eq:discrete_poisson_optimization_1} which we present in Proposition \ref{prop:poisson_interpolation_formula}. The formulas in Proposition \ref{prop:poisson_interpolation_formula} rely on certain matrices that we define in Definition \ref{defn:poisson_interpolation_matrices}. The primary computational cost of the algorithm is the solution of Poisson problems with pure Neumann boundary conditions.
+
+\begin{defn}
+	\label{defn:poisson_interpolation_matrices}
+	Let 
+	\begin{align*}
+	\Psi :=& K^+ E^T, \\
+	\Theta :=& K^+ M \Psi \\
+	S :=& \Psi^T M \Psi,
+	\end{align*}
+	where $K^+$ is the Moore-Penrose pseudoinverse of $K$. Further, let $\mathbf{c}$ dente the discretization of the constant function $c(x)=1$ on $\Omega$, and let $\mathbf{1}:=(1,\dots,1)$ denote the vector of length $q$ with all entries equal to one.
+\end{defn}
+
+\begin{remark}
+	Computing $\mathbf{g} = K^+\mathbf{f}$ is equivalent to solving the discretized Poisson problem with $f$ as the right hand side source, with pure Neumann boundary conditions, and with the constraint that the solution has average value equal to zero. That is,
+	\begin{equation}
+	\label{eq:pure_neumann_poisson}
+	\mathbf{g} = K^+ \mathbf{f} \quad \Leftrightarrow \quad 
+	\begin{cases}
+	\Delta g = f, & \text{in }\Omega,\\
+	\nu \cdot \nabla g = 0, & \text{on }\partial \Omega,\\
+	\int_\Omega g(x) dx = 0,
+	\end{cases}
+	\end{equation}
+	where $\nu$ denotes the normal to the boundary.
+	
+	Hence, the $i^\text{th}$ column of $\Psi$ is the result of solving the discretized pure Neumann Poisson problem, with a point source at location $x_i$. The $i^\text{th}$ column of $\Theta$ is the result of solving the discretized pure Neumann Poisson problem with distributed source given by the $i^\text{th}$ column of $\Psi$.
+\end{remark}
+
+\begin{prop}
+	\label{prop:poisson_interpolation_formula}
+	The solution to optimization problem \eqref{eq:discrete_poisson_optimization_1} is given by
+	\begin{equation*}
+	\mathbf{w} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c},
+	\end{equation*}
+	where
+	\begin{align*}
+	\alpha =& \left(\mathbf{1}^T S^{-1} \mathbf{1}\right)^{-1}\mathbf{1}^T S^{-1} \mathbf{d} \\
+	\boldsymbol{\lambda} =& -S^{-1} \left(\mathbf{d} - \alpha \mathbf{1} \right). \\
+	\end{align*}
+\end{prop}
+
+\begin{proof}
+	Let
+	\begin{equation*}
+	v := \mathcal{K} w_i,
+	\end{equation*}
+	and for the remainder of this proof let $e := e_i$.
+	Since the null-space of the Laplacian with pure Neumann boundary conditions is the set of all constant functions, we have
+	\begin{equation}
+	\label{eq:definition_of_w}
+	w_i = \mathcal{K}^+ v + \alpha C
+	\end{equation}
+	for some scalar $\alpha$.
+	
+	Writing optimization problem \eqref{eq:wi_optimization_problem} in terms of $v$ and $\alpha$ instead of $w_i$ yields the following equivalent optimization problem:
+	\begin{equation}
+	\label{eq:discrete_poisson_optimization_2}
+	\begin{aligned}
+	\min_{v \in L^2(\Omega)', \alpha \in \mathbb{R}} &\quad \frac{1}{2} v\left(\mathcal{M}^{-1} v\right) \\
+	\text{such that} &\quad \mathcal{P}\mathcal{K}^+ v + \alpha \mathbf{1} = e.
+	\end{aligned}
+	\end{equation}
+	The Lagrangian for optimization problem \eqref{eq:discrete_poisson_optimization_2} is
+	\begin{equation*}
+	\mathcal{L} = \frac{1}{2}v\left( \mathcal{M}^{-1} v\right) + \lambda^T\left(\mathcal{P}\mathcal{K}^+ v + \alpha \mathbf{1} - e\right).
+	\end{equation*}
+	The solution to this optimization problem is the stationary point of the Lagrangian, i.e., the point at which the gradient of the Lagrangian is zero:
+	\begin{equation*}
+	0 = \nabla \mathcal{L} = 
+	\begin{bmatrix}
+	\nabla_{v} \mathcal{L} \\
+	\nabla_{\lambda} \mathcal{L} \\
+	\nabla_\alpha \mathcal{L}
+	\end{bmatrix} 
+	= \begin{bmatrix}
+	\mathcal{M}^{-1} v + \left(\mathcal{K}^+\right)^T \mathcal{P}^T \lambda \\
+	\mathcal{P}\mathcal{K}^+v + \alpha \mathbf{1} - e \\
+	\mathbf{1}^T \lambda
+	\end{bmatrix}.
+	\end{equation*}
+	This equation may be rewritten as the following block $3 \times 3$ linear system:
+	\begin{equation*}
+	\begin{bmatrix}
+	\mathcal{M}^{-1} & \left(\mathcal{K}^+\right)^T \mathcal{P}^T & 0 \\
+	\mathcal{P}\mathcal{K}^+ & 0 & \mathbf{1} \\
+	0 & \mathbf{1}^T & 0
+	\end{bmatrix}
+	\begin{bmatrix}
+	v \\ \lambda \\ \alpha
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	0 \\ e \\ 0
+	\end{bmatrix}.
+	\end{equation*}
+	Performing block Gaussian elimination on this system allows us to reduce the system to the following block triangular form
+	\begin{equation*}
+	\begin{bmatrix}
+	\mathcal{M}^{-1} & \left(\mathcal{K}^+\right)^T \mathcal{P}^T & 0 \\
+	& -S & \mathbf{1} \\
+	0 & 0 & \mathbf{1}^T S^{-1} \mathbf{1}
+	\end{bmatrix}
+	\begin{bmatrix}
+	v \\ \lambda \\ \alpha
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	0 \\ e \\ \mathbf{1}^T S^{-1} e
+	\end{bmatrix}
+	\end{equation*}
+	where we recall that $S := \Psi^T \mathcal{M} \Psi = \mathcal{P}\mathcal{K}^+ \mathcal{M} \left(\mathcal{K}^+\right)^T \mathcal{P}^T$. From this block triangular system, we read off the solution as:
+	\begin{align*}
+	\alpha =& \left(\mathbf{1}^T S^{-1} \mathbf{1}\right)^{-1}\mathbf{1}^T S^{-1} \mathbf{d} \\
+	\boldsymbol{\lambda} =& -S^{-1} \left(\mathbf{d} - \alpha \mathbf{1} \right) \\
+	\mathbf{v} =& -M K^+ E^T \boldsymbol{\lambda}
+	\end{align*}
+	Substituting these results into the definition of $\mathbf{w}$ in \eqref{eq:definition_of_w}, we have
+	\begin{equation*}
+	\mathbf{w} = -K^+ M K^+ E^T \boldsymbol{\lambda} + \alpha \mathbf{c} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c},
+	\end{equation*}
+	as required.
+\end{proof}
+
+We now design an incremental algorithm for constructing interpolants $\mathbf{u}$, in which we can add points $x_i$ more efficiently. Let
+\begin{align*}
+\Psi :=& K^+ E^T \\
+\Theta :=& K^+ M \Psi
+\end{align*}
+so that 
+\begin{equation*}
+S = \Psi^T M \Psi
+\end{equation*}
+and
+\begin{equation*}
+\mathbf{u} = -\Theta \boldsymbol{\lambda} + \alpha \mathbf{c}
+\end{equation*}
+The columns of $\Psi$ are the responses of $A^+$ to point sources (delta distributions) centered at the sample points $x_i$. The columns of $\Theta$ are the responses of $A^+M^{-1} A$ to these point sources. The matrices $\Psi$ and $\Theta$ may be constructed incrementally as new points are added. 
+
+
+\section*{Acknowledgments}
+We thank J.J. Alger for helpful discussions
+
+\bibliographystyle{siamplain}
+\bibliography{references}
+\end{document}
