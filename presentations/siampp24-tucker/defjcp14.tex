@@ -1,0 +1,340 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% this def file is based on the ccgodef
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% packages
+%\usepackage{booktabs}
+%\usepackage[mathscr]{euscript}
+%\usepackage{color}
+%% mathdesgin or ams
+%%\usepackage{amssymb,mathrsfs}
+%\usepackage{graphicx}
+%\usepackage{algorithmic,algorithm}
+%\usepackage{tikz,pgfplots}
+%\usepackage{upgreek}
+%%\usepackage{showkeys,cite}
+%\usepackage{multirow}
+%\usepackage{yfonts}
+%\usepackage{mathtools}
+%\usepackage[normalem]{ulem}
+%\usepackage{latexsym}
+%\usepackage{url}
+%\usepackage{amsmath,amssymb,amsbsy,amsfonts}
+%\usepackage{enumitem}
+
+\newcommand{\zapspace}{\topsep=0pt\partopsep=0pt\itemsep=0pt\parskip=0pt}
+
+%% Notice macros
+%\newcommand{\notice}[1]{\textcolor{Chameleon3}{#1}}
+%\newcommand{\Notice}[1]{\textcolor{ScarletRed2}{#1}}
+%\newcommand{\nnote}[1]{\noindent\emph{\textcolor{grass}{N: #1\,}}}
+%\newcommand{\unote}[1]{\noindent\emph{\textcolor{blue}{U: #1\,}}}
+%\newcommand{\onote}[1]{\noindent\emph{\textcolor{red}{O: #1\,}}}
+%
+%% colors
+%\definecolor{utorange}{rgb}{0.8,0.33,0.}
+%\definecolor{themec}{RGB}{51,108,121}
+%\definecolor{darkred}{rgb}{.6,.1,.1}
+%\definecolor{darkblue}{rgb}{.1,.1,.9}
+%\definecolor{greenback}{rgb}{.19,.94,.13}
+%\definecolor{orange}{rgb}{.76,.39,.13}
+%\definecolor{grass}{rgb}{.19,.64,.13}
+%\definecolor{sierp}{RGB}{209,28,209}
+%\definecolor{bgorange}{rgb}{1.,.95,.78}
+%\definecolor{grassgreen}{RGB}{92,135,39}
+%\definecolor{thinbox}{rgb}{.7,.8,1.}
+
+% general
+\newcommand{\defeq}{\vcentcolon=}
+%\newcommand{\del}[2]{\frac{\partial{#1}}{\partial{#2}}}
+\renewcommand{\vec}[1]{{\mathchoice
+                     {\mbox{\boldmath$\displaystyle{#1}$}}
+                     {\mbox{\boldmath$\textstyle{#1}$}}
+                     {\mbox{\boldmath$\scriptstyle{#1}$}}
+                     {\mbox{\boldmath$\scriptscriptstyle{#1}$}}}}
+\renewcommand{\ker}{\mathsf{ker}}
+\newcommand{\ran}{\mathsf{range}}
+\newcommand{\dom}{\mathsf{dom}}
+\newcommand{\trace}{\mathsf{tr}}
+\newcommand{\eps}{\varepsilon}
+%\newcommand{\norm}[1]{\left\| {#1} \right\|}
+\newcommand{\ip}[2]{{\left\langle {#1}, {#2} \right\rangle}}
+\newcommand{\mip}[2]{\left\langle{#1}, {#2}\right\rangle_{\!\scriptscriptstyle{\text{M}}}}
+\newcommand{\mat}[1]{\mathbf{{#1}}}
+\newcommand\restr[2]{{
+  \left.\kern-\nulldelimiterspace % automatically resize the bar with \right
+  {#1}\vphantom{\big|} \right|_{#2}}}
+\newcommand{\angles}[1]{\left\langle #1 \right\rangle}
+
+% sets of numbers
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+
+\newcommand{\BB}{\mat{B}}
+\newcommand{\Amat}{\mat{A}}
+\newcommand{\VV}{\mat{V}}
+\newcommand{\RR}{\mat{R}}
+
+% commonly used mathcals
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\B}{\mathcal{B}}
+\newcommand{\C}{\mathcal{C}}
+\newcommand{\D}{\mathcal{D}}
+\newcommand{\E}{\mathcal{E}}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\G}{\mathcal{G}}
+\newcommand{\J}{\mathcal{J}}
+\newcommand{\U}{\mathcal{U}}
+\newcommand{\Reg}{\mathcal{R}}
+
+% shorthands
+\newcommand{\bit}{\begin{itemize}}
+\newcommand{\eit}{\end{itemize}}
+\newcommand{\bdm} {\begin{displaymath}}
+\newcommand{\edm} {\end{displaymath}}
+
+% Probability (general)
+\newcommand{\prob}{\mathsf{Prob}}
+\newcommand{\borel}{\mathscr{B}}
+\newcommand{\ave}{\mathsf{E}}
+\newcommand{\GM}[2]{\mathcal{N}\!\left( {#1}, {#2}\right)}
+
+% Bayesian stuff
+
+\newcommand{\noisem}{\mu_{\text{noise}}}
+\newcommand{\obs}{\vec{d}}
+\newcommand{\ipar}{m}
+
+\newcommand{\iparpr}{m_{\text{pr}}}
+\newcommand{\iparref}{m_{\text{ref}}}
+\newcommand{\iparmap}{m_{\scriptscriptstyle\text{MAP}}}
+\newcommand{\dpar}{\vec{m}}
+\newcommand{\dparmap}{\vec{m}_{\scriptscriptstyle\text{MAP}}}
+%\newcommand{\priorm}{\mu_{\text{pr}}}
+%\newcommand{\postm}{\mu_{\text{post}}}
+\newcommand{\M}{\mat{M}}% the Mass matrix
+%\newcommand{\ff}{\vec{f}}     % parameter-to-obs MAP
+\newcommand{\ff}{\mathcal{F}} % parameter-to-obs MAP
+\newcommand{\aff}{\tilde{\mathcal{F}}} % parameter-to-obs MAP
+\newcommand{\noise}{\bs e}
+\newcommand{\observables}{\bs d}
+\newcommand{\data}{ \observables_{\rm{obs}} }
+\newcommand{\uobs}{ \uu_{\rm{obs}} }
+\newcommand{\datacomponent}[1]{ \observables_{\rm{obs}}^{#1} }
+\newcommand{\FF}{{\ensuremath{\mat{F}}}}
+\newcommand{\W}{{\ensuremath{\mat{W}}}}
+\newcommand{\I}{{\ensuremath{\mat{I}}}}
+
+\newcommand{\prior} {\pi_{\mbox{\tiny prior}}}
+\newcommand{\like}{\pi_{\mbox{\tiny like}}}
+\newcommand{\piobs}{\pi_{\mbox{\tiny obs}}}
+\newcommand{\post}{\pi_{\mbox{\tiny post}}}
+\newcommand{\pinoise}{\pi_{\mbox{\tiny noise}}}
+
+\newcommand{\mupost}{\mu_{\mbox{\tiny post}}}
+\newcommand{\muprior}{\mu_{\mbox{\tiny prior}}}
+
+\newcommand{\ncov} {\bs{\Gamma}_{\!\mbox{\tiny noise}} }
+\newcommand{\prcov} {\bs{\Gamma}_{\!\mbox{\tiny prior}} }
+\newcommand{\postcov} {\bs{\Gamma}_{\!\mbox{\tiny post}} }
+\newcommand{\aFF}{{\tilde{\ensuremath{\mat{F}}}}}
+\newcommand{\ncovw} {\bs{W}}
+\newcommand{\prcovr} {\bs{R}}
+
+\newcommand{\Cprior}{\mathcal{C}_{\text{\tiny{prior}}}}
+\newcommand{\Cpost}{\mathcal{C}_{\text{\tiny{post}}}}
+
+\newcommand{\map} {{m}_{\mbox{\tiny MAP}} }
+\newcommand{\dmap} {{\vec{m}}_{\mbox{\tiny MAP}} }
+\newcommand{\mpr} {{\vec{m}}_{\mbox{\tiny pr}} }
+\newcommand{\dbeta}{\vec{\beta}}
+\newcommand{\dn}{\vec{n}}
+
+
+
+\newcommand{\Hpost}  { \bs H }
+\newcommand{\Hmisfit}{ \mat{H}_{\mbox{\tiny misfit}} }
+\newcommand{\tHmisfit}{\tilde{\mat{H}}_{\mbox{\tiny misfit}} }
+\newcommand{\HT}{\matrix{\tilde{H}}_{\mbox{\tiny misfit}}}
+\newcommand{\HTinf}{\tilde{H}_{\text{misfit}}}
+\newcommand{\Vr} {\bs V_r}
+\newcommand{\Dr} {\bs D_r}
+\newcommand{\Ir} {\bs I_r}
+
+%\newcommand{\Ge}{ \ensuremath{\matrix{G}}_{\!\mbox{\tiny e}}}
+%\newcommand{\Op}{ \ensuremath{\matrix{O}}_{\!\mbox{\tiny p}}}
+\newcommand{\Ge}{ \mathcal{G}_{\!\mbox{\tiny e}}}
+\newcommand{\Op}{ \mathcal{O}_{\!\mbox{\tiny p}}}
+\newcommand{\HH}{ \ensuremath{\matrix{H}} }
+\newcommand{\SI}{ \ensuremath{{\Sigma}} }
+\newcommand{\PP}{ \ensuremath{\matrix{\Psi}} }
+%\newcommand{\WW}{ \ensuremath{\matrix{W}} }
+\newcommand{\WW}{ \mathcal{W}}
+
+% Macros for three different forms of adjoint operator
+\newcommand{\adjMacroMM}[1]{{#1}^*}
+\newcommand{\adjMacroME}[1]{{#1}^\natural}
+\newcommand{\adjMacroEM}[1]{{#1}^\diamond}
+\newcommand{\adjMacroEMINV}[1]{{#1}^{-\diamond}}
+\newcommand{\Aadj}{\adjMacroMM{\A}}
+\newcommand{\Badj}{\adjMacroMM{\BB}}
+\newcommand{\iFadj}{\adjMacroME{\iF}}
+\newcommand{\Fadj}{\adjMacroME{\F}}
+\newcommand{\Vadj}{\adjMacroEM{\VV}}
+\newcommand{\Ladj}{\adjMacroEM{\L}}
+
+\def\bfG{\mbox{\boldmath$G$}}
+\newcommand{\mc}[1]{\mathcal{#1}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% custom commands to the sc14 paper
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\SNR}{\ensuremath{\text{SNR}}}
+
+\newcommand{\gbf}[1]{\boldsymbol{#1}}
+\newcommand{\bs}[1]{\ensuremath{\boldsymbol{#1}}}
+
+\newcommand{\edot}{\dot{\gbf{\varepsilon}}}
+\newcommand{\edotsec}{\edot_\mathrm{II}}
+\newcommand{\secinve}{\edot_\mathrm{II}}
+
+\DeclareMathOperator{\sym}{sym}
+%\DeclareMathOperator{\trace}{tr}
+%\DeclareMathOperator{\diag}{diag}
+
+\newcommand{\Div}{\mbox{div}}
+\newcommand{\Grad}{{\bf \nabla}}
+\newcommand{\grad}{\nabla}
+
+\newcommand{\pt}{\tilde{p}}
+\newcommand{\vt}{\tilde{\vv}}
+\newcommand{\qt}{\tilde{q}}
+\newcommand{\betat}{\tilde{\beta}}
+
+\newcommand{\uh}{\hat{\uu}}
+\newcommand{\ph}{\hat{p}}
+\newcommand{\vh}{\hat{\vv}}
+\newcommand{\qh}{\hat{q}}
+\newcommand{\betah}{\hat{\beta}}
+
+\renewcommand{\vec}[1]{\gbf{#1}}
+\newcommand{\cvec}[1]{{#1}}
+
+\newcommand{\uu}{\ensuremath{\vec{u}}}
+\newcommand{\vv}{\ensuremath{\vec{v}}}
+
+\definecolor{darkblue}{rgb}{.1,.1,.9}
+\definecolor{utorange}{rgb}{0.8,0.33,0.}
+% this are only needed for presentations
+\newcommand{\tcb}[1]{\textcolor{blue}{{#1}}}
+\newcommand{\tcdb}[1]{\textcolor{utorange}{{#1}}}
+\newcommand{\tcr}[1]{\ensuremath{\textcolor{red}{{#1}}}}
+\newcommand{\tcdr}[1]{\textcolor{darkred}{{#1}}}
+\newcommand{\tcm}[1]{\textcolor{ForestGreen}{{#1}}}
+\newcommand{\tcmag}[1]{\textcolor{magenta}{{#1}}}
+\newcommand{\tco}[1]{\textcolor{VioletRed}{{#1}}}
+\newcommand{\tcc}[1]{\textcolor{cyan}{{#1}}}
+\newcommand{\dg}[1]{\textcolor{black!65!green}{{#1}}}
+\newcommand{\tcg}[1]{\textcolor{blue!70!black!30!green}{{#1}}}
+\newcommand{\tcdg}[1]{\textcolor{blue!20!black!50!green}{{#1}}}
+\newcommand{\tcch}[1]{\textcolor{cyan}{\hat{{#1}}}}
+\newcommand{\tcmhb}[1]{\textcolor{magenta}{\hat{\gbf{{#1}}}}}
+\newcommand{\tcmh}[1]{\textcolor{magenta}{\hat{{#1}}}}
+\newcommand{\tcbb}[1]{\textcolor{blue}{\gbf{{#1}}}}
+\newcommand{\tcgb}[1]{\textcolor{grass}{\gbf{{#1}}}}
+\newcommand{\tcct}[1]{\textcolor{cyan}{\tilde{{#1}}}}
+\newcommand{\tcmtb}[1]{\textcolor{magenta}{\tilde{\gbf{{#1}}}}}
+\newcommand{\tcmt}[1]{\textcolor{magenta}{\tilde{{#1}}}}
+\newcommand{\tcotb}[1]{\textcolor{utorange}{\tilde{\gbf{{#1}}}}}
+\newcommand{\tcot}[1]{\textcolor{utorange}{\tilde{{#1}}}}
+\newcommand{\tcohb}[1]{\textcolor{utorange}{\hat{\gbf{{#1}}}}}
+\newcommand{\tcoh}[1]{\textcolor{utorange}{\hat{{#1}}}}
+
+\renewcommand{\matrix}[1] {\ensuremath{\boldsymbol{#1}}}
+
+\newcommand{\bndFS}{\Gamma_{\!\mbox{\scriptsize $FS$}}}
+\newcommand{\bndB}{\Gamma_{\!\mbox{\scriptsize $B$}}}
+\newcommand{\bndT}{\Gamma_{\!\mbox{\scriptsize $T$}}}
+
+\usepackage{xspace}
+\newcommand{\software}[1]{\texttt{#1}\xspace}
+\newcommand{\hip}{\texttt{hIPPYlib}\xspace}
+\newcommand{\bhip}{\texttt{{\bf hIPPYlib}}\xspace}
+\newcommand{\Fe}{\texttt{FEniCS}\xspace}
+\newcommand{\pet}{\texttt{PETSc}\xspace}
+
+
+\newcommand{\del}{\partial}
+%\newcommand{\D}{\mathcal{D}}
+\newcommand{\Ns}{{N_s}}
+\newcommand{\Ntau}{{N_{\tau}}}
+\newcommand{\iFF}{\mathcal{F}}
+%\newcommand{\priorm}{\muprior}
+\newcommand{\Acal}{\mc{A}}
+%\newcommand{\postm}{\mupost}
+\newcommand{\iparpost}{\ipar_\text{post}}
+\newcommand{\dd}{\vec{\bar{d}}}
+\newcommand{\obsop}{\mathcal{B}}
+
+\newcommand{\GN}{\ensuremath{\Gamma_{\!\!N}}}
+\newcommand{\Exp}[1]{e^{{#1}}}
+\newcommand{\GD}{\ensuremath{\Gamma_{\!\!D}}}
+\newcommand{\Vg}{\mathscr{V}_{\!g}}
+\newcommand{\V}{\mathscr{V}_{\!\scriptscriptstyle{0}}}
+\newcommand{\eip}[2]{\left\langle{#1}, {#2}\right\rangle_{\!{\R^q}}}
+\newcommand{\Wn}{\mat{W}_{\!\sigma}}
+\newcommand{\cip}[2]{\left\langle{#1}, {#2}\right\rangle_{\!\CM}}
+\newcommand{\CM}{\mathscr{E}}
+\newcommand{\LI}{\mathscr{L}}
+\renewcommand{\H}{\mathcal{H}}
+\newcommand{\Nd}{{n_{\text{d}}}}
+\newcommand{\Ntr}{{n_{\text{tr}}}}
+\newcommand{\ipart}{m_{\scriptscriptstyle\text{true}}}
+\newcommand{\ut}[1]{\ensuremath{\tilde{#1}}}
+
+\newcommand{\LRp}[1]{\left( #1 \right)}
+\newcommand{\LRs}[1]{\left[ #1 \right]}
+\newcommand{\LRa}[1]{\left< #1 \right>}
+\newcommand{\LRc}[1]{\left\{ #1 \right\}}
+
+\newcommand{\xx}{\ensuremath{\boldsymbol x}}
+\newcommand{\rr}{\ensuremath{\boldsymbol r}}
+\newcommand{\e}{\ensuremath{\boldsymbol e}}
+\newcommand{\x}{\xx}
+\newcommand{\y}{\ensuremath{\boldsymbol y}}
+\newcommand{\z}{\ensuremath{\boldsymbol z}}
+\renewcommand{\r}{\ensuremath{\boldsymbol r}}
+\newcommand{\s}{\ensuremath{\boldsymbol s}}
+
+\newcommand{\hilb}{\mathscr{H}}
+\newcommand{\half} {\ensuremath{\frac{1}{2}}}
+\newcommand{\nor}[1]{\left\| #1 \right\|}
+\newcommand{\equaldef}{{:=}}
+\newcommand{\iFFadj}{\adjMacroMM{\iFF}}
+
+\newcommand{\istate}{u}
+\newcommand{\iparspace}{\mathcal{M}}
+\newcommand{\iadj}{p}
+\DeclareMathOperator*{\argmin}{argmin} 
+\DeclareMathOperator{\diag}{diag} 
+
+
+\newcommand{\err}{\vec{\eta}}
+\newcommand{\beps}{\bs{\eps}}
+\newcommand{\bbeps}{\bar{\bs{\eps}}}
+\newcommand{\bnu}{\bs{\nu}}
+\newcommand{\ncovbeps} {\bs{\Gamma}_{\!\mbox{\tiny \beps}} }
+\newcommand{\ncovbnu} {\bs{\Gamma}_{\!\mbox{\tiny \bnu}} }
+\newcommand{\norm}[2][]{\left\Vert #2\right\Vert_{#1}}
+\newcommand{\dbetamap}{\vec{\beta}_{\scriptscriptstyle\text{MAP}}}
+\newcommand{\betamap}{{\beta}_{\scriptscriptstyle\text{MAP}}}
+\newcommand{\smallB}{\scriptscriptstyle\text{B}}
+\definecolor{lightblue}{cmyk}{0.88,0.44,0,0.07}
+\newcommand{\betapr}{\beta_{\text{pr}}}
+\newcommand{\ntrue}{a_{\scriptscriptstyle\text{true}}}
+\newcommand{\NoiseForcing}{\xi}
+\newcommand{\ProbMeasClass}{\mathcal{P}}
+\newcommand{\ProbMeas}{\mathbbm{P}}
+\newcommand{\SigmaAlg}{F}
+
+\newcommand{\Hmatrix}{\bs{H}}
