@@ -262,36 +262,36 @@
 \end{frame}
 
 
-\begin{frame}
+\begin{frame}[t]
 	\frametitle{Outline}
-	TODO: edit!!!
 	
 	\begin{itemize}
+		\setlength\itemsep{1.0em}
 		\item Motivation
 		\vspace{0.02in}
 		\begin{itemize}
-			\item Why we need predictive models with quantified uncertainties
-			to accurately anticipate future sea level rise?
+			\setlength\itemsep{1.0em}
+			\item Predictive continental scale ice sheet models for anticipating future sea level rise with quantified uncertainties
 			\vspace{0.02in}
-			\item Why we need more efficient approximations of high rank
-			Hessians?
+			\item The need to go beyond ``low rank'' Hessian approximations
 		\end{itemize}
+		%\vspace{0.02in}
+		%\item Bayesian inverse problems governed by PDEs (preliminaries)
 		\vspace{0.02in}
-		\item Bayesian inverse problems governed by PDEs (preliminaries)
-		\vspace{0.02in}
-		\item Exploiting low-dimensional structure in Bayesian inverse problems governed by PDEs
+		\item Exploiting structured low-rank properties of (Bayesian) inverse problems governed by PDEs
 		\vspace{0.02in}
 		\begin{itemize}
+			\setlength\itemsep{1.0em}
 			\item (Global) low rank approximation
 			\vspace{0.02in}
 			\item Hierarchical off-diagonal low rank (HODLR) approximation
 			\vspace{0.02in}
-			\item Point spread function approximation combined with
-			hierarchical matrix (H-matrix) approximation
+			\item A local point spread function method as a means for efficient
+			$\mathcal{H}$ierarchical-matrix approximation
 		\end{itemize}
 		\vspace{0.02in}
 		\item Example: Inversion for the basal friction
-		coefficient in an ice sheet flow problem
+		coefficient field in an ice sheet flow problem
 		\vspace{0.02in}
 		\item Conclusions
 	\end{itemize}
@@ -466,7 +466,7 @@
 				\vspace{0.1in}
 				where $\bs{V}_r$ and $\bs{\Lambda}_r$ are the eigenvectors/values of
 				%  the eigenvalue problem 
-				$\Hmisfit \bs{v}_i = \lambda_i \prcov^{-1} \bs{v}_i $
+				$\prcov^{\top/2}\Hmisfit\prcov^{1/2}$
 				%, \bs{\Lambda}_r = \diag(\lambda_i)_{i=1}^r$
 				%  are truncated
 				%  generalized eigenvectors of the data misfit
@@ -648,7 +648,7 @@
 					\end{scope}
 					\end{scope}
 					\end{tikzpicture}
-					\caption{HODLR matrix partition structure}
+					\caption{HODLR matrix structure}
 				\end{figure} 
 			}
 			
@@ -672,34 +672,43 @@
 \end{frame}
 
 %% -------------------------------------------------------------------
-\begin{frame}
+\begin{frame}[t]
 	\frametitle{Hierarchical ($\mathcal{H}$-) matrices}
 	\framesubtitle{Construction from matrix-free operators}
+	\begin{columns}
+	\begin{column}{0.59\columnwidth}
 	\begin{itemize}
-		\setlength\itemsep{1.5em}
-		\item<1-> Classic methods for building $\mathcal{H}$-matrices \only<9>{\textbf{\underline{require the evaluation of matrix entries}}}\only<1-8>{require the evaluation of matrix entries} $\bs{H}_{i,j}$
+		\setlength\itemsep{1.0em}
+		\item<1-> Classic methods for building $\mathcal{H}$-matrices \\ \only<8>{\textbf{\underline{require evaluation of matrix entries}}}\only<1-7>{require evaluation of matrix entries} $\bs{H}_{i,j}$
 		\item<2-> Purely algebraic methods based on \textit{peeling} can generate $\mathcal{H}$-matrices of matrix-free operators via the application of specially chosen (e.g., random) vectors
-		
 		{\scriptsize{P.G. Martinsson.
 			{\em Compressing rank-structured matrices via randomized sampling},
 			SIAM Journal on Scientific Computing, (2016).}
 		}
+	\end{itemize}
 		%\begin{itemize}
 		%	\item {\scriptsize T. Hartland, G. Stadler, M. Perego, K. Li\'{e}geois and N. Petra. \emph{Hierarchical off-diagonal approximation of Hessians in inverse problems}. To be submitted.}
 		%	\item Tucker Hartland is giving a talk about this later
 		%	\item 3:00-3:25 Thursday, MS140, Room: Augusta F - 7th Floor
 		%\end{itemize} 
+\end{column}
+\begin{column}{0.4\columnwidth}
+\begin{figure} 
+\begin{center} 
+\includegraphics[scale=0.16]{Hmatrix_Structure.png}
+\caption{$\mathcal{H}$-matrix structure}
+\end{center}
+\end{figure} 
+\btVFill
+\end{column}
+\end{columns}
+\begin{itemize}
+	%\vspace{0.1in}
 		\item<3-> \alert{Challenge:} peeling process can be better than low rank, but \textbf{still expensive} \onslide<4->{and expense grows with the complexity of hierarchical matrix partitioning}
-		\item<5-> \alert{Approach:} speed up the $\mathcal{H}$-matrix construction by
-		exploiting the following problem structure
-		\begin{itemize}
-			\vspace{0.1in}
-			\setlength\itemsep{0.5em}
-			\item<6-> \textbf{Localized sensitivities}
-			\item<7-> \textbf{Scaled local mean-displacement invariance}
-			\item<8-> \textbf{Non-negative impulse responses}
-		\end{itemize}
-	\end{itemize}
+\item<5-> \alert{Approach:} speed up the $\mathcal{H}$-matrix construction by
+exploiting additional problem structure: \only<6->{\textbf{localized sensitivities}} \only<7->{and (local mean-)\textbf{displacement invariance}}
+\end{itemize}
+
 \end{frame}
 
 
@@ -709,7 +718,7 @@
 	\begin{center}
 		\textbf{Impulse response $\phi_x$:}
 		\begin{align*}
-		\phi_x := H_d~ \delta_x =& \text{ action of Hessian operator on delta distribution at x} \\
+		\phi_x := H_{\text{\tiny misfit}}~ \delta_x =& \text{ action of data-misfit Hessian operator on delta distribution at x} \\
 		\mu(x) :=& \text{ center of mass (mean) of }\phi_x
 		\end{align*}
 		
@@ -727,7 +736,43 @@
 \end{frame}
 
 
-\begin{frame}
+\begin{frame}[t]
+	\frametitle{Framework for approximate Hessian entry evaluation}
+	\framesubtitle{Illustration of framework by impulse response local-translation invariance}
+	\only<1-2>{
+		Consider
+		\begin{align*}
+		\bs{v}^{\top}\bs{K}\bs{u}&=a(u,v):=
+		\int_{\Omega}\bs{\nabla}u\cdot\bs{\nabla}v\mathrm{d}x
+		\end{align*}
+	}
+	\begin{align*}
+	\onslide<2->{\bs{v}^{\top}\Hmisfit\bs{u}=
+		(H_{\text{\tiny misfit}}\,u)(v)&:=
+		\int_{\Omega}\int_{\Omega}v(y)\,\Phi(y,x)\,u(x)\mathrm{d}x\,\mathrm{d}y \\}
+	\onslide<3->{\Phi(y,x)&\approx \Phi(y+s,x+s) \text{ for small } s \quad\quad (\text{local-translation invariance}) \\}
+	\onslide<4->{\underbrace{{\color<6->{teal}{\phi_{x}}}(y)}_{\text{impulse response}}&:=\Phi(y,x)=({\color<7->{magenta}{H_{\text{\tiny misfit}}\,\delta_{x}^{*}}})^{*}\footnotemark\\}
+	\onslide<5->{
+		\implies \color<5->{purple}{(H_{\text{\tiny misfit}}u)(v)}&\approx 
+		\int_{\Omega}v(y)\left(\sum_{i}\int_{\Omega_{i}}{\color<6->{teal}{\phi_{x_{i}^{\prime}}}}(y-x+x_{i}^{\prime})u(x)\mathrm{d}x\right)\mathrm{d}y}	
+	\end{align*}
+	\only<4->
+	{%
+		\footnotetext[1]{$\phantom{e}^{*}$ indicates the Riesz representative, that is $\ell^{*}\in L^{2}(\Omega)$ is the Riesz representative of a linear functional $\ell: L^{2}(\Omega)\rightarrow\mathbb{R}$, provided $\ell(w)=(\ell^{*},w)_{L^{2}(\Omega)}$ for each $w\in L^{2}(\Omega)$. $\delta_{x}$ indicates the Dirac distribution with mass concentrated at $x$.}   
+	}
+	\only<5->
+	{%
+		\begin{itemize}
+			\item[$\star$] \textbf{Key idea:} \only<5->{approximate {\color<5->{purple}{Hessian entries}}} \only<6->{by interpolating a fixed number of {\color{teal}{impulse response functions}},} 
+			\only<7->
+			{each of which is determined by one {\color{magenta}{Hessian-apply}}.}
+		\end{itemize}
+	}
+	
+\end{frame}
+
+
+\begin{frame}[t]
 	\frametitle{Hessian impulse responses (Pine Island Glacier)}
 	\center
 	\only<1>{
@@ -1089,81 +1134,46 @@
 	\end{center}
 \end{frame}
 
-\begin{frame}[t]
-	\frametitle{Framework for approximate Hessian entry evaluation}
-	\framesubtitle{Illustration of framework by impulse response local-translation invariance}
-	\only<1-2>{
-		Consider
-		\begin{align*}
-		\bs{v}^{\top}\bs{K}\bs{u}&=a(u,v):=
-		\int_{\Omega}\bs{\nabla}u\cdot\bs{\nabla}v\mathrm{d}x
-		\end{align*}
-	}
-	\begin{align*}
-	\onslide<2->{\bs{v}^{\top}\Hmisfit\bs{u}=
-		(H_{\text{\tiny misfit}}\,u)(v)&:=
-		\int_{\Omega}\int_{\Omega}v(y)\,\Phi(y,x)\,u(x)\mathrm{d}x\,\mathrm{d}y \\}
-	\onslide<3->{\Phi(y,x)&\approx \Phi(y+s,x+s) \text{ for small } s \quad\quad (\text{local-translation invariance}) \\}
-	\onslide<4->{\underbrace{{\color<6->{teal}{\phi_{x}}}(y)}_{\text{impulse response}}&:=\Phi(y,x)=({\color<7->{magenta}{H_{\text{\tiny misfit}}\,\delta_{x}^{*}}})^{*}\footnotemark\\}
-	\onslide<5->{
-		\implies \color<5->{purple}{(H_{\text{\tiny misfit}}u)(v)}&\approx 
-		\int_{\Omega}v(y)\left(\sum_{i}\int_{\Omega_{i}}{\color<6->{teal}{\phi_{x_{i}^{\prime}}}}(y-x+x_{i}^{\prime})u(x)\mathrm{d}x\right)\mathrm{d}y}	
-	\end{align*}
-	\only<4->
-	{%
-		\footnotetext[1]{$\phantom{e}^{*}$ indicates the Riesz representative, that is $\ell^{*}\in L^{2}(\Omega)$ is the Riesz representative of a linear functional $\ell: L^{2}(\Omega)\rightarrow\mathbb{R}$, provided $\ell(w)=(\ell^{*},w)_{L^{2}(\Omega)}$ for each $w\in L^{2}(\Omega)$. $\delta_{x}$ indicates the Dirac distribution with mass concentrated at $x$.}   
-	}
-	\only<5->
-	{%
-		\begin{itemize}
-			\item[$\star$] \textbf{Key idea:} \only<5->{approximate {\color<5->{purple}{Hessian entries}}} \only<6->{by interpolating a fixed number of {\color{teal}{impulse response functions}},} 
-			\only<7->
-			{each of which is determined by one {\color{magenta}{Hessian-apply}}.}
-		\end{itemize}
-	}
-	
-\end{frame}
+
 
 %---------------------------------------------------------------------------------%
-\begin{frame}
+\begin{frame}[t]
 	\frametitle{Hessian approximation method: big idea}
 	\begin{itemize}
 		\item {\bf Step 1:} Compute ``batches'' of impulse responses by applying Hessian to Dirac combs
 		\item {\bf Step 2:} Interpolate known impulse responses to approximate unknown Hessian entries $\mathbf{H}_{ij}$
-		\item {\bf Step 3:} Convert to $\mathcal{H}$-matrix to do linear algebra
+		\item {\bf Step 3:} Convert to $\mathcal{H}$-matrix to do linear algebra (with low computational complexity)
 	\end{itemize}
-	\includegraphics[width=0.45\columnwidth]{impulse_batch1.png}  \includegraphics[width=0.45\columnwidth]{impulse_batch2.png}
+    \begin{figure} 
+	\includegraphics[width=0.375\columnwidth]{impulse_batch1.png} \hfil  
+	\includegraphics[width=0.375\columnwidth]{impulse_batch2.png}
+	\end{figure} 
 	*Impulse response batches from Ice Mountain
 \end{frame}
 %---------------------------------------------------------------------------------%
+
 %---------------------------------------------------------------------------------%
-\begin{frame}
-	\frametitle{Technical details}
-	{\Large
-		\begin{itemize}
-			\setlength\itemsep{2em}
-			\item How do we choose the impulse response points?
-			\begin{itemize}
-				\item {\large How do we make sure they don't overlap?}
-			\end{itemize}
-			\item How do we interpolate the impulse responses? 
-			\begin{itemize}
-				\item {\large What about boundary issues?}
-			\end{itemize}
-		\end{itemize}
-	}
-\end{frame}
-%---------------------------------------------------------------------------------%
-\begin{frame}
+\begin{frame}[t]
 	\frametitle{How to choose impulse response points?}
-	One hessian matrix-vector product $\rightarrow$ many impulse responses
-	\begin{center}
-		\includegraphics[width=0.5\columnwidth]{impulse_batch2.png} 
-	\end{center}
-	\begin{itemize}
-		\item \textbf{Goal:} choose as many points as possible, such that the impulse response supports don't overlap
-		\item \textbf{Dilemma:} How can we know the impulse response supports before we compute them?
-	\end{itemize}
+	
+	\begin{columns}
+		\begin{column}{0.5\columnwidth}
+			One Hessian-vector product can yield many impulse responses (with small region of support)
+		\begin{center}
+			\includegraphics[width=0.75\columnwidth]{impulse_batch2.png} 
+		\end{center}
+	    \end{column}
+    \begin{column}{0.49\columnwidth}
+    	\only<2>
+    	{ 
+		\begin{itemize}
+			\item \textbf{Goal:} determine as many points as possible, such that the associated impulse response supports do not overlap
+			\item \textbf{Dilemma:} how can we know the impulse response supports before we compute them?
+		\end{itemize}
+	    }
+	\end{column} 
+	\end{columns}
+
 \end{frame}
 %---------------------------------------------------------------------------------%
 \begin{frame}
@@ -1171,7 +1181,7 @@
 	
 	\textbf{Matrix:} let $\mathbf{A} \in \mathbb{R}^{N \times N}$. Then
 	
-	$$\mathbf{A}^T \begin{bmatrix}
+	$$\mathbf{A}^{\top} \begin{bmatrix}
 	1 \\ 1 \\ \vdots \\ 1
 	\end{bmatrix} = \begin{bmatrix}
 	\text{sum of }\mathbf{A} \text{ col }1 \\
@@ -1180,16 +1190,16 @@
 	\text{sum of }\mathbf{A} \text{ col }N
 	\end{bmatrix}$$
 	
-	Apply matrix to vector of ones $\rightarrow$ get row sums for all rows
+	Sum of each row obtained by transpose apply to vector of ones
 	
 	\vspace{3em}
 	
 	\textbf{Operator:} let $C(x)=1$ be the constant function. Then 
 	
-	$$(H_d^T C)^*(y) = \int_\Omega \left(H_d \delta_y\right)(x) dx$$
+	$$(H_{\text{\tiny misfit}}^{\dagger} C)^*(y) = \int_\Omega \left(H_{\text{\tiny misfit}} \delta_y\right)(x) \,\mathrm{d}x=\int_{\Omega}\phi_{y}(x)\,\mathrm{d}x$$
 	
 	
-	Apply Hessian to constant function $\rightarrow$ get volumes of every impulse response
+	Volume of each impulse response obtained by adjoint Hessian operator apply to constant function
 \end{frame}
 %---------------------------------------------------------------------------------%
 \begin{frame}
@@ -1205,11 +1215,12 @@
 		\end{equation*}
 		\item Then
 		\begin{align*}
-		V =& \left(H_d^T C\right)^* \\
-		\mu^i =& \left(H_d^T L^i\right)^* / V \\
-		\Sigma^{ij} =& \left(H_d^T Q^{ij}\right)^* / V - \mu^i\cdot \mu^j
+		V =& \left(H_{\text{\tiny misfit}}^{\dagger} C\right)^* \\
+		\mu^i =& \left(H_{\text{\tiny misfit}}^{\dagger} L^i\right)^* / V \\
+		\Sigma^{ij} =& \left(H_{\text{\tiny misfit}}^{\dagger} Q^{ij}\right)^* / V - \mu^i\cdot \mu^j
 		\end{align*}
-		\item Apply Hessian to constant, linear, and quadratic functions $\rightarrow$ get estimates of support for every impulse response
+		\item Estimates of impulse response supports obtained from 
+		first few moments (adjoint Hessian apply to constant, linear, and quadratic functions)
 	\end{itemize}
 	
 \end{frame}
@@ -1225,33 +1236,22 @@
 		\item Pack ellipsoids using \textbf{greedy algorithm}
 	\end{itemize}
 	\begin{center}
-		\includegraphics[width=0.5\columnwidth]{impulse_batch2.png} 
+		\includegraphics[width=0.375\columnwidth]{impulse_batch2.png} 
 	\end{center}
 \end{frame}
 
-
-\begin{frame}
-	\frametitle{Radial basis function interpolation}
-	\begin{center}
-		\includegraphics[width=0.8\textwidth]{interpolation_rbf.pdf}
-	\end{center}
-	\begin{itemize}
-		\item Interpolate impulse responses using polyharmonic spline radial basis functions.
-		\item Use only $k$-nearest neighbors (must solve $k \times k$ linear system)
-	\end{itemize}
-\end{frame}
 
 \begin{frame}
 	\frametitle{Computational cost}
 	\begin{itemize}
 		\setlength\itemsep{2em}
 		\item \textbf{Hessian-vector products:} 
-		$$6 + n_\text{batches}$$
-		E.g., $11$ Hessian-vector products for $5$ batches of impulse responses
+		$$1+\text{dim}(\Omega)(\text{dim}(\Omega)+3)/2 + n_\text{batches}$$
+		E.g., $11$ Hessian-vector products for $5$ batches of impulse responses and $\text{dim}(\Omega)=2$
 		\item \textbf{Ellipsoid intersection tests:}
 		$$O(Nm)$$
 		where $m$ is total number of impulse responses in all batches
-		\item \textbf{Elementary operations} to build and use the H-matrix:
+		\item \textbf{Elementary operations} to build and use the $\mathcal{H}$-matrix:
 		$$O(N \log N)$$ 
 	\end{itemize}
 \end{frame}
@@ -1361,7 +1361,7 @@
 \end{frame}
 %---------------------------------------------------------------------
 \begin{frame}
-	\frametitle{Example: Ice sheet inverse problem}
+	\frametitle{Example: ``Ice mountain'' inverse problem}
 	
 	\begin{figure}
 		%[width=0.8\columnwidth]
@@ -1378,7 +1378,7 @@
 \end{frame}
 %---------------------------------------------------------------------
 \begin{frame}
-	\frametitle{Example: Ice sheet inverse problem}
+	\frametitle{Example: ``Ice mountain'' inverse problem}
 	\framesubtitle{Convergence history for solving the Stokes inverse problem using inexact Newton PCG}
 	
 	\only<1>{
@@ -1508,8 +1508,8 @@
 	\footnotesize
 	\begin{itemize}
 		\item \#CG:  the number of PCG iterations used to solve the Newton system.
-		\item \#Stokes:the total number of Stokes PDE solves performed in each Newton iteration.
-		\item $\|\mathbf{g}\|$: the $l^2$ norm of the gradient.
+		\item \#Stokes: the total number of Stokes PDE solves performed in each Newton iteration.
+		\item $\|\mathbf{g}\|$: the Euclidean norm of the gradient.
 	\end{itemize}
 \end{frame}
 %---------------------------------------------------------------------
@@ -1574,9 +1574,9 @@
 		\vspace{0.05in}
 		\item Low-rank approximations of the Hessian become
 		prohibitive as the data becomes more informative, as is the case
-		for ice sheet inverse problems.
+		for continental-scale ice sheet inverse problems.
 		\vspace{0.05in}
-		\item Local point spread function interpolation combined with Hierarchical matrix representations promise a more efficient
+		\item Local point spread function interpolation combined with hierarchical matrix representations promise a more efficient
 		Hessian approximation.
 	\end{itemize}
 	\vspace{2em}
